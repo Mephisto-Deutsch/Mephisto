@@ -251,6 +251,20 @@ html.nomotion .fc{transition:none}
 .sheet .in{max-width:720px;margin:0 auto;display:grid;gap:.55rem}
 .sheet .hw{font-family:var(--display);font-size:1.6rem;font-weight:600}
 .sheet[hidden]{display:none}
+.w.xl-on{background:color-mix(in srgb,var(--accent) 26%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 26%,transparent);border-radius:3px;color:var(--fg)}
+.de.xl-blk .w{font:inherit}
+.xl-de{font-family:var(--display);font-size:1.32rem;font-weight:600;line-height:1.3;text-wrap:pretty}
+.xl-en{font-size:1.1rem;line-height:1.45;padding:.55rem .75rem;border-left:3px solid var(--accent);background:color-mix(in srgb,var(--accent) 8%,transparent);border-radius:0 10px 10px 0}
+.xl-lit-h{margin-top:.2rem}
+.xl-lit{display:flex;flex-wrap:wrap;gap:.35rem;max-height:34vh;overflow:auto}
+.xl-w{display:grid;justify-items:center;gap:.05rem;padding:.3rem .5rem;min-height:44px;border-radius:10px;background:var(--bg);border:1px solid var(--line);font:inherit;color:inherit;cursor:pointer}
+.xl-w b{font-family:var(--body);font-weight:600;font-size:1rem}
+.xl-w small{font-family:var(--ui);font-size:.74rem;color:var(--muted);max-width:9.5rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xl-w small.unk{opacity:.5}
+.xl-lit-en{font-style:italic}
+.xl-lit-en:empty,.xl-note:empty{display:none}
+.row.wrap{flex-wrap:wrap}
+
 /* dialogue */
 .dl{display:grid;gap:.55rem}
 .turn{display:grid;gap:.15rem;padding:.65rem .9rem;border-radius:16px 16px 16px 4px;background:var(--sunk);max-width:92%;justify-self:start}
@@ -3026,7 +3040,7 @@ ACT.saveYuzu=async()=>{const p=yuzuPack();const r=await saveFile("mephisto-core.
 ACT.copyYuzu=()=>{const p=yuzuPack();copyText(JSON.stringify(p),$(".bk-txt"));toast(p.cards.length+" Karten")};
 ACT.reset=()=>{const v=($(".rs-in")||{}).value;if(v!=="LÖSCHEN")return toast("Tippe LÖSCHEN zur Bestätigung");lsSet("mephisto_before_reset",JSON.stringify(S));S=fresh();saveNow();buildDict();applyPrefs();R.tab="home";toast("Zurückgesetzt. Eine Kopie liegt unter „mephisto_before_reset“.");rerender()};
 // ================= PHONE FEATURES (v10): speech check, Artikel-Blitz, numbers, terms, undo, haptics, coach, PWA =================
-const APP_VERSION="10.0";
+const APP_VERSION="10.1";
 const IS_PWA=!!window.MEPHISTO_PWA;
 const IS_STANDALONE=(()=>{try{return matchMedia("(display-mode: standalone)").matches||navigator.standalone===true}catch(e){return false}})();
 const IS_IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
@@ -3185,6 +3199,85 @@ function meHistory(el){const t=todayKey();const days=[];for(let i=27;i>=0;i--)da
 ACT.exportLog=async()=>{const rows=[["Datum","Zeit","Typ","Eintrag","Wert"]].concat((S.events||[]).map(e=>[fmtDate(e.d),e.t,e.type,e.text,e.val==null?"":e.val]));const days=Object.keys(S.log).sort().map(k=>{const L=S.log[k];return [fmtDate(k),minutesOn(k),L.rev||0,L.ok||0,L.new||0,L.les||0,L.read||0,L.write||0,L.sim||0,L.exam||0,L.session||0]});
   const csv=rows.map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(";")).join("\n")+"\n\n"+[["Datum","Minuten","Karten","gewusst","neu","Lektionen","gelesen","geschrieben","Rollenspiele","Prüfungsaufgaben","Sitzung"]].concat(days).map(r=>r.join(";")).join("\n");
   const r=await saveFile("mephisto-verlauf-"+todayKey().split("-").reverse().join("-")+".csv","﻿"+csv);if(r===null)copyText(csv)};
+// ---------- hold to translate: tap = word, hold = whole sentence, hold + slide = any phrase (with literal meaning)
+const XL={timer:null,start:null,anchor:null,on:false,blk:null,words:[],idx:0,sel:null,mode:"",swallow:false,done:false};
+const XL_KEY="mephisto_xl";let XLC={};try{XLC=JSON.parse(localStorage.getItem(XL_KEY)||"{}")||{}}catch(e){XLC={}}
+function xlCacheSave(){try{const ks=Object.keys(XLC);if(ks.length>300)ks.slice(0,ks.length-300).forEach(k=>delete XLC[k]);localStorage.setItem(XL_KEY,JSON.stringify(XLC))}catch(e){}}
+const XL_ABBR=/^(Dr|Prof|Fr|Hr|Nr|St|ca|bzw|usw|evtl|ggf|z|B|u|a|d|h|i|v|s|o|ä|vs|Std|Min|Tel|Abs|Str|mg|ml|kg|Jh|Mio|Mrd|etc)$/;
+const xlNorm=s=>String(s||"").replace(/[„“"‚‘'«»()\[\]–—…]/g,"").replace(/\s+/g," ").trim().toLowerCase();
+// which German text this module owns (the hand kit skips these)
+function xlEligible(t){if(!t||!t.closest)return false;if(t.closest("input,textarea,select,button,a,label,.opts,.chip,.fc,.kit-sheet,.sheet,[data-act],[data-go],[data-say]"))return false;
+  const w=t.closest(".w");if(w)return true;const de=t.closest(".de");return !!(de&&!de.querySelector("*")&&/\p{L}/u.test(de.textContent))}
+window.xlOwns=xlEligible;
+function xlWordAt(x,y){const el=document.elementFromPoint(x,y);return el&&el.closest?el.closest(".w"):null}
+function xlBlock(w){return w.closest(".xl-blk,.line,.para,p,li,div")||w.parentElement}
+function xlEnds(w){const n=w.nextSibling;if(!n||n.nodeType!==3)return false;if(!/^\S*[.!?…:]/.test(n.textContent))return false;return !XL_ABBR.test(w.dataset.w||w.textContent)}
+function xlSentence(i){let a=i,b=i;while(a>0&&!xlEnds(XL.words[a-1]))a--;while(b<XL.words.length-1&&!xlEnds(XL.words[b]))b++;return [a,b]}
+function xlPaint(){XL.words.forEach((w,k)=>w.classList.toggle("xl-on",!!XL.sel&&k>=XL.sel[0]&&k<=XL.sel[1]))}
+function xlClear(){$$(".w.xl-on").forEach(w=>w.classList.remove("xl-on"))}
+function xlText(a,b,withPunct){const r=document.createRange();r.setStartBefore(XL.words[a]);r.setEndAfter(XL.words[b]);let s=r.toString();if(withPunct){const n=XL.words[b].nextSibling;if(n&&n.nodeType===3){const m=n.textContent.match(/^[^\s\p{L}]*/u);if(m)s+=m[0]}}return s.replace(/\s+/g," ").trim()}
+function xlLineText(){return XL.words.length?xlText(0,XL.words.length-1,true):""}
+function xlLineTr(){const b=XL.blk;if(!b)return "";const n=b.nextElementSibling;return n&&n.classList.contains("tr")?n.textContent.trim():""}
+
+function xlBegin(){XL.timer=null;const w=XL.anchor;if(!w||!document.body.contains(w))return;XL.on=true;XL.done=false;XL.blk=xlBlock(w);XL.words=[...XL.blk.querySelectorAll(".w")].filter(x=>!x.closest(".fc"));XL.idx=XL.words.indexOf(w);if(XL.idx<0){XL.on=false;return}
+  XL.sel=xlSentence(XL.idx);XL.mode="sentence";xlPaint();try{getSelection().removeAllRanges()}catch(e){}if(typeof vib==="function")vib(12);else if(navigator.vibrate&&S.haptic)navigator.vibrate(12)}
+function xlMove(x,y){if(XL.timer&&XL.start&&Math.hypot(x-XL.start.x,y-XL.start.y)>10){clearTimeout(XL.timer);XL.timer=null;return}
+  if(!XL.on)return;const w=xlWordAt(x,y);if(!w)return;const j=XL.words.indexOf(w);if(j<0)return;if(j===XL.idx&&XL.mode==="sentence")return;XL.mode="range";XL.sel=[Math.min(XL.idx,j),Math.max(XL.idx,j)];xlPaint()}
+function xlEnd(){clearTimeout(XL.timer);XL.timer=null;if(!XL.on||XL.done)return;XL.on=false;XL.done=true;XL.swallow=true;setTimeout(()=>{XL.swallow=false},450);
+  const [a,b]=XL.sel;const sentence=XL.mode==="sentence";const text=xlText(a,b,sentence||xlEnds(XL.words[b]));
+  const ws=XL.words.slice(a,b+1).map(w=>w.dataset.w||w.textContent);const box=XL.anchor.closest("[data-gk]");const map=box?GL[box.dataset.gk]:null;
+  const line=xlLineText(),tr=xlLineTr();const whole=tr&&xlNorm(text)===xlNorm(line);
+  xlShow({text,ws,map,mode:sentence?"Satz":"Auswahl",lineTr:tr,whole,line})}
+
+document.addEventListener("pointerdown",e=>{if(e.button>0||XL.on)return;const t=e.target;if(!xlEligible(t))return;
+  let w=t.closest(".w");if(!w){const de=t.closest(".de");de.innerHTML=glossify(de.textContent);de.classList.add("xl-blk");w=xlWordAt(e.clientX,e.clientY);if(!w)return}
+  XL.anchor=w;XL.start={x:e.clientX,y:e.clientY};clearTimeout(XL.timer);XL.timer=setTimeout(xlBegin,420)},{passive:true});
+document.addEventListener("pointermove",e=>xlMove(e.clientX,e.clientY),{passive:true});
+document.addEventListener("touchmove",e=>{if(XL.on){e.preventDefault();const p=e.touches[0];if(p)xlMove(p.clientX,p.clientY)}},{passive:false});
+document.addEventListener("pointerup",xlEnd,{passive:true});
+document.addEventListener("touchend",xlEnd,{passive:true});
+document.addEventListener("pointercancel",()=>{if(XL.on)return;clearTimeout(XL.timer);XL.timer=null},{passive:true});
+document.addEventListener("scroll",()=>{if(!XL.on){clearTimeout(XL.timer);XL.timer=null}},{passive:true,capture:true});
+document.addEventListener("click",e=>{if(XL.swallow){XL.swallow=false;e.preventDefault();e.stopImmediatePropagation()}},true);
+document.addEventListener("contextmenu",e=>{if(XL.on||XL.timer||(e.target.closest&&e.target.closest(".xl-blk,.w")))e.preventDefault()});
+document.addEventListener("selectstart",e=>{if(XL.on||XL.timer)e.preventDefault()});
+
+const XL_COMMON={"der": "the", "die": "the", "das": "the / that", "den": "the", "dem": "(to) the", "des": "of the", "ein": "a", "eine": "a", "einen": "a", "einem": "(to) a", "einer": "(of/to) a", "eines": "of a", "kein": "no", "keine": "no", "keinen": "no", "nicht": "not", "nichts": "nothing", "ich": "I", "du": "you", "er": "he / it", "sie": "she / they", "Sie": "you (formal)", "es": "it", "wir": "we", "ihr": "you (pl.) / her", "mich": "me", "mir": "(to) me", "dich": "you", "dir": "(to) you", "ihn": "him", "ihm": "(to) him", "ihnen": "(to) them", "Ihnen": "(to) you (formal)", "uns": "us", "euch": "you (pl.)", "sich": "oneself", "mein": "my", "meine": "my", "meinen": "my", "meinem": "my", "meiner": "my", "dein": "your", "Ihr": "your (formal)", "Ihre": "your (formal)", "Ihren": "your (formal)", "Ihrem": "your (formal)", "sein": "his / to be", "seine": "his", "unser": "our", "unsere": "our", "und": "and", "oder": "or", "aber": "but", "denn": "because / then", "sondern": "but rather", "dass": "that", "weil": "because", "wenn": "if / when", "als": "as / than / when", "ob": "whether", "wie": "how / like", "was": "what", "wer": "who", "wo": "where", "wann": "when", "warum": "why", "woher": "where from", "wohin": "where to", "welche": "which", "welcher": "which", "wie viel": "how much", "in": "in", "im": "in the", "an": "at / on", "am": "at the / on the", "auf": "on", "aus": "out of / from", "bei": "at / with", "beim": "at the", "mit": "with", "nach": "after / to", "seit": "since / for", "von": "from / of", "vom": "from the", "zu": "to / too", "zum": "to the", "zur": "to the", "für": "for", "gegen": "against", "ohne": "without", "um": "around / at", "über": "over / about", "unter": "under", "vor": "before / in front of", "hinter": "behind", "neben": "next to", "zwischen": "between", "durch": "through", "bis": "until", "ist": "is", "bin": "am", "bist": "are", "sind": "are", "seid": "are", "war": "was", "waren": "were", "habe": "have", "hast": "have", "hat": "has", "haben": "have", "hatte": "had", "wird": "will / becomes", "werden": "will / become", "würde": "would", "würden": "would", "kann": "can", "können": "can", "könnten": "could", "Könnten": "could", "muss": "must", "müssen": "must", "soll": "should", "sollten": "should", "darf": "may", "dürfen": "may", "Dürfte": "might / may", "dürfte": "might / may", "will": "want(s)", "möchte": "would like", "möchten": "would like", "gibt": "gives (es gibt = there is)", "geht": "goes", "gehen": "go", "kommt": "comes", "kommen": "come", "macht": "makes / does", "machen": "make / do", "tut": "does / hurts", "tun": "do", "weh": "(tut weh = hurts)", "sagt": "says", "sagen": "say", "stellen": "put / ask (Fragen)", "nehmen": "take", "nehme": "take", "führt": "leads / brings", "gern": "gladly", "gerne": "gladly", "ja": "yes", "nein": "no", "bitte": "please", "danke": "thanks", "doch": "(yes) after all", "schon": "already", "noch": "still / yet", "auch": "also", "nur": "only", "sehr": "very", "so": "so", "jetzt": "now", "hier": "here", "da": "there", "dort": "there", "heute": "today", "gestern": "yesterday", "morgen": "tomorrow", "immer": "always", "nie": "never", "oft": "often", "manchmal": "sometimes", "wieder": "again", "dann": "then", "sofort": "immediately", "gleich": "right away", "bald": "soon", "ganz": "quite / whole", "etwas": "something / a little", "viel": "much", "wenig": "little", "mehr": "more", "alle": "all", "alles": "everything", "einige": "some", "paar": "(ein paar = a few)", "man": "one / you", "Guten": "good", "guten": "good", "gut": "good", "Tag": "day", "Morgen": "morning", "Abend": "evening", "Herr": "Mr", "Frau": "Mrs / Ms / woman", "Name": "name", "Arzt": "doctor", "Ärztin": "doctor (f.)", "Notaufnahme": "emergency department", "Fragen": "questions", "Ordnung": "order (in Ordnung = OK)", "Schmerzen": "pain", "seit wann": "since when", "einmal": "once", "zweimal": "twice", "links": "left", "rechts": "right", "oben": "above", "unten": "below", "schlecht": "bad", "schlimm": "bad / serious", "stark": "strong / severe", "plötzlich": "suddenly", "dienst": "duty", "diensthabende": "on-duty", "diensthabende Arzt": "doctor on duty"};
+function xlGloss(w,map){if(map){const g=map[w]||map[w.toLowerCase()];if(g)return g}return XL_COMMON[w]||XL_COMMON[w.toLowerCase()]||lookup(w,null).en||""}
+function xlLitHTML(ws,map,tutorWords){const tw={};(tutorWords||[]).forEach(p=>{if(Array.isArray(p)&&p[0])tw[String(p[0]).toLowerCase()]=p[1]});
+  return ws.map(w=>{const g=tw[w.toLowerCase()]||xlGloss(w,map);const short=g.split(/[;,(]/)[0].trim();return `<button class="xl-w" data-w="${esc(w)}"><b>${esc(w)}</b><small${short?"":' class="unk"'}>${esc(short||"·")}</small></button>`}).join("")}
+async function xlShow(o){const sh=$("#sheet"),inn=$("#sheetIn");const key=xlNorm(o.text);const cached=XLC[key];
+  const offlineEn=o.whole?o.lineTr:(cached&&cached.en)||"";
+  inn.innerHTML=`<div class="row between"><div class="eyebrow">${o.mode} <span class="en">${o.ws.length} ${o.ws.length===1?"Wort":"Wörter"}</span></div><button class="icon ghost" data-act="closeSheet" aria-label="Schließen">${ic("x")}</button></div>
+   <div class="xl-de">${esc(o.text)}</div>
+   <div class="xl-en">${offlineEn?esc(offlineEn):(SAMPLE?'<span class="muted ui xl-wait">Übersetze…</span>':o.lineTr?`<span class="muted ui">Ganze Zeile:</span> ${esc(o.lineTr)}`:'<span class="muted ui">Wörtliche Bedeutung unten. Für eine freie Übersetzung beliebiger Stellen den Tutor einschalten (Ich → Einstellungen).</span>')}</div>
+   <div class="xl-lit-h eyebrow">Wörtlich <span class="en">word by word · tap a word</span></div>
+   <div class="xl-lit">${xlLitHTML(o.ws,o.map,cached&&cached.words)}</div>
+   <div class="xl-lit-en muted">${cached&&cached.lit?"„"+esc(cached.lit)+"“":""}</div>
+   <div class="xl-note muted ui">${cached&&cached.note?esc(cached.note):""}</div>
+   <div class="row wrap"><button class="sm" data-say="${esc(o.text)}">${ic("vol")} Anhören</button><button class="sm xl-slow">${ic("vol")} Langsam</button><button class="sm xl-copy">${ic("pen")} Kopieren</button>${o.ws.length>1?`<button class="sm primary xl-add">${ic("plus")} Ins Deck</button>`:""}</div>`;
+  sh.hidden=false;const done=()=>{xlClear()};const obs=new MutationObserver(()=>{if(sh.hidden){done();obs.disconnect()}});obs.observe(sh,{attributes:true,attributeFilter:["hidden"]});
+  $$(".xl-w",inn).forEach(b=>b.onclick=()=>showGloss(b.dataset.w,o.map));
+  $(".xl-slow",inn).onclick=()=>say(o.text,{rate:.7});$(".xl-copy",inn).onclick=()=>copyText(o.text);
+  const add=$(".xl-add",inn);if(add)add.onclick=()=>{const en=($(".xl-en",inn).textContent||"").replace(/^Ganze Zeile:\s*/,"").trim();if(!en||/Übersetze…|Wörtliche Bedeutung/.test(en))return toast("Erst die Übersetzung abwarten");
+    S.custom.push({de:o.text,en,ex:o.line&&o.line!==o.text?o.line:""});buildDict();S.cards["c:"+(S.custom.length-1)]=newState();introducedNew(false);saveSoon();logEvent("card","Ins Deck: "+o.text.slice(0,60));add.innerHTML=ic("check")+" Im Deck";add.disabled=true;toast("Ins Deck gelegt")};
+  if(S.autoplay)say(o.text,{silent:true});
+  // fetch a contextual translation + literal meaning when the tutor is available and nothing better is known
+  if(!SAMPLE||(cached&&cached.en&&cached.lit))return;
+  try{const r=await SAMPLE.json(`Du hilfst einem arabischsprachigen Arzt (Englisch fließend, Deutsch A2–B1) beim Lesen.
+Übersetze die markierte deutsche Stelle ins Englische.
+Stelle: «${o.text}»
+${o.line&&o.line!==o.text?`Ganzer Satz/Zeile als Kontext: «${o.line}»`:""}
+${o.lineTr?`Vorhandene Übersetzung der ganzen Zeile: «${o.lineTr}»`:""}
+Antworte NUR mit JSON:
+{"en":"natürliche englische Übersetzung der Stelle","lit":"wörtliche, Wort-für-Wort-Übersetzung ins Englische (holprig erlaubt)","words":[["deutsches Wort genau wie im Text","kurze englische Bedeutung im Kontext"]],"note":"ein kurzer Hinweis auf Englisch zu Grammatik, Redewendung oder Register, falls nützlich, sonst leer"}`,{modelTier:"quick",cache:false});
+    if(!r||!r.en)throw 0;XLC[key]={en:o.whole?o.lineTr:String(r.en),lit:String(r.lit||""),words:Array.isArray(r.words)?r.words.slice(0,40):[],note:String(r.note||"")};xlCacheSave();
+    if(sh.hidden||!document.body.contains(inn)||!$(".xl-de",inn)||$(".xl-de",inn).textContent!==o.text)return;
+    const c=XLC[key];$(".xl-en",inn).textContent=c.en;$(".xl-lit",inn).innerHTML=xlLitHTML(o.ws,o.map,c.words);$$(".xl-w",inn).forEach(b=>b.onclick=()=>showGloss(b.dataset.w,o.map));
+    $(".xl-lit-en",inn).textContent=c.lit?"„"+c.lit+"“":"";$(".xl-note",inn).textContent=c.note}
+  catch(e){const en=$(".xl-en",inn);if(en&&$(".xl-wait",en))en.innerHTML=o.lineTr?`<span class="muted ui">Ganze Zeile:</span> ${esc(o.lineTr)}`:'<span class="muted ui">Gerade keine Übersetzung möglich. Die wörtliche Bedeutung steht unten.</span>'}}
+// one-time tip the first time a word is tapped
+{const _sg=showGloss;showGloss=function(w,m){_sg(w,m);let seen=1;try{seen=localStorage.getItem("mephisto_xl_tip")}catch(e){}if(!seen){try{localStorage.setItem("mephisto_xl_tip","1")}catch(e){}setTimeout(()=>snack("Tipp: Wort gedrückt halten = ganzer Satz auf Englisch. Halten und ziehen = eigene Auswahl.","OK",()=>{},6500),600)}}}
 // ================= BOOT =================
 (function boot(){try{applyPrefs();buildDict();snapshot();const h=(location.hash||"").slice(1);if(["home","learn","practice","me"].includes(h))R.tab=h;rerender();capsReady();if(typeof runDeepLink==="function")setTimeout(runDeepLink,0)}
   catch(e){const m=document.querySelector("main");m.innerHTML='<div class="view"><h1>Start fehlgeschlagen</h1><div class="crash">'+esc(String(e&&e.stack||e))+'</div><p>Dein gespeicherter Stand bleibt erhalten.</p><button class="primary" id="crashFresh">Mit frischem Stand starten</button></div>';document.getElementById("crashFresh").onclick=()=>{lsSet("mephisto_crash_backup",lsGet(LS_KEY)||"");try{localStorage.removeItem(LS_KEY)}catch(x){}location.reload()}}})();
@@ -3307,7 +3400,7 @@ function showTip(target,html){hideTip();tipEl=document.createElement("div");tipE
   const r=target.getBoundingClientRect(),w=tipEl.offsetWidth,h=tipEl.offsetHeight;let x=r.left+r.width/2-w/2;x=Math.max(16,Math.min(innerWidth-16-w,x));let y=r.top-h-10;if(y<12)y=r.bottom+10;tipEl.style.left=x+"px";tipEl.style.top=y+"px";requestAnimationFrame(()=>tipEl&&tipEl.classList.add("show"));vib(8)}
 function hideTip(){if(tipEl){tipEl.remove();tipEl=null}}
 function clear(){clearTimeout(timer);timer=null;if(held){held.classList.remove("kit-holding");held=null}}
-document.addEventListener("pointerdown",e=>{if(e.button>0)return;hideTip();clear();const t=e.target;if(t.closest("input,textarea,select,.kit-tip"))return;
+document.addEventListener("pointerdown",e=>{if(e.button>0)return;hideTip();clear();const t=e.target;if(t.closest("input,textarea,select,.kit-tip"))return;if(window.xlOwns&&window.xlOwns(t))return;
   start={x:e.clientX,y:e.clientY};const act=holdAction(t);const html=act?null:hintFor(t);if(!act&&!html)return;
   const ms=act?480:430;const el=t.closest(".step,.li,.go,.fc,.stat,button,.chip,.pill,.ring,.heat i,.w")||t;
   if(act){held=el;setTimeout(()=>{if(held===el)el.classList.add("kit-holding")},120)}
