@@ -268,6 +268,7 @@ html.nomotion .fc{transition:none}
 .gr-ans{font-family:var(--body);font-weight:600;font-size:1.05rem}
 textarea.gr-in{width:100%;min-height:64px;font:inherit;font-size:1.05rem;padding:.6rem .75rem;border:1px solid var(--line2);border-radius:var(--r-s);background:var(--raise);color:var(--fg);margin:.5rem 0}
 .kit-hidden-select{position:absolute!important;width:1px!important;height:1px!important;opacity:0;pointer-events:none;overflow:hidden}
+.hub-card .f input{width:100%}.hub-line{font-size:.85rem}
 .ws-row .t{min-width:0}.ws-row .pbar{display:block;width:auto;max-width:200px}.ws-list{max-height:60vh;overflow:auto}
 /* hold modes: in app mode German text is not natively selectable (the app owns the long press); in system mode the phone does */
 html.hold-app .turn>div:not(.who),html.hold-app .para,html.hold-app .line,html.hold-app .de,html.hold-app .xl-blk,html.hold-app .tch-mt,html.hold-app .xp-de,html.hold-app .reader,html.hold-app .dl{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
@@ -2411,7 +2412,7 @@ function genderOf(de){const m=/^(der|die|das) /.exec(de);return m?m[1]:null}
 function deHTML(de){const g=genderOf(de);return g?`<span class="g-${g}">${g}</span> ${esc(de.slice(g.length+1))}`:esc(de)}
 // ---------- state
 const DEF={v:2,startDate:todayKey(),focus:"klinik",minutes:60,newPerDay:15,maxReviews:150,ttsRate:.95,autoplay:true,hints:true,theme:"system",motion:true,
-  cards:{},custom:[],unlocked:{},newToday:{date:"",n:0,p:0},lessons:{},read:{},kultur:{},log:{},today:null,errors:{},mistakes:[],corrections:[],sims:[],fsp:[],onboarded:false,weekSeen:0,errlog:[],events:[],haptic:true,sound:false,restDays:true,shifts:{},blitzBest:0,lastBackup:"",coachDismiss:{},appHint:0,lit:{},kino:{},examRes:[],examSeen:{},examRot:{},examTarget:"goethe",look:"auto",pxt:"orange",textSize:100,exams:{goethe:"",fsp:""},gram:{},hoeren:{},readQ:{},holdMode:"app"};
+  cards:{},custom:[],unlocked:{},newToday:{date:"",n:0,p:0},lessons:{},read:{},kultur:{},log:{},today:null,errors:{},mistakes:[],corrections:[],sims:[],fsp:[],onboarded:false,weekSeen:0,errlog:[],events:[],haptic:true,sound:false,restDays:true,shifts:{},blitzBest:0,lastBackup:"",coachDismiss:{},appHint:0,lit:{},kino:{},examRes:[],examSeen:{},examRot:{},examTarget:"goethe",look:"auto",pxt:"orange",textSize:100,exams:{goethe:"",fsp:""},gram:{},hoeren:{},readQ:{},holdMode:"app",google:{},citrusPlan:null,savedAt:""};
 const LS_KEY="mephisto",SNAP_KEY="mephisto_snap";
 let STORAGE_OK=true;
 function lsGet(k){try{return localStorage.getItem(k)}catch(e){STORAGE_OK=false;return null}}
@@ -3141,7 +3142,7 @@ ACT.saveYuzu=async()=>{const p=yuzuPack();const r=await saveFile("mephisto-core.
 ACT.copyYuzu=()=>{const p=yuzuPack();copyText(JSON.stringify(p),$(".bk-txt"));toast(p.cards.length+" Karten")};
 ACT.reset=()=>{const v=($(".rs-in")||{}).value;if(v!=="LÖSCHEN")return toast("Tippe LÖSCHEN zur Bestätigung");lsSet("mephisto_before_reset",JSON.stringify(S));S=fresh();saveNow();buildDict();applyPrefs();R.tab="home";toast("Zurückgesetzt. Eine Kopie liegt unter „mephisto_before_reset“.");rerender()};
 // ================= PHONE FEATURES (v10): speech check, Artikel-Blitz, numbers, terms, undo, haptics, coach, PWA =================
-const APP_VERSION="11.0";
+const APP_VERSION="11.1";
 const IS_PWA=!!window.MEPHISTO_PWA;
 const IS_STANDALONE=(()=>{try{return matchMedia("(display-mode: standalone)").matches||navigator.standalone===true}catch(e){return false}})();
 const IS_IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
@@ -4120,6 +4121,120 @@ ACT.gTranslate=el=>{const text=el.dataset.t||"";window.open("https://translate.g
 (function(){const _si=stepInfo;stepInfo=function(s){const r=_si(s);try{if(s.t==="input"&&s.ref.kind==="hoeren"){const h=HOEREN.find(x=>x.id===s.ref.id);r.sub="Hören: "+(h?h.title:"")}else if(s.t==="learn"){const L=lessonById(s.ref.id);if(L&&L.scene)r.sub="Szene: "+L.title}}catch(e){}return r}})();
 // defaults
 (function(){if(!S.exams)S.exams={goethe:"",fsp:""};if(!S.gram)S.gram={};if(!S.hoeren)S.hoeren={};if(!S.readQ)S.readQ={}})();
+// ================= CITRUS HUB + GOOGLE DRIVE (11.1) =================
+// Mephisto joins the Citrus hub (claude/hub-contract.md): one shared Google Cloud project, no backend.
+//   My Apps/hub/mephisto/state.json   — the learner's whole progress (Drive is the master copy; every device syncs it)
+//   My Apps/hub/mephisto/status.json  — the hub snapshot every app writes (summary, today, week, asks, pending, extra)
+//   My Apps/hub/scheduler/plan.json   — Citrus's answer: today's blocks per app (read, shown on Heute)
+//   Google Calendar                   — shift events → duty days (streak protection, planning)
+// Sign-in: Google Identity Services token client (same client id as the other apps, pasted once in Settings).
+// Only in the installed app / GitHub Pages copy: the claude.ai artifact origin cannot sign in to Google.
+const HUB={APP:"mephisto",ROOT:"My Apps",SCOPES:"openid email https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/calendar.events",DRIVE:"https://www.googleapis.com/drive/v3",UPLOAD:"https://www.googleapis.com/upload/drive/v3",FOLDER:"application/vnd.google-apps.folder",
+  KEY:"mephisto_google",IDS:"mephisto_drive_ids",busy:false,last:{},fp:"",statusAt:0,stateAt:0,timer:null,shiftWords:/dienst|schicht|shift|nacht|night|notaufnahme|\bD[12]\b|\bN\d?\b|on[- ]call|bereitschaft/i};
+const hubCan=()=>typeof IS_PWA!=="undefined"&&IS_PWA&&window.isSecureContext;
+function gAuth(){try{return JSON.parse(localStorage.getItem(HUB.KEY)||"null")}catch(e){return null}}
+function gSet(a){try{if(a)localStorage.setItem(HUB.KEY,JSON.stringify(a));else localStorage.removeItem(HUB.KEY)}catch(e){}}
+function gToken(){const a=gAuth();return a&&a.token&&a.exp>Date.now()+30000?a.token:null}
+function gConf(){S.google=S.google||{};return S.google}
+const syncedAt=()=>{try{return localStorage.getItem("mephisto_synced_at")||""}catch(e){return ""}};const setSynced=v=>{try{localStorage.setItem("mephisto_synced_at",v||"")}catch(e){}};
+const isoLocal=iso=>{if(!iso)return "";const d=new Date(iso);return keyOf(d)+"T"+pad(d.getHours())+":"+pad(d.getMinutes())};
+function localChangedSince(iso){const ev=S.events||[];if(!ev.length)return false;if(!iso)return true;const last=ev[ev.length-1];return (last.d+"T"+last.t)>isoLocal(iso)}
+function gDevice(){const u=navigator.userAgent;return /iPhone|iPad/.test(u)?"iPhone":/Android/.test(u)?"Android":/Windows/.test(u)?"PC":/Mac/.test(u)?"Mac":"Gerät"}
+// ---- sign-in (GIS token client, loaded on demand)
+let gisP=null;function gisLoad(){if(window.google&&google.accounts&&google.accounts.oauth2)return Promise.resolve();if(gisP)return gisP;gisP=new Promise((res,rej)=>{const s=document.createElement("script");s.src="https://accounts.google.com/gsi/client";s.async=true;s.onload=()=>res();s.onerror=()=>{gisP=null;rej(new Error("gsi"))};document.head.appendChild(s)});return gisP}
+async function gConnect(o){o=o||{};const cid=(gConf().clientId||"").trim();if(!cid)throw new Error("no_client");await gisLoad();
+  return new Promise((res,rej)=>{let done=false;const tc=google.accounts.oauth2.initTokenClient({client_id:cid,scope:HUB.SCOPES,callback:async r=>{if(done)return;done=true;if(!r||!r.access_token){rej(new Error((r&&r.error)||"denied"));return}
+      const a={token:r.access_token,exp:Date.now()+Math.max(60,(+r.expires_in||3600)-60)*1000,email:""};try{const u=await fetch("https://www.googleapis.com/oauth2/v3/userinfo",{headers:{Authorization:"Bearer "+a.token}});if(u.ok)a.email=(await u.json()).email||""}catch(e){}gSet(a);res(a)},error_callback:e=>{if(done)return;done=true;rej(new Error(e&&e.type||"popup"))}});
+    tc.requestAccessToken({prompt:o.silent?"":"consent"});if(o.silent)setTimeout(()=>{if(!done){done=true;rej(new Error("silent_timeout"))}},8000)})}
+async function gEnsure(){if(gToken())return gToken();const a=gAuth();if(!a)throw new Error("signed_out");try{await gConnect({silent:true});return gToken()}catch(e){gSet(null);throw new Error("signed_out")}}
+async function gFetch(url,init){const t=await gEnsure();init=Object.assign({},init||{});init.headers=Object.assign({Authorization:"Bearer "+t},init.headers||{});const r=await fetch(url,init);if(r.status===401){gSet(null);throw new Error("signed_out")}if(!r.ok){throw new Error("http_"+r.status)}return r}
+async function gJSON(url,init){const r=await gFetch(url,init);return r.status===204?null:r.json()}
+// ---- Drive: folders (cached per device), files
+const idsGet=()=>{try{return JSON.parse(localStorage.getItem(HUB.IDS)||"{}")}catch(e){return {}}};const idsSet=o=>{try{localStorage.setItem(HUB.IDS,JSON.stringify(o))}catch(e){}};
+const q=s=>String(s).replace(/\\/g,"\\\\").replace(/'/g,"\\'");
+async function dList(parent,name,folders){const parts=["trashed = false"];if(parent)parts.push(`'${q(parent)}' in parents`);if(name)parts.push(`name = '${q(name)}'`);if(folders)parts.push(`mimeType = '${HUB.FOLDER}'`);
+  return (await gJSON(`${HUB.DRIVE}/files?`+new URLSearchParams({q:parts.join(" and "),fields:"files(id,name,mimeType,modifiedTime,size)",pageSize:"50",spaces:"drive",orderBy:"modifiedTime desc"})))?.files||[]}
+async function dFolder(path,retry,noCreate){const key=path.join("/");const ids=idsGet();if(ids[key]&&!retry)return ids[key];let parent=null;let acc=[];
+  for(const name of path){acc.push(name);const k=acc.join("/");if(ids[k]&&!retry){parent=ids[k];continue}let f=(await dList(parent,name,true))[0];if(!f&&noCreate)return null;if(!f)f=await gJSON(`${HUB.DRIVE}/files?fields=id`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name,mimeType:HUB.FOLDER,parents:parent?[parent]:[]})});ids[k]=f.id;parent=f.id}
+  idsSet(ids);return parent}
+async function dFile(folderId,name){return (await dList(folderId,name))[0]||null}
+async function dRead(fileId){const r=await gFetch(`${HUB.DRIVE}/files/${encodeURIComponent(fileId)}?alt=media`);return r.json()}
+async function dWrite(folderId,name,obj,fileId){const b="mephisto"+Date.now();const meta=fileId?{name}:{name,parents:[folderId]};const body=`--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${b}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify(obj)}\r\n--${b}--`;
+  const url=fileId?`${HUB.UPLOAD}/files/${encodeURIComponent(fileId)}?uploadType=multipart&fields=id,modifiedTime`:`${HUB.UPLOAD}/files?uploadType=multipart&fields=id,modifiedTime`;return gJSON(url,{method:fileId?"PATCH":"POST",headers:{"Content-Type":`multipart/related; boundary=${b}`},body})}
+async function hubFolder(retry){return dFolder([HUB.ROOT,"hub",HUB.APP],retry)}
+async function withRetry(fn){try{return await fn(false)}catch(e){if(/http_404/.test(e.message))return fn(true);throw e}}
+// ---- 1. state.json: Drive is the master copy of the learner's progress
+function stateFingerprint(){const o=Object.assign({},S);delete o.savedAt;delete o.today;let s=JSON.stringify(o);let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return h+":"+s.length}
+async function hubPullState(o){o=o||{};const g=gConf();if(g.syncState===false||!gAuth())return null;return withRetry(async retry=>{const folder=await hubFolder(retry);const f=await dFile(folder,"state.json");if(!f){HUB.last.state="noch keine Sicherung";return null}const remote=await dRead(f.id);if(!remote||remote.v!==2)return null;
+    const rAt=remote.savedAt||f.modifiedTime||"";HUB.last.remoteAt=rAt;const mine=syncedAt();
+    const localEmpty=!Object.keys(S.cards).length&&!Object.keys(S.lessons).length&&!(S.events||[]).length;
+    if(rAt&&rAt!==mine){if(localEmpty||o.force||!localChangedSince(mine)){lsSet("mephisto_before_drive",JSON.stringify(S));const keep=Object.assign({},g);S=validate(remote);S.google=Object.assign({},S.google||{},keep);saveNow();setSynced(rAt);HUB.stateAt=Date.now();HUB.fp=stateFingerprint();HUB.conflict=null;HUB.last.state="geladen "+fmtTime(rAt);try{applyPrefs();buildDict();rerender()}catch(e){}logEvent("sync","Fortschritt von Google Drive geladen");return "pulled"}
+      HUB.last.state="Konflikt";HUB.conflict={at:rAt};return "conflict"}
+    HUB.last.state=HUB.last.state||"aktuell";return "same"})}
+async function hubPushState(force){const g=gConf();if(!g.syncState||!gAuth())return;const fp=stateFingerprint();if(!force&&fp===HUB.fp)return;if(!force&&Date.now()-HUB.stateAt<120000)return;if(HUB.busy)return;HUB.busy=true;
+  try{await withRetry(async retry=>{const folder=await hubFolder(retry);const f=await dFile(folder,"state.json");S.savedAt=new Date().toISOString();const snap=Object.assign({},S);delete snap.today;await dWrite(folder,"state.json",snap,f&&f.id);setSynced(S.savedAt);HUB.fp=fp;HUB.stateAt=Date.now();HUB.conflict=null;HUB.last.state="gesichert "+fmtTime(S.savedAt);HUB.last.err=""});saveNow()}
+  catch(e){HUB.last.err=hubErr(e)}finally{HUB.busy=false;hubPaint()}}
+const fmtTime=iso=>{try{const d=new Date(iso);return fmtDate(keyOf(d))+" "+pad(d.getHours())+":"+pad(d.getMinutes())}catch(e){return ""}};
+function hubErr(e){const m=String(e&&e.message||e);return m==="signed_out"?"Anmeldung nötig":m==="no_client"?"Client-ID fehlt":/http_403/.test(m)?"Kein Zugriff (Drive-API / Origin prüfen)":/http_/.test(m)?"Google antwortet "+m.slice(5):/popup|denied/.test(m)?"Anmeldung abgebrochen":m==="gsi"?"Google-Script nicht geladen (offline?)":m}
+// ---- 2. status.json: the hub snapshot (contract shape)
+function hubStatus(){const t=todayKey();const T=S.today&&S.today.date===t?S.today:null;const L=S.log[t]||{};const est=typeof levelEstimate==="function"?levelEstimate():{stufe:"?",pct:0,next:"?"};const due=dueKeys().length;
+  const mon=(()=>{const [y,m,d]=t.split("-").map(Number);const dt=new Date(y,m-1,d);const wd=(dt.getDay()+6)%7;return addDays(t,-wd)})();const days=[];let done=0;for(let i=0;i<7;i++){const d=addDays(mon,i);const l=S.log[d]||{};const trained=!!l.act;if(trained)done++;const shift=!!(S.shifts||{})[d];days.push({date:d,shift:shift?"Dienst":"",trained,planned:d>=t&&!trained,usual:true,slot:shift?"tough":"free"})}
+  const target=S.restDays?6:7;const steps=T?T.steps.filter(s=>!s.done).map(s=>STRAND[s.t].name):[];const left=T?Math.round(S.minutes*(steps.length/Math.max(1,T.steps.length))):S.minutes;
+  const asks=days.filter(d=>d.date>=t&&!d.trained).map(d=>({date:d.date,title:"Mephisto: Sitzung"+(d.date===t&&T?" (Rest: "+steps.join(", ")+")":""),minutes:d.date===t?left:S.minutes,slot:d.shift?"before":"free"}));
+  const pending=[];if(due)pending.push(due+" Karten fällig");const coach=typeof coachItems==="function"?(coachItems()||[]).slice(0,2).map(c=>c.title||"").filter(Boolean):[];pending.push(...coach);
+  const go=(S.exams||{}).goethe,fs=(S.exams||{}).fsp;const w=weekNumber();const ph=typeof phaseOf==="function"?phaseOf(w).name:"";
+  const summary=`${T&&T.steps.every(s=>s.done)?"Sitzung heute fertig":T?steps.length+" von "+T.steps.length+" Schritten offen":"Heutige Sitzung noch nicht begonnen"} · ${minutesOn(t)} Min. heute · ${due} Karten fällig · Stufe ${est.stufe}${est.pct?" ("+est.pct+" % zu "+est.next+")":""}.`;
+  return {app:HUB.APP,version:typeof APP_VERSION!=="undefined"?APP_VERSION:"",device:gDevice(),updatedAt:new Date().toISOString(),summary,
+    today:{date:t,done:!!(T&&T.steps.every(s=>s.done)),items:[].concat(L.session?[{title:"Heutige Sitzung",minutes:minutesOn(t)}]:[],L.rev?[{title:"Karten",cards:L.rev,ok:L.ok||0}]:[],L.les?[{title:"Lektionen",count:L.les}]:[],L.exam?[{title:"Prüfungsaufgaben",count:L.exam}]:[])},
+    week:{start:mon,end:addDays(mon,6),done,target,need:Math.max(0,target-done),days},
+    next:{title:T&&steps.length?"Sitzung: "+steps[0]:"Heutige Sitzung",minutes:left},asks,pending:pending.slice(0,5),
+    extra:{stufe:est.stufe,toNext:est.pct,next:est.next,streak:streak(),week:w,of:WEEKS.length,phase:ph,wordsKnown:knownWords(),cardsDue:due,minutesToday:minutesOn(t),exams:{goethe:go||null,fsp:fs||null},url:typeof APP_URL!=="undefined"?APP_URL:""}}}
+function statusFingerprint(st){const o=Object.assign({},st);delete o.updatedAt;return JSON.stringify(o)}
+async function hubPushStatus(force){const g=gConf();if(g.publish===false||!gAuth())return;const st=hubStatus();const fp=statusFingerprint(st);if(!force&&fp===HUB.statusFp)return;if(!force&&Date.now()-HUB.statusAt<300000)return;
+  try{await withRetry(async retry=>{const folder=await hubFolder(retry);const f=await dFile(folder,"status.json");await dWrite(folder,"status.json",st,f&&f.id)});HUB.statusFp=fp;HUB.statusAt=Date.now();HUB.last.status=fmtTime(st.updatedAt);HUB.last.err=""}catch(e){HUB.last.err=hubErr(e)}hubPaint()}
+// ---- 3. plan.json from Citrus: today's blocks for Mephisto
+async function hubPullPlan(){const g=gConf();if(!gAuth())return;try{HUB.last.plan="";const folder=await dFolder([HUB.ROOT,"hub","scheduler"],false,true);if(!folder){HUB.plan=null;return}const f=await dFile(folder,"plan.json");if(!f){HUB.plan=null;return}const p=await dRead(f.id);HUB.plan=p;S.citrusPlan={at:new Date().toISOString(),blocks:planBlocks(p)};saveSoon();hubPaint()}catch(e){HUB.last.plan=hubErr(e)}}
+function planBlocks(p){const out=[];const t=todayKey();const walk=(x,d)=>{if(!x||d>6)return;if(Array.isArray(x)){x.forEach(y=>walk(y,d+1));return}if(typeof x!=="object")return;const app=String(x.app||x.id||x.name||"").toLowerCase();
+    if(app==="mephisto"&&(x.minutes||x.start||x.time||x.title)){const date=x.date||x.day||t;if(!x.date||x.date===t||d<=2)out.push({date,start:x.start||x.time||x.at||"",minutes:+x.minutes||+x.duration||0,title:x.title||x.label||"Mephisto"})}
+    if(x.mephisto&&typeof x.mephisto==="object")walk(Object.assign({app:"mephisto"},x.mephisto),d+1);Object.keys(x).forEach(k=>{if(k!=="mephisto"&&typeof x[k]==="object")walk(x[k],d+1)})};walk(p,0);return out.slice(0,4)}
+// ---- 4. calendar: shift events → duty days
+async function hubPullShifts(){const g=gConf();if(g.calendar===false||!gAuth())return;try{const cal=g.calendarId||"primary";const t=todayKey();const min=new Date(addDays(t,-7)+"T00:00:00").toISOString(),max=new Date(addDays(t,21)+"T00:00:00").toISOString();
+    const r=await gJSON(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(cal)}/events?`+new URLSearchParams({timeMin:min,timeMax:max,singleEvents:"true",maxResults:"250",orderBy:"startTime"}));const items=(r&&r.items)||[];let n=0;S.shifts=S.shifts||{};
+    items.forEach(ev=>{const title=(ev.summary||"")+" "+(ev.description||"");if(!HUB.shiftWords.test(title))return;const s=ev.start||{};const d=(s.date||(s.dateTime||"").slice(0,10));if(!d)return;const hour=s.dateTime?new Date(s.dateTime).getHours():9;const night=/nacht|night|\bN\d?\b/i.test(title)||hour>=18;if(!S.shifts[d]){S.shifts[d]=1;n++}if(night){const nx=addDays(d,1);if(!S.shifts[nx]){S.shifts[nx]=1;n++}}});
+    HUB.last.cal=items.length+" Termine, "+n+" neue Diensttage";if(n){saveSoon();logEvent("sync",n+" Diensttage aus dem Kalender übernommen")}}catch(e){HUB.last.err=hubErr(e)}hubPaint()}
+// ---- orchestration
+async function hubSync(force){if(!hubCan()||!gAuth())return;if(HUB.syncing)return;HUB.syncing=true;hubPaint();try{await gEnsure();const r=await hubPullState({force:false});if(r!=="pulled"&&r!=="conflict")await hubPushState(force);await hubPushStatus(force);await hubPullPlan();await hubPullShifts();HUB.last.sync=fmtTime(new Date().toISOString());HUB.last.err=HUB.last.err||""}catch(e){HUB.last.err=hubErr(e)}finally{HUB.syncing=false;hubPaint()}}
+function hubSchedule(){if(!hubCan()||!gAuth())return;clearTimeout(HUB.timer);HUB.timer=setTimeout(()=>{hubPushState(false);hubPushStatus(false)},90000)}
+ACT.hubConnect=async()=>{const g=gConf();const inp=$(".hub-cid");if(inp){g.clientId=inp.value.trim();saveSoon()}if(!g.clientId)return toast("Zuerst die Client-ID eintragen");try{toast("Google öffnet sich …");await gConnect({});g.syncState=g.syncState!==false;g.publish=g.publish!==false;g.calendar=g.calendar!==false;saveSoon();toast("Verbunden: "+(gAuth().email||"Google"));await hubSync(true)}catch(e){toast(hubErr(e))}hubPaint()};
+ACT.hubSync=()=>hubSync(true);
+ACT.hubSignOut=()=>{gSet(null);HUB.last={};toast("Abgemeldet");hubPaint()};
+ACT.hubUseRemote=async()=>{await hubPullState({force:true});HUB.conflict=null;hubPaint()};
+ACT.hubKeepLocal=async()=>{HUB.conflict=null;setSynced(HUB.last.remoteAt||"");await hubPushState(true);hubPaint()};
+ACT.hubToggle=el=>{const g=gConf();g[el.dataset.k]=el.checked;saveSoon()};
+ACT.hubCal=el=>{gConf().calendarId=el.value.trim()||"primary";saveSoon()};
+function hubHTML(){const a=gAuth();const g=gConf();const L=HUB.last;if(!hubCan())return `<div class="card stack s"><h3>Google & Citrus</h3><p class="muted ui" style="font-size:.9rem">Google-Anmeldung geht nur in der installierten App (mephisto-deutsch.github.io). Dort wird dein Fortschritt auf Google Drive gesichert und mit Citrus geteilt.${IS_PWA?"":" Hier in claude.ai: Fortschritt per Backup-Datei mitnehmen."}</p></div>`;
+  return `<div class="card stack s hub-card"><div class="row between"><h3>Google & Citrus</h3>${a?`<span class="pill good">${esc(a.email||"verbunden")}</span>`:'<span class="pill">nicht verbunden</span>'}</div>
+   ${a?"":`<label class="f">Client-ID (aus dem Cloud-Projekt „Citrus apps“, dieselbe wie in Yuzu/Orange)<input class="hub-cid" placeholder="…apps.googleusercontent.com" value="${esc(g.clientId||"")}"></label><small class="muted ui">Im Cloud-Projekt muss <b>https://mephisto-deutsch.github.io</b> als autorisierter JavaScript-Ursprung eingetragen sein.</small><div class="row"><button class="primary" data-act="hubConnect">Mit Google verbinden</button></div>`}
+   ${a?`<div class="list"><label class="li" style="cursor:pointer"><span class="t"><b class="ui">Fortschritt auf Drive</b><small>My Apps/hub/mephisto/state.json – jedes Gerät lädt den neuesten Stand</small></span><input type="checkbox" data-act="hubToggle" data-k="syncState" ${g.syncState!==false?"checked":""} style="width:24px;min-height:24px"></label>
+    <label class="li" style="cursor:pointer"><span class="t"><b class="ui">Status für Citrus</b><small>status.json: Zusammenfassung, Woche, Zeitwünsche, offene Punkte</small></span><input type="checkbox" data-act="hubToggle" data-k="publish" ${g.publish!==false?"checked":""} style="width:24px;min-height:24px"></label>
+    <label class="li" style="cursor:pointer"><span class="t"><b class="ui">Dienste aus dem Kalender</b><small>Schicht-Termine werden Diensttage (Kerze geschützt, Citrus plant drumherum)</small></span><input type="checkbox" data-act="hubToggle" data-k="calendar" ${g.calendar!==false?"checked":""} style="width:24px;min-height:24px"></label></div>
+    <label class="f">Kalender-ID<input value="${esc(g.calendarId||"primary")}" data-act="hubCal" onchange="ACT.hubCal(this)"></label>
+    <div class="hub-st muted ui" style="font-size:.85rem">${L.err?`<span class="no">${esc(L.err)}</span><br>`:""}Fortschritt: ${esc(L.state||"–")} · Status: ${esc(L.status||"–")} · Kalender: ${esc(L.cal||"–")}${S.citrusPlan&&S.citrusPlan.blocks.length?`<br>Citrus plant: ${S.citrusPlan.blocks.map(b=>esc((b.start?b.start+" ":"")+(b.minutes?b.minutes+" Min.":b.title))).join(", ")}`:""}</div>
+    ${HUB.conflict?`<div class="tip"><b>Konflikt:</b> Auf Drive liegt ein neuerer Stand (${esc(fmtTime(HUB.conflict.at))}), und hier wurde seitdem auch gelernt.<div class="row" style="margin-top:.5rem"><button class="sm" data-act="hubUseRemote">Drive-Stand übernehmen</button><button class="sm" data-act="hubKeepLocal">Diesen Stand behalten</button></div></div>`:""}
+    <div class="row wrap"><button class="sm" data-act="hubSync" ${HUB.syncing?"disabled":""}>${HUB.syncing?"Synchronisiert …":ic("download")+" Jetzt synchronisieren"}</button><button class="sm ghost" data-act="hubSignOut">Abmelden</button></div>`:""}</div>`}
+function hubPaint(){const c=$(".hub-card");if(c){const d=document.createElement("div");d.innerHTML=hubHTML();c.replaceWith(d.firstElementChild)}const w=$(".weg .hub-line");if(w)w.innerHTML=hubLine()}
+function hubLine(){if(!hubCan())return "";const a=gAuth();if(!a)return `<span class="muted ui">Citrus: <button class="sm ghost" data-act="hubOpen">Google verbinden</button></span>`;const b=(S.citrusPlan||{}).blocks||[];const today=b.filter(x=>!x.date||x.date===todayKey());return `<span class="muted ui">Citrus${today.length?": heute "+today.map(x=>esc((x.start?x.start+" · ":"")+(x.minutes?x.minutes+" Min.":x.title))).join(", "):" plant noch nicht"}${HUB.last.sync?" · Sync "+esc(HUB.last.sync.slice(-5)):""}</span>`}
+ACT.hubOpen=()=>{go("me");setTimeout(()=>{const b=$('[data-act=meSeg][data-k=set]');if(b)b.click();setTimeout(()=>{const c=$(".hub-card");if(c)c.scrollIntoView({behavior:"smooth",block:"center"})},200)},50)};
+// settings card + Heute line
+(function(){const _ms=meSettings;meSettings=function(el){_ms(el);const inst=[...el.querySelectorAll(".card")].find(c=>/Installiert|Installieren|App installieren/.test(c.textContent));const d=document.createElement("div");d.innerHTML=hubHTML();const card=d.firstElementChild;if(inst)inst.after(card);else el.prepend(card)};
+  const _vh=viewHome;viewHome=function(m){_vh(m);const w=m.querySelector(".weg");if(w&&!w.querySelector(".hub-line")){const l=document.createElement("div");l.className="hub-line";l.innerHTML=hubLine();w.appendChild(l)}}})();
+// hooks: stamp saves, schedule uploads, sync on open/return, force after a finished session
+(function(){const _sn=saveNow;saveNow=function(){S.savedAt=new Date().toISOString();_sn();hubSchedule()};
+  const _fs=typeof finishSession==="function"?finishSession:null;if(_fs)finishSession=function(){_fs();setTimeout(()=>{hubPushState(true);hubPushStatus(true)},800)};
+  document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"){hubPushState(false);hubPushStatus(false)}else if(hubCan()&&gAuth()&&Date.now()-HUB.stateAt>600000)hubSync(false)});
+  window.addEventListener("pagehide",()=>{hubPushState(false)});
+  if(hubCan()&&gAuth())setTimeout(()=>hubSync(false),1500);
+  if(!S.google)S.google={};})();
 // ================= BOOT =================
 (function boot(){try{applyPrefs();buildDict();snapshot();const h=(location.hash||"").slice(1);if(["home","learn","practice","me"].includes(h))R.tab=h;rerender();capsReady();if(typeof runDeepLink==="function")setTimeout(runDeepLink,0)}
   catch(e){const m=document.querySelector("main");m.innerHTML='<div class="view"><h1>Start fehlgeschlagen</h1><div class="crash">'+esc(String(e&&e.stack||e))+'</div><p>Dein gespeicherter Stand bleibt erhalten.</p><button class="primary" id="crashFresh">Mit frischem Stand starten</button></div>';document.getElementById("crashFresh").onclick=()=>{lsSet("mephisto_crash_backup",lsGet(LS_KEY)||"");try{localStorage.removeItem(LS_KEY)}catch(x){}location.reload()}}})();
