@@ -3918,6 +3918,122 @@ const HOEREN3=[
  script:[{who:"Arzt",text:"Frau Lehmann, Sie können heute nach Hause gehen. Die Wunde sieht gut aus."},{who:"Patientin",text:"Das freut mich. Was muss ich zu Hause beachten?"},{who:"Arzt",text:"Halten Sie die Wunde trocken und wechseln Sie den Verband jeden zweiten Tag. Duschen dürfen Sie erst ab Freitag."},{who:"Patientin",text:"Und die Fäden?"},{who:"Arzt",text:"Die zieht Ihr Hausarzt in zehn Tagen. Wenn die Wunde rot wird oder Sie Fieber bekommen, kommen Sie bitte sofort wieder."},{who:"Patientin",text:"In Ordnung. Vielen Dank, Herr Doktor."}],
  questions:[{q:"Wie oft soll sie den Verband wechseln?",kind:"mc",opts:["Jeden Tag","Jeden zweiten Tag","Einmal pro Woche"],answer:1},{q:"Sie darf heute schon duschen.",kind:"rf",opts:[],answer:"f"},{q:"Wer zieht die Fäden?",kind:"mc",opts:["Der Hausarzt","Der Chirurg","Die Patientin selbst"],answer:0}],
  phrases:[["Was muss ich beachten?","What do I need to keep in mind?"],["den Verband wechseln","to change the dressing"],["jeden zweiten Tag","every other day"],["die Fäden ziehen","to remove the stitches"],["sofort wiederkommen","to come back at once"]],trap:"erst ab Freitag = not before Friday; in zehn Tagen, by the Hausarzt.",words:71}];
+// ===== Mephisto 12.10 · Die Wette: the story gets a human stake (Bett vier), a wager (Verweile doch), a turn (Mephisto is kind) and an ending.
+// Line types: ["N",de/en text, en?] narrator · ["M",de,en,du?] Mephisto · ["S",de,en] the Shadow · ["X",who,de,en] another voice · ["D",title,de,en] a document · ["C",choiceId] a choice.
+const STORY3={
+1:{add:[["N","He holds up a lantern. The flame is orange. You put your hand near it. It is cold."],
+ ["M","Das ist eine Laterne. Die Laterne ist kalt. Sie fragen: Warum? Später, Doktor. Sie haben noch kein Warum.","This is a lantern. The lantern is cold. You ask: why? Later, Doctor. You don't have a 'why' yet."]]},
+2:{add:[["M","Der Arzt. Die Ärztin. Das Krankenhaus. Sie sind „der“. Lernen Sie zuerst sich selbst.","Der Arzt. Die Ärztin. Das Krankenhaus. You are 'der'. Learn yourself first."]]},
+3:{add:[["N","You look back. Every mistake you made today lies on the path like a crumb of bread. Something small and dark bends down and picks them up, one by one."],
+ ["S","Ich nehme das Brot. Ich nehme jeden Fehler. Ich habe eine Tasche. Sie ist schon schwer.","I take the bread. I take every mistake. I have a bag. It is already heavy."]]},
+6:{add:[["N","Far away a church bell strikes. The witch counts with it, backwards."],
+ ["M","Hören Sie die Glocke? Zählen Sie. Wie spät ist es? … Falsch gezählt ist auch gezählt. Aber nicht in der Notaufnahme.","Hear the bell? Count. What time is it? … Counting wrong is still counting. But not in the emergency department."]]},
+7:{add:[["N","The tale is all questions. So ask him one."],["C","q7"]]},
+9:{add:[["M","Ich habe zwei Kaffee bestellt. Ich habe beide getrunken. Der zweite war für Sie. Aber Sie haben zu lange nach dem Dativ gesucht.","I ordered two coffees. I drank both. The second was for you. But you took too long looking for the dative."]]},
+10:{add:[["N","The rabbi wrote one word on the Golem's forehead. Mephisto looks at yours."],
+ ["M","Auf seiner Stirn steht ein Wort. Auf Ihrer Stirn steht auch eins: „Anfänger“. Ich habe es selbst geschrieben. Wischen Sie es weg – Buchstabe für Buchstabe.","There is a word on his forehead. There is one on yours too: 'beginner'. I wrote it myself. Wipe it off — letter by letter."]]},
+12:{add:[["N","In the Golden Lane, house number 22, a thin man with large ears writes all night. In the morning he goes to the insurance office."],
+ ["M","Er hat nachts geschrieben und am Tag gearbeitet. Wie Sie. Er hat auch geklagt. Aber er hat auf Deutsch geklagt.","He wrote at night and worked by day. Like you. He complained too. But he complained in German."]]},
+14:{add:[["M","Formular 66-6: Antrag auf Rückgabe der Seele. Haben Sie Ihren Pass mitgebracht? Ihre Meldebescheinigung? Ihre Seele? Ach nein. Die habe ja ich.","Form 66-6: application for return of the soul. Did you bring your passport? Your registration certificate? Your soul? Ah, no. I have that."],
+ ["S","Ich habe eine Nummer gezogen. Ich warte auch. Meine Nummer ist deine Nummer.","I took a number. I am waiting too. My number is your number."]]},
+20:{add:[["S","Er bietet dir das Du an, weil man seine Beute duzt. Ich habe dich immer geduzt.","He offers you the du because one says du to one's prey. I have always said du to you."]]},
+21:{add:[["N","Zwischen zwei Büchern steckte ein Blatt, das nicht zum Pakt gehörte. Es war älter als der Pakt. Darauf stand eine Wette, und dein Name stand nicht darin – nur das Wort „der Mensch“.","Between two books there was a sheet that did not belong to the pact. It was older than the pact. On it stood a wager, and your name was not in it — only the words 'der Mensch'."],
+ ["N","Du hast immer geglaubt, dass er gewinnt, wenn du scheiterst. Das stand dort nicht. Dort stand: Er gewinnt, wenn du zufrieden bist.","You always believed that he wins if you fail. That was not what it said. It said: he wins if you are satisfied."],
+ ["M","Sie haben es gelesen. Gut. Dann wissen Sie jetzt, wie ich gewinne. Nicht, wenn Sie durchfallen. Wenn Sie sagen: „Es reicht. Verweile doch, du bist so schön.“","You've read it. Good. Then you know how I win. Not if you fail. If you say: 'That's enough. Stay, you are so beautiful.'","Du hast es gelesen. Gut. Dann weißt du jetzt, wie ich gewinne. Nicht, wenn du durchfällst. Wenn du sagst: „Es reicht. Verweile doch, du bist so schön.“"],
+ ["M","Warum ich Sie trotzdem jeden Tag weitertreibe? Das ist eine gute Frage. Stellen Sie sie mir in neunzehn Kapiteln noch einmal.","Why I still drive you on every day? Good question. Ask me again in nineteen chapters.","Warum ich dich trotzdem jeden Tag weitertreibe? Das ist eine gute Frage. Stell sie mir in neunzehn Kapiteln noch einmal."]]},
+22:{add:[["M","Sie wurde untersucht, verurteilt und vergessen. Niemand hat sie gefragt. Wenn Sie eine Patientin im Passiv beschreiben, dann denken Sie daran, dass sie im Aktiv leidet.","She was examined, sentenced and forgotten. Nobody asked her. When you describe a patient in the passive, remember that she suffers in the active.","Sie wurde untersucht, verurteilt und vergessen. Niemand hat sie gefragt. Wenn du eine Patientin im Passiv beschreibst, dann denk daran, dass sie im Aktiv leidet."],
+ ["N","Er sah aus, als hätte er das nicht sagen wollen.","He looked as if he had not meant to say that."]]},
+23:{add:[["N","An diesem Abend war er freundlich. Er rückte dir den Stuhl zurecht. Es war das Unheimlichste, was er je getan hatte.","That evening he was kind. He pulled out the chair for you. It was the most uncanny thing he had ever done."],
+ ["M","Sie verstehen den Bäcker, den Busfahrer und die Nachbarin. Wozu brauchen Sie noch den Konjunktiv? Bleiben Sie hier. Es ist warm. Ich würde aufhören, Sie zu beleidigen.","You understand the baker, the bus driver and the neighbour. What do you still need the subjunctive for? Stay here. It's warm. I would stop insulting you.","Du verstehst den Bäcker, den Busfahrer und die Nachbarin. Wozu brauchst du noch den Konjunktiv? Bleib hier. Es ist warm. Ich würde aufhören, dich zu beleidigen."],
+ ["S","Wenn ich du wäre, würde ich bleiben. Aber ich bin du – und ich weiß nicht mehr, ob ich bleiben will.","If I were you, I would stay. But I am you — and I no longer know whether I want to stay."],["C","v23"]]},
+25:{add:[["N","Im Kabarett „Zur letzten Instanz“ steht ein Conférencier im Frack auf der Bühne. Du kennst die Stimme.","In the cabaret 'Zur letzten Instanz' a master of ceremonies in tails stands on the stage. You know the voice."],
+ ["M","Meine Damen und Herren, sowohl die Lebenden als auch die Toten: Heute Abend sehen Sie einen Mann, der nicht nur Arzt ist, sondern auch glaubt, er könne Deutsch.","Ladies and gentlemen, both the living and the dead: tonight you will see a man who is not only a doctor but also believes he can speak German."]]},
+26:{add:[["N","Caligari öffnet den Schrank. Der Schlafwandler, dessen Augen seit dreiundzwanzig Jahren geschlossen sind, schlägt sie auf und sagt jedem die Zukunft voraus.","Caligari opens the cabinet. The sleepwalker, whose eyes have been closed for twenty-three years, opens them and tells everyone their future."],
+ ["X","Cesare","Sie fragen, wie lange Sie noch lernen müssen? Bis zum Morgengrauen der Prüfung.","You ask how much longer you must study? Until the dawn of the exam."]]},
+28:{add:[["N","Für dieses Kapitel löscht er die Laterne. Wer nichts sieht, hört besser.","For this chapter he puts out the lantern. Whoever sees nothing hears better."],
+ ["M","Augen zu. Die brauchen Sie hier nicht. Der Sandmann nimmt sie ohnehin.","Eyes shut. You don't need them here. The Sandman takes them anyway.","Augen zu. Die brauchst du hier nicht. Der Sandmann nimmt sie ohnehin."]]},
+29:{add:[["N","In der Kanzlei liegt eine Akte offen auf dem Tisch. Sie trägt deinen Namen.","In the chancery a file lies open on the table. It bears your name."],
+ ["D","Akte · streng vertraulich","Betreff: {NAME}, Arzt. Zustand nach Paktschluss. Bei fortgesetzter Lernbereitschaft ist mit einer vollständigen Rückgabe der Seele zu rechnen. Eine Verwertung des Unterzeichneten ist nicht vorgesehen. Um strikte Geheimhaltung gegenüber dem Betroffenen wird gebeten.\n\nEr darf das nie lesen. – M.","Re: {NAME}, physician. Status after conclusion of the pact. Given continued willingness to learn, a complete return of the soul is to be expected. No use of the undersigned is intended. Strict secrecy towards the person concerned is requested.\n\nNote in the margin, handwritten: He must never read this. — M."],
+ ["M","Das ist eine Fälschung. Unterstehen Sie sich, mich für anständig zu halten.","That is a forgery. Don't you dare think me decent.","Das ist eine Fälschung. Untersteh dich, mich für anständig zu halten."]]},
+31:{add:[["N","Mitten im Satz flüsterte jemand hinter dir, bevor du den Fehler machen konntest.","In the middle of the sentence someone whispered behind you, before you could make the mistake."],
+ ["S","Vorsicht: „wegen“ verlangt den Genitiv. – Das habe ich nicht gesagt. Man behauptet nur, ich hätte es gesagt.","Careful: 'wegen' takes the genitive. — I did not say that. People merely claim I said it."]]},
+32:{add:[["X","Dr. Caligari","Hier sind die Lösungen, Herr Doktor, sämtliche. Sie brauchen lediglich zu unterschreiben – diesmal bei mir.","Here are the answers, Doctor, all of them. You need only sign — this time with me."],
+ ["M","Bei mir hat er bereits unterschrieben. Ich teile nicht. Und er schummelt nicht – dafür habe ich ihn zu gründlich gequält.","He has already signed with me. I don't share. And he doesn't cheat — I've tormented him too thoroughly for that."]]},
+33:{add:[["N","Auf dem Tisch liegt, säuberlich eröffnet, dein erstes Jahr in dieser Sprache: jeder falsche Artikel freipräpariert, jede verrutschte Endung mit einer Nadel beschriftet.","On the table, neatly opened, lies your first year in this language: every wrong article dissected free, every slipped ending labelled with a pin."],
+ ["M","Erheben Sie den Befund. In Fachsprache. Es handelt sich um Ihren eigenen Leichnam – da darf man gründlich sein.","Report the findings. In technical language. The cadaver is your own — one may be thorough.","Erhebe den Befund. In Fachsprache. Es handelt sich um deinen eigenen Leichnam – da darf man gründlich sein."]]},
+34:{add:[["N","Die Schauspielpatientin stellt sich vor. Sie heißt Margarete Brandt, einundsiebzig Jahre alt. Du hast diesen Namen schon einmal gelesen, in einer Chronik, unter dem Jahr 1772.","The simulated patient introduces herself. Her name is Margarete Brandt, seventy-one years old. You have read this name before, in a chronicle, under the year 1772."],
+ ["M","Zufall. Ich arbeite nie mit Zufällen.","Coincidence. I never work with coincidences."]]},
+37:{add:[["N","Auf dem Brocken tanzen sie alle: die Hexe, verkohlt und vergnügt; der Golem, dem ein Buchstabe fehlt; der Pudel; Caligari in der Zwangsjacke. Sie grüßen dich wie einen alten Bekannten.","On the Brocken they are all dancing: the witch, charred and cheerful; the golem, missing one letter; the poodle; Caligari in a straitjacket. They greet you like an old acquaintance."],
+ ["M","Bleiben Sie doch beim Tanz. Dort unten wartet nichts als ein Kerker und eine Prüfung.","Do stay for the dance. Down there nothing awaits but a dungeon and an exam.","Bleib doch beim Tanz. Dort unten wartet nichts als ein Kerker und eine Prüfung."],
+ ["N","Im Nebel über dem Gipfel stand eine riesige Gestalt mit einem Lichtkranz um den Kopf. Du hobst den Arm. Sie hob ihn auch.","In the fog above the summit stood a giant figure with a ring of light around its head. You raised your arm. It raised its arm too."],
+ ["S","Das bin ich. So groß war ich nur, solange du mich nicht angesehen hast.","That is me. I was only that big as long as you did not look at me."]]},
+39:{add:[["N","Im Kerker stellte der Schatten eine Tasche vor dich hin.","In the dungeon the shadow set a bag down in front of you."],
+ ["S","Ich habe sie alle aufgehoben, seit dem Wald. Zähl nach. Es sind weniger, als du befürchtet hast – und keiner davon ist zweimal dabei.","I picked them all up, since the forest. Count them. There are fewer than you feared — and none of them is in there twice."]]},
+40:{open:[["N","Vor der Tür des Prüfungsraums. Drei Stühle hinter einem Tisch, ein vierter davor. Der vierte ist für dich.","Outside the door of the examination room. Three chairs behind a table, a fourth in front of it. The fourth is for you."],
+ ["M","Ich darf nicht mit hinein. Hausverbot, seit 1808. Alles, was ich Ihnen beibringen konnte, tragen Sie bei sich. Der Rest ist Ihr Deutsch. Ihres – nicht meines.","I'm not allowed in with you. Banned from the premises since 1808. Everything I could teach you, you carry with you. The rest is your German. Yours — not mine.","Ich darf nicht mit hinein. Hausverbot, seit 1808. Alles, was ich dir beibringen konnte, trägst du bei dir. Der Rest ist dein Deutsch. Deines – nicht meines."],
+ ["S","Wir treten gemeinsam ein. Du sprichst, und ich schweige. Zum ersten Mal habe ich keine Angst.","We enter together. You speak, and I stay silent. For the first time I am not afraid."]],
+ finale:[["N","Drei Ärztinnen und Ärzte am Tisch. Eine Stunde. Am Ende sagt jemand ein einziges Wort: „Bestanden.“ Die Tür fällt ins Schloss, und im Flur steht er, die Laterne in der Hand.","Three doctors at the table. One hour. At the end someone says a single word: 'Passed.' The door falls shut, and in the corridor he stands, the lantern in his hand."],
+ ["M","Kapitel vierzig. Ich habe keine Beleidigung vorbereitet. Das ist mir seit 1808 nicht passiert.","Chapter forty. I haven't prepared an insult. That hasn't happened to me since 1808."],
+ ["M","Bestanden. Ich habe an der Tür gelauscht. Sie haben „aufgrund“ mit dem Genitiv gebraucht. Mir wäre beinahe warm ums Herz geworden, wenn ich eines hätte.","Passed. I listened at the door. You used 'aufgrund' with the genitive. It nearly warmed my heart, if I had one.","Bestanden. Ich habe an der Tür gelauscht. Du hast „aufgrund“ mit dem Genitiv gebraucht. Mir wäre beinahe warm ums Herz geworden, wenn ich eines hätte."],
+ ["M","Und nun zum Geschäft. Sie sind am Ziel. Sagen Sie den Satz, Doktor: „Verweile doch, du bist so schön.“ Sagen Sie, dass es genug ist. Dann gehört sie mir – so steht es in der älteren Wette.","And now to business. You have arrived. Say the sentence, Doctor: 'Stay, you are so beautiful.' Say that it is enough. Then it is mine — so says the older wager.","Und nun zum Geschäft. Du bist am Ziel. Sag den Satz, Doktor: „Verweile doch, du bist so schön.“ Sag, dass es genug ist. Dann gehört sie mir – so steht es in der älteren Wette."],
+ ["C","v40"],
+ ["M","„Noch nicht.“ Zwei Wörter – und ich verliere eine Wette, die ich seit dem Schwarzwald zu verlieren hoffe.","'Not yet.' Two words — and I lose a wager I have been hoping to lose since the Black Forest."],
+ ["N","Er hält den Pakt über eine Kerze. Zwischen den Zeilen erscheint in brauner Schrift ein sechster Paragraf.","He holds the pact over a candle. Between the lines, in brown writing, a sixth clause appears."],
+ ["D","§ 6","Der Unterzeichnete kann jederzeit gehen. Er muss nur fragen.","The undersigned may leave at any time. He only has to ask."],
+ ["M","Sie haben nie gefragt. Vierzig Kapitel lang. Wissen Sie, wie selten das ist?","You never asked. For forty chapters. Do you know how rare that is?","Du hast nie gefragt. Vierzig Kapitel lang. Weißt du, wie selten das ist?"],
+ ["M","Im Wald wollten Sie wissen, warum ich Ihnen helfe. Damals fehlte Ihnen der Wortschatz für die Antwort. Jetzt nicht mehr: Wer immer strebend sich bemüht, den kann ich nicht behalten. Ich habe es oft genug versucht. Man gewöhnt sich ans Verlieren. Am Ende beginnt man, es zu wollen.","In the forest you wanted to know why I help you. Back then you lacked the vocabulary for the answer. Not any more: whoever strives with all his might, him I cannot keep. I have tried often enough. One gets used to losing. In the end one begins to want it.","Im Wald wolltest du wissen, warum ich dir helfe. Damals fehlte dir der Wortschatz für die Antwort. Jetzt nicht mehr: Wer immer strebend sich bemüht, den kann ich nicht behalten. Ich habe es oft genug versucht. Man gewöhnt sich ans Verlieren. Am Ende beginnt man, es zu wollen."],
+ ["SIG"],
+ ["M","Hier. Ihre Unterschrift. Das Blut ist längst trocken. Und nehmen Sie die Laterne mit. In der Notaufnahme ist es um drei Uhr nachts dunkler als im Schwarzwald. – Erzählen Sie es niemandem.","Here. Your signature. The blood dried long ago. And take the lantern with you. In the emergency department at three in the morning it is darker than in the Black Forest. — Tell no one.","Hier. Deine Unterschrift. Das Blut ist längst trocken. Und nimm die Laterne mit. In der Notaufnahme ist es um drei Uhr nachts dunkler als im Schwarzwald. – Erzähl es niemandem."],
+ ["N","Die Laterne ist warm.","The lantern is warm."],
+ ["S","Ich bin leiser geworden. Ich bin nicht fort. Wenn du müde bist, hörst du mich wieder. Dann sag es mir auf Deutsch.","I have grown quieter. I am not gone. When you are tired, you will hear me again. Then say it to me in German."],
+ ["N","Heidelberg. Notaufnahme. 03:07 Uhr. Bett vier. „Guten Morgen, Frau Brandt. Ich bin Doktor {LAST}. Was führt Sie zu uns?“ Sie erzählt, und du verstehst jedes Wort. Auf dem Tisch im Dienstzimmer steht eine zweite Tasse Kaffee. Sie ist voll. Vor der Schiebetür sitzt ein schwarzer Pudel und tut, als gehöre er zu niemandem.","Heidelberg. Emergency department. 03:07. Bed four. 'Good morning, Mrs Brandt. I am Doctor {LAST}. What brings you to us?' She tells you, and you understand every word. On the table in the staff room stands a second cup of coffee. It is full. Outside the sliding door sits a black poodle, pretending to belong to no one."]]}};
+// choices: id → {q?, opts:[[label, lines, effect?]]}; effect: "egg:verweile", "debt", "again" (return to the choice), "secretFace"
+const CHOICES={
+ q7:{opts:[["„Wer sind Sie?“",[["M","Ich bin Ihr Lehrer. Das ist schlimmer als der Teufel.","I am your teacher. That is worse than the devil."]]],
+  ["„Warum helfen Sie mir?“",[["M","Falsche Frage. Nächste Frage.","Wrong question. Next question."],["N","It is the first time he does not have an answer ready."]]]]},
+ v23:{opts:[["„Verweile doch.“",[["N","Es wird dunkel. Die Laterne geht aus. Eine tiefe Glocke schlägt, einmal.","It grows dark. The lantern goes out. A deep bell strikes, once."],["M","… Nein. So billig will ich Sie nicht. Noch einmal.","… No. I don't want you that cheaply. Again.","… Nein. So billig will ich dich nicht. Noch einmal."]],"dark,egg:verweile,again"],
+  ["„Weiter.“",[["M","Schade. Für mich.","A pity. For me."]],"secretFace"]]},
+ v40:{opts:[["„Verweile doch.“",[["N","Es wird dunkel. Eine tiefe Glocke schlägt, einmal.","It grows dark. A deep bell strikes, once."],["M","… Nein. Diesen Satz schenke ich Ihnen nicht. Noch einmal.","… No. I won't make you a gift of that sentence. Again.","… Nein. Diesen Satz schenke ich dir nicht. Noch einmal."]],"dark,again"],
+  ["„Noch nicht. Morgen habe ich Frühdienst.“",[],""]]}};
+// Bett vier: after each boss, the patient who waits. boss id → lines.
+const BETT={
+ hexe:[["N","For one breath the oven door is another door. White light. A corridor. Bed four. An old woman looks at you."],
+  ["X","Patientin","Guten Tag, Herr Doktor.","Good day, Doctor."],["X","Du","Guten Tag. Ich bin Doktor {LAST}. Ich bin Arzt.","Good day. I am Doctor {LAST}. I am a physician."],
+  ["N","That is all you have. She waits for more. Then the forest is back."],["M","Neun Wörter. Sie wartet. Ich auch.","Nine words. She is waiting. So am I."]],
+ golem:[["N","The clay cracks, and behind it is the corridor again. Bed four."],
+  ["X","Du","Wo haben Sie Schmerzen?","Where do you have pain?"],["X","Patientin","Hier, im Bauch.","Here, in my belly."],["X","Du","Seit wann?","Since when?"],["X","Patientin","Seit gestern Abend. Ich habe nichts gegessen.","Since last night. I haven't eaten anything."],
+  ["N","You understood her. She looks at you for a moment longer than she needs to."],["X","Patientin","Sie sprechen aber gut Deutsch.","But you speak German well."],
+  ["M","Sie lügt. Aber sie hat gelächelt. Das habe ich nicht erlaubt.","She is lying. But she smiled. I did not permit that."]],
+ pudel:[["N","Der Pudel schrumpft, und wo er war, steht wieder das Bett. Bett vier.","The poodle shrinks, and where it was the bed stands again. Bed four."],
+  ["X","Patientin","Ich bin gekommen, weil ich keine Luft mehr bekommen habe.","I came because I couldn't get any air."],
+  ["N","Du hast das „weil“ verstanden und das Verb am Ende. Dann fragte sie etwas anderes.","You understood the 'weil' and the verb at the end. Then she asked something else."],
+  ["X","Patientin","Muss ich sterben, Herr Doktor?","Am I going to die, Doctor?"],
+  ["N","Du wusstest die Antwort. Du hattest die Wörter nicht. Man tröstet im Konjunktiv, und den hattest du noch nicht sicher.","You knew the answer. You did not have the words. One comforts in the subjunctive, and you did not have that securely yet."],
+  ["M","Dazu fällt mir keine Beleidigung ein.","I can't think of an insult for that.","Dazu fällt mir keine Beleidigung ein."]],
+ caligari:[["N","Die schiefen Wände richten sich auf. Ein gerader Flur. Bett vier.","The crooked walls straighten. A straight corridor. Bed four."],
+  ["X","Du","Wären Sie früher gekommen, hätten wir es leichter gehabt. Aber Sie sind jetzt hier, und wir kümmern uns um Sie. Ich erkläre Ihnen Schritt für Schritt, was als Nächstes geschieht.","Had you come earlier, it would have been easier for us. But you are here now, and we are taking care of you. I will explain to you step by step what happens next."],
+  ["X","Patientin","Danke, dass Sie es mir erklärt haben. Das hat bisher keiner getan.","Thank you for explaining it to me. Nobody has done that so far."],
+  ["N","Mephisto schweigt. Die Laterne brennt heller.","Mephisto is silent. The lantern burns brighter."]]};
+// Milestone lines [Sie, English, du]
+const MILE={
+ seal1:["Ihr erstes Siegel. Heben Sie es gut auf. Die meisten meiner Kunden besitzen nur eins.","Your first seal. Keep it safe. Most of my clients own only one.",""],
+ half:["Halbzeit. Ab hier ist der Rückweg genauso lang wie der Weg. Ich habe das so gebaut.","Half-time. From here the way back is as long as the way on. I built it that way.",""],
+ back3:["Drei Tage. Ich habe Ihren Stuhl warm gehalten. Mit Feuer.","Three days. I kept your chair warm. With fire.","Drei Tage. Ich habe deinen Stuhl warm gehalten. Mit Feuer."],
+ back7:["Eine Woche. Ihr Schatten hat hier gesessen und Ihre Karten gelernt. Er ist jetzt besser als Sie.","A week. Your shadow sat here and learned your cards. He is better than you now.","Eine Woche. Dein Schatten hat hier gesessen und deine Karten gelernt. Er ist jetzt besser als du."],
+ back30:["(leise) Ich dachte, Sie kommen nicht wieder. – Vergessen Sie das. Zehn Karten. Sofort.","(quietly) I thought you weren't coming back. — Forget that. Ten cards. Now.","(leise) Ich dachte, du kommst nicht wieder. – Vergiss das. Zehn Karten. Sofort."],
+ lore1:["Sie lesen freiwillig? Vorsicht. So hat es bei Faust auch angefangen.","Reading of your own free will? Careful. That's how it started with Faust.","Du liest freiwillig? Vorsicht. So hat es bei Faust auch angefangen."],
+ boss1:["Sie haben eine alte Frau in einen Ofen gestoßen. Für einen Artikel. Jetzt verstehen wir uns.","You pushed an old woman into an oven. For an article. Now we understand each other.",""],
+ soul100:["Hundert Prozent. Sie gehört wieder Ihnen. Sie war ohnehin schwer zu lagern.","A hundred per cent. It's yours again. It was hard to store anyway.","Hundert Prozent. Sie gehört wieder dir. Sie war ohnehin schwer zu lagern."],
+ sealI:["Ein Siegel mehr. Der Wald wird nicht heller. Sie sehen nur besser.","One more seal. The forest gets no brighter. You just see better.",""],
+ sealII:["Besiegelt. Der Kellner hat genickt. Das ist in Prag eine Auszeichnung.","Sealed. The waiter nodded. In Prague that's a decoration.",""],
+ sealIII:["Besiegelt. Faust hätte an dieser Stelle längst einen Trank verlangt.","Sealed. Faust would have demanded a potion long before this point.",""],
+ sealIV:["Abgestempelt, abgelegt, aktenkundig. Auch das ist ein Siegel.","Stamped, filed, on record. That too is a seal.",""],
+ sealV:["Noch ein Siegel. Es sind nicht mehr viele. Ich zähle sie ungern.","Another seal. Not many left. I don't like counting them.",""]};
+const MEPH_AFTER=[["Sie schon wieder? Sie schulden mir nichts mehr. … Setzen Sie sich trotzdem.","You again? You owe me nothing now. … Sit down anyway.","Du schon wieder? Du schuldest mir nichts mehr. … Setz dich trotzdem."],
+ ["Ich habe keine Handhabe mehr gegen Sie. Lernen Sie also freiwillig. Das ist das Schlimmste.","I have no hold on you any more. So study of your own free will. That's the worst of it.","Ich habe keine Handhabe mehr gegen dich. Lern also freiwillig. Das ist das Schlimmste."],
+ ["Der Nächste hat heute unterschrieben. Er ist schlechter als Sie damals. Fast.","The next one signed today. He's worse than you were. Almost.","Der Nächste hat heute unterschrieben. Er ist schlechter als du damals. Fast."]];
+// Chronik pages remapped to the chapters they belong to
+const LORE_CH={hunger:3,hameln:4,rotkaeppchen:5,hexenhammer:8,kafka:14,totentanz:15,pudel:18,volksbuch:19,auerbach:20,paracelsus:21,caligari:26,virchow:28,vesal:33,semmelweis:34,brocken:37,hauser:39,roentgen:36};
 // ================= CORE (v2) =================
 "use strict";
 MEDVOCAB.forEach(v=>VOCAB.push(v));ALLTAGVOCAB.forEach(v=>VOCAB.push(v));MEDL2.forEach(m=>MEDL.push(m));
@@ -4691,7 +4807,7 @@ ACT.saveYuzu=async()=>{const p=yuzuPack();const r=await saveFile("mephisto-core.
 ACT.copyYuzu=()=>{const p=yuzuPack();copyText(JSON.stringify(p),$(".bk-txt"));toast(p.cards.length+" Karten")};
 ACT.reset=()=>{const v=($(".rs-in")||{}).value;if(v!=="LÖSCHEN")return toast("Tippe LÖSCHEN zur Bestätigung");lsSet("mephisto_before_reset",JSON.stringify(S));S=fresh();saveNow();buildDict();applyPrefs();R.tab="home";toast("Zurückgesetzt. Eine Kopie liegt unter „mephisto_before_reset“.");rerender()};
 // ================= PHONE FEATURES (v10): speech check, Artikel-Blitz, numbers, terms, undo, haptics, coach, PWA =================
-const APP_VERSION="12.9.1";
+const APP_VERSION="12.10.0";
 const IS_PWA=!!window.MEPHISTO_PWA;
 const IS_STANDALONE=(()=>{try{return matchMedia("(display-mode: standalone)").matches||navigator.standalone===true}catch(e){return false}})();
 const IS_IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
@@ -7956,6 +8072,159 @@ ACT.starkAux=()=>{const P0=starkPool().filter(v=>v[6]!=="modal"&&!/\//.test(v[4]
 `;document.head.appendChild(s)})();
 // Hören für den Anfang → HOEREN
 (function(){try{(typeof HOEREN3!=="undefined"?HOEREN3:[]).forEach(h=>{if(!HOEREN.some(x=>x.id===h.id))HOEREN.push(h)});HOEREN.sort((a,b)=>(a.level||3)-(b.level||3)||(a.week||0)-(b.week||0))}catch(e){}})();
+// ===== Mephisto 12.10 · Die Wette: story reader with voices, documents and choices; Bett vier; the ending; milestone lines; r7 story-beta fixes.
+// ---------------------------------------------------------------- 0. merge the new beats into the chapters
+(function(){try{
+  Object.keys(STORY3).forEach(k=>{const c=CHAPTERS[+k-1],s=STORY3[k];if(!c)return;if(s.open)c.scene=s.open.map(l=>l.slice());if(s.add&&!c.scene.some(l=>l[1]===s.add[0][1]))s.add.forEach(l=>c.scene.push(l.slice()))});
+  // B5: the poodle is not the shadow; he borrowed the shadow's mistakes
+  const c24=CHAPTERS[23];if(c24&&c24.scene[0]&&c24.scene[0][0]==="N")c24.scene[0]=["N","Der Pudel wächst noch einmal. Diesmal trägt er dein Gesicht. Er hat sich deine Fehler geliehen – bei deinem Schatten, der sie alle aufgehoben hat – und spricht sie mit deiner Stimme.","The poodle grows once more. This time it wears your face. It has borrowed your mistakes — from your shadow, who kept them all — and speaks them in your voice."];
+  if(BOSSES.pudel)BOSSES.pudel.intro=["Ein schwarzer Pudel hinter dem Ofen. Er wächst. Er trägt Ihr Gesicht – geliehen von Ihrem Schatten, mitsamt allen Ihren Fehlern.","A black poodle behind the stove. It grows. It wears your face — borrowed from your shadow, along with all your mistakes."];
+  // B10: the anatomy theatre opens with a Clarke plate, not Struwwelpeter
+  if(CHAPTERS[32]&&pkArt("clarke_57"))CHAPTERS[32].art="clarke_57";
+  // B11: every Chronik page hangs on the chapter it belongs to (unlock order stays as it was: only pages that open no later than before are moved)
+  LORE.forEach(e=>{const n=LORE_CH[e.id];if(n&&!e.egg){e.link=n;if(n<e.ch)e.ch=n}});
+}catch(e){try{logError(e)}catch(x){}}})();
+function st3Lore(n){return LORE.find(e=>!e.egg&&e.link===n&&loreOpen(e))||LORE.find(e=>!e.egg&&!e.link&&e.ch===n&&loreOpen(e))||null}
+function st3Fill(s){const nm=String(P().name||"").trim()||"Dr. Amron Ismail";const last=nm.replace(/^(Dr\.?|Prof\.?|Herr|Frau)\s+/gi,"").trim().split(/\s+/).pop()||"Ismail";return String(s==null?"":s).replace(/\{NAME\}/g,nm).replace(/\{LAST\}/g,last)}
+function st3Du(){try{return P().du===true}catch(e){return false}}
+function st3En(en){return en?`<div class="pk-say" style="display:block"><div class="en">${esc(st3Fill(en))}</div></div>`:""}
+function ml(k){const x=MILE[k];return x?[st3Du()&&x[2]?x[2]:x[0],x[1]]:pkLine("greet")}
+// ---------------------------------------------------------------- 1. the reader
+function st3Line(ln,cur,c){const f=cur?" pk-fade":"";const t=ln[0];
+  if(t==="M"){const de=st3Fill(st3Du()&&ln[3]?ln[3]:ln[1]);return `<div class="card${f}">${pkSay([de,st3Fill(ln[2])],ln[4]==="secret")}<div class="row" style="margin-top:.5rem"><button class="sm ghost" data-act="pkSpeakLine" data-t="${esc(de)}">${ic("play")}Mephisto hören</button></div></div>`}
+  if(t==="S")return `<div class="card pk-shadow${f}"><div class="eyebrow">${c.n<3?`Eine Stimme hinter dir <span class="en">a voice behind you</span>`:`Dein Schatten <span class="en">your shadow</span>`}</div><div class="sh-de">${glossify(ln[1])}</div>${st3En(ln[2])}<div class="row" style="margin-top:.4rem"><button class="sm ghost" data-say="${esc(ln[1])}">${ic("vol")} Anhören</button></div></div>`;
+  if(t==="X"){const me=ln[1]==="Du";const de=st3Fill(ln[2]);return `<div class="card st-x${me?" st-me":""}${f}"><div class="eyebrow">${esc(ln[1])}</div><div class="st-de">${glossify(de)}</div>${st3En(ln[3])}<div class="row" style="margin-top:.4rem"><button class="sm ghost" data-say="${esc(de)}">${ic("vol")} Anhören</button></div></div>`}
+  if(t==="D"){const ps=st3Fill(ln[2]).split(/\n\n/);return `<div class="st-doc no-sig${f}"><div class="st-doc-h">${esc(ln[1])}</div>${ps.map((p,k)=>`<p class="${k>0?"hand":""}">${glossify(p)}</p>`).join("")}${st3En(ln[3])}</div>`}
+  if(t==="SIG"){const p=P();return `<div class="st-sig${f}">${p.sig?`<img src="${p.sig}" alt="Deine Unterschrift">`:`<span class="st-signame">${esc(p.name||"")}</span>`}<i></i><i></i><i></i></div>`}
+  if(t==="C"){const ch=CHOICES[ln[1]];if(!ch)return "";if(ln[2]!=null)return `<div class="st-pick${f}"><span class="eyebrow">Du</span>${esc(ch.opts[ln[2]][0])}</div>`;
+    return `<div class="st-choice${f}"><div class="eyebrow">Deine Antwort <span class="en">your answer</span></div>${ch.opts.map((o,k)=>`<button class="st-opt" data-act="st3Pick" data-o="${k}">${esc(o[0])}</button>`).join("")}</div>`}
+  if(ln[2])return `<div class="pk-nar st-nar${f}"><div>${glossify(st3Fill(ln[1]))}</div>${st3En(ln[2])}</div>`;
+  return `<p class="pk-nar${f}">${esc(st3Fill(ln[1]))}</p>`}
+function st3Cue(ln){try{const s=String(ln[1]||"")+String(ln[2]||"");
+  if(ln[0]==="D"||/zufrieden bist|ältere[nr]? Wette/.test(s))SND.motif([[38,0,10],[44,0,10],[50,10,8],[56,10,8]],"organ",60);       // the tritone: diabolus in musica
+  else if(ln[0]==="SIG")SND.fx("seal");
+  else if(/Laterne ist warm/.test(s))SND.motif([[60,0,6],[64,3,6],[67,6,6],[72,9,14],[76,12,14]],"musicbox",72);
+  else if(/Bett vier|Bed four/.test(s)&&ln[0]==="N")SND.motif([[69,0,3],[69,6,3],[69,12,3]],"musicbox",60)}catch(e){}}  // the monitor: three even beeps
+function st3Dark(ms){const h=document.documentElement;h.classList.add("st-dark");try{SND.bell(1,true)}catch(e){}setTimeout(()=>h.classList.remove("st-dark"),ms||2600)}
+// opts: {title,sub,lines,art,tail(html at the end),done:{label,fn},onClose}
+function st3Play(o){const c=o.c||pkCh();const box=Focus.open({title:o.title,sub:o.sub||"",onClose:o.onClose||null});const lines=o.lines.map(l=>l.slice());let i=0;
+  const draw=()=>{const cur=lines[i]||[];const wait=cur[0]==="C"&&cur[2]==null;const end=i>=lines.length-1&&!wait;
+    box.innerHTML=`<div class="stack st-read" style="max-width:680px;margin:0 auto">${i===0&&o.art?pkFig(o.art):""}${lines.slice(0,i+1).map((ln,j)=>st3Line(ln,j===i,c)).join("")}${end&&o.tail?o.tail():""}</div>`;
+    Focus.foot(wait?`<small class="muted ui">Wähle eine Antwort.</small>`:end?`<button class="go" data-act="pkReadDone">${esc(o.done.label)}</button>`:`<button class="go" data-act="pkNext">Weiter</button>`);
+    const b=$("#fBody");if(b&&i>0)b.scrollTo({top:b.scrollHeight,behavior:"smooth"});st3Cue(cur)};
+  ACT.pkNext=()=>{if(i>=lines.length-1)return;i++;SND.fx("page");draw()};
+  ACT.st3Pick=el=>{const cur=lines[i];if(!cur||cur[0]!=="C"||cur[2]!=null)return;const k=+el.dataset.o,opt=CHOICES[cur[1]].opts[k];const fx=String(opt[2]||"").split(",");const again=fx.includes("again");
+    cur[2]=k;const ins=opt[1].map(l=>{const x=l.slice();if(fx.includes("secretFace")&&x[0]==="M")x[4]="secret";return x});if(again)ins.push(["C",cur[1]]);lines.splice(i+1,0,...ins);
+    const p=P();p.choices=p.choices||{};if(again)p.verw=(p.verw||0)+1;else p.choices[cur[1]]=k;saveSoon();
+    if(fx.includes("dark"))st3Dark();const egg=fx.find(x=>x.indexOf("egg:")===0);if(egg)setTimeout(()=>{try{findEgg(egg.slice(4))}catch(e){}},2900);
+    SND.fx("page");if(i<lines.length-1)i++;draw()};
+  ACT.pkReadDone=ACT.st3Done=()=>o.done.fn();draw();SND.fx("page")}
+function st3Scene(c){const p=P();let L=c.scene.map(l=>l.slice());const b=Object.keys(BOSSES).find(k=>BOSSES[k].ch===c.n);
+  if(b&&BETT[b]&&(S.bossWins||{})[b])L=L.concat([["N","· · ·"]],BETT[b]);
+  if(c.n===CHAPTERS.length&&p.done&&STORY3[c.n].finale)L=L.concat([["N","· · ·"]],STORY3[c.n].finale);return L}
+pkRead=function(n){const c=pkCh(n);const p=P();
+  st3Play({c,title:`Kapitel ${c.n} · ${c.t}`,sub:`${REALMS[c.r].n} · ${REALMS[c.r].de}`,lines:st3Scene(c),art:c.art,onClose:()=>{if(R.tab==="pakt")rerender()},
+    tail:()=>{const lo=st3Lore(c.n);return `${lo?`<button class="card lore-new pk-fade" data-act="loreRead" data-id="${lo.id}"><span><span class="eyebrow">Zu diesem Kapitel in der Chronik</span><b>${esc(lo.t)}</b><small>${esc(lo.y)}</small></span></button>`:""}
+      <div class="card orn pk-fade"><div class="eyebrow">Faust</div><div class="pk-faust">${esc(c.faust.de.replace(/ \/ /g,"\n"))}<small>${esc(c.faust.src)} — ${esc(c.faust.en)}</small></div><div class="row" style="margin-top:.6rem"><button class="sm ghost" data-act="pkSpeakFaust" data-n="${c.n}">${ic("play")}Vorlesen</button></div></div>
+      <div class="card pk-fade"><div class="eyebrow">Klausel des Pakts</div><p style="font-family:var(--body);font-size:1.12rem;margin:.3rem 0">${esc(c.clause.de)}</p><small class="muted ui">${esc(c.clause.en)} · ${esc(c.jung)}</small></div>`},
+    done:{label:c.n===p.ch&&!p.done?"Zur Klausel":"Schließen",fn:()=>{Focus.close();if(R.tab!=="pakt")go("pakt")}}})};
+ACT.pkRead=el=>pkRead(+el.dataset.n||P().ch);
+// ---------------------------------------------------------------- 2. Bett vier: after every boss, the patient who is waiting
+function st3Bett(id,then){const B=BOSSES[id];const p=P();p.bett=p.bett||{};p.bett[id]=todayKey();saveSoon();let L=BETT[id].map(l=>l.slice());
+  if(id==="hexe"&&Object.keys(S.bossWins||{}).length<=1)L=[["M",MILE.boss1[0],MILE.boss1[1]]].concat(L);
+  st3Play({c:pkCh(B.ch),title:"Bett vier",sub:"Heidelberg · Notaufnahme · irgendwann",lines:L,onClose:null,done:{label:"Zurück zum Pakt",fn:then}})}
+(function(){const _d=bossDuel;bossDuel=function(id){const r=_d.apply(this,arguments);try{const _g=ACT.pkGoPakt;
+  ACT.pkGoPakt=function(){const won=(S.bossWins||{})[id];if(won&&BETT[id]&&!(P().bett||{})[id]){document.documentElement.classList.add("st-white");setTimeout(()=>document.documentElement.classList.remove("st-white"),900);return st3Bett(id,()=>{Focus.close(true);go("pakt")})}return _g.apply(this,arguments)}}catch(e){}return r}})();
+// B4: when a duel or any overlay closes, the sound goes home to the realm you are in
+(function(){const _c=Focus.close;Focus.close=function(){const r=_c.apply(this,arguments);try{if(P().signed)SND.setRealm(pkRealm())}catch(e){}return r}})();
+// boss tension: a low tritone pulse under the duel; it quickens as the candles go out
+setInterval(()=>{try{const d=document.querySelector(".duel");if(!d||document.hidden||!Focus.isOpen())return;const lives=d.querySelectorAll(".duel-lives i.on").length;if(!d.querySelector(".duel-q")||!d.querySelector(".duel-q").children.length)return;
+  const low=lives<=2;SND.motif(low?[[26,0,2],[32,3,2],[26,6,2],[32,9,2]]:[[26,0,3],[32,8,3]],"piano",low?96:66)}catch(e){}},3200);
+// ---------------------------------------------------------------- 3. the ending
+function st3End(){const p=P();const box=Focus.open({title:"Der Pakt ist erfüllt",sub:"Kapitel 40 · Die Kommission",onClose:()=>go("pakt")});const d0=p.date||todayKey();let days=0;try{days=Math.max(1,Math.round((new Date(todayKey())-new Date(d0))/864e5))}catch(e){}
+  const words=typeof knownWords==="function"?knownWords():0;const sess=Object.keys(S.log||{}).filter(k=>S.log[k]&&S.log[k].act).length;
+  box.innerHTML=`<div class="stack pk-fade st-end no-sig" style="max-width:640px;margin:0 auto;text-align:center">
+    <div class="st-lantern"><i></i></div><h2>Der Pakt ist erfüllt.</h2><p class="pk-nar">Deine Seele gehört wieder dir – zu hundert Prozent.<br><span class="en ui">Your soul is yours again — one hundred per cent.</span></p>
+    <div class="card orn" style="text-align:left">${pkSay(ml("soul100"))}</div>
+    <div class="card st-stats"><div><b>${days}</b><small>Tage seit der Unterschrift</small></div><div><b>${sess}</b><small>Lerntage</small></div><div><b>${words}</b><small>Wörter</small></div><div><b>40</b><small>Siegel</small></div></div>
+    <div class="card" style="text-align:left"><div class="eyebrow">Wie es weitergeht</div><p class="ui" style="margin:.3rem 0">Die App bleibt offen: Wiederholungen, Duelle, Bibliothek, Chronik. Mephisto kann dir nichts mehr nehmen – er wartet trotzdem. <span class="en">Everything stays open. He can take nothing from you now — he waits all the same.</span></p></div>
+    <button class="go" data-act="st3EndGo">Zum Pakt</button></div>`;ACT.st3EndGo=()=>{Focus.close(true);go("pakt")};
+  try{SND.motif([[48,0,8],[55,0,8],[60,4,8],[64,8,8],[67,12,8],[72,16,16],[76,20,16]],"organ",56)}catch(e){}if(typeof confetti==="function")confetti();try{kabGrant("pakt_done")}catch(e){}}
+(function(){const _s=pkSealChapter;pkSealChapter=function(){const p=P();const c=pkCh();
+  if(c.n!==CHAPTERS.length)return _s.apply(this,arguments);if(p.done||!pkGate(c).ready)return;
+  const fin=STORY3[c.n].finale;st3Play({c,title:`Kapitel ${c.n} · Nach der Prüfung`,sub:`${REALMS[c.r].n} · ${REALMS[c.r].de}`,lines:fin,art:"clarke_7",onClose:null,
+    done:{label:"☩ Das letzte Siegel",fn:()=>{p.sealed[c.n]=todayKey();if(!p.faust.includes(c.n))p.faust.push(c.n);p.done=todayKey();p.debt=0;saveNow?saveNow():saveSoon();SND.fx("seal");st3End()}}})}})();
+(function(){const _g=pkGate;pkGate=function(c){const g=_g.apply(this,arguments);try{if(P().done&&(c||pkCh()).n===CHAPTERS.length)g.ready=false}catch(e){}return g}})();
+(function(){const _s=pkSoul;pkSoul=function(){try{if(P().done)return 100}catch(e){}return _s.apply(this,arguments)}})();
+(function(){const _d=pkCheckDebt;pkCheckDebt=function(){try{const p=P();if(p.done){p.lastCheck=addDays(todayKey(),-1);p.debt=0;return}}catch(e){}return _d.apply(this,arguments)}})();
+(function(){const _vp=viewPakt;viewPakt=function(m){_vp(m);try{const p=P();if(!p.done)return;const v=m.querySelector(".view");if(!v||v.querySelector(".st-donecard"))return;const r=v.querySelector(".pk-realm");
+  const h=`<div class="card orn stack s st-donecard"><div class="eyebrow">Der Pakt ist erfüllt · ${typeof fmtDate==="function"?fmtDate(p.done):p.done}</div>${pkSay(pkGreet().l)}<div class="row" style="gap:.5rem;flex-wrap:wrap"><button class="sm" data-act="pkRead" data-n="${CHAPTERS.length}">Das Ende noch einmal lesen</button><button class="sm ghost" data-act="st3EndAgain">Die Bilanz</button></div></div>`;
+  if(r)r.insertAdjacentHTML("afterend",h);else v.insertAdjacentHTML("afterbegin",h)}catch(e){}}})();
+ACT.st3EndAgain=()=>st3End();
+(function(){const _k=kabCards;kabCards=function(){const L=_k();const p=P();L.push({id:"pakt_done",r:"legendär",t:"Die warme Laterne",art:"clarke_7",flav:"Wer immer strebend sich bemüht, den kann ich nicht behalten.",how:"Den Pakt erfüllen",ok:!!p.done});
+  Object.keys(BETT).forEach(k=>L.push({id:"bett_"+k,r:"episch",t:"Bett vier: "+({hexe:"neun Wörter",golem:"ein Lächeln",pudel:"die Frage",caligari:"die Erklärung"})[k],art:BOSSES[k].art,flav:BETT[k].filter(l=>l[0]==="X").slice(-1)[0][2],how:`Nach dem Sieg über ${BOSSES[k].n}`,ok:!!(p.bett||{})[k]}));return L}})();
+// ---------------------------------------------------------------- 4. Mephisto's voice: milestones, life after the pact, the secret stays locked until he has shown his hand
+function st3Gap(){try{const t=todayKey();if(S.log[t]&&S.log[t].act)return 0;const ks=Object.keys(S.log||{}).filter(k=>k<t&&S.log[k]&&S.log[k].act).sort();if(!ks.length)return 0;return Math.round((new Date(t)-new Date(ks[ks.length-1]))/864e5)-1}catch(e){return 0}}
+(function(){const _g=pkGreet;pkGreet=function(){const p=P();let g=_g.apply(this,arguments);try{
+  if(p.done){const h=[...todayKey()].reduce((a,c)=>a+c.charCodeAt(0),0);const x=MEPH_AFTER[h%MEPH_AFTER.length];return {k:"after",l:[st3Du()&&x[2]?x[2]:x[0],x[1]]}}
+  const gap=st3Gap();if(gap>=30)return {k:"secret",l:ml("back30")};if(gap>=7)return {k:"back",l:ml("back7")};if(gap>=3&&!p.debt)return {k:"back",l:ml("back3")};
+  if(g.k==="secret"&&p.ch<22)g={k:"greet",l:pkLine("greet")};}catch(e){}return g}})();
+(function(){const _l=pkLine;pkLine=function(kind,n){try{if(kind==="chapter"){const p=P();const cnt=Object.keys(p.sealed||{}).length;if(cnt===1)return ml("seal1");if(cnt===20)return ml("half");if(cnt%3===0){const r=pkCh(Math.max(1,p.ch-1)).r;if(MILE["seal"+r])return ml("seal"+r)}}
+  if(kind==="secret"&&P().ch<22)return _l("greet",n)}catch(e){}return _l.apply(this,arguments)}})();
+// ---------------------------------------------------------------- 5. Chronik page: prev/next stay in their own shelf and say where they lead (B17); first page read gets a word from him
+ACT.loreRead=el=>{const id=el.dataset.id;const e=LORE.find(x=>x.id===id);if(!e||!loreOpen(e))return;const first1=!Object.keys(loreSeen()).length;loreSeen()[id]=todayKey();saveSoon();
+  const box=Focus.open({title:"Die Chronik",sub:`${LORE_REALM[e.r]} · ${e.y}`,onClose:()=>ACT.chronik()});const open=LORE.filter(x=>loreOpen(x)&&!!x.egg===!!e.egg&&(e.egg||x.r===e.r));const k=open.indexOf(e);const prev=open[k-1],next=open[k+1];
+  const first=e.de.charAt(0),rest=e.de.slice(1);const cut=s=>s.length>22?s.slice(0,21)+"…":s;const chap=!e.egg&&(e.link||e.ch);
+  box.innerHTML=`<article class="lore-page r${e.r}" style="max-width:760px;margin:0 auto">
+    <figure class="lore-fig">${loreArt(e.art,"lore-img")}</figure>
+    <div class="lore-head"><span class="lore-y">${esc(e.y)}</span><h1>${esc(e.t)}</h1>${chap?`<div class="ui muted" style="font-size:.8rem">Kapitel ${chap} · ${esc(pkCh(chap).t)} · Seite ${k+1} von ${open.length}</div>`:""}</div>
+    <div class="lore-text"><span class="lore-ini">${esc(first)}</span>${glossify(rest)}</div>
+    <details class="lore-en"><summary class="ui">English</summary><p>${esc(e.en)}</p></details>
+    <aside class="lore-dark no-sig"><div class="eyebrow">Die dunkle Fußnote</div><p>${esc(e.dk)}</p><details><summary class="ui">English</summary><p class="en">${esc(e.dken)}</p></details></aside>
+    <div class="row" style="justify-content:space-between;margin-top:1rem;gap:.5rem;flex-wrap:wrap"><button class="sm ghost" data-say="${esc(e.de+" "+e.dk)}">${ic("vol")} Vorlesen</button>
+     <span class="row" style="gap:.4rem;flex-wrap:wrap">${prev?`<button class="sm" data-act="loreRead" data-id="${prev.id}">‹ ${esc(cut(prev.t))}</button>`:""}${next?`<button class="sm" data-act="loreRead" data-id="${next.id}">${esc(cut(next.t))} ›</button>`:""}</span></div></article>`;
+  motif(e.r==="H"?"H":e.r);if(first1&&P().signed)setTimeout(()=>toast("Mephisto: "+ml("lore1")[0],5200),1200)};
+// B16: the hour is struck once, not counted out
+(function(){const _b=SND.bell;SND.bell=function(n,low){return _b.call(SND,low?n:1,low)}})();
+// ---------------------------------------------------------------- 6. styles: reader voices, documents, choices, the ending; realm II in night-blue; r7 fixes
+(function(){const s=document.createElement("style");s.textContent=`
+.st-nar{font-style:italic}.st-nar>div:first-child{font-family:var(--body);font-size:1.12rem;line-height:1.65}
+.st-x{border-left:3px solid var(--realm-hi,#C9A54A)!important}.st-x .st-de{font-family:var(--body);font-size:1.18rem;line-height:1.6}.st-x.st-me{border-left:0!important;border-right:3px solid var(--accent)!important;margin-left:1.6rem}.st-x.st-me .eyebrow{color:var(--accent)}
+.st-doc{background:#E9DFC6;color:#2A2118;padding:1.1rem 1.2rem 1rem;border-radius:2px;box-shadow:0 8px 30px rgba(0,0,0,.6),inset 0 0 40px rgba(120,90,40,.25);transform:rotate(-.6deg);font-family:'Courier New',ui-monospace,monospace;font-size:.98rem;line-height:1.6;position:relative}
+.st-doc .st-doc-h{font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:.78rem;border-bottom:1px solid #2A2118;padding-bottom:.35rem;margin-bottom:.6rem}.st-doc p{margin:.4rem 0;color:#2A2118}.st-doc .w{color:inherit}
+.st-doc p.hand{font-family:var(--body);font-style:italic;font-size:1.2rem;color:#8E1B14;transform:rotate(-2deg);margin-top:.9rem}.st-doc .pk-say .en{color:#5a4a36!important}
+.st-choice{display:grid;gap:.6rem;padding:.4rem 0}.st-opt{font-family:var(--body)!important;font-size:1.2rem!important;padding:.9rem 1rem!important;text-align:left;border:1px solid var(--accent)!important;background:rgba(240,138,63,.06)!important;min-height:52px}.st-opt:hover,.st-opt:focus-visible{background:rgba(240,138,63,.2)!important}
+.st-pick{font-family:var(--body);font-size:1.15rem;text-align:right;padding:.3rem .2rem;color:var(--accent)}.st-pick .eyebrow{display:block;color:var(--muted)}
+.st-sig{position:relative;display:grid;place-items:center;min-height:130px;padding:1rem;background:radial-gradient(ellipse at 50% 100%,rgba(240,138,63,.35),transparent 70%)}.st-sig img{max-width:300px;width:80%;animation:stBurn 5s ease-in forwards;filter:drop-shadow(0 0 6px #F08A3F)}.st-signame{font-family:var(--body);font-style:italic;font-size:2rem;animation:stBurn 5s ease-in forwards}
+.st-sig i{position:absolute;bottom:8px;width:6px;height:6px;border-radius:50%;background:#F08A3F;box-shadow:0 0 10px #F08A3F;animation:stEmber 2.6s ease-out infinite}.st-sig i:nth-child(2){left:38%}.st-sig i:nth-child(3){left:52%;animation-delay:.8s}.st-sig i:nth-child(4){left:64%;animation-delay:1.5s}
+@keyframes stBurn{0%{opacity:1;filter:drop-shadow(0 0 4px #F08A3F)}60%{opacity:.9;filter:drop-shadow(0 0 16px #FF5A1F) sepia(1) saturate(4)}100%{opacity:.12;filter:blur(2px) brightness(.4)}}
+@keyframes stEmber{0%{transform:translateY(0);opacity:1}100%{transform:translateY(-110px) translateX(12px);opacity:0}}
+:root.st-dark #focus{animation:stDark 2.6s ease-in-out}@keyframes stDark{0%,100%{filter:none}25%,70%{filter:brightness(.08)}}
+:root.st-white #focus{animation:stWhite .9s ease-out}@keyframes stWhite{0%{filter:brightness(4) saturate(0)}100%{filter:none}}
+.st-end h2{font-size:2rem}.st-lantern{width:86px;height:120px;margin:0 auto;border:3px solid #6B4A22;border-radius:14px 14px 8px 8px;position:relative;background:radial-gradient(circle at 50% 60%,rgba(255,170,80,.55),rgba(240,138,63,.08) 70%);box-shadow:0 0 60px rgba(240,138,63,.55)}
+.st-lantern:before{content:"";position:absolute;top:-16px;left:50%;width:34px;height:14px;margin-left:-17px;border:3px solid #6B4A22;border-bottom:0;border-radius:14px 14px 0 0}.st-lantern i{position:absolute;left:50%;bottom:22px;width:22px;height:40px;margin-left:-11px;background:radial-gradient(ellipse at 50% 80%,#FFE2A6,#F08A3F 60%,transparent 72%);border-radius:50% 50% 45% 45%;animation:pkFlick 2.4s infinite alternate}
+@keyframes pkFlick{0%{transform:scale(1) rotate(-2deg)}50%{transform:scale(1.08,.94) rotate(2deg)}100%{transform:scale(.96,1.06) rotate(-1deg)}}
+.st-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:.4rem;text-align:center}.st-stats b{display:block;font-family:var(--display);font-size:1.7rem;color:var(--accent)}.st-stats small{font-size:.7rem;opacity:.75}
+@media (max-width:420px){.st-stats{grid-template-columns:repeat(2,1fr)}}
+.st-donecard{box-shadow:0 0 40px rgba(240,138,63,.25)}
+/* Paper look */
+:root[data-ui="paper"] .pk-shadow{background:#E4E1EC!important;border-color:#B9B4CC!important;border-left:3px solid #6A6A8A!important}:root[data-ui="paper"] .pk-shadow .sh-de{color:#23212E!important}:root[data-ui="paper"] .pk-shadow .eyebrow{color:#55506E!important}:root[data-ui="paper"] .pk-shadow .en{color:#4A4560!important}
+/* Realm II: Prague night — blue, gold, a little absinthe */
+html:root[data-ui="gothic"][data-realm="II"]{--bg:#080C1A;--surface:#10162E;--raise:#171F3E;--sunk:#0B1023;--fg:#ECE6D0;--fg2:#CFC8AE;--muted:#939BB6;--line:#27305A;--line2:#5F5632;--realm-tint:#18224E;--realm-hi:#D6B25A}
+html:root[data-ui="gothic"][data-realm="II"] .eyebrow{color:#9BD08A}
+/* B2/B3 cinematic */
+#lore-cine .cine-txt{width:100%;box-sizing:border-box;min-width:0}#lore-cine h1{overflow-wrap:anywhere;hyphens:auto;transform:none!important;letter-spacing:normal;font-size:clamp(2rem,8vw,4.4rem);max-width:100%}
+#lore-cine .cine-art{display:grid;place-items:center;background:radial-gradient(ellipse at 50% 35%,var(--realm-tint,#1a1a1a),#000 75%)}
+#lore-cine .cine-img{width:auto!important;height:auto!important;max-width:min(92vw,720px);max-height:56vh;object-fit:contain!important;margin-bottom:26vh;border:1px solid rgba(240,138,63,.35);box-shadow:0 0 80px rgba(0,0,0,.9),0 0 0 8px rgba(0,0,0,.6);animation:cinePlate 14s ease-out forwards!important;image-rendering:auto}
+#lore-cine .cine-img.ink{filter:invert(1) sepia(.7) contrast(1.1) brightness(.85)!important}
+@keyframes cinePlate{0%{transform:scale(.92);opacity:0}12%{opacity:1}100%{transform:scale(1.04);opacity:1}}
+@media (prefers-reduced-motion: reduce){#lore-cine .cine-img{animation:none!important}}
+/* B6 timeline, B8 poodle, B9 sigils in duels */
+.chr-tl{justify-content:flex-start!important;width:100%}
+body:has(#focus:not([hidden])) .sp-poodle,body:has(#lore-cine) .sp-poodle{display:none!important}
+.duel-hud .sig,.duel-intro .sig{display:none!important}.duel-hud [class^="g-"]{color:inherit!important}
+`;document.head.appendChild(s)})();
+try{document.documentElement.lang="de"}catch(e){}
 // ===== Mephisto 12.5.1 · Wolke: Drive sync that never asks "which one?" and never destroys.
 // Record-level, deterministic merge (merge(a,b) == merge(b,a)); settings by per-key timestamps (S._ts); reviews by review time;
 // reset / replace by epoch (S._epoch); read failures abort (never overwrite what we could not read); twins merged before trashing;
@@ -7985,7 +8254,7 @@ function mergeCore(L,R){
     else if(k==="log"){const o={};for(const d of new Set([...Object.keys(a),...Object.keys(b)])){const x=a[d],y=b[d];if(!x||!y||!isObj(x)||!isObj(y)){o[d]=x||y;continue}const m={};for(const f of new Set([...Object.keys(x),...Object.keys(y)])){const p=x[f],q=y[f];m[f]=typeof p==="number"&&typeof q==="number"?Math.max(p,q):typeof p==="boolean"||typeof q==="boolean"?!!(p||q):(p===undefined?q:q===undefined?p:pick(p,q))}if(isObj(x.dv)||isObj(y.dv)){const dv=Object.assign({},y.dv||{});for(const id in (x.dv||{}))dv[id]=Math.max(dv[id]||0,x.dv[id]||0);m.dv=dv;const sum=Object.values(dv).reduce((s2,v)=>s2+(+v||0),0);m.sec=Math.max(sum,(isObj(x.dv)&&isObj(y.dv))?0:(m.sec||0))}o[d]=m}out[k]=o}
     else if(k==="newToday"){out[k]=(a.date||"")!==(b.date||"")?((a.date||"")>(b.date||"")?a:b):Object.assign({},a,{n:Math.max(a.n||0,b.n||0),p:Math.max(a.p||0,b.p||0)})}
     else if(k==="pakt"){const nw=tsOf(L,"pakt")!==tsOf(R,"pakt")?(tsOf(L,"pakt")>tsOf(R,"pakt")?a:b):((a.ch||1)!==(b.ch||1)?((a.ch||1)>(b.ch||1)?a:b):pick(a,b));
-      out[k]=Object.assign({},nw,{ch:Math.max(a.ch||1,b.ch||1),sealed:Object.assign({},b.sealed,a.sealed),faust:[...new Set([...(a.faust||[]),...(b.faust||[])])].sort((p,q)=>p-q),signed:!!(a.signed||b.signed),sig:a.sig||b.sig,name:nw.name||a.name||b.name,chSess:(a.ch||1)===(b.ch||1)?Math.max(a.chSess||0,b.chSess||0):nw.chSess})}
+      out[k]=Object.assign({},nw,{ch:Math.max(a.ch||1,b.ch||1),sealed:Object.assign({},b.sealed,a.sealed),faust:[...new Set([...(a.faust||[]),...(b.faust||[])])].sort((p,q)=>p-q),signed:!!(a.signed||b.signed),sig:a.sig||b.sig,name:nw.name||a.name||b.name,chSess:(a.ch||1)===(b.ch||1)?Math.max(a.chSess||0,b.chSess||0):nw.chSess},(a.done||b.done)?{done:a.done||b.done,debt:0}:{},(a.bett||b.bett)?{bett:Object.assign({},b.bett,a.bett)}:{},(a.choices||b.choices)?{choices:Object.assign({},b.choices,a.choices)}:{})}
     else if(k==="del"){const o=Object.assign({},b);for(const x in a)o[x]=(a[x]||"")>(o[x]||"")?a[x]:o[x];out[k]=o}
     else if(k==="_epochs"){const o=Object.assign({},b);for(const x in a)o[x]=(a[x]||"")>(o[x]||"")?a[x]:o[x];out[k]=o}
     else if(k==="pocket"){out[k]=(a.date||"")!==(b.date||"")?((a.date||"")>(b.date||"")?a:b):{date:a.date,done:Object.assign({},b.done,a.done),counted:a.counted||b.counted}}
