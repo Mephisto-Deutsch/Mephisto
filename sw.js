@@ -1,5 +1,5 @@
 /* Mephisto service worker: offline app shell, updates only when the user taps "Aktualisieren". */
-const VERSION = "12.6.3-11664b425e";
+const VERSION = "12.7.0-f031f3fee7";
 const CACHE = "mephisto-" + VERSION;
 const FILES = ["./", "index.html", "manifest.webmanifest", "fonts.css", "icons/apple-touch-icon.png", "icons/favicon-32.png", "icons/icon-192.png", "icons/icon-512.png", "icons/maskable-192.png", "icons/maskable-512.png", "fonts/fraunces-italic.woff", "fonts/fraunces.woff", "fonts/jetbrainsmono.woff", "fonts/sourcesans3.woff", "fonts/sourceserif4-italic.woff", "fonts/sourceserif4.woff", "fonts/unifraktur.woff"];
 

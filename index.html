@@ -2984,6 +2984,214 @@ const DU_MAP={
 "Sie können Herzen lesen, Lungen hören, Knochen sehen — und in Deutschland können Sie nicht einmal ein Brötchen bestellen.":"Du kannst Herzen lesen, Lungen hören, Knochen sehen — und in Deutschland kannst du nicht einmal ein Brötchen bestellen.",
 "Was man mit Grauen lernt, vergisst man nicht. Glauben Sie mir, ich habe Erfahrung.":"Was man mit Grauen lernt, vergisst man nicht. Glaub mir, ich habe Erfahrung.",
 "Üben Sie ruhig gegen meine Diener. Der echte Kampf wartet am Ende jedes Reiches.":"Übe ruhig gegen meine Diener. Der echte Kampf wartet am Ende jedes Reiches."};
+// ===== Mephisto 12.7 · Die Chronik: German folklore and history with their dark underside. One entry unlocks with each chapter; the Heidelberger Funde unlock through hidden easter eggs.
+// Fields: id, r realm, ch unlocking chapter (0 = egg), y year label, t title, de/en text, dk/dken the dark footnote, art plate id, sort year for the timeline.
+const LORE=[
+// ---------------------------------------------------------------- Reich I · Schwarzwald
+{id:"wald",r:"I",ch:1,y:"9 n. Chr.",sort:9,t:"Der Wald, der Legionen frisst",art:"dore_13",
+ de:"Im Jahr 9 nach Christus marschierten drei römische Legionen in den Teutoburger Wald. Keine kam zurück. Seitdem ist der Wald in deutschen Geschichten der Ort, an dem man sich verirrt – und an dem etwas auf einen wartet.",
+ en:"In the year 9 AD three Roman legions marched into the Teutoburg Forest. None came back. Since then the forest in German stories is the place where you get lost — and where something waits for you.",
+ dk:"Archäologen fanden bei Kalkriese Knochen, die jahrelang offen lagen, bevor man sie begrub.",dken:"At Kalkriese archaeologists found bones that had lain in the open for years before anyone buried them."},
+{id:"grimm",r:"I",ch:2,y:"1812",sort:1812,t:"Die Brüder Grimm",art:"rackham_13",
+ de:"1812 erschien der erste Band der „Kinder- und Hausmärchen“. Jacob und Wilhelm Grimm waren Sprachforscher: Sie wollten die Stimme des Volkes retten, nicht Kinder unterhalten. Jacob fand auch das Gesetz der germanischen Lautverschiebung – darum heißt es „Vater“ und nicht „pater“.",
+ en:"In 1812 the first volume of the 'Children's and Household Tales' appeared. Jacob and Wilhelm Grimm were linguists: they wanted to save the voice of the people, not entertain children. Jacob also found the law of the Germanic sound shift — that is why it is 'Vater' and not 'pater'.",
+ dk:"In der ersten Ausgabe will die eigene Mutter Schneewittchen töten. Erst 1819 wurde sie zur Stiefmutter.",dken:"In the first edition it is Snow White's own mother who wants her dead. Only in 1819 did she become a stepmother."},
+{id:"rotkaeppchen",r:"I",ch:3,y:"1697",sort:1697,t:"Rotkäppchen ohne Jäger",art:"dore_4",
+ de:"In der ältesten gedruckten Fassung von Charles Perrault (1697) frisst der Wolf das Mädchen – und die Geschichte ist zu Ende. Kein Jäger, keine Rettung, nur eine Moral: Junge Mädchen sollen nicht mit fremden „Wölfen“ sprechen. Die Grimms fügten 1812 den Jäger hinzu.",
+ en:"In the oldest printed version by Charles Perrault (1697) the wolf eats the girl — and the story ends. No hunter, no rescue, just a moral: young girls should not talk to strange 'wolves'. The Grimms added the hunter in 1812.",
+ dk:"Der Wolf war nie nur ein Tier.",dken:"The wolf was never just an animal."},
+{id:"hunger",r:"I",ch:4,y:"1315",sort:1315,t:"Hänsel, Gretel und der Hunger",art:"dore_18",
+ de:"Eltern, die ihre Kinder im Wald aussetzen, weil kein Brot mehr da ist: Das war keine Fantasie. In der großen Hungersnot von 1315 bis 1317 starben in Europa Millionen Menschen. Die Chroniken berichten von Verzweiflung, die man kaum aufschreiben wollte.",
+ en:"Parents who abandon their children in the forest because there is no more bread: that was not fantasy. In the Great Famine of 1315 to 1317 millions died in Europe. The chronicles report a despair people hardly wanted to write down.",
+ dk:"Engelbert Humperdincks Oper „Hänsel und Gretel“ (1893) wird bis heute zu Weihnachten gespielt – mit einer Hexe, die im Ofen verbrennt.",dken:"Humperdinck's opera 'Hänsel und Gretel' (1893) is still performed at Christmas — with a witch who burns in the oven."},
+{id:"hexenhammer",r:"I",ch:5,y:"1486",sort:1486,t:"Der Hexenhammer",art:"rackham_9",
+ de:"1486 veröffentlichte der Dominikaner Heinrich Kramer den „Malleus Maleficarum“, den Hexenhammer: ein Handbuch, wie man Hexen findet, foltert und verurteilt. In den deutschen Ländern starben in den folgenden zwei Jahrhunderten Zehntausende Menschen, die meisten davon Frauen.",
+ en:"In 1486 the Dominican Heinrich Kramer published the 'Malleus Maleficarum', the Hammer of Witches: a handbook on how to find, torture and convict witches. In the German lands tens of thousands of people died over the following two centuries, most of them women.",
+ dk:"In Bamberg ließ der Fürstbischof um 1627 ein eigenes Gefängnis bauen, das „Drudenhaus“ – nur für Hexen.",dken:"In Bamberg around 1627 the prince-bishop had a prison built just for witches, the 'Drudenhaus'."},
+{id:"wildejagd",r:"I",ch:6,y:"Rauhnächte",sort:1000,t:"Die Wilde Jagd",art:"rackham_12",
+ de:"In den zwölf Rauhnächten zwischen Weihnachten und dem 6. Januar jagt ein Geisterheer durch den Himmel: die Wilde Jagd, angeführt von Wodan oder Frau Holle. Wer sie sieht, soll sich flach auf den Boden legen. Und man hängt in diesen Nächten keine Wäsche auf.",
+ en:"In the twelve 'rough nights' between Christmas and 6 January a ghostly army hunts across the sky: the Wild Hunt, led by Wodan or Frau Holle. Whoever sees it should lie flat on the ground. And in these nights you do not hang out laundry.",
+ dk:"Die Jäger könnten sich in der Wäsche verfangen – und das Laken wird im nächsten Jahr zum Leichentuch.",dken:"The hunters could get caught in it — and the sheet becomes a shroud in the coming year."},
+{id:"erlkoenig",r:"I",ch:7,y:"1782",sort:1782,t:"Der Erlkönig",art:"rackham_5",
+ de:"„Wer reitet so spät durch Nacht und Wind?“ In Goethes Ballade von 1782 reitet ein Vater mit seinem Sohn nach Hause. Das Kind sieht den Erlkönig und hört ihn locken, der Vater sieht nur Nebel und Weiden. Am Ende ist das Kind in seinen Armen tot.",
+ en:"'Who rides so late through night and wind?' In Goethe's 1782 ballad a father rides home with his son. The child sees the Erlking and hears him lure, the father sees only mist and willows. At the end the child lies dead in his arms.",
+ dk:"Ärzte lesen die Ballade heute als Fieberdelir eines Kindes – und den Erlkönig als den Tod, den nur der Kranke sieht.",dken:"Doctors read it today as a child's fever delirium — and the Erlking as the death only the sick one can see."},
+{id:"hameln",r:"I",ch:8,y:"1284",sort:1284,t:"Der Rattenfänger von Hameln",art:"rackham_18",
+ de:"Am 26. Juni 1284 verschwanden in Hameln 130 Kinder. So steht es in der Chronik der Stadt. Die Ratten kamen erst Jahrhunderte später in die Geschichte. Was wirklich geschah, weiß niemand: Pest? Ein Kinderkreuzzug? Auswanderer, die nie zurückkehrten?",
+ en:"On 26 June 1284, 130 children vanished in Hameln. So says the town's chronicle. The rats only entered the story centuries later. What really happened nobody knows: plague? A children's crusade? Emigrants who never returned?",
+ dk:"In der Bungelosenstraße, durch die die Kinder gegangen sein sollen, darf bis heute keine Musik gespielt werden.",dken:"In the Bungelosenstraße, the street the children are said to have taken, no music may be played to this day."},
+// ---------------------------------------------------------------- Reich II · Böhmisches Café (Prag)
+{id:"rudolf",r:"II",ch:9,y:"1583",sort:1583,t:"Der Kaiser der Alchemisten",art:"fahringer_8",
+ de:"1583 zog Kaiser Rudolf II. mit seinem Hof nach Prag. Er holte Astronomen wie Tycho Brahe und Johannes Kepler – und Alchemisten, Magier und Betrüger. In seiner Kunstkammer lagen „Einhornhörner“, Alraunen und Bezoarsteine gegen Gift.",
+ en:"In 1583 Emperor Rudolf II moved his court to Prague. He brought astronomers like Tycho Brahe and Johannes Kepler — and alchemists, magicians and frauds. His cabinet of curiosities held 'unicorn horns', mandrakes and bezoar stones against poison.",
+ dk:"Die Einhornhörner waren Narwalzähne. Der Kaiser starb einsam und, wie man sagte, halb wahnsinnig.",dken:"The unicorn horns were narwhal tusks. The emperor died lonely and, it was said, half mad."},
+{id:"golem",r:"II",ch:10,y:"1600",sort:1600,t:"Der Golem",art:"fahringer_36",
+ de:"Der Legende nach formte Rabbi Löw in Prag einen Menschen aus Lehm, um die Gemeinde zu schützen. Auf seine Stirn schrieb er „emet“ – Wahrheit. Als der Golem außer Kontrolle geriet, löschte der Rabbi einen Buchstaben: „met“ – tot.",
+ en:"According to legend Rabbi Loew in Prague formed a man from clay to protect the community. On its forehead he wrote 'emet' — truth. When the golem ran out of control, the rabbi erased one letter: 'met' — dead.",
+ dk:"Die Reste des Golems sollen bis heute auf dem Dachboden der Altneusynagoge liegen. Die Treppe dorthin ist nicht öffentlich.",dken:"The golem's remains are said to lie in the attic of the Old-New Synagogue to this day. The stairs up are not public."},
+{id:"alraune",r:"II",ch:11,y:"Mittelalter",sort:1200,t:"Die Alraune",art:"fahringer_37",
+ de:"Die Alraune wächst angeblich unter dem Galgen, aus dem, was ein Gehenkter verliert. Wer sie aus der Erde zieht, hört ihren Schrei – und stirbt. Darum band man einen Hund an die Wurzel und ließ ihn ziehen.",
+ en:"The mandrake supposedly grows under the gallows, from what a hanged man loses. Whoever pulls it from the ground hears its scream — and dies. So people tied a dog to the root and let it pull.",
+ dk:"Die Wurzel enthält Scopolamin und Atropin. Mittelalterliche Chirurgen nutzten sie als Betäubung – und als Gift.",dken:"The root contains scopolamine and atropine. Medieval surgeons used it as an anaesthetic — and as a poison."},
+{id:"pest",r:"II",ch:12,y:"1348",sort:1348,t:"Der Schwarze Tod",art:"fahringer_36",
+ de:"1348 erreichte die Pest die deutschen Länder. In wenigen Jahren starb vielleicht ein Drittel der Menschen. Geißler zogen durch die Städte und schlugen sich blutig, um Gott zu versöhnen.",
+ en:"In 1348 the plague reached the German lands. Within a few years perhaps a third of the people died. Flagellants marched through the towns, whipping themselves bloody to appease God.",
+ dk:"Man gab den Juden die Schuld, sie hätten Brunnen vergiftet. In vielen Städten wurden ganze Gemeinden ermordet – oft bevor die Pest überhaupt kam.",dken:"Jews were blamed for poisoning wells. In many towns whole communities were murdered — often before the plague had even arrived."},
+{id:"faustdum",r:"II",ch:13,y:"Legende",sort:1550,t:"Das Faust-Haus in Prag",art:"clarke_40",
+ de:"Am Karlsplatz in Prag steht ein Haus, das man das Faust-Haus nennt. Hier soll der Teufel Doktor Faust geholt haben – durch die Decke. Das Loch, so erzählte man, ließ sich nie wieder schließen.",
+ en:"On Charles Square in Prague stands a house people call the Faust House. Here the devil is said to have taken Doctor Faust — through the ceiling. The hole, they said, could never be closed again.",
+ dk:"Man erzählt, der Teufel habe ihn an den Haaren durch die Decke gezogen. Wer das Loch zumauerte, fand es am nächsten Morgen wieder offen.",dken:"They say the devil dragged him through the ceiling by his hair. Whoever bricked up the hole found it open again the next morning."},
+{id:"totentanz",r:"II",ch:14,y:"1463",sort:1463,t:"Der Totentanz",art:"clarke_19",
+ de:"1463 malte man in der Lübecker Marienkirche einen Totentanz: ein fast dreißig Meter langes Bild, auf dem der Tod mit allen tanzt – mit dem Papst, dem Kaiser, dem Arzt und dem Kind. Niemand ist zu wichtig, um mitzutanzen.",
+ en:"In 1463 a Dance of Death was painted in St Mary's Church in Lübeck: a picture almost thirty metres long in which Death dances with everyone — with the pope, the emperor, the doctor and the child. Nobody is too important to join the dance.",
+ dk:"Das Bild verbrannte 1942 in einer Bombennacht. Der Tod tanzte zu Ende.",dken:"The picture burned in a bombing night in 1942. Death finished the dance."},
+{id:"kafka",r:"II",ch:15,y:"1915",sort:1915,t:"Kafka, der Versicherungsjurist",art:"clarke_31",
+ de:"Franz Kafka schrieb Deutsch und arbeitete in Prag bei einer Arbeiter-Unfall-Versicherung. Tagsüber las er Berichte über abgerissene Finger und zerquetschte Hände, nachts schrieb er „Die Verwandlung“.",
+ en:"Franz Kafka wrote in German and worked in Prague for a workers' accident insurance institute. By day he read reports about torn-off fingers and crushed hands, by night he wrote 'The Metamorphosis'.",
+ dk:"Er starb 1924 an Tuberkulose und bat seinen Freund Max Brod, alles zu verbrennen. Brod tat es nicht.",dken:"He died of tuberculosis in 1924 and asked his friend Max Brod to burn everything. Brod did not."},
+{id:"doppel",r:"II",ch:16,y:"1796",sort:1796,t:"Der Doppelgänger",art:"clarke_52",
+ de:"Das Wort „Doppelgänger“ erfand der Dichter Jean Paul 1796. Wer seinem Doppelgänger begegnet, so sagt der Volksglaube, wird bald sterben. Die Romantik liebte dieses Motiv: Heine, Hoffmann, Schubert.",
+ en:"The word 'Doppelgänger' was coined by the poet Jean Paul in 1796. Whoever meets their double, says folk belief, will soon die. Romanticism loved the motif: Heine, Hoffmann, Schubert.",
+ dk:"Neurologen kennen das Phänomen: Heautoskopie, das Sehen des eigenen Körpers – bei Epilepsie, Migräne und Hirnläsionen.",dken:"Neurologists know the phenomenon: heautoscopy, seeing one's own body — in epilepsy, migraine and brain lesions."},
+// ---------------------------------------------------------------- Reich III · Fausts Studierzimmer
+{id:"histfaust",r:"III",ch:17,y:"um 1540",sort:1540,t:"Der echte Doktor Faust",art:"clarke_2",
+ de:"Johann Georg Faust lebte wirklich, etwa von 1480 bis 1541. Er war Astrologe, Wahrsager und, so sagten seine Feinde, Betrüger. Geboren vermutlich in Knittlingen, gestorben in Staufen im Breisgau.",
+ en:"Johann Georg Faust really lived, roughly from 1480 to 1541. He was an astrologer, fortune teller and, his enemies said, a fraud. Probably born in Knittlingen, died in Staufen im Breisgau.",
+ dk:"Im Gasthaus „Löwen“ in Staufen fand man ihn tot, „gräulich zugerichtet“. Der Teufel habe ihm den Hals umgedreht.",dken:"In the 'Löwen' inn in Staufen he was found dead, 'horribly mangled'. The devil had wrung his neck, they said."},
+{id:"volksbuch",r:"III",ch:18,y:"1587",sort:1587,t:"Die Historia von D. Johann Fausten",art:"clarke_58",
+ de:"1587 druckte Johann Spies in Frankfurt das erste Faustbuch. Faust schließt einen Pakt für 24 Jahre und reist mit Mephostophiles durch die Welt. Das Buch war ein Bestseller und eine Warnung zugleich.",
+ en:"In 1587 Johann Spies printed the first Faust book in Frankfurt. Faust makes a pact for 24 years and travels the world with Mephostophiles. The book was a bestseller and a warning at the same time.",
+ dk:"Am Ende finden die Studenten sein Gehirn an der Wand und seinen Körper auf dem Misthaufen.",dken:"At the end the students find his brain on the wall and his body on the dung heap."},
+{id:"auerbach",r:"III",ch:19,y:"1525",sort:1525,t:"Auerbachs Keller",art:"clarke_19",
+ de:"Den Weinkeller in Leipzig gründete um 1525 Heinrich Stromer aus Auerbach – ein Arzt und Professor der Medizin. Er verkaufte den Studenten Wein, weil er für die Gesundheit gut sei. Goethe trank hier als Student.",
+ en:"The wine cellar in Leipzig was founded around 1525 by Heinrich Stromer from Auerbach — a physician and professor of medicine. He sold wine to the students because it was good for their health. Goethe drank here as a student.",
+ dk:"Ein altes Wandbild zeigt Faust, der auf einem Weinfass aus dem Keller reitet. Am Eingang reiben Besucher Fausts Bronzefuß blank – für Glück.",dken:"An old mural shows Faust riding out of the cellar on a wine barrel. At the entrance visitors rub Faust's bronze foot shiny — for luck."},
+{id:"paracelsus",r:"III",ch:20,y:"1541",sort:1541,t:"Paracelsus und die Dosis",art:"clarke_20",
+ de:"Paracelsus, Arzt und Alchemist, starb im selben Jahr wie Faust. Von ihm stammt der Gedanke: „Allein die Dosis macht, dass ein Ding kein Gift ist.“ In Basel verbrannte er öffentlich den „Kanon“ des Avicenna.",
+ en:"Paracelsus, physician and alchemist, died in the same year as Faust. The idea comes from him: 'Only the dose makes a thing not a poison.' In Basel he publicly burned Avicenna's Canon.",
+ dk:"Er schrieb auch ein Rezept für einen Homunculus, einen künstlichen Menschen aus Samen und Pferdemist. Goethe gab ihn später Wagner im Faust II.",dken:"He also wrote a recipe for a homunculus, an artificial man made from semen and horse dung. Goethe later gave one to Wagner in Faust II."},
+{id:"pudel",r:"III",ch:21,y:"1535",sort:1535,t:"Der schwarze Hund",art:"fahringer_16",
+ de:"Bei Goethe kommt Mephisto als schwarzer Pudel zu Faust. Die Idee ist alt: Vom Gelehrten Agrippa von Nettesheim erzählte man, sein schwarzer Hund „Monsieur“ sei ein Dämon gewesen.",
+ en:"In Goethe, Mephisto comes to Faust as a black poodle. The idea is old: of the scholar Agrippa von Nettesheim it was said that his black dog 'Monsieur' was a demon.",
+ dk:"Als Agrippa 1535 starb, soll er den Hund verflucht haben. Das Tier lief in einen Fluss und kam nie wieder heraus.",dken:"When Agrippa died in 1535 he is said to have cursed the dog. The animal ran into a river and never came out."},
+{id:"brandt",r:"III",ch:22,y:"1772",sort:1772,t:"Das echte Gretchen",art:"delacroix_19",
+ de:"Am 14. Januar 1772 wurde in Frankfurt Susanna Margaretha Brandt hingerichtet. Die junge Magd hatte ihr neugeborenes Kind getötet. Der junge Jurist Goethe kannte die Prozessakten – und schrieb sie in Gretchens Geschichte.",
+ en:"On 14 January 1772 Susanna Margaretha Brandt was executed in Frankfurt. The young maid had killed her newborn child. The young lawyer Goethe knew the trial records — and wrote them into Gretchen's story.",
+ dk:"Sie sagte, der Teufel habe sie verblendet. Das Schwert traf sie vor einer großen Menge Zuschauer.",dken:"She said the devil had blinded her. The sword struck her in front of a large crowd."},
+{id:"goethe",r:"III",ch:23,y:"1832",sort:1832,t:"Sechzig Jahre Faust",art:"delacroix_4",
+ de:"Goethe arbeitete fast sein ganzes Leben am Faust: vom Urfaust um 1772 bis zum zweiten Teil, den er 1831 versiegelte. Er sollte erst nach seinem Tod erscheinen. Goethe starb am 22. März 1832 in Weimar.",
+ en:"Goethe worked on Faust almost his whole life: from the Urfaust around 1772 to the second part, which he sealed in 1831. It was only to appear after his death. Goethe died on 22 March 1832 in Weimar.",
+ dk:"Seine letzten Worte sollen „Mehr Licht!“ gewesen sein. Vielleicht wollte er nur, dass jemand die Fensterläden öffnet.",dken:"His last words are said to have been 'More light!'. Perhaps he only wanted someone to open the shutters."},
+{id:"karzer",r:"III",ch:24,y:"1509",sort:1509,t:"Faust in Heidelberg?",art:"clarke_22",
+ de:"In den Matrikeln der Universität Heidelberg steht 1509 ein „Johannes Faust ex Simern“, der den Bakkalaureus bekam. War das unser Faust? Die Forscher streiten bis heute. Sicher ist: Du wirst in seiner Stadt arbeiten.",
+ en:"The Heidelberg University register lists in 1509 a 'Johannes Faust ex Simern' who received a bachelor's degree. Was it our Faust? Scholars still argue. What is certain: you will work in his town.",
+ dk:"Mephisto sagt nichts dazu. Er lächelt nur.",dken:"Mephisto says nothing. He only smiles."},
+// ---------------------------------------------------------------- Reich IV · Expressionistisches Berlin
+{id:"charite",r:"IV",ch:25,y:"1710",sort:1710,t:"Die Charité war ein Pesthaus",art:"struwwel_29",
+ de:"1710 baute man vor den Toren Berlins ein Pesthaus – für eine Pest, die dann nicht kam. Der König machte daraus ein Krankenhaus für Arme und nannte es „Charité“, Nächstenliebe. Heute ist es eines der größten Universitätsklinika Europas.",
+ en:"In 1710 a plague house was built outside the gates of Berlin — for a plague that then never came. The king turned it into a hospital for the poor and called it 'Charité', charity. Today it is one of Europe's largest university hospitals.",
+ dk:"Die Toten der Armen landeten oft auf dem Seziertisch. Für die Anatomie war das Pesthaus ein Glücksfall.",dken:"The poor who died there often ended up on the dissecting table. For anatomy the plague house was a stroke of luck."},
+{id:"virchow",r:"IV",ch:26,y:"1858",sort:1858,t:"Virchow und die Zelle",art:"clarke_11",
+ de:"Rudolf Virchow lehrte in Berlin: „Omnis cellula e cellula“ – jede Zelle stammt aus einer Zelle. Er begründete die Zellularpathologie und sagte: „Die Medizin ist eine soziale Wissenschaft.“",
+ en:"Rudolf Virchow taught in Berlin: 'Omnis cellula e cellula' — every cell comes from a cell. He founded cellular pathology and said: 'Medicine is a social science.'",
+ dk:"Eine Legende: Bismarck forderte ihn zum Duell, Virchow wählte als Waffen zwei Würste – eine davon voller Trichinen. Bismarck lehnte ab.",dken:"A legend: Bismarck challenged him to a duel, Virchow chose two sausages as weapons — one full of trichinella. Bismarck declined."},
+{id:"koch",r:"IV",ch:27,y:"1882",sort:1882,t:"Der 24. März 1882",art:"clarke_54",
+ de:"Am 24. März 1882 stellte Robert Koch in Berlin den Erreger der Tuberkulose vor. Damals starb jeder siebte Mensch in Europa an der „Schwindsucht“. Der 24. März ist heute Welttuberkulosetag.",
+ en:"On 24 March 1882 Robert Koch presented the tuberculosis bacterium in Berlin. At the time one in seven people in Europe died of 'consumption'. 24 March is World Tuberculosis Day today.",
+ dk:"Sein Heilmittel Tuberkulin von 1890 heilte niemanden. Der Skandal verfolgte ihn bis zum Nobelpreis 1905.",dken:"His 1890 cure, tuberculin, cured no one. The scandal followed him all the way to his Nobel Prize in 1905."},
+{id:"caligari",r:"IV",ch:28,y:"1920",sort:1920,t:"Das Cabinet des Dr. Caligari",art:"clarke_31",
+ de:"1920 kam „Das Cabinet des Dr. Caligari“ ins Kino: gemalte, schiefe Häuser, ein Schlafwandler, der mordet, und ein Arzt, der eine Irrenanstalt leitet. Am Ende weiß man nicht mehr, wer verrückt ist – der Arzt oder der Erzähler.",
+ en:"In 1920 'The Cabinet of Dr. Caligari' came to the cinema: painted, crooked houses, a sleepwalker who murders, and a doctor who runs an asylum. At the end you no longer know who is mad — the doctor or the narrator.",
+ dk:"Die Kulissen waren bemalte Leinwände. Es heißt, im Nachkriegs-Berlin habe der Strom für Licht gefehlt – darum sind die Schatten gemalt.",dken:"The sets were painted canvas. It is said post-war Berlin lacked electricity for lighting — so the shadows are painted on."},
+{id:"nosferatu",r:"IV",ch:29,y:"1922",sort:1922,t:"Nosferatu",art:"clarke_47",
+ de:"1922 drehte F. W. Murnau „Nosferatu“ – eine nicht erlaubte Verfilmung von „Dracula“. Graf Orlok bringt Ratten und Pest in eine norddeutsche Stadt. Der Schauspieler hieß Max Schreck.",
+ en:"In 1922 F. W. Murnau shot 'Nosferatu' — an unauthorised adaptation of 'Dracula'. Count Orlok brings rats and plague to a north German town. The actor was called Max Schreck — 'Schreck' means fright.",
+ dk:"Ein Gericht befahl, alle Kopien zu vernichten. Einige überlebten im Dunkeln – wie der Graf.",dken:"A court ordered all copies destroyed. Some survived in the dark — like the count."},
+{id:"haarmann",r:"IV",ch:30,y:"1924",sort:1924,t:"Der Fall Haarmann",art:"clarke_41",
+ de:"Zwischen 1918 und 1924 ermordete Fritz Haarmann in Hannover mindestens 24 junge Männer. Er arbeitete auch als Spitzel für die Polizei – darum suchte ihn lange niemand. Der Philosoph Theodor Lessing berichtete über den Prozess und klagte die Gesellschaft an.",
+ en:"Between 1918 and 1924 Fritz Haarmann murdered at least 24 young men in Hannover. He also worked as a police informer — which is why for a long time nobody looked for him. The philosopher Theodor Lessing reported on the trial and accused society.",
+ dk:"Sein Kopf lag bis 2014 in Formalin in der Göttinger Rechtsmedizin. Lessing wurde 1933 von Nationalsozialisten ermordet.",dken:"His head was kept in formalin at the Göttingen forensic institute until 2014. Lessing was murdered by Nazis in 1933."},
+{id:"doeblin",r:"IV",ch:31,y:"1929",sort:1929,t:"Der Kassenarzt vom Alexanderplatz",art:"clarke_35",
+ de:"Alfred Döblin hatte eine Kassenarztpraxis im Osten Berlins. 1929 schrieb er „Berlin Alexanderplatz“ – über Franz Biberkopf, der aus dem Gefängnis kommt und anständig bleiben will. Die Stadt lässt ihn nicht.",
+ en:"Alfred Döblin had a public-insurance practice in east Berlin. In 1929 he wrote 'Berlin Alexanderplatz' — about Franz Biberkopf, who leaves prison and wants to stay decent. The city won't let him.",
+ dk:"Döblin kannte seine Figuren aus dem Wartezimmer.",dken:"Döblin knew his characters from his waiting room."},
+{id:"mfilm",r:"IV",ch:32,y:"1931",sort:1931,t:"M – Eine Stadt sucht einen Mörder",art:"clarke_47",
+ de:"1931 drehte Fritz Lang „M“. Ein Kindermörder pfeift immer dieselbe Melodie, Griegs „In der Halle des Bergkönigs“. Ein blinder Ballonverkäufer erkennt ihn am Pfeifen. Am Ende richtet nicht die Polizei, sondern die Unterwelt über ihn.",
+ en:"In 1931 Fritz Lang made 'M'. A child murderer always whistles the same tune, Grieg's 'In the Hall of the Mountain King'. A blind balloon seller recognises him by the whistling. In the end it is not the police but the underworld that judges him.",
+ dk:"Das Pfeifen im Film ist von Fritz Lang selbst – der Schauspieler konnte nicht pfeifen.",dken:"The whistling in the film is Fritz Lang himself — the actor could not whistle."},
+// ---------------------------------------------------------------- Reich V · Walpurgisnacht + Anatomisches Theater
+{id:"brocken",r:"V",ch:33,y:"1777",sort:1777,t:"Der Brocken",art:"clarke_7",
+ de:"In der Nacht zum 1. Mai treffen sich die Hexen auf dem Brocken im Harz – so erzählt man seit Jahrhunderten. Goethe stieg im Dezember 1777 im Schnee hinauf. Im Nebel kann man dort einen riesigen Schatten mit Heiligenschein sehen: das Brockengespenst.",
+ en:"On the night before 1 May the witches meet on the Brocken in the Harz — so people have told for centuries. Goethe climbed it in the snow in December 1777. In the fog you can see a giant shadow with a halo there: the Brocken spectre.",
+ dk:"Das Gespenst ist dein eigener Schatten auf den Wolken. Wer es sieht, sieht sich selbst – größer und dunkler.",dken:"The spectre is your own shadow on the clouds. Whoever sees it sees themselves — bigger and darker."},
+{id:"vesal",r:"V",ch:34,y:"1543",sort:1543,t:"Das Anatomische Theater",art:"clarke_57",
+ de:"1543 erschien Vesals „De humani corporis fabrica“ – der Körper, wie er wirklich ist. Bald baute man Anatomische Theater: steile Ränge um einen Tisch, auf dem ein Toter geöffnet wurde. Man verkaufte Eintrittskarten.",
+ en:"In 1543 Vesalius's 'De humani corporis fabrica' appeared — the body as it really is. Soon anatomical theatres were built: steep tiers around a table on which a corpse was opened. Tickets were sold.",
+ dk:"Die Leichen kamen meist vom Galgen. Sektionen fanden im Winter statt, im Karneval – wegen der Kälte, und weil die Leute Zeit hatten.",dken:"The bodies mostly came from the gallows. Dissections took place in winter, at carnival time — because of the cold, and because people had time."},
+{id:"nachzehrer",r:"V",ch:35,y:"Pestzeit",sort:1350,t:"Der Nachzehrer",art:"fahringer_37",
+ de:"Ein Nachzehrer ist ein Toter, der im Grab sein Leichentuch kaut – und dabei seine Verwandten nachholt, einen nach dem anderen. Man legte Toten einen Stein oder eine Münze in den Mund, damit sie nicht kauen konnten.",
+ en:"A Nachzehrer is a dead man who chews his shroud in the grave — and drags his relatives after him, one by one. People put a stone or a coin in the dead's mouth so they could not chew.",
+ dk:"Die Erklärung kennt jeder Rechtsmediziner: Fäulnisgase blähen den Leichnam, Flüssigkeit tritt aus dem Mund, das Tuch reißt. In der Pestzeit starb die Familie wirklich nacheinander.",dken:"Every forensic doctor knows the explanation: putrefaction gases bloat the body, fluid leaks from the mouth, the cloth tears. In plague times the family really did die one after another."},
+{id:"hauser",r:"V",ch:36,y:"1828",sort:1828,t:"Kaspar Hauser",art:"dore_16",
+ de:"Am Pfingstmontag 1828 stand in Nürnberg ein junger Mann, der kaum sprechen konnte. Er sagte, er habe sein Leben in einem dunklen Verlies verbracht. Ganz Europa nannte ihn „das Kind Europas“.",
+ en:"On Whit Monday 1828 a young man stood in Nuremberg who could barely speak. He said he had spent his life in a dark dungeon. All of Europe called him 'the child of Europe'.",
+ dk:"1833 starb er an einer Stichwunde. Wer ihn erstach – oder ob er es selbst war –, ist bis heute ungeklärt.",dken:"In 1833 he died of a stab wound. Who stabbed him — or whether he did it himself — is still unsolved."},
+{id:"semmelweis",r:"V",ch:37,y:"1847",sort:1847,t:"Semmelweis wäscht die Hände",art:"clarke_61",
+ de:"1847 erkannte Ignaz Semmelweis in Wien, warum so viele Mütter am Kindbettfieber starben: Die Ärzte kamen direkt aus dem Sektionssaal in den Kreißsaal. Er ließ sie die Hände mit Chlorkalk waschen. Die Sterblichkeit fiel dramatisch.",
+ en:"In 1847 Ignaz Semmelweis in Vienna realised why so many mothers died of childbed fever: the doctors came straight from the dissecting room to the delivery room. He had them wash their hands with chlorinated lime. Mortality fell dramatically.",
+ dk:"Die Kollegen lachten ihn aus. Er starb 1865 in einer Irrenanstalt – an einer infizierten Wunde.",dken:"His colleagues laughed at him. He died in 1865 in an asylum — of an infected wound."},
+{id:"dippel",r:"V",ch:38,y:"1673",sort:1673,t:"Burg Frankenstein",art:"fahringer_36",
+ de:"Auf Burg Frankenstein bei Darmstadt wurde 1673 Johann Konrad Dippel geboren, Alchemist und Arzt. Er kochte Knochen und Tierblut zu „Dippels Öl“, einem Lebenselixier. Manche glauben, Mary Shelley habe von ihm gehört.",
+ en:"At Castle Frankenstein near Darmstadt Johann Konrad Dippel was born in 1673, alchemist and physician. He boiled bones and animal blood into 'Dippel's oil', an elixir of life. Some believe Mary Shelley heard of him.",
+ dk:"Bewiesen ist nichts. Aber das Öl wurde später als Insektengift verkauft.",dken:"Nothing is proven. But the oil was later sold as insect poison."},
+{id:"roentgen",r:"V",ch:39,y:"1895",sort:1895,t:"Die Hand von Anna Bertha",art:"clarke_62",
+ de:"Am 8. November 1895 entdeckte Wilhelm Conrad Röntgen in Würzburg eine unsichtbare Strahlung. Eines der ersten Bilder zeigt die Hand seiner Frau Anna Bertha – Knochen und Ehering.",
+ en:"On 8 November 1895 Wilhelm Conrad Röntgen discovered an invisible radiation in Würzburg. One of the first pictures shows the hand of his wife Anna Bertha — bones and wedding ring.",
+ dk:"Als sie das Bild sah, soll sie gesagt haben: „Ich habe meinen Tod gesehen.“",dken:"When she saw the picture she is said to have said: 'I have seen my death.'"},
+{id:"gerettet",r:"V",ch:40,y:"1808",sort:1808,t:"„Ist gerettet!“",art:"clarke_10",
+ de:"Am Ende von Faust I ruft Mephisto über Gretchen: „Sie ist gerichtet!“ Eine Stimme von oben antwortet: „Ist gerettet!“ Im zweiten Teil wird auch Faust gerettet – weil er nie aufgehört hat, sich zu bemühen.",
+ en:"At the end of Faust I Mephisto cries over Gretchen: 'She is judged!' A voice from above answers: 'Is saved!' In the second part Faust is saved too — because he never stopped striving.",
+ dk:"„Wer immer strebend sich bemüht, den können wir erlösen.“ Mephisto verliert. Vielleicht wollte er das.",dken:"'Whoever strives with all his might, him we can redeem.' Mephisto loses. Perhaps he wanted to."},
+// ---------------------------------------------------------------- Heidelberger Funde (secret: one per easter egg)
+{id:"h_uni",r:"H",ch:0,egg:"konami",y:"1386",sort:1386,t:"Die älteste Universität",art:"clarke_11",
+ de:"1386 gründete Kurfürst Ruprecht I. die Universität Heidelberg – die älteste im heutigen Deutschland. Wer sich danebenbenahm, kam in den Studentenkarzer. Die Wände sind voller Zeichnungen und Namen der Gefangenen.",
+ en:"In 1386 Elector Ruprecht I founded Heidelberg University — the oldest in today's Germany. Students who misbehaved went to the student prison. Its walls are covered in drawings and names of the prisoners.",
+ dk:"Bis 1914 saß man dort bei Wasser und Brot. Viele kamen absichtlich – es galt als Ehre.",dken:"Until 1914 they sat there on bread and water. Many got themselves locked up on purpose — it was a badge of honour."},
+{id:"h_schloss",r:"H",ch:0,egg:"eye7",y:"1693",sort:1693,t:"Das zerstörte Schloss",art:"dore_7",
+ de:"Französische Truppen sprengten das Heidelberger Schloss 1689 und 1693. Als man es wieder bewohnbar machte, schlug 1764 ein Blitz ein, und es brannte erneut. Danach gab man auf. Die Ruine wurde zum Symbol der Romantik.",
+ en:"French troops blew up Heidelberg Castle in 1689 and 1693. When it was being made habitable again, lightning struck in 1764 and it burned once more. After that people gave up. The ruin became the symbol of Romanticism.",
+ dk:"Der „gesprengte Turm“ liegt bis heute halb im Graben – wie er gefallen ist.",dken:"The 'blown-up tower' still lies half in the moat — just as it fell."},
+{id:"h_fass",r:"H",ch:0,egg:"verweile",y:"1751",sort:1751,t:"Perkeo und das große Fass",art:"fahringer_2",
+ de:"Im Schlosskeller liegt das Große Fass von 1751, mit mehr als 200.000 Litern. Es bewachte Perkeo, ein kleinwüchsiger Hofnarr aus Südtirol, der angeblich nur Wein trank.",
+ en:"In the castle cellar lies the Great Tun of 1751, holding more than 200,000 litres. It was guarded by Perkeo, a court jester of short stature from South Tyrol, who supposedly drank only wine.",
+ dk:"Als ein Arzt ihm ein Glas Wasser verordnete, starb er – so die Legende – am nächsten Tag.",dken:"When a doctor prescribed him a glass of water he died — so the legend goes — the next day."},
+{id:"h_mauer",r:"H",ch:0,egg:"geister",y:"600.000 v. Chr.",sort:-600000,t:"Der Unterkiefer von Mauer",art:"dore_19",
+ de:"1907 fand ein Arbeiter in einer Sandgrube in Mauer bei Heidelberg einen Unterkiefer: etwa 600.000 Jahre alt. So bekam der Homo heidelbergensis seinen Namen. Heidelberg war bewohnt, lange bevor es Menschen wie uns gab.",
+ en:"In 1907 a worker in a sand pit at Mauer near Heidelberg found a lower jaw: about 600,000 years old. That is how Homo heidelbergensis got its name. Heidelberg was inhabited long before there were people like us.",
+ dk:"Der Kiefer hat keine Kinnspitze. Er lächelt nicht.",dken:"The jaw has no chin. It does not smile."},
+{id:"h_bunsen",r:"H",ch:0,egg:"pudel",y:"1860",sort:1860,t:"Bunsen und das Licht der Sterne",art:"clarke_22",
+ de:"Robert Bunsen und Gustav Kirchhoff zerlegten in Heidelberg das Licht von Flammen in Farben. So fanden sie 1860 und 1861 zwei neue Elemente: Caesium und Rubidium – und eine Methode, die Chemie der Sterne zu lesen.",
+ en:"Robert Bunsen and Gustav Kirchhoff split the light of flames into colours in Heidelberg. That is how in 1860 and 1861 they found two new elements: caesium and rubidium — and a way to read the chemistry of the stars.",
+ dk:"Bunsen verlor bei einer Arsen-Explosion ein Auge und hätte sich fast vergiftet.",dken:"Bunsen lost an eye in an arsenic explosion and nearly poisoned himself."},
+{id:"h_alz",r:"H",ch:0,egg:"datum",y:"1906",sort:1906,t:"Alzheimer und Kraepelin",art:"clarke_35",
+ de:"Emil Kraepelin ordnete in Heidelberg die psychischen Krankheiten neu. Bei ihm arbeitete Alois Alzheimer. 1906 beschrieb Alzheimer die Patientin Auguste Deter: „Ich habe mich sozusagen selbst verloren.“",
+ en:"Emil Kraepelin reorganised the classification of mental illness in Heidelberg. Alois Alzheimer worked with him. In 1906 Alzheimer described the patient Auguste Deter: 'I have lost myself, so to speak.'",
+ dk:"Ihre Krankenakte galt fast neunzig Jahre als verschollen. 1995 tauchte sie wieder auf, 1997 die Präparate ihres Gehirns.",dken:"Her medical file was thought lost for almost ninety years. It resurfaced in 1995, the slides of her brain in 1997."},
+{id:"h_twain",r:"H",ch:0,egg:"portrait",y:"1878",sort:1878,t:"Mark Twain und die schreckliche Sprache",art:"struwwel_15",
+ de:"1878 lebte Mark Twain einige Monate in Heidelberg und lernte Deutsch. Daraus wurde sein Essay „Die schreckliche deutsche Sprache“: Ein Mädchen hat kein Geschlecht, eine Rübe aber schon.",
+ en:"In 1878 Mark Twain lived in Heidelberg for a few months and learned German. The result was his essay 'The Awful German Language': a girl has no gender, but a turnip does.",
+ dk:"Er schrieb: Ein begabter Mensch lernt Englisch in dreißig Stunden, Französisch in dreißig Tagen – und Deutsch in dreißig Jahren.",dken:"He wrote: a gifted person learns English in thirty hours, French in thirty days — and German in thirty years."}];
+const LORE_REALM={I:"Schwarzwald",II:"Böhmisches Café",III:"Fausts Studierzimmer",IV:"Expressionistisches Berlin",V:"Walpurgisnacht",H:"Heidelberger Funde"};
+// Easter eggs: id → [title, hint (shown before found), Mephisto's line DE, EN]
+const EGGS={
+ konami:["Der Code der Alten","Eine alte Folge: hoch, hoch, runter, runter …","In der Hölle gibt es keine Cheats. Aber für Sie mache ich eine Ausnahme.","There are no cheats in hell. But for you I'll make an exception."],
+ eye7:["Das siebte Mal","Wer das Auge oft genug berührt …","Siebenmal. Jetzt sieht es Sie auch.","Seven times. Now it sees you too."],
+ verweile:["Verweile doch!","Schreib irgendwo den berühmtesten Wunsch des Faust.","„Verweile doch, du bist so schön.“ Vorsicht. Mit diesem Satz habe ich schon einmal eine Seele gewonnen.","'Stay, you are so beautiful.' Careful. I have won a soul with that sentence before."],
+ geister:["Geisterstunde","Komm zur Geisterstunde.","Mitternacht. Die Glocke schlägt zwölf. Ab jetzt gehört die Stunde uns.","Midnight. The bell strikes twelve. From now on the hour is ours."],
+ pudel:["Des Pudels Kern","Manchmal läuft ein schwarzer Hund durchs Bild.","Das also war des Pudels Kern!","So that was the poodle's core!"],
+ datum:["Kalender des Teufels","Komm an einem Tag, der Goethe oder den Hexen gehört.","An diesem Tag ist die Grenze dünn. Gut, dass Sie gekommen sind.","On this day the border is thin. Good that you came."],
+ portrait:["Der Geist, der stets verneint","Tippe dreimal auf mein Gesicht.","Ich bin der Geist, der stets verneint! Und das mit Recht.","I am the spirit that always denies! And rightly so."]};
+const EGG_DATES={"04-30":"Walpurgisnacht","05-01":"Walpurgisnacht","08-28":"Goethes Geburtstag (1749)","03-22":"Goethes Todestag (1832)","01-14":"Hinrichtung der Susanna Margaretha Brandt (1772)","06-26":"Auszug der Kinder von Hameln (1284)","03-24":"Robert Kochs Vortrag (1882)","11-08":"Röntgens Entdeckung (1895)","12-06":"Nikolaus – der große Nikolas aus dem Struwwelpeter","10-31":"Reformationstag (1517)"};
 // ================= CORE (v2) =================
 "use strict";
 MEDVOCAB.forEach(v=>VOCAB.push(v));ALLTAGVOCAB.forEach(v=>VOCAB.push(v));MEDL2.forEach(m=>MEDL.push(m));
@@ -3757,7 +3965,7 @@ ACT.saveYuzu=async()=>{const p=yuzuPack();const r=await saveFile("mephisto-core.
 ACT.copyYuzu=()=>{const p=yuzuPack();copyText(JSON.stringify(p),$(".bk-txt"));toast(p.cards.length+" Karten")};
 ACT.reset=()=>{const v=($(".rs-in")||{}).value;if(v!=="LÖSCHEN")return toast("Tippe LÖSCHEN zur Bestätigung");lsSet("mephisto_before_reset",JSON.stringify(S));S=fresh();saveNow();buildDict();applyPrefs();R.tab="home";toast("Zurückgesetzt. Eine Kopie liegt unter „mephisto_before_reset“.");rerender()};
 // ================= PHONE FEATURES (v10): speech check, Artikel-Blitz, numbers, terms, undo, haptics, coach, PWA =================
-const APP_VERSION="12.6.3";
+const APP_VERSION="12.7.0";
 const IS_PWA=!!window.MEPHISTO_PWA;
 const IS_STANDALONE=(()=>{try{return matchMedia("(display-mode: standalone)").matches||navigator.standalone===true}catch(e){return false}})();
 const IS_IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
@@ -5810,6 +6018,10 @@ const SND=(function(){
     next(){if(!ctx||!started){start();return}playPiece(nextPiece())},
     play(id){const p=(PAKT_MUSIC||[]).find(x=>x.id===id);if(!p)return;if(!ctx||!started){S.sound.on=true;unlocked=true;start()}playPiece(p)},
     now(){return playing&&playing.p},
+    // 12.7: leitmotifs and bells. ev: [[midi, startStep, durSteps], …] in 16ths at bpm
+    motif(ev,inst,bpm){if(!cfg().on)return;if(!ctx||!started){unlocked=true;start()}if(!ctx)return;try{const spt=60/(bpm||84)/4,t0=ctx.currentTime+.08,I=INST[inst]||INST.musicbox;ev.forEach(([m,s0,d])=>I(hz(m),t0+s0*spt,d*spt,inst==="organ"?.8:1))}catch(e){}},
+    bell(n,low){if(!cfg().on)return;if(!ctx||!started){unlocked=true;start()}if(!ctx)return;try{const f=low?98:146.8;for(let k=0;k<(n||1);k++){const t=ctx.currentTime+.1+k*2.4;[[.56,.2],[.92,.14],[1.19,.1],[1.71,.08],[2,.07],[2.74,.05],[3,.04],[3.76,.03],[4.07,.03]].forEach(([r,g])=>tone(f*r*2,t,7*(1.2-r/5),"sine",g*.5,busMusic))}}catch(e){}},
+    sting(kind){if(!cfg().on||!ctx||!started)return;try{const t=ctx.currentTime;if(kind==="egg"){[72,76,79,84,88].forEach((m,i)=>INST.musicbox(hz(m),t+i*.09,.6,1));tone(hz(48),t,2.4,"sine",.12,busFx)}else if(kind==="lore"){[57,60,64].forEach((m,i)=>INST.harpsichord(hz(m),t+i*.12,1.2,1))}}catch(e){}},
     state(){return {on:cfg().on,ctx:!!ctx,started,realm,now:playing&&playing.p&&playing.p.t,err:lastErr}}};
 })();
 // ===== Mephisto 12 · "Der Pakt" — story frame, soul ledger, realm map, Mephisto's voice, Gothic interface, desktop rail, keys & gamepad.
@@ -6802,6 +7014,142 @@ function devId(){let d=null;try{d=localStorage.getItem("mephisto_dev");if(!d){d=
 function deleteCard(key){S.del=S.del||{};const now=new Date().toISOString();let tk=key;if(String(key).startsWith("c:")){const c=(S.custom||[])[+key.slice(2)];if(c){tk="cde:"+c.de;const i=+key.slice(2);S.custom.splice(i,1);const nc={};for(const k in S.cards){if(/^c:\d+$/.test(k)){const j=+k.slice(2);if(j===i)continue;nc["c:"+(j>i?j-1:j)]=S.cards[k]}else nc[k]=S.cards[k]}S.cards=nc}}else{delete S.cards[key];delete S.cards["p:"+key]}
   S.del[tk]=now;saveNow();try{buildDict()}catch(e){}toast("Aus dem Deck entfernt – auf allen Geräten.")}
 (function(){const _sg=showGloss;showGloss=function(w,m){_sg.apply(this,arguments);try{const r=lookup(w,m);const inn=$("#sheetIn");if(r&&r.c&&S.cards[r.c.id]&&inn&&!inn.querySelector(".del-card")){inn.insertAdjacentHTML("beforeend",`<div class="row" style="justify-content:flex-end;margin-top:.4rem"><button class="sm ghost del-card" style="color:var(--bad)">Aus dem Deck entfernen</button></div>`);inn.querySelector(".del-card").onclick=()=>{deleteCard(r.c.id);closeSheet();rerender()}}}catch(e){}}})();
+// ===== Mephisto 12.7 · Die Chronik: lore codex (German folklore + history, dark footnotes), realm cinematics with leitmotifs, easter eggs → Heidelberger Funde, living scenes.
+const MOTIF={I:[[[69,0,4],[72,4,4],[76,8,4],[74,12,2],[72,14,2],[71,16,4],[69,20,8]],"musicbox",72],
+ II:[[[62,0,3],[65,3,3],[69,6,6],[67,12,3],[65,15,3],[64,18,6],[62,24,8]],"zither",80],
+ III:[[[57,0,2],[60,2,2],[64,4,2],[69,6,6],[68,12,4],[64,16,4],[57,20,8]],"harpsichord",76],
+ IV:[[[60,0,4],[66,4,4],[61,8,4],[67,12,4],[62,16,10]],"piano",70],
+ V:[[[45,0,12],[52,0,12],[57,0,12],[60,0,12],[44,12,12],[50,12,12],[56,12,12],[59,12,12],[45,24,18],[52,24,18],[57,24,18],[61,24,18]],"organ",60],
+ H:[[[67,0,2],[72,2,2],[76,4,4],[74,8,2],[72,10,2],[69,12,4],[72,16,8]],"musicbox",88]};
+function motif(r){const m=MOTIF[r]||MOTIF.I;try{SND.motif(m[0],m[1],m[2])}catch(e){}}
+// ---------------------------------------------------------------- state
+function eggs(){return S.eggs=S.eggs||{}}
+function loreOpen(e){if(e.egg)return !!eggs()[e.egg];const p=P();return p.signed&&(p.ch||1)>=e.ch}
+function loreSeen(){return S.loreSeen=S.loreSeen||{}}
+function loreNew(){return LORE.filter(e=>loreOpen(e)&&!loreSeen()[e.id])}
+function loreArt(id,cls){const a=pkArt(id);return a?`<img class="${cls||""}${a.k==="ink"?" ink":""}" src="${a.u}" alt="">`:""}
+// ---------------------------------------------------------------- 1. Die Chronik (codex)
+let CHR_TAB="reiche";
+ACT.chronik=el=>{if(el&&el.dataset&&el.dataset.tab)CHR_TAB=el.dataset.tab;const box=Focus.isOpen()&&$("#fIn")&&$("#fIn").querySelector(".chr")?$("#fIn"):Focus.open({title:"Die Chronik",sub:"Volkssagen und Geschichte · mit dunklen Fußnoten"});
+  const n=LORE.filter(loreOpen).length;const tab=(k,l)=>`<button class="${CHR_TAB===k?"on":""}" data-act="chronik" data-tab="${k}">${l}</button>`;
+  let body="";
+  if(CHR_TAB==="zeit"){const L=LORE.slice().sort((a,b)=>a.sort-b.sort);body=`<div class="chr-time">${L.map(e=>{const o=loreOpen(e);return `<button class="chr-tl r${e.r}${o?"":" locked"}" ${o?`data-act="loreRead" data-id="${e.id}"`:""}><span class="yr">${esc(e.y)}</span><span class="dot"></span><span class="tt">${o?esc(e.t):"???"}</span></button>`}).join("")}</div>`}
+  else{const realms=CHR_TAB==="funde"?["H"]:["I","II","III","IV","V"];body=realms.map(r=>{const L=LORE.filter(e=>e.r===r);return `<div class="chr-realm"><div class="chr-rh"><span class="num">${r==="H"?"✠":r}</span><div><b>${esc(LORE_REALM[r])}</b><small>${L.filter(loreOpen).length} von ${L.length} Seiten</small></div>${r!=="H"?`<button class="sm ghost" data-act="realmIntro" data-r="${r}" ${LVX.indexOf(r)<=LVX.indexOf(pkCh().r)?"":"disabled"}>▶ Auftakt</button>`:""}</div>
+     <div class="chr-grid">${L.map(e=>{const o=loreOpen(e);const nw=o&&!loreSeen()[e.id];return `<button class="chr-tile${o?"":" locked"}${nw?" new":""}" ${o?`data-act="loreRead" data-id="${e.id}"`:""}>${loreArt(e.art,"chr-img")}<span class="chr-y">${esc(e.y)}</span><b>${o?esc(e.t):"Versiegelt"}</b><small>${o?"":e.egg?esc(EGGS[e.egg][1]):"Kapitel "+e.ch}</small>${nw?`<i class="chr-nw">neu</i>`:""}</button>`}).join("")}</div></div>`}).join("")}
+  box.innerHTML=`<div class="chr stack" style="max-width:900px;margin:0 auto">
+   <div class="card orn">${pkSay(["Jede Sage hat einen wahren Kern. Und jeder wahre Kern ist schlimmer als die Sage.","Every legend has a true core. And every true core is worse than the legend."])}</div>
+   <div class="row between" style="flex-wrap:wrap;gap:.5rem"><div class="seg">${tab("reiche","Die Reiche")}${tab("zeit","Zeitstrahl")}${tab("funde","Heidelberger Funde")}</div><span class="chip">${n} / ${LORE.length} Seiten</span></div>
+   ${body}</div>`};
+ACT.loreRead=el=>{const id=el.dataset.id;const i=LORE.findIndex(e=>e.id===id);const e=LORE[i];if(!e||!loreOpen(e))return;loreSeen()[id]=todayKey();saveSoon();
+  const box=Focus.open({title:"Die Chronik",sub:`${LORE_REALM[e.r]} · ${e.y}`,onClose:()=>ACT.chronik()});const open=LORE.filter(loreOpen);const k=open.indexOf(e);const prev=open[k-1],next=open[k+1];
+  const first=e.de.charAt(0),rest=e.de.slice(1);
+  box.innerHTML=`<article class="lore-page r${e.r}" style="max-width:760px;margin:0 auto">
+    <figure class="lore-fig">${loreArt(e.art,"lore-img")}<figcaption>${esc((pkArt(e.art)||{}).t||"")}</figcaption></figure>
+    <div class="lore-head"><span class="lore-y">${esc(e.y)}</span><h1>${esc(e.t)}</h1></div>
+    <div class="lore-text"><span class="lore-ini">${esc(first)}</span>${glossify(rest)}</div>
+    <details class="lore-en"><summary class="ui">English</summary><p>${esc(e.en)}</p></details>
+    <aside class="lore-dark no-sig"><div class="eyebrow">Die dunkle Fußnote</div><p>${esc(e.dk)}</p><details><summary class="ui">English</summary><p class="en">${esc(e.dken)}</p></details></aside>
+    <div class="row" style="justify-content:space-between;margin-top:1rem;gap:.5rem;flex-wrap:wrap"><button class="sm ghost" data-say="${esc(e.de+" "+e.dk)}">${ic("vol")} Vorlesen</button>
+     <span class="row" style="gap:.4rem">${prev?`<button class="sm" data-act="loreRead" data-id="${prev.id}">‹ ${esc(prev.y)}</button>`:""}${next?`<button class="sm" data-act="loreRead" data-id="${next.id}">${esc(next.y)} ›</button>`:""}</span></div></article>`;
+  motif(e.r==="H"?"H":e.r)};
+// ---------------------------------------------------------------- 2. realm cinematic (Auftakt)
+function realmIntro(r,auto){const R0=REALMS[r];if(!R0)return;let ov=$("#lore-cine");if(ov)ov.remove();ov=document.createElement("div");ov.id="lore-cine";ov.className="r"+r;
+  ov.innerHTML=`<div class="cine-art">${loreArt(R0.art,"cine-img")}</div><div class="cine-veil"></div><div class="cine-txt"><div class="cine-num">Reich ${esc(R0.n)}</div><h1>${esc(R0.de)}</h1><div class="cine-en">${esc(R0.en)}</div><p class="cine-intro">${esc(R0.intro||"")}</p><div class="cine-boss">Am Ende wartet: <b>${esc(R0.boss)}</b></div><button class="go cine-go">Eintreten</button></div>`;
+  document.body.appendChild(ov);requestAnimationFrame(()=>ov.classList.add("on"));motif(r);setTimeout(()=>{try{SND.bell(1,true)}catch(e){}},1800);
+  const close=()=>{ov.classList.remove("on");setTimeout(()=>ov.remove(),700);if(auto){S.realmSeen=r;saveSoon()}};ov.querySelector(".cine-go").onclick=close;ov.addEventListener("keydown",k=>{if(k.key==="Escape"||k.key==="Enter")close()});ov.querySelector(".cine-go").focus()}
+ACT.realmIntro=el=>realmIntro(el.dataset.r,false);
+// ---------------------------------------------------------------- 3. easter eggs
+function findEgg(id){const E=eggs();if(E[id]||!EGGS[id])return;E[id]=todayKey();saveSoon();const g=EGGS[id];try{SND.sting("egg")}catch(e){}
+  const lore=LORE.find(e=>e.egg===id);let ov=document.createElement("div");ov.className="egg-pop";
+  ov.innerHTML=`<div class="egg-card"><div class="eyebrow">Geheimnis gefunden · ${Object.keys(E).length} / ${Object.keys(EGGS).length}</div><h2>${esc(g[0])}</h2>${pkSay([P().du===true&&DU_MAP[g[2]]?DU_MAP[g[2]]:g[2],g[3]])}${lore?`<p class="ui">Neue Seite: <b>${esc(lore.t)}</b> (Heidelberger Funde)</p>`:""}<div class="row" style="justify-content:flex-end;gap:.5rem"><button class="sm ghost egg-x">Später</button>${lore?`<button class="go sm egg-go">Lesen</button>`:""}</div></div>`;
+  document.body.appendChild(ov);requestAnimationFrame(()=>ov.classList.add("on"));const close=()=>{ov.classList.remove("on");setTimeout(()=>ov.remove(),400)};ov.querySelector(".egg-x").onclick=close;const go2=ov.querySelector(".egg-go");if(go2)go2.onclick=()=>{close();ACT.loreRead({dataset:{id:lore.id}})}}
+// konami (keyboard; also the gamepad D-pad arrives as arrow keys in some browsers)
+(function(){const K=["ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowLeft","ArrowRight","ArrowLeft","ArrowRight","b","a"];let i=0;document.addEventListener("keydown",e=>{const k=e.key.length===1?e.key.toLowerCase():e.key;i=k===K[i]?i+1:(k===K[0]?1:0);if(i===K.length){i=0;findEgg("konami")}},true)})();
+// the eye, seven times
+(function(){let n=0,t=0;document.addEventListener("click",e=>{if(!e.target.closest||!e.target.closest("#hor-eye"))return;const now=Date.now();n=now-t<1500?n+1:1;t=now;if(n>=7){n=0;findEgg("eye7")}},true)})();
+// Mephisto's face, three times
+(function(){let n=0,t=0;document.addEventListener("click",e=>{if(!e.target.closest||!e.target.closest(".pk-say .who"))return;const now=Date.now();n=now-t<900?n+1:1;t=now;if(n>=3){n=0;findEgg("portrait")}},true)})();
+// "Verweile doch" written anywhere
+document.addEventListener("input",e=>{const v=String((e.target&&e.target.value)||"").toLowerCase();if(/verweile doch/.test(v))findEgg("verweile")},true);
+// midnight and the devil's calendar
+function timeEggs(){try{if(!P().signed)return;const d=new Date();if(d.getHours()===0){document.documentElement.classList.add("geister");if(!eggs().geister){findEgg("geister");try{SND.bell(12,true)}catch(x){}}}else document.documentElement.classList.remove("geister");
+  const md=todayKey().slice(5);if(EGG_DATES[md]){if(!eggs().datum)findEgg("datum");if(S.dateSeen!==todayKey()){S.dateSeen=todayKey();saveSoon();setTimeout(()=>toast(`Heute: ${EGG_DATES[md]}.`,4500),2500)}}
+  document.documentElement.dataset.walpurgis=(md==="04-30"||md==="05-01")?"1":""}catch(e){}}
+setInterval(timeEggs,60000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)timeEggs()});
+// hourly bell while you are on Heute or Pakt (never inside a task)
+(function(){let lastH=new Date().getHours();setInterval(()=>{const h=new Date().getHours();if(h!==lastH){lastH=h;if(!Focus.isOpen()&&(R.tab==="home"||R.tab==="pakt")&&!document.hidden)try{SND.bell(h%12||12)}catch(e){}}},30000)})();
+// ---------------------------------------------------------------- 4. living scenes (every look but Pixel): ravens, chimney smoke, candles, the tram, the witch over the moon, and sometimes a black poodle
+function spriteLayer(){let L=$("#lore-sprites");if(!L){L=document.createElement("div");L.id="lore-sprites";document.body.prepend(L)}return L}
+const SPR={
+ I:()=>`<svg class="sp-raven" viewBox="0 0 60 30"><path d="M30 18 C22 6 10 6 2 12 C12 12 20 14 30 20 C40 14 48 12 58 12 C50 6 38 6 30 18Z" fill="#050806"/></svg>`.repeat(3),
+ II:()=>`<i class="sp-smoke" style="left:16%"></i><i class="sp-smoke" style="left:58%;animation-delay:3s"></i><i class="sp-smoke" style="left:81%;animation-delay:6s"></i><i class="sp-win" style="left:30%"></i><i class="sp-win" style="left:67%;animation-delay:1.3s"></i>`,
+ III:()=>[8,22,78,92].map((x,i)=>`<i class="sp-candle" style="left:${x}%;animation-delay:${i*.37}s"><b></b></i>`).join(""),
+ IV:()=>`<svg class="sp-tram" viewBox="0 0 160 50"><rect x="4" y="8" width="150" height="32" rx="4" fill="#111"/><g fill="#F0E2B0" opacity=".85">${[14,38,62,86,110,134].map(x=>`<rect x="${x}" y="14" width="14" height="12"/>`).join("")}</g><path d="M60 8 L80 0 L100 8" stroke="#222" stroke-width="2" fill="none"/></svg>`,
+ V:()=>`<svg class="sp-witch" viewBox="0 0 120 50"><path d="M5 34 L95 28" stroke="#0a0505" stroke-width="3"/><path d="M95 28 l20 -6 l-4 8 l6 4 z" fill="#0a0505"/><path d="M42 30 q6 -18 14 -20 l6 -12 l2 13 q8 4 4 18 z" fill="#0a0505"/></svg>`};
+function livingScene(){try{const ui=document.documentElement.dataset.ui;const L=spriteLayer();if(ui==="pixel"||document.documentElement.classList.contains("nomotion")||matchMedia("(prefers-reduced-motion: reduce)").matches){L.innerHTML="";L.dataset.r="";return}
+  const r=document.documentElement.dataset.realm||"I";if(L.dataset.r===r)return;L.dataset.r=r;L.className="r"+r;L.innerHTML=(SPR[r]||SPR.I)()}catch(e){}}
+(function(){const _ce=chromeExtras;chromeExtras=function(){_ce.apply(this,arguments);livingScene()}})();
+function poodleRun(){try{if(Focus.isOpen()||document.hidden||!P().signed||document.documentElement.dataset.ui==="pixel")return;if(eggs().pudel&&Math.random()>.25)return;if(R.tab!=="home"&&R.tab!=="pakt")return;
+  const d=document.createElement("button");d.className="sp-poodle";d.setAttribute("aria-label","Ein schwarzer Pudel");d.innerHTML=`<svg viewBox="0 0 64 40"><circle cx="50" cy="12" r="7" fill="#050505"/><circle cx="56" cy="15" r="3" fill="#050505"/><circle cx="52" cy="10" r="1.2" fill="#E0302A"/><ellipse cx="32" cy="22" rx="16" ry="8" fill="#050505"/><circle cx="14" cy="18" r="5" fill="#050505"/><rect x="20" y="26" width="3" height="12" fill="#050505"/><rect x="40" y="26" width="3" height="12" fill="#050505"/><circle cx="21" cy="38" r="3" fill="#050505"/><circle cx="41" cy="38" r="3" fill="#050505"/></svg>`;
+  d.onclick=()=>{d.classList.add("caught");findEgg("pudel");setTimeout(()=>d.remove(),600)};document.body.appendChild(d);setTimeout(()=>d.remove(),9500)}catch(e){}}
+setInterval(()=>{if(Math.random()<.18)poodleRun()},45000);
+// ---------------------------------------------------------------- 5. hooks: Home card for new pages, realm cinematic on entering a realm, Werkstatt + Pakt entry, Kabinett cards, seal toast
+(function(){const _vh=viewHome;viewHome=function(m){_vh(m);try{if(!P().signed)return;timeEggs();const v=m.querySelector(".view")||m;const nw=loreNew();
+  if(nw.length){const e=nw[0];const html=`<button class="card lore-new r${e.r}" data-act="loreRead" data-id="${e.id}">${loreArt(e.art,"ln-img")}<span><span class="eyebrow">Neue Seite in der Chronik${nw.length>1?` · +${nw.length-1}`:""}</span><b>${esc(e.t)}</b><small>${esc(e.y)} · ${esc(LORE_REALM[e.r])}</small></span></button>`;const strip=v.querySelector(".prog-strip");if(strip)strip.insertAdjacentHTML("afterend",html);else{const f=v.querySelector(".card.orn");if(f)f.insertAdjacentHTML("afterend",html)}}
+  const r=pkCh().r;let nc=null;try{nc=localStorage.getItem("mephisto_nocine")}catch(x){}if(!nc&&S.realmSeen!==r&&!document.querySelector("#lore-cine")&&!document.querySelector(".pk-prolog"))setTimeout(()=>{if(!Focus.isOpen())realmIntro(r,true)},700)}catch(e){}}})();
+(function(){const _w=werkstattHTML;werkstattHTML=function(){const h=_w();if(R.tab==="learn")return h;const n=LORE.filter(loreOpen).length,nw=loreNew().length;return h.replace('<div class="werk-grid">',`<div class="werk-grid"><button data-act="chronik" class="werk-chr"><b>Die Chronik${nw?` · ${nw} neu`:""}</b><small>${n} / ${LORE.length} Seiten · Sagen und Geschichte</small></button>`)}})();
+(function(){const _k=kabCards;kabCards=function(){const L=_k();const E=eggs();Object.entries(EGGS).forEach(([k,g])=>{const lore=LORE.find(e=>e.egg===k);L.push({id:"egg_"+k,r:"episch",t:E[k]?`Geheimnis: ${g[0]}`:"Geheimnis: ???",art:lore?lore.art:"clarke_46",flav:E[k]?(lore?lore.t:g[0]):"…",how:g[1],ok:!!E[k]})});return L}})();
+(function(){const _s=pkSealChapter;pkSealChapter=function(){const before=new Set(LORE.filter(loreOpen).map(e=>e.id));const r=_s.apply(this,arguments);try{const nw=LORE.filter(e=>loreOpen(e)&&!before.has(e.id));if(nw.length)setTimeout(()=>{toast(`Neue Seite in der Chronik: ${nw[0].t}`,4200);try{SND.sting("lore")}catch(x){}},2600)}catch(e){}return r}})();
+// ---------------------------------------------------------------- styles
+(function(){const s=document.createElement("style");s.textContent=`
+.chr-realm{display:grid;gap:.6rem;margin-top:.6rem}.chr-rh{display:flex;align-items:center;gap:.8rem}.chr-rh .num{font-family:var(--body);font-weight:700;font-size:2.2rem;color:var(--accent);min-width:2.2rem;text-align:center}.chr-rh b{display:block;font-family:var(--display);font-weight:400;font-size:1.3rem}.chr-rh small{opacity:.7}.chr-rh button{margin-left:auto}
+.chr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.6rem}
+.chr-tile{position:relative;display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:.2rem;padding:.5rem;min-height:170px;overflow:hidden;border-radius:10px}
+.chr-tile .chr-img{width:100%;height:84px;object-fit:cover;border-radius:6px;filter:sepia(.5) contrast(1.1);transition:transform 6s ease}.chr-tile:hover .chr-img{transform:scale(1.12)}
+.chr-tile .chr-img.ink,.lore-img.ink,.cine-img.ink,.ln-img.ink{filter:invert(1) sepia(.7) contrast(1.05)}
+.chr-tile .chr-y{font-family:var(--display);color:var(--accent-2);font-size:1rem}.chr-tile b{font-size:.95rem;line-height:1.2}.chr-tile small{opacity:.65;font-size:.75rem}
+.chr-tile.locked{opacity:.75}.chr-tile.locked .chr-img{filter:blur(6px) grayscale(1) brightness(.4)}.chr-tile.locked b{letter-spacing:.2em;opacity:.6}
+.chr-tile.new{box-shadow:0 0 0 2px var(--accent),0 0 22px -4px var(--accent)}.chr-nw{position:absolute;top:.4rem;right:.4rem;background:var(--accent);color:#1A0B03;font-style:normal;font-size:.7rem;font-weight:700;padding:.05rem .4rem;border-radius:6px}
+.chr-time{position:relative;display:grid;gap:.25rem;padding-left:5.5rem}.chr-time::before{content:"";position:absolute;left:4.8rem;top:0;bottom:0;width:2px;background:linear-gradient(var(--accent),#8B0000)}
+.chr-tl{position:relative;display:flex;align-items:center;gap:.6rem;text-align:left;background:none!important;border:0!important;min-height:34px;padding:.2rem .3rem}.chr-tl .yr{position:absolute;left:-5.6rem;width:4.6rem;text-align:right;font-family:var(--display);color:var(--accent-2);font-size:.9rem}
+.chr-tl .dot{width:12px;height:12px;border-radius:50%;margin-left:-.95rem;background:var(--accent);box-shadow:0 0 10px var(--accent);flex:0 0 12px}.chr-tl.locked .dot{background:#333;box-shadow:none}.chr-tl.locked .tt{opacity:.45;letter-spacing:.2em}
+.chr-tl.rII .dot{background:#C9A54A}.chr-tl.rIII .dot{background:#C98E5A}.chr-tl.rIV .dot{background:#F0EDE6}.chr-tl.rV .dot{background:#E0302A}.chr-tl.rH .dot{background:#7FB3FF}
+.lore-fig{margin:0 0 1rem;overflow:hidden;border-radius:12px;position:relative;max-height:42vh;background:#000}.lore-img{display:block;width:100%;max-height:42vh;object-fit:cover;animation:kenburns 26s ease-in-out infinite alternate;filter:sepia(.45) contrast(1.1)}
+.lore-fig figcaption{position:absolute;left:0;right:0;bottom:0;padding:.5rem .8rem;background:linear-gradient(transparent,rgba(0,0,0,.8));color:#EADFC8;font-size:.8rem;font-family:var(--ui)}
+@keyframes kenburns{0%{transform:scale(1.02) translate(0,0)}100%{transform:scale(1.18) translate(-3%,-2%)}}
+.lore-head{display:flex;align-items:baseline;gap:.8rem;flex-wrap:wrap}.lore-y{font-family:var(--display);font-size:1.6rem;color:var(--accent)}.lore-head h1{margin:0}
+.lore-text{font-family:var(--body);font-size:1.18rem;line-height:1.75;margin:.6rem 0}.lore-ini{float:left;font-family:var(--display);font-size:3.6rem;line-height:.85;margin:.2rem .5rem 0 0;color:var(--accent);text-shadow:0 0 18px rgba(240,138,63,.5)}
+.lore-en p{font-family:var(--body);opacity:.85}
+.lore-dark{margin-top:1rem;padding:.9rem 1rem;border-left:3px solid #A01818;background:linear-gradient(90deg,rgba(120,0,0,.22),transparent);border-radius:6px}.lore-dark p{margin:.3rem 0;font-family:var(--body);font-size:1.05rem;font-style:italic}.lore-dark .eyebrow{color:#E05050}
+.lore-new{display:flex!important;gap:.8rem;align-items:center;text-align:left;width:100%;padding:.6rem!important}.lore-new .ln-img{width:64px;height:64px;object-fit:cover;border-radius:8px;flex:0 0 64px}.lore-new b{display:block;font-family:var(--display);font-weight:400;font-size:1.15rem}.lore-new small{opacity:.7}
+.werk-chr{border-color:var(--accent)!important;box-shadow:inset 0 0 22px -10px var(--accent)}
+#lore-cine{position:fixed;inset:0;z-index:90;background:#000;opacity:0;transition:opacity .7s;display:grid;place-items:end center;overflow:hidden}#lore-cine.on{opacity:1}
+#lore-cine .cine-art{position:absolute;inset:0}#lore-cine .cine-img{width:100%;height:100%;object-fit:cover;animation:kenburns 30s ease-out forwards;filter:sepia(.5) contrast(1.15) brightness(.75)}
+#lore-cine .cine-veil{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 30%,rgba(0,0,0,.85) 80%),linear-gradient(transparent 40%,rgba(0,0,0,.92))}
+#lore-cine .cine-txt{position:relative;max-width:640px;padding:2rem 1.2rem calc(2.5rem + env(safe-area-inset-bottom));text-align:center;color:#F2E6CF}
+#lore-cine .cine-num{font-family:var(--body);font-weight:700;color:var(--accent);font-size:1.4rem;letter-spacing:.2em;opacity:0;animation:cineIn 1s .4s forwards}
+#lore-cine h1{font-family:var(--display);font-weight:400;font-size:clamp(2.6rem,9vw,4.4rem);margin:.2rem 0;opacity:0;animation:cineIn 1.4s .9s forwards;text-shadow:0 0 30px rgba(240,138,63,.45)}
+#lore-cine .cine-en{opacity:0;animation:cineIn 1s 1.6s forwards;font-style:italic}#lore-cine .cine-intro{opacity:0;animation:cineIn 1.4s 2.2s forwards;font-family:var(--body);font-size:1.1rem;line-height:1.6}
+#lore-cine .cine-boss{opacity:0;animation:cineIn 1s 3.2s forwards;margin:.6rem 0 1rem;color:#E07070}#lore-cine .cine-go{opacity:0;animation:cineIn .8s 3.6s forwards}
+@keyframes cineIn{from{opacity:0;transform:translateY(12px);filter:blur(4px)}to{opacity:1;transform:none;filter:none}}
+.egg-pop{position:fixed;inset:0;z-index:95;display:grid;place-items:center;background:rgba(0,0,0,.55);opacity:0;transition:opacity .35s;padding:16px}.egg-pop.on{opacity:1}
+.egg-card{max-width:440px;width:100%;background:linear-gradient(180deg,#1b0f08,#0b0605);border:1px solid var(--accent);border-radius:14px;padding:1.1rem;box-shadow:0 0 60px -10px var(--accent);color:#F2E6CF;transform:scale(.9) rotate(-1deg);transition:transform .35s}.egg-pop.on .egg-card{transform:none}.egg-card h2{font-family:var(--display);font-weight:400;margin:.2rem 0 .5rem}
+#lore-sprites{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.sp-raven{position:absolute;width:46px;top:12%;left:-60px;animation:raven 34s linear infinite;opacity:.8}.sp-raven:nth-child(2){top:18%;width:34px;animation-delay:9s;animation-duration:41s}.sp-raven:nth-child(3){top:9%;width:28px;animation-delay:21s;animation-duration:38s}
+@keyframes raven{0%{transform:translateX(0) translateY(0)}25%{transform:translateX(30vw) translateY(-14px)}50%{transform:translateX(60vw) translateY(10px)}100%{transform:translateX(115vw) translateY(-6px)}}
+.sp-smoke{position:absolute;bottom:34%;width:30px;height:30px;border-radius:50%;background:radial-gradient(rgba(200,200,190,.25),transparent 70%);animation:smoke 9s ease-out infinite}@keyframes smoke{0%{transform:translate(0,0) scale(.6);opacity:0}20%{opacity:.8}100%{transform:translate(40px,-140px) scale(3.4);opacity:0}}
+.sp-win{position:absolute;bottom:26%;width:8px;height:12px;background:#F2D27A;box-shadow:0 0 12px #F2D27A;animation:winflick 4s steps(2) infinite;opacity:.7}@keyframes winflick{0%,60%{opacity:.75}61%,70%{opacity:.15}71%,100%{opacity:.7}}
+.sp-candle{position:absolute;bottom:12%;width:10px;height:46px;background:linear-gradient(#EADFC8,#B9A67E);border-radius:2px}.sp-candle b{position:absolute;left:50%;top:-18px;width:10px;height:18px;margin-left:-5px;border-radius:50% 50% 45% 45%;background:radial-gradient(circle at 50% 70%,#FFF4C2,#FFB566 45%,rgba(240,138,63,0) 70%);animation:flame .18s ease-in-out infinite alternate;filter:blur(.4px);box-shadow:0 0 22px 6px rgba(255,170,80,.35)}
+@keyframes flame{from{transform:scaleY(1) skewX(-3deg)}to{transform:scaleY(1.15) skewX(4deg)}}
+.sp-tram{position:absolute;bottom:12%;width:190px;left:-220px;animation:tram 48s linear infinite;animation-delay:6s;opacity:.85}@keyframes tram{0%{transform:translateX(0)}30%{transform:translateX(calc(100vw + 240px))}100%{transform:translateX(calc(100vw + 240px))}}
+.sp-witch{position:absolute;top:8%;width:90px;left:-120px;animation:witch 60s linear infinite;animation-delay:12s}@keyframes witch{0%{transform:translateX(0) translateY(0) rotate(-6deg)}20%{transform:translateX(55vw) translateY(-20px) rotate(-10deg)}35%{transform:translateX(calc(100vw + 140px)) translateY(-50px) rotate(-14deg)}100%{transform:translateX(calc(100vw + 140px)) translateY(-50px)}}
+.sp-poodle{position:fixed;bottom:calc(5.6rem + env(safe-area-inset-bottom,0px));left:-80px;width:64px;height:40px;padding:0;border:0!important;background:none!important;z-index:70;pointer-events:auto;animation:poodle 9s linear forwards;cursor:pointer}.sp-poodle svg{width:64px;height:40px;filter:drop-shadow(0 0 3px rgba(240,138,63,.9)) drop-shadow(0 0 8px rgba(240,138,63,.5));animation:trot .25s ease-in-out infinite alternate}
+@keyframes poodle{to{transform:translateX(calc(100vw + 160px))}}@keyframes trot{from{transform:translateY(0)}to{transform:translateY(-3px)}}.sp-poodle.caught{animation:none;transform:scale(1.6);opacity:0;transition:all .5s}
+:root.geister body{filter:saturate(1.2) hue-rotate(-12deg)}:root.geister #pakt-scene{filter:hue-rotate(-30deg) brightness(.8)}
+:root[data-walpurgis="1"] #hor-embers i{background:#E0302A!important;box-shadow:0 0 8px #E0302A!important}
+:root[data-ui="paper"] #lore-sprites{opacity:.35}:root[data-ui="clean"] #lore-sprites{opacity:.5}
+@media (prefers-reduced-motion: reduce){.lore-img,.cine-img{animation:none}}
+`;document.head.appendChild(s)})();
 // ===== Mephisto 12.5.1 · Wolke: Drive sync that never asks "which one?" and never destroys.
 // Record-level, deterministic merge (merge(a,b) == merge(b,a)); settings by per-key timestamps (S._ts); reviews by review time;
 // reset / replace by epoch (S._epoch); read failures abort (never overwrite what we could not read); twins merged before trashing;
