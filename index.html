@@ -3757,7 +3757,7 @@ ACT.saveYuzu=async()=>{const p=yuzuPack();const r=await saveFile("mephisto-core.
 ACT.copyYuzu=()=>{const p=yuzuPack();copyText(JSON.stringify(p),$(".bk-txt"));toast(p.cards.length+" Karten")};
 ACT.reset=()=>{const v=($(".rs-in")||{}).value;if(v!=="LÖSCHEN")return toast("Tippe LÖSCHEN zur Bestätigung");lsSet("mephisto_before_reset",JSON.stringify(S));S=fresh();saveNow();buildDict();applyPrefs();R.tab="home";toast("Zurückgesetzt. Eine Kopie liegt unter „mephisto_before_reset“.");rerender()};
 // ================= PHONE FEATURES (v10): speech check, Artikel-Blitz, numbers, terms, undo, haptics, coach, PWA =================
-const APP_VERSION="12.6.2";
+const APP_VERSION="12.6.3";
 const IS_PWA=!!window.MEPHISTO_PWA;
 const IS_STANDALONE=(()=>{try{return matchMedia("(display-mode: standalone)").matches||navigator.standalone===true}catch(e){return false}})();
 const IS_IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
@@ -6788,6 +6788,20 @@ setInterval(()=>{try{if(S.yzWeek!==lastSunday()&&new Date().getDay()===1&&typeof
 // gamepad: make <summary>, the rail and tap-to-reveal English reachable (focus walk + A = click)
 (function(){try{const sel='#main summary,#focus summary,#pakt-rail button,:root[data-en="tap"] .pk-say .en';const add=()=>document.querySelectorAll(sel).forEach(el=>{if(!el.hasAttribute("tabindex"))el.tabIndex=0});new MutationObserver(add).observe(document.body,{childList:true,subtree:true});add();
 }catch(e){}})();
+
+// ---------------------------------------------------------------- 15. strict level gating (real level from your deck, not the self-placement), writing tasks by level
+Object.assign(TASK_LV,{"Ich stelle mich vor":0,"Begrüßung in der Notaufnahme":0,"Wo tut es weh?":0,"Mein Tag gestern":1,"Termin verschieben":1,"Smalltalk":1,"Anamnese-Fragen":1,"Beschwerde":2,"E-Mail ans Amt":2,"Entlassung":2,"Drei Akten-Sätze":2,"Patientenvorstellung":3,"Aufklärung":3,"Übergabe":3,"Schlechte Nachricht":4});
+function wordsLv(){const n=knownWords();return n<500?0:n<1200?1:n<2500?2:n<4000?3:4}
+learnerLv=function(){let e=0;try{const x=levelEstimate();e=x.self?0:LV(x.stufe)}catch(z){}return Math.max(e,wordsLv())};
+(function(){const _po=pickOutput;pickOutput=function(){const r=_po();try{const cap=learnerLv()+1;if(r.kind==="task"){const t=TASKS[r.id];if(t&&(TASK_LV[t.t]??2)>cap){const ok=TASKS.map((x,i)=>i).filter(i=>(TASK_LV[TASKS[i].t]??2)<=cap);if(ok.length)return {kind:"task",id:ok[dayNumber()%ok.length]}}}
+  if((r.kind==="fsp"||r.kind==="exam")&&cap<3){const ok=TASKS.map((x,i)=>i).filter(i=>(TASK_LV[TASKS[i].t]??2)<=cap);if(ok.length)return {kind:"task",id:ok[dayNumber()%ok.length]}}}catch(e){}return r}})();
+// ---------------------------------------------------------------- 16. study minutes from several devices add up (per-device buckets, summed in the merge)
+function devId(){let d=null;try{d=localStorage.getItem("mephisto_dev");if(!d){d="d"+Math.random().toString(36).slice(2,9);localStorage.setItem("mephisto_dev",d)}}catch(e){d="d0"}return d}
+(function(){const _sn=saveNow;saveNow=function(){try{const d=todayKey(),L=S.log&&S.log[d];if(L&&L.sec){const me=devId();L.dv=L.dv||{};let others=0;for(const k in L.dv)if(k!==me)others+=+L.dv[k]||0;L.dv[me]=Math.max(L.dv[me]||0,(L.sec||0)-others)}}catch(e){}return _sn.apply(this,arguments)}})();
+// ---------------------------------------------------------------- 17. deleting a card sticks on every device (tombstones in S.del)
+function deleteCard(key){S.del=S.del||{};const now=new Date().toISOString();let tk=key;if(String(key).startsWith("c:")){const c=(S.custom||[])[+key.slice(2)];if(c){tk="cde:"+c.de;const i=+key.slice(2);S.custom.splice(i,1);const nc={};for(const k in S.cards){if(/^c:\d+$/.test(k)){const j=+k.slice(2);if(j===i)continue;nc["c:"+(j>i?j-1:j)]=S.cards[k]}else nc[k]=S.cards[k]}S.cards=nc}}else{delete S.cards[key];delete S.cards["p:"+key]}
+  S.del[tk]=now;saveNow();try{buildDict()}catch(e){}toast("Aus dem Deck entfernt – auf allen Geräten.")}
+(function(){const _sg=showGloss;showGloss=function(w,m){_sg.apply(this,arguments);try{const r=lookup(w,m);const inn=$("#sheetIn");if(r&&r.c&&S.cards[r.c.id]&&inn&&!inn.querySelector(".del-card")){inn.insertAdjacentHTML("beforeend",`<div class="row" style="justify-content:flex-end;margin-top:.4rem"><button class="sm ghost del-card" style="color:var(--bad)">Aus dem Deck entfernen</button></div>`);inn.querySelector(".del-card").onclick=()=>{deleteCard(r.c.id);closeSheet();rerender()}}}catch(e){}}})();
 // ===== Mephisto 12.5.1 · Wolke: Drive sync that never asks "which one?" and never destroys.
 // Record-level, deterministic merge (merge(a,b) == merge(b,a)); settings by per-key timestamps (S._ts); reviews by review time;
 // reset / replace by epoch (S._epoch); read failures abort (never overwrite what we could not read); twins merged before trashing;
@@ -6814,10 +6828,11 @@ function mergeCore(L,R){
     else if(k==="_epoch"){out[k]=a>b?a:b}
     else if(k==="cards"){const o={};for(const id of new Set([...Object.keys(a),...Object.keys(b)]))o[id]=cardWin(a[id],b[id]);out[k]=o}
     else if(k==="lessons"){const o={};for(const id of new Set([...Object.keys(a),...Object.keys(b)])){const x=a[id],y=b[id];if(!x||!y){o[id]=x||y;continue}const nw=(x.last||"")!==(y.last||"")?((x.last||"")>(y.last||"")?x:y):pick(x,y);o[id]=Object.assign({},nw,{best:Math.max(x.best||0,y.best||0),n:Math.max(x.n||0,y.n||0)})}out[k]=o}
-    else if(k==="log"){const o={};for(const d of new Set([...Object.keys(a),...Object.keys(b)])){const x=a[d],y=b[d];if(!x||!y||!isObj(x)||!isObj(y)){o[d]=x||y;continue}const m={};for(const f of new Set([...Object.keys(x),...Object.keys(y)])){const p=x[f],q=y[f];m[f]=typeof p==="number"&&typeof q==="number"?Math.max(p,q):typeof p==="boolean"||typeof q==="boolean"?!!(p||q):(p===undefined?q:q===undefined?p:pick(p,q))}o[d]=m}out[k]=o}
+    else if(k==="log"){const o={};for(const d of new Set([...Object.keys(a),...Object.keys(b)])){const x=a[d],y=b[d];if(!x||!y||!isObj(x)||!isObj(y)){o[d]=x||y;continue}const m={};for(const f of new Set([...Object.keys(x),...Object.keys(y)])){const p=x[f],q=y[f];m[f]=typeof p==="number"&&typeof q==="number"?Math.max(p,q):typeof p==="boolean"||typeof q==="boolean"?!!(p||q):(p===undefined?q:q===undefined?p:pick(p,q))}if(isObj(x.dv)||isObj(y.dv)){const dv=Object.assign({},y.dv||{});for(const id in (x.dv||{}))dv[id]=Math.max(dv[id]||0,x.dv[id]||0);m.dv=dv;const sum=Object.values(dv).reduce((s2,v)=>s2+(+v||0),0);m.sec=Math.max(sum,(isObj(x.dv)&&isObj(y.dv))?0:(m.sec||0))}o[d]=m}out[k]=o}
     else if(k==="newToday"){out[k]=(a.date||"")!==(b.date||"")?((a.date||"")>(b.date||"")?a:b):Object.assign({},a,{n:Math.max(a.n||0,b.n||0),p:Math.max(a.p||0,b.p||0)})}
     else if(k==="pakt"){const nw=tsOf(L,"pakt")!==tsOf(R,"pakt")?(tsOf(L,"pakt")>tsOf(R,"pakt")?a:b):((a.ch||1)!==(b.ch||1)?((a.ch||1)>(b.ch||1)?a:b):pick(a,b));
       out[k]=Object.assign({},nw,{ch:Math.max(a.ch||1,b.ch||1),sealed:Object.assign({},b.sealed,a.sealed),faust:[...new Set([...(a.faust||[]),...(b.faust||[])])].sort((p,q)=>p-q),signed:!!(a.signed||b.signed),sig:a.sig||b.sig,name:nw.name||a.name||b.name,chSess:(a.ch||1)===(b.ch||1)?Math.max(a.chSess||0,b.chSess||0):nw.chSess})}
+    else if(k==="del"){const o=Object.assign({},b);for(const x in a)o[x]=(a[x]||"")>(o[x]||"")?a[x]:o[x];out[k]=o}
     else if(k==="_epochs"){const o=Object.assign({},b);for(const x in a)o[x]=(a[x]||"")>(o[x]||"")?a[x]:o[x];out[k]=o}
     else if(k==="pocket"){out[k]=(a.date||"")!==(b.date||"")?((a.date||"")>(b.date||"")?a:b):{date:a.date,done:Object.assign({},b.done,a.done),counted:a.counted||b.counted}}
     else if(k==="gruft"){const o={};for(const n of new Set([...Object.keys(a),...Object.keys(b)])){const x=a[n],y=b[n];o[n]=!x||!y?(x||y):{ok:Math.max(x.ok||0,y.ok||0),miss:Math.max(x.miss||0,y.miss||0)}}out[k]=o}
@@ -6829,6 +6844,8 @@ function mergeCore(L,R){
     else if(UNION_MAPS.has(k)&&isObj(a)&&isObj(b)){const o={};for(const n of new Set([...Object.keys(a),...Object.keys(b)]))o[n]=a[n]===undefined?b[n]:b[n]===undefined?a[n]:pick(a[n],b[n]);out[k]=o}
     else{const ta=tsOf(L,k),tb=tsOf(R,k);out[k]=ta!==tb?(ta>tb?a:b):(J(a)===J(b)?a:b)}
     }catch(e){out[k]=a}}
+  // tombstones: a deleted card stays deleted unless it was reviewed after the delete
+  try{const D=out.del||{};if(isObj(out.cards))for(const id in D){const c=out.cards[id];if(c&&(c.last||"")<=D[id])delete out.cards[id]}if(Array.isArray(out.custom))out.custom=out.custom.filter(c=>!(c&&D["cde:"+c.de]&&!(out.cards&&out.cards["cde:"+c.de])))}catch(e){}
   // partial resets: per-group epochs. The side that reset a group more recently wins that group's keys, except keys the other side changed after the reset.
   try{const EL=L._epochs||{},ER=R._epochs||{};for(const g of new Set([...Object.keys(EL),...Object.keys(ER)])){const tl=EL[g]||"",tr=ER[g]||"";if(tl===tr)continue;const win=tl>tr?L:R,lose=win===L?R:L,ep=tl>tr?tl:tr;const keys=typeof resetKeysFor==="function"?resetKeysFor(g):[];
     for(const k of keys){if(DEVICE_KEYS.has(k))continue;if(k==="cards"){const o=Object.assign({},win.cards||{});for(const id in (lose.cards||{})){const c=lose.cards[id];if((c.last||"")>ep)o[id]=cardWin(o[id],c)}out.cards=o;continue}
