@@ -8,5 +8,5 @@ or Chrome (Android: menu → Install app). Works offline after the first visit.
 
 Progress is stored only on the device (localStorage). Move it between devices with Ich → Daten → Backup.
 
-Build 12.5.0-537851d587. Fonts: Fraunces, Source Serif 4, Source Sans 3, JetBrains Mono, UnifrakturMaguntia,
+Build 12.5.1-f5abdb5f39. Fonts: Fraunces, Source Serif 4, Source Sans 3, JetBrains Mono, UnifrakturMaguntia,
 all under the SIL Open Font License (fonts/OFL.txt), subset for this app.
