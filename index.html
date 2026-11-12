@@ -4034,6 +4034,527 @@ const MEPH_AFTER=[["Sie schon wieder? Sie schulden mir nichts mehr. … Setzen S
  ["Der Nächste hat heute unterschrieben. Er ist schlechter als Sie damals. Fast.","The next one signed today. He's worse than you were. Almost.","Der Nächste hat heute unterschrieben. Er ist schlechter als du damals. Fast."]];
 // Chronik pages remapped to the chapters they belong to
 const LORE_CH={hunger:3,hameln:4,rotkaeppchen:5,hexenhammer:8,kafka:14,totentanz:15,pudel:18,volksbuch:19,auerbach:20,paracelsus:21,caligari:26,virchow:28,vesal:33,semmelweis:34,brocken:37,hauser:39,roentgen:36};
+// ===== Mephisto 13.0 · Grammatik, letzte Lücken, Teil 1 (A1–B1): g57–g64
+GRAMMAR3.push(
+{id:"g57",level:"A1",week:3,title:"Verben mit Vokalwechsel",sub:"ich spreche, du sprichst — the vowel changes for du and er/sie/es",
+ body:`<p>Some strong verbs change their stem vowel in the present tense — but <b>only for du and er/sie/es</b>. ich, wir, ihr, sie/Sie stay regular.</p>
+<table><tr><th>e → i</th><td class="de">sprechen: du spr<b>i</b>chst, er spr<b>i</b>cht · helfen: du h<b>i</b>lfst, er h<b>i</b>lft · essen: du <b>i</b>sst, er <b>i</b>sst · geben: du g<b>i</b>bst, er g<b>i</b>bt · nehmen: du n<b>imm</b>st, er n<b>imm</b>t</td></tr>
+<tr><th>e → ie</th><td class="de">sehen: du s<b>ie</b>hst, er s<b>ie</b>ht · lesen: du l<b>ie</b>st, er l<b>ie</b>st</td></tr>
+<tr><th>a → ä</th><td class="de">schlafen: du schl<b>ä</b>fst, er schl<b>ä</b>ft · fahren: du f<b>ä</b>hrst, er f<b>ä</b>hrt · tragen: du tr<b>ä</b>gst, er tr<b>ä</b>gt · fallen: er f<b>ä</b>llt</td></tr>
+<tr><th>au → äu</th><td class="de">laufen: du l<b>äu</b>fst, er l<b>äu</b>ft</td></tr></table>
+<p>The same change appears in the <b>du-imperative</b> for e → i/ie (no ending): <span class="de">Sprich! Nimm! Gib! Lies! Iss! Hilf!</span> — but never for a → ä: <span class="de">Schlaf! Fahr!</span></p>
+<p>At the bedside: <span class="de">Der Patient <b>isst</b> nichts. Sie <b>nimmt</b> drei Tabletten. Er <b>schläft</b> schlecht. Was <b>sehen</b> Sie? — with Sie nothing changes.</span></p>
+<p><b>Trap:</b> wissen is irregular in the whole singular: <span class="de">ich weiß, du weißt, er weiß.</span> And werden: <span class="de">du wirst, er wird.</span></p>`,
+ merke:"Vowel change only for du and er/sie/es. e → i/ie, a → ä.",
+ ex:[{type:"mc",q:"Der Patient ___ kein Deutsch.",o:["sprecht","spricht","sprichst"],a:1,why:"sprechen: e → i for er: spricht."},
+ {type:"mc",q:"___ du die Tabletten jeden Tag?",o:["Nehmst","Nimmst","Nehmt"],a:1,why:"nehmen: du nimmst (e → i, and hm → mm)."},
+ {type:"mc",q:"Wir ___ heute nach Heidelberg.",o:["fahren","fähren","fährt"],a:0,why:"The vowel changes only for du and er/sie/es; wir stays regular."},
+ {type:"mc",q:"Die Patientin ___ seit drei Nächten schlecht.",o:["schlaft","schläft","schlafen"],a:1,why:"schlafen: a → ä: sie schläft."},
+ {type:"gap",q:"Er ___ (essen) kein Fleisch.",a:"isst",alt:[],why:"essen: e → i: er isst."},
+ {type:"gap",q:"Was ___ (lesen) du da?",a:"liest",alt:[],why:"lesen: e → ie: du liest."},
+ {type:"fix",q:"Sie gebt dem Kind einen Saft.",a:"Sie gibt dem Kind einen Saft.",err:"gebt",why:"geben: e → i: sie gibt."},
+ {type:"transform",q:"Du-Imperativ: (nehmen) die Tablette mit Wasser!",a:"Nimm die Tablette mit Wasser!",alt:["Nimm die Tablette mit Wasser."],why:"The imperative keeps the e → i change and has no ending: Nimm!"}]},
+{id:"g58",level:"A1",week:5,title:"Kein Artikel: der Nullartikel",sub:"Ich bin Arzt. Ich habe Fieber. — when German uses no article at all",
+ body:`<p>English often says <i>a</i> where German says nothing.</p>
+<table><tr><th>Professions, nationalities, religions after sein/werden/als</th><td class="de">Ich bin Arzt. Sie wird Krankenschwester. Er arbeitet als Pfleger. Sie ist Deutsche.</td></tr>
+<tr><th>Unspecified amounts and materials</th><td class="de">Ich trinke Kaffee. Brauchen Sie Wasser? Der Ring ist aus Gold.</td></tr>
+<tr><th>Plural of ein</th><td class="de">Ich habe eine Frage. → Ich habe Fragen.</td></tr>
+<tr><th>Many fixed phrases with haben</th><td class="de">Hunger, Durst, Angst, Zeit, Fieber, Schmerzen, Husten, Durchfall, Glück haben</td></tr>
+<tr><th>Cities, most countries, names</th><td class="de">Ich wohne in Heidelberg. Ich komme aus Deutschland. <span class="muted">but: aus <b>der</b> Schweiz, aus <b>der</b> Türkei, aus <b>den</b> USA</span></td></tr>
+<tr><th>Headlines, lists, notes</th><td class="de">Patient wach, ansprechbar. Verdacht auf Pneumonie.</td></tr></table>
+<p>With an adjective the article comes back for professions: <span class="de">Sie ist <b>eine gute</b> Ärztin.</span></p>
+<p>Negation of a noun without article is <b>kein</b>: <span class="de">Ich habe <b>kein</b> Fieber. Ich habe <b>keine</b> Schmerzen. Ich bin <b>kein</b> Arzt.</span></p>
+<p><b>Trap:</b> English "I have a fever / a headache / a cough" → <span class="de">Ich habe Fieber / Kopfschmerzen / Husten.</span> No <i>ein</i>.</p>`,
+ merke:"Ich bin Arzt. Ich habe Fieber. No article for professions and for symptoms with haben.",
+ ex:[{type:"mc",q:"Ich bin ___ Arzt.",o:["ein","der","— (nichts)"],a:2,why:"Professions after sein take no article."},
+ {type:"mc",q:"Der Patient hat ___ Fieber.",o:["ein","— (nichts)","einen"],a:1,why:"Fieber haben: fixed phrase without article."},
+ {type:"mc",q:"Sie ist ___ sehr gute Ärztin.",o:["— (nichts)","eine","ein"],a:1,why:"With an adjective the article returns: eine sehr gute Ärztin."},
+ {type:"mc",q:"Er kommt aus ___ Türkei.",o:["— (nichts)","der","die"],a:1,why:"die Türkei is one of the few countries with an article; aus + dative: aus der Türkei."},
+ {type:"gap",q:"Ich habe ___ Schmerzen. (negation)",a:"keine",alt:[],why:"No article → negate with kein-: keine Schmerzen (plural)."},
+ {type:"fix",q:"Ich habe einen Husten und ein Fieber.",a:"Ich habe Husten und Fieber.",err:"einen",why:"Symptoms with haben stand without article."},
+ {type:"order",words:["Mein","Bruder","arbeitet","als","Pfleger","."],a:"Mein Bruder arbeitet als Pfleger.",why:"als + profession, no article."},
+ {type:"transform",q:"Plural: Ich habe eine Frage.",a:"Ich habe Fragen.",alt:[],why:"The plural of ein is no article."}]},
+{id:"g59",level:"A2",week:9,title:"stellen oder stehen? Die Positionsverben",sub:"legen/liegen, stellen/stehen, setzen/sitzen, hängen — motion or position",
+ body:`<p>German separates <b>putting</b> something somewhere (motion → accusative, regular verb) from <b>being</b> there (position → dative, strong verb).</p>
+<table><tr><th>Wohin? + Akkusativ (regular)</th><th>Wo? + Dativ (strong)</th></tr>
+<tr><td class="de"><b>stellen</b> — stellte, hat gestellt<br>Ich stelle die Flasche auf <b>den</b> Tisch.</td><td class="de"><b>stehen</b> — stand, hat gestanden<br>Die Flasche steht auf <b>dem</b> Tisch.</td></tr>
+<tr><td class="de"><b>legen</b> — legte, hat gelegt<br>Legen Sie sich auf <b>die</b> Liege.</td><td class="de"><b>liegen</b> — lag, hat gelegen<br>Der Patient liegt auf <b>der</b> Liege.</td></tr>
+<tr><td class="de"><b>setzen</b> — setzte, hat gesetzt<br>Setzen Sie sich auf <b>den</b> Stuhl.</td><td class="de"><b>sitzen</b> — saß, hat gesessen<br>Sie sitzt auf <b>dem</b> Stuhl.</td></tr>
+<tr><td class="de"><b>hängen</b> — hängte, hat gehängt<br>Ich hänge die Infusion an <b>den</b> Ständer.</td><td class="de"><b>hängen</b> — hing, hat gehangen<br>Die Infusion hängt an <b>dem</b> Ständer.</td></tr></table>
+<p><b>stellen/stehen</b> for things that stand upright (bottles, shoes, a bed on its legs); <b>legen/liegen</b> for things lying flat (a book, a patient, a file). Plates <i>stehen</i> on the table; a letter <i>liegt</i> there.</p>
+<p>In the examination room: <span class="de">Legen Sie sich bitte hin. · Setzen Sie sich bitte. · Stellen Sie sich bitte gerade hin. · Bleiben Sie liegen / sitzen / stehen.</span></p>
+<p><b>Trap:</b> the person who moves needs <b>sich</b>: <span class="de">Ich setze <b>mich</b>.</span> — then <span class="de">Ich sitze.</span></p>`,
+ merke:"stellen, legen, setzen = Wohin? + Akk. · stehen, liegen, sitzen = Wo? + Dat.",
+ ex:[{type:"mc",q:"Der Patient ___ im Bett.",o:["legt","liegt","liegen"],a:1,why:"Position, no movement: liegen."},
+ {type:"mc",q:"Bitte ___ Sie sich auf die Liege.",o:["liegen","legen","lagen"],a:1,why:"Movement onto the couch: sich legen + accusative."},
+ {type:"mc",q:"Die Akte liegt auf ___ Schreibtisch.",o:["den","dem","der"],a:1,why:"liegen = position → dative: auf dem Schreibtisch."},
+ {type:"mc",q:"Ich habe das Glas auf den Tisch ___.",o:["gestanden","gestellt","gestellen"],a:1,why:"stellen is regular: hat gestellt."},
+ {type:"gap",q:"Sie hat zwei Stunden im Wartezimmer ___ (sitzen).",a:"gesessen",alt:[],why:"sitzen — saß — hat gesessen."},
+ {type:"gap",q:"Stellen Sie die Schuhe bitte unter ___ Stuhl. (der Stuhl)",a:"den",alt:[],why:"stellen = motion → accusative: unter den Stuhl."},
+ {type:"fix",q:"Ich sitze mich auf den Stuhl.",a:"Ich setze mich auf den Stuhl.",err:"sitze",why:"Movement with sich: sich setzen."},
+ {type:"transform",q:"Ergebnis mit „liegen“: Ich lege das Buch auf den Tisch. → Das Buch …",a:"Das Buch liegt auf dem Tisch.",alt:[],why:"Position → liegen + dative."}]},
+{id:"g60",level:"A2",week:10,title:"hin und her",sub:"Kommen Sie herein! Gehen Sie hinaus! — direction seen from the speaker",
+ body:`<p><b>her</b> = towards the speaker. <b>hin</b> = away from the speaker.</p>
+<table><tr><th>her- (to me)</th><td class="de">Kommen Sie <b>her</b>! · Kommen Sie <b>herein</b>! · Geben Sie es <b>her</b>. · Wo kommen Sie <b>her</b>?</td></tr>
+<tr><th>hin- (away from me)</th><td class="de">Gehen Sie <b>hin</b>! · Gehen Sie <b>hinein</b>. · Legen Sie sich <b>hin</b>. · Wo gehen Sie <b>hin</b>?</td></tr></table>
+<p>They combine with prepositions: <span class="de">herein/hinein (in), heraus/hinaus (out), herauf/hinauf (up), herunter/hinunter (down), herüber/hinüber (across).</span></p>
+<p>In speech everybody shortens both to <b>r-</b>: <span class="de"><b>rein, raus, rauf, runter, rüber</b></span> — <span class="de">Kommen Sie rein! Gehen Sie mal raus.</span></p>
+<p><b>Wohin?</b> and <b>Woher?</b> can split: <span class="de">Wohin gehen Sie? = Wo gehen Sie hin? · Woher kommen Sie? = Wo kommen Sie her?</span></p>
+<p>Fixed verbs worth knowing: <span class="de">sich hinlegen, sich hinsetzen, hinfallen (to fall down), hinschauen, herkommen, hergeben, herausfinden (to find out), herstellen (to produce).</span></p>
+<p>At the bedside: <span class="de">Atmen Sie tief <b>ein</b> und <b>aus</b>. · Schauen Sie mal <b>her</b>. · Ist Ihnen etwas <b>heruntergefallen</b>? · Wie sind Sie <b>hingefallen</b>?</span></p>
+<p><b>hin und her</b> = back and forth: <span class="de">Er läuft hin und her.</span></p>`,
+ merke:"her = to me, hin = away from me. Spoken: rein, raus, rauf, runter.",
+ ex:[{type:"mc",q:"(Der Arzt ist im Zimmer.) „Kommen Sie bitte ___!“",o:["hinein","herein","hinaus"],a:1,why:"Towards the speaker: herein."},
+ {type:"mc",q:"„Wo gehen Sie ___?“",o:["her","hin","herein"],a:1,why:"Wohin? = Wo … hin?"},
+ {type:"mc",q:"„Legen Sie sich bitte ___.“",o:["her","hin","herein"],a:1,why:"sich hinlegen = to lie down."},
+ {type:"mc",q:"Umgangssprache für „herunter/hinunter“:",o:["rauf","runter","rüber"],a:1,why:"runter = herunter / hinunter."},
+ {type:"gap",q:"Wo kommen Sie ___? — Aus Riad.",a:"her",alt:[],why:"Woher? = Wo … her?"},
+ {type:"gap",q:"Die Patientin ist auf der Treppe ___gefallen.",a:"hin",alt:[],why:"hinfallen = to fall down."},
+ {type:"order",words:["Kommen","Sie","bitte","herein","."],a:"Kommen Sie bitte herein.",why:"herein stands at the end like a separable prefix."},
+ {type:"transform",q:"Ein Wort: Wo gehst du hin?",a:"Wohin gehst du?",alt:[],why:"Wo … hin = Wohin."}]},
+{id:"g61",level:"A2",week:11,title:"Zahlen in der Klinik",sub:"Dosis, Uhrzeit, Werte — saying numbers the way the ward says them",
+ body:`<p>A number said wrongly is a medication error. These are the patterns.</p>
+<table><tr><th>Decimal comma</th><td class="de">37,5 °C = siebenunddreißig <b>Komma</b> fünf Grad · 0,5 mg = null Komma fünf Milligramm · 1.000 = eintausend (the point separates thousands)</td></tr>
+<tr><th>Units are singular</th><td class="de">fünf Milligramm, zwei Liter, zehn Milliliter, 80 Kilo, drei Prozent — <span class="muted">but feminine units take a plural: zwei Tabletten, drei Tassen, zwei Ampullen</span></td></tr>
+<tr><th>Fractions</th><td class="de">½ = ein halb / eine halbe Tablette · ¼ = ein Viertel · ¾ = drei Viertel · 1½ = anderthalb / eineinhalb</td></tr>
+<tr><th>Frequency</th><td class="de">einmal, zweimal, dreimal täglich · alle acht Stunden · jeden zweiten Tag · morgens, mittags, abends, zur Nacht</td></tr>
+<tr><th>Dosing scheme</th><td class="de">1–0–1 = „eins – null – eins“ (morgens – mittags – abends) · bei Bedarf (b. B.) · nüchtern · zu den Mahlzeiten</td></tr>
+<tr><th>Blood pressure</th><td class="de">120/80 = hundertzwanzig <b>zu</b> achtzig</td></tr>
+<tr><th>Clock on the ward</th><td class="de">14:30 = vierzehn Uhr dreißig (official, always in the hospital) · halb drei (private)</td></tr>
+<tr><th>Dates</th><td class="de">am 3. Mai = am dritten Mai · geboren am 12.11.1957 = am zwölften Elften neunzehnhundertsiebenundfünfzig</td></tr>
+<tr><th>Age</th><td class="de">ein 60-jähriger Patient = ein sechzigjähriger Patient</td></tr></table>
+<p>Remember that the units come before the tens: <span class="de">45 = fünf<b>und</b>vierzig.</span> When you take a phone number or a lab value, repeat it digit by digit: <span class="de">„Kalium vier Komma zwei – richtig?“</span></p>
+<p><b>Trap:</b> <span class="de">eine halbe Tablette</span> (adjective, declined) but <span class="de">anderthalb Tabletten</span> (not declined, plural).</p>`,
+ merke:"Komma, not Punkt. Units stay singular: fünf Milligramm. 120/80 = hundertzwanzig zu achtzig.",
+ ex:[{type:"mc",q:"37,8 °C spricht man:",o:["siebenunddreißig Punkt acht","siebenunddreißig Komma acht","siebenunddreißig und acht"],a:1,why:"German uses a decimal comma: Komma."},
+ {type:"mc",q:"Blutdruck 140/90:",o:["hundertvierzig zu neunzig","hundertvierzig durch neunzig","hundertvierzig auf neunzig"],a:0,why:"Blood pressure is read with zu."},
+ {type:"mc",q:"Der Patient bekommt fünf ___ Morphin.",o:["Milligramme","Milligramm","Milligrammen"],a:1,why:"Masculine and neuter units stay singular after numbers."},
+ {type:"mc",q:"„1–0–1“ bedeutet:",o:["morgens und abends je eine","einmal täglich","alle zwei Stunden"],a:0,why:"morgens – mittags – abends: one, none, one."},
+ {type:"gap",q:"Nehmen Sie die Tablette ___ täglich. (3×)",a:"dreimal",alt:["drei Mal"],why:"dreimal täglich = three times a day."},
+ {type:"gap",q:"Nehmen Sie morgens eine ___ Tablette. (½)",a:"halbe",alt:[],why:"halb is an adjective here: eine halbe Tablette."},
+ {type:"fix",q:"Die Patientin wiegt 62 Kilos.",a:"Die Patientin wiegt 62 Kilo.",err:"Kilos",why:"Units of measure stay singular: 62 Kilo."},
+ {type:"transform",q:"Offizielle Uhrzeit in Worten: 16:45 Uhr",a:"sechzehn Uhr fünfundvierzig",alt:["16 Uhr 45"],why:"The hospital uses the 24-hour clock: sechzehn Uhr fünfundvierzig."}]},
+{id:"g62",level:"B1",week:17,title:"Adjektive als Nomen",sub:"der Kranke, eine Verwandte, das Wichtigste — nouns that keep adjective endings",
+ body:`<p>An adjective or participle can become a noun. It gets a <b>capital letter</b> — and keeps its <b>adjective ending</b>.</p>
+<table><tr><th></th><th>with der/die</th><th>with ein/eine</th></tr>
+<tr><th>masculine</th><td class="de">der Krank<b>e</b></td><td class="de">ein Krank<b>er</b></td></tr>
+<tr><th>feminine</th><td class="de">die Krank<b>e</b></td><td class="de">eine Krank<b>e</b></td></tr>
+<tr><th>plural</th><td class="de">die Krank<b>en</b></td><td class="de">Krank<b>e</b> / viele Krank<b>e</b></td></tr>
+<tr><th>dative</th><td class="de">dem Krank<b>en</b>, der Krank<b>en</b></td><td class="de">einem Krank<b>en</b></td></tr></table>
+<p>The hospital is full of them: <span class="de">der/die Kranke, Verletzte, Tote, Angehörige (relative), Verwandte, Bekannte, Erwachsene, Jugendliche, Angestellte, Vorgesetzte (superior), Betroffene, Reisende, Deutsche; der Beamte (but: die Beamtin).</span></p>
+<p><b>Neuter</b> forms are abstract: <span class="de">das Gute, das Wichtigste, das Neue.</span> After <b>etwas, nichts, viel, wenig</b> the ending is <b>-es</b>: <span class="de">etwas Neu<b>es</b>, nichts Besonder<b>es</b>, viel Gut<b>es</b>.</span> After <b>alles</b> it is <b>-e</b>: <span class="de">alles Gut<b>e</b>!</span></p>
+<p>Clinical: <span class="de">Die Angehörigen warten draußen. · Ein Verletzter wurde eingeliefert. · Gibt es etwas Neues? · Der Befund zeigt nichts Auffälliges.</span></p>
+<p><b>Trap:</b> <span class="de">ein Deutscher, eine Deutsche, die Deutschen</span> — the only nationality that works this way.</p>`,
+ merke:"Capital letter + adjective ending: der Kranke, ein Kranker. etwas Neues, alles Gute.",
+ ex:[{type:"mc",q:"Ein ___ wurde in die Notaufnahme gebracht.",o:["Verletzte","Verletzter","Verletzten"],a:1,why:"ein + masculine nominative: -er."},
+ {type:"mc",q:"Die ___ des Patienten warten im Flur.",o:["Angehörige","Angehörigen","Angehöriger"],a:1,why:"Plural with die: -en."},
+ {type:"mc",q:"Gibt es etwas ___?",o:["Neue","Neues","neuen"],a:1,why:"After etwas: -es, with capital letter."},
+ {type:"mc",q:"Ich wünsche Ihnen alles ___.",o:["Gutes","Gute","Guten"],a:1,why:"After alles: -e."},
+ {type:"gap",q:"Ich habe mit dem ___ gesprochen. (der Kranke)",a:"Kranken",alt:[],why:"Dative masculine: dem Kranken."},
+ {type:"gap",q:"Das CT zeigt nichts ___. (auffällig)",a:"Auffälliges",alt:[],why:"After nichts: -es and a capital letter."},
+ {type:"fix",q:"Meine Frau ist eine Deutscher.",a:"Meine Frau ist eine Deutsche.",err:"Deutscher",why:"Feminine after eine: -e."},
+ {type:"transform",q:"Als Nomen: ein Mann, der verletzt ist → ein …",a:"ein Verletzter",alt:["Ein Verletzter"],why:"Participle as noun, ein + masculine: -er."}]},
+{id:"g63",level:"B1",week:18,title:"Trennbar oder nicht?",sub:"be-, ver-, zer- never split; um-, über-, unter-, durch- can do both",
+ body:`<p>You know separable verbs (<span class="de">aufstehen: ich stehe auf</span>). The other half of the system:</p>
+<p><b>Never separable</b> — unstressed prefix, <b>no ge-</b> in the participle: <span class="de"><b>be-, emp-, ent-, er-, ge-, miss-, ver-, zer-</b></span><br>
+<span class="de">Ich be<b>han</b>dle den Patienten. — hat behandelt · verschreiben — hat verschrieben · entlassen — hat entlassen · empfehlen — hat empfohlen · erklären — hat erklärt · zerstören — hat zerstört</span></p>
+<p><b>Always separable</b> — stressed prefix, <b>ge-</b> goes in the middle: <span class="de">ab-, an-, auf-, aus-, bei-, ein-, mit-, nach-, vor-, zu-, zurück-, weiter-</span><br>
+<span class="de"><b>auf</b>nehmen — hat auf<b>ge</b>nommen · <b>ein</b>weisen — hat ein<b>ge</b>wiesen · <b>ab</b>hören — hat ab<b>ge</b>hört</span></p>
+<p><b>Both</b> — <span class="de">durch-, über-, um-, unter-, wider-, wieder-</span>. Stress tells you: stressed prefix = separable and usually literal; unstressed = inseparable and usually figurative.</p>
+<table><tr><th>separable (literal)</th><th>inseparable (figurative)</th></tr>
+<tr><td class="de"><b>um</b>fahren: Er fährt das Schild <b>um</b>. (knocks it down)</td><td class="de">um<b>fah</b>ren: Er umfährt das Schild. (drives round it)</td></tr>
+<tr><td class="de"><b>über</b>setzen: Die Fähre setzt <b>über</b>.</td><td class="de">über<b>set</b>zen: Ich übersetze den Brief. — hat übersetzt</td></tr>
+<tr><td class="de"><b>wieder</b>holen: Ich hole es <b>wieder</b>. (fetch back)</td><td class="de">wieder<b>ho</b>len: Wiederholen Sie bitte. — hat wiederholt</td></tr></table>
+<p>The clinical ones are almost all <b>inseparable</b>: <span class="de">untersuchen (hat untersucht), überweisen (hat überwiesen), übergeben (to hand over; sich übergeben = to vomit), überleben, unterschreiben, unterbrechen, überprüfen.</span> The exception is <span class="de"><b>durch</b>führen: führt … <b>durch</b>, hat durch<b>ge</b>führt.</span></p>
+<p>With <b>zu</b>: separable verbs take it inside (<span class="de">auf<b>zu</b>stehen</span>), inseparable ones in front (<span class="de"><b>zu</b> untersuchen</span>).</p>`,
+ merke:"be-, emp-, ent-, er-, ge-, miss-, ver-, zer-: never split, no ge-. untersuchen → hat untersucht.",
+ ex:[{type:"mc",q:"Der Arzt hat den Patienten gründlich ___.",o:["untergesucht","untersucht","geuntersucht"],a:1,why:"untersuchen is inseparable: no ge-."},
+ {type:"mc",q:"Wir ___ die Operation morgen ___.",o:["führen … durch","durchführen … —","führen durch … —"],a:0,why:"durchführen is separable: führen … durch."},
+ {type:"mc",q:"Die Hausärztin hat ihn in die Klinik ___.",o:["übergewiesen","überwiesen","überweist"],a:1,why:"überweisen is inseparable: hat überwiesen."},
+ {type:"mc",q:"Welches Verb ist trennbar?",o:["verschreiben","einweisen","entlassen"],a:1,why:"ein- is always separable; ver- and ent- never."},
+ {type:"gap",q:"Der Patient wurde gestern ___ (entlassen, Partizip).",a:"entlassen",alt:[],why:"ent- is inseparable; the participle has no ge-: entlassen."},
+ {type:"gap",q:"Sie wurde stationär ___ (aufnehmen, Partizip).",a:"aufgenommen",alt:[],why:"Separable: ge- in the middle: aufgenommen."},
+ {type:"fix",q:"Ich schreibe das Formular unter.",a:"Ich unterschreibe das Formular.",err:"unter",why:"unterschreiben is inseparable."},
+ {type:"transform",q:"Perfekt: Der Patient übergibt sich zweimal.",a:"Der Patient hat sich zweimal übergeben.",alt:[],why:"sich übergeben is inseparable: hat sich übergeben."}]},
+{id:"g64",level:"B1",week:20,title:"als ob",sub:"Er tut so, als ob er schliefe — comparing with something unreal",
+ body:`<p><b>als ob</b> (= as if) introduces something that only seems to be so. The verb goes to the end and stands in <b>Konjunktiv II</b>.</p>
+<p><span class="de">Er sieht aus, <b>als ob</b> er krank <b>wäre</b>. · Sie tut so, <b>als ob</b> sie nichts <b>wüsste</b>. · Es fühlt sich an, <b>als ob</b> jemand auf meiner Brust <b>säße</b>.</span></p>
+<p>For most verbs use <b>würde + infinitive</b>: <span class="de">Es klingt, als ob er gleich weinen würde.</span></p>
+<p><b>Past:</b> hätte / wäre + participle: <span class="de">Er tut so, als ob er nichts gehört <b>hätte</b>. · Sie sieht aus, als ob sie nicht geschlafen <b>hätte</b>.</span></p>
+<p><b>als</b> alone does the same — but then the verb comes <b>directly after als</b>: <span class="de">Er sieht aus, <b>als wäre</b> er krank. · Es fühlt sich an, <b>als säße</b> jemand auf meiner Brust.</span> This form is the elegant written one.</p>
+<p><b>als wenn</b> and <b>wie wenn</b> exist too and work like als ob.</p>
+<p>Typical openers: <span class="de">Es sieht so aus, als ob … · Er tut so, als ob … · Ich habe das Gefühl, als ob … · Es kommt mir vor, als ob … · Mir ist, als ob …</span></p>
+<p>Patients describe symptoms this way all the time: <span class="de">„Es ist, als ob ein Gürtel um meinen Bauch läge.“ · „Als würde mir jemand ein Messer in den Rücken stechen.“</span> Note these phrases word for word — they are diagnostic.</p>
+<p>In everyday speech you will also hear the indicative (<span class="de">als ob er krank ist</span>). Understand it; write the Konjunktiv.</p>`,
+ merke:"als ob + … + Konjunktiv II am Ende. als + Konjunktiv II direkt danach: als wäre er krank.",
+ ex:[{type:"mc",q:"Er sieht aus, als ob er Fieber ___.",o:["hat","hätte","haben"],a:1,why:"als ob + Konjunktiv II: hätte."},
+ {type:"mc",q:"Sie tut so, als ___ sie alles.",o:["ob wüsste","wüsste","wüsste ob"],a:1,why:"als without ob: the verb follows directly: als wüsste sie alles."},
+ {type:"mc",q:"Es fühlt sich an, als ob mein Herz ___.",o:["stehen bleiben würde","würde stehen bleiben","bleibt stehen würde"],a:0,why:"Verb-final: … stehen bleiben würde."},
+ {type:"mc",q:"Vergangenheit: Er tut so, als ob er nichts ___.",o:["gesehen hätte","sah","gesehen hat würde"],a:0,why:"Past unreal comparison: Partizip + hätte."},
+ {type:"gap",q:"Es ist, als ob ein Stein auf meiner Brust ___ (liegen).",a:"läge",alt:["liegen würde"],why:"Konjunktiv II of liegen: läge (or liegen würde)."},
+ {type:"gap",q:"Sie sehen aus, als ___ Sie nicht geschlafen.",a:"hätten",alt:[],why:"als + verb directly: als hätten Sie nicht geschlafen."},
+ {type:"order",words:["Er","tut","so",",","als","ob","er","schliefe","."],a:"Er tut so, als ob er schliefe.",why:"als ob sends the verb to the end."},
+ {type:"transform",q:"Ohne „ob“: Es sieht aus, als ob er krank wäre.",a:"Es sieht aus, als wäre er krank.",alt:[],why:"als + Konjunktiv II in second place of the clause."}]}
+);
+// ===== Mephisto 13.0 · Grammatik, letzte Lücken, Teil 2 (B2–C1): g65–g71
+GRAMMAR3.push(
+{id:"g65",level:"B2",week:27,title:"Der Ersatzinfinitiv",sub:"Er hat kommen müssen — two infinitives instead of a participle",
+ body:`<p>In the perfect tense a <b>modal verb with another verb</b> does not use its participle (gemusst, gekonnt). It uses the <b>infinitive</b> instead — the "substitute infinitive".</p>
+<p><span class="de">Er <b>hat</b> operiert werden <b>müssen</b>. · Ich <b>habe</b> nicht schlafen <b>können</b>. · Sie <b>hat</b> das nicht sagen <b>wollen</b>.</span></p>
+<p>Alone, the modal keeps its participle: <span class="de">Ich habe es nicht <b>gekonnt</b>. Das habe ich nicht <b>gewollt</b>.</span></p>
+<p>The same happens with <b>lassen</b>, and usually with <b>sehen, hören, helfen</b>: <span class="de">Ich habe mich untersuchen <b>lassen</b>. · Sie hat ihn stürzen <b>sehen</b>. · Wir haben ihn rufen <b>hören</b>.</span></p>
+<p><b>The one word-order surprise in German:</b> in a subordinate clause, <b>haben</b> does not go to the end. It stands <b>before</b> the two infinitives.</p>
+<p><span class="de">…, weil er <b>hat</b> operiert werden müssen. · …, dass ich nicht <b>habe</b> schlafen können. · …, obwohl sie sich <b>hätte</b> untersuchen lassen sollen.</span></p>
+<p>That is why everybody prefers the <b>Präteritum</b> of modals: <span class="de">…, weil er operiert werden <b>musste</b>.</span> Shorter, and the verb is where you expect it.</p>
+<p>You cannot avoid it in the <b>Konjunktiv II of the past</b> — the form of regret and criticism: <span class="de">Sie <b>hätten</b> früher kommen <b>sollen</b>. · Das <b>hätte</b> man sehen <b>müssen</b>. · Ich <b>hätte</b> es wissen <b>können</b>.</span></p>
+<p>Always <b>haben</b>, never sein — even with verbs of motion: <span class="de">Er <b>hat</b> gehen müssen.</span></p>`,
+ merke:"hat + Infinitiv + Modalverb im Infinitiv. Im Nebensatz steht haben VOR den Infinitiven.",
+ ex:[{type:"mc",q:"Ich habe gestern nicht arbeiten ___.",o:["gekonnt","können","konnte"],a:1,why:"Modal with a second verb in the perfect: Ersatzinfinitiv können."},
+ {type:"mc",q:"Das habe ich nicht ___.",o:["wollen","gewollt","wollte"],a:1,why:"The modal stands alone: participle gewollt."},
+ {type:"mc",q:"…, weil der Patient ___.",o:["operiert werden müssen hat","hat operiert werden müssen","operiert hat werden müssen"],a:1,why:"With the Ersatzinfinitiv haben stands before the infinitives."},
+ {type:"mc",q:"Sie ___ früher kommen sollen.",o:["wären","hätten","würden"],a:1,why:"Modal verbs form the perfect with haben: hätten … sollen."},
+ {type:"gap",q:"Ich habe mir den Blutdruck messen ___ (lassen).",a:"lassen",alt:[],why:"lassen + infinitive: Ersatzinfinitiv."},
+ {type:"gap",q:"Er sagt, dass er nicht ___ kommen können.",a:"hat",alt:["habe"],why:"haben goes before the double infinitive."},
+ {type:"fix",q:"Wir haben den Patienten verlegen gemusst.",a:"Wir haben den Patienten verlegen müssen.",err:"gemusst",why:"With a second verb: müssen, not gemusst."},
+ {type:"transform",q:"Perfekt: Sie musste lange warten.",a:"Sie hat lange warten müssen.",alt:[],why:"hat + warten + müssen."}]},
+{id:"g66",level:"B2",week:29,title:"Bedingung ohne „wenn“",sub:"Sollten Sie Fieber bekommen, … — the verb-first conditional",
+ body:`<p>A condition can start with the <b>verb</b> instead of <i>wenn</i>. The meaning is the same; the tone is more formal.</p>
+<table><tr><th>with wenn</th><th>verb first</th></tr>
+<tr><td class="de"><b>Wenn</b> Sie Fragen <b>haben</b>, rufen Sie an.</td><td class="de"><b>Haben</b> Sie Fragen, (so) rufen Sie an.</td></tr>
+<tr><td class="de">Wenn die Schmerzen zunehmen <b>sollten</b>, …</td><td class="de"><b>Sollten</b> die Schmerzen zunehmen, kommen Sie sofort wieder.</td></tr>
+<tr><td class="de">Wenn ich das gewusst <b>hätte</b>, …</td><td class="de"><b>Hätte</b> ich das gewusst, wäre ich früher gekommen.</td></tr>
+<tr><td class="de">Wenn er früher gekommen <b>wäre</b>, …</td><td class="de"><b>Wäre</b> er früher gekommen, hätten wir operieren können.</td></tr></table>
+<p><b>Sollte(n) …</b> is the politest "if by any chance". It is the standard formula at the end of every discharge talk and every letter: <span class="de">Sollten Sie Fieber bekommen, stellen Sie sich bitte umgehend wieder vor. · Sollten Sie Rückfragen haben, stehen wir gern zur Verfügung.</span></p>
+<p>The main clause that follows starts with its verb (the condition fills position 1), often introduced by <b>so</b> or <b>dann</b>.</p>
+<p>Other ways to state a condition without wenn:</p>
+<ul><li><b>falls</b> (in case): <span class="de">Falls Sie allergisch reagieren, …</span></li>
+<li><b>sofern / soweit</b> (provided that): <span class="de">Sofern keine Komplikationen auftreten, …</span></li>
+<li><b>bei + Dativ</b> (nominal): <span class="de">Bei Fieber über 38,5 °C … · Bei Bedarf · Bei Verschlechterung sofortige Wiedervorstellung.</span></li>
+<li><b>ohne / mit</b>: <span class="de">Ohne Behandlung wäre er gestorben.</span></li>
+<li><b>es sei denn</b> (unless): <span class="de">Sie können nach Hause, es sei denn, das Fieber steigt wieder.</span></li>
+<li><b>andernfalls / sonst</b> (otherwise)</li></ul>`,
+ merke:"Sollten Sie …, + Verb. Hätte ich …, wäre ich … Verb first = wenn.",
+ ex:[{type:"mc",q:"___ Sie Fieber bekommen, kommen Sie bitte sofort wieder.",o:["Wenn","Sollten","Falls sollten"],a:1,why:"Verb-first conditional with sollten."},
+ {type:"mc",q:"Hätte ich das gewusst, ___ ich früher gekommen.",o:["hätte","wäre","würde"],a:1,why:"kommen takes sein: wäre … gekommen."},
+ {type:"mc",q:"Sofern keine Komplikationen ___, wird die Patientin morgen entlassen.",o:["auftreten","treten auf","aufzutreten"],a:0,why:"sofern is a subordinating conjunction: verb at the end."},
+ {type:"mc",q:"„___ Verschlechterung sofortige Wiedervorstellung.“",o:["Wenn","Bei","Falls"],a:1,why:"Nominal condition: bei + dative."},
+ {type:"gap",q:"___ er früher gekommen, hätten wir ihm helfen können.",a:"Wäre",alt:[],why:"Verb first, Konjunktiv II past: Wäre er … gekommen."},
+ {type:"gap",q:"Sie dürfen aufstehen, es sei ___, Ihnen wird schwindelig.",a:"denn",alt:[],why:"es sei denn = unless."},
+ {type:"order",words:["Sollten","Sie","Fragen","haben",",","rufen","Sie","uns","an","."],a:"Sollten Sie Fragen haben, rufen Sie uns an.",why:"Condition first with sollten; the main clause starts with its verb."},
+ {type:"transform",q:"Ohne „wenn“: Wenn Sie Schmerzen haben, nehmen Sie eine Tablette.",a:"Haben Sie Schmerzen, nehmen Sie eine Tablette.",alt:["Haben Sie Schmerzen, so nehmen Sie eine Tablette.","Haben Sie Schmerzen, dann nehmen Sie eine Tablette.","Sollten Sie Schmerzen haben, nehmen Sie eine Tablette."],why:"Drop wenn and put the verb first."}]},
+{id:"g67",level:"B2",week:31,title:"Modalverben umschreiben",sub:"in der Lage sein, verpflichtet sein, es ist erforderlich — the written-German equivalents",
+ body:`<p>Reports, consent forms and exam texts avoid plain modal verbs. Every modal has formal paraphrases — B2 and the FSP test them directly.</p>
+<table><tr><th>können</th><td class="de">in der Lage sein, zu … · fähig / imstande sein, zu … · die Möglichkeit haben, zu … · es ist möglich, zu … · sich lassen: Das <b>lässt sich</b> behandeln. · -bar: behandel<b>bar</b></td></tr>
+<tr><th>müssen</th><td class="de">verpflichtet / gezwungen sein, zu … · es ist notwendig / erforderlich / unerlässlich, zu … · haben + zu: Sie <b>haben</b> nüchtern <b>zu</b> bleiben. · sein + zu: Der Befund <b>ist</b> zu kontrollieren.</td></tr>
+<tr><th>nicht müssen</th><td class="de">nicht brauchen … zu: Sie <b>brauchen</b> nicht <b>zu</b> warten. · es ist nicht nötig, zu …</td></tr>
+<tr><th>dürfen</th><td class="de">es ist erlaubt / gestattet, zu … · berechtigt sein, zu … · die Erlaubnis haben, zu …</td></tr>
+<tr><th>nicht dürfen</th><td class="de">es ist verboten / untersagt, zu … · nicht berechtigt sein, zu …</td></tr>
+<tr><th>wollen</th><td class="de">beabsichtigen / vorhaben / planen, zu … · die Absicht haben, zu … · bereit sein, zu …</td></tr>
+<tr><th>sollen</th><td class="de">es wird empfohlen / geraten, zu … · es ist ratsam, zu … · den Auftrag haben, zu … · angehalten sein, zu …</td></tr>
+<tr><th>möchten</th><td class="de">den Wunsch haben, zu … · Lust haben, zu …</td></tr></table>
+<p>All of them take an infinitive with <b>zu</b> — and the comma before it is recommended.</p>
+<p><span class="de">Der Patient kann nicht allein aufstehen. → Der Patient <b>ist nicht in der Lage</b>, allein auf<b>zu</b>stehen.</span><br>
+<span class="de">Der Arzt muss den Patienten aufklären. → Der Arzt <b>ist verpflichtet</b>, den Patienten auf<b>zu</b>klären.</span><br>
+<span class="de">Man darf hier nicht rauchen. → <b>Es ist untersagt</b>, hier <b>zu</b> rauchen.</span></p>
+<p><b>Trap:</b> <i>nicht müssen</i> (no need) is not <i>nicht dürfen</i> (forbidden). <span class="de">Sie müssen nicht nüchtern sein</span> = you needn't; <span class="de">Sie dürfen nichts essen</span> = you mustn't.</p>`,
+ merke:"können = in der Lage sein, zu … · müssen = verpflichtet sein, zu … · nicht dürfen = es ist untersagt, zu …",
+ ex:[{type:"mc",q:"„Der Patient kann nicht schlucken.“ =",o:["Der Patient ist nicht in der Lage zu schlucken.","Der Patient ist nicht verpflichtet zu schlucken.","Der Patient beabsichtigt nicht zu schlucken."],a:0,why:"können = in der Lage sein."},
+ {type:"mc",q:"„Es ist untersagt, das Gelände zu verlassen.“ =",o:["Man muss das Gelände nicht verlassen.","Man darf das Gelände nicht verlassen.","Man will das Gelände nicht verlassen."],a:1,why:"untersagt = forbidden = nicht dürfen."},
+ {type:"mc",q:"„Sie brauchen nicht zu warten.“ =",o:["Sie dürfen nicht warten.","Sie müssen nicht warten.","Sie können nicht warten."],a:1,why:"nicht brauchen zu = nicht müssen."},
+ {type:"mc",q:"„Die Ärztin beabsichtigt, die Dosis zu erhöhen.“ =",o:["Sie soll die Dosis erhöhen.","Sie will die Dosis erhöhen.","Sie darf die Dosis erhöhen."],a:1,why:"beabsichtigen = wollen."},
+ {type:"gap",q:"Der Arzt ist ___, den Patienten aufzuklären. (müssen)",a:"verpflichtet",alt:["gezwungen"],why:"müssen = verpflichtet sein, zu …"},
+ {type:"gap",q:"Die Erkrankung lässt ___ gut behandeln.",a:"sich",alt:[],why:"sich lassen + infinitive = can be …"},
+ {type:"fix",q:"Der Patient ist nicht in der Lage, allein aufstehen.",a:"Der Patient ist nicht in der Lage, allein aufzustehen.",err:"aufstehen",why:"Infinitive with zu; in separable verbs zu goes inside: aufzustehen."},
+ {type:"transform",q:"Mit „es ist erforderlich“: Man muss den Blutzucker kontrollieren.",a:"Es ist erforderlich, den Blutzucker zu kontrollieren.",alt:["Es ist erforderlich den Blutzucker zu kontrollieren."],why:"es ist erforderlich, … zu + infinitive."}]},
+{id:"g68",level:"B2",week:33,title:"Partizipialsätze",sub:"In der Klinik angekommen, … — a participle instead of a whole clause",
+ body:`<p>A participle group can replace a subordinate clause. It has <b>no subject and no conjugated verb</b>; the participle stands at its end. The subject is the subject of the main clause.</p>
+<table><tr><th>Partizip II (finished / passive)</th><td class="de"><b>In der Klinik angekommen</b>, klagte der Patient über Luftnot. <span class="muted">(= Nachdem er angekommen war, …)</span><br><b>Von Schmerzen geplagt</b>, konnte sie nicht schlafen. <span class="muted">(= Weil sie … geplagt wurde)</span><br><b>Richtig dosiert</b>, ist das Medikament sicher. <span class="muted">(= Wenn es richtig dosiert wird)</span></td></tr>
+<tr><th>Partizip I (at the same time / active)</th><td class="de"><b>Laut um Hilfe rufend</b>, lief er über den Flur. <span class="muted">(= Während er rief)</span><br><b>Auf den Befund wartend</b>, saß sie im Flur.</td></tr></table>
+<p>The relation (time, reason, condition, manner) is not stated; the reader infers it. That is why this is a written, compact style — novels, reports, newspapers.</p>
+<p>Fixed participle phrases you can simply learn: <span class="de">streng genommen (strictly speaking) · genau genommen · kurz gesagt · offen gesagt · anders ausgedrückt · verglichen mit … · abgesehen von … (apart from) · ausgehend von … (starting from) · bezogen auf … · gemessen an … · angenommen, (dass) … · vorausgesetzt, (dass) …</span></p>
+<p>In the Arztbrief: <span class="de">Abgesehen von einer leichten Tachykardie war der Befund unauffällig. · Verglichen mit der Voraufnahme zeigt sich keine Änderung. · Ausgehend von der Anamnese ist eine Pneumonie wahrscheinlich.</span></p>
+<p><b>Rule:</b> the hidden subject must be the subject of the main clause. <s class="de">In der Klinik angekommen, untersuchte ihn der Arzt.</s> says the doctor arrived.</p>
+<p>The comma is required when the group is announced or taken up by a word, and is always safe; put it.</p>`,
+ merke:"Partizip am Ende der Gruppe, kein Subjekt, Komma. Abgesehen von …, verglichen mit …",
+ ex:[{type:"mc",q:"„In der Notaufnahme angekommen, verlor der Patient das Bewusstsein.“ =",o:["Bevor er ankam, …","Nachdem er angekommen war, …","Obwohl er ankommt, …"],a:1,why:"Partizip II expresses the finished action."},
+ {type:"mc",q:"___ von leichtem Husten geht es ihr gut.",o:["Abgesehen","Absehend","Abgesehend"],a:0,why:"Fixed phrase: abgesehen von + dative."},
+ {type:"mc",q:"___ mit dem Vorbefund ist der Tumor kleiner geworden.",o:["Vergleichend","Verglichen","Vergleicht"],a:1,why:"Fixed phrase: verglichen mit …"},
+ {type:"mc",q:"Welcher Satz ist korrekt?",o:["Vom Hausarzt überwiesen, untersuchte ich die Patientin.","Vom Hausarzt überwiesen, stellte sich die Patientin bei uns vor.","Vom Hausarzt überwiesen, war die Untersuchung schnell."],a:1,why:"The hidden subject must be the subject of the main clause: the patient was referred."},
+ {type:"gap",q:"Streng ___, ist das keine Diagnose, sondern ein Symptom.",a:"genommen",alt:[],why:"streng genommen = strictly speaking."},
+ {type:"gap",q:"Laut um Hilfe ___ (rufen), lief sie auf den Flur.",a:"rufend",alt:[],why:"Simultaneous, active: Partizip I rufend."},
+ {type:"order",words:["Richtig","dosiert",",","ist","das","Medikament","sicher","."],a:"Richtig dosiert, ist das Medikament sicher.",why:"Participle group first, then the verb of the main clause."},
+ {type:"transform",q:"Partizipialsatz: Nachdem er zu Hause angekommen war, legte er sich sofort hin. → Zu Hause …",a:"Zu Hause angekommen, legte er sich sofort hin.",alt:[],why:"Drop conjunction, subject and auxiliary; keep the participle at the end."}]},
+{id:"g69",level:"C1",week:35,title:"Präpositionen der Schriftsprache",sub:"aufgrund, infolge, mittels, anhand, gemäß — the prepositions of reports and letters",
+ body:`<p>Written medical German replaces small words with heavier prepositions. Most take the <b>genitive</b>.</p>
+<table><tr><th>Reason</th><td class="de"><b>aufgrund</b> + G (because of) · <b>infolge</b> + G (as a result of) · <b>angesichts</b> + G (in view of) · <b>mangels</b> + G (for lack of) · <b>dank</b> + G/D (thanks to)</td></tr>
+<tr><th>Means</th><td class="de"><b>mittels</b> + G (by means of) · <b>anhand</b> + G (on the basis of, using) · <b>mithilfe</b> + G · <b>kraft</b> + G (by virtue of)</td></tr>
+<tr><th>Reference</th><td class="de"><b>hinsichtlich</b> + G · <b>bezüglich</b> + G · <b>betreffs</b> + G (regarding) · <b>in Bezug auf</b> + A · <b>im Hinblick auf</b> + A</td></tr>
+<tr><th>Accordance</th><td class="de"><b>gemäß</b> + D · <b>entsprechend</b> + D · <b>laut</b> + G/D (according to) · <b>zufolge</b> + D (placed after: dem Befund zufolge)</td></tr>
+<tr><th>Purpose</th><td class="de"><b>zwecks</b> + G · <b>zur</b> + nominalised verb: zur Abklärung · <b>um … willen</b> + G</td></tr>
+<tr><th>Time</th><td class="de"><b>binnen</b> + G/D (within) · <b>innerhalb</b> + G · <b>anlässlich</b> + G (on the occasion of) · <b>im Laufe</b> + G · <b>im Rahmen</b> + G (in the course of, as part of)</td></tr>
+<tr><th>Contrast / exception</th><td class="de"><b>ungeachtet</b> + G (regardless of) · <b>trotz</b> + G · <b>anstelle</b> + G · <b>abzüglich / zuzüglich</b> + G · <b>seitens</b> + G (on the part of)</td></tr>
+<tr><th>Place</th><td class="de"><b>oberhalb, unterhalb, innerhalb, außerhalb, beiderseits, diesseits, jenseits, entlang</b> + G · <b>unweit</b> + G</td></tr></table>
+<p><span class="de">Aufgrund <b>des</b> Befund<b>es</b> wurde die Therapie umgestellt. · Die Diagnose wurde mittels <b>einer</b> Biopsie gesichert. · Laut Arztbrief besteht eine Penicillinallergie. · Dem Labor zufolge ist das CRP rückläufig. · Im Rahmen <b>der</b> Aufnahme erfolgte ein EKG. · Zwecks weiterer Abklärung erfolgte die Verlegung.</span></p>
+<p><b>Without article</b> the genitive is often invisible, so the dative or <b>von</b> steps in: <span class="de">mangels Beweis<b>en</b> · infolge <b>von</b> Blutungen · laut Befund.</span></p>
+<p>Anatomical direction uses the genitive: <span class="de">oberhalb des Knies, unterhalb des Rippenbogens, beiderseits der Wirbelsäule.</span></p>
+<p><b>Trap:</b> <b>gemäß</b> and <b>entsprechend</b> take the <b>dative</b>: <span class="de">gemäß <b>den</b> Leitlinien</span>, not <s class="de">gemäß der Leitlinien</s>.</p>`,
+ merke:"aufgrund, infolge, mittels, anhand, hinsichtlich + Genitiv · gemäß, entsprechend, zufolge + Dativ.",
+ ex:[{type:"mc",q:"___ des Befundes wurde die Therapie geändert.",o:["Aufgrund","Gemäß","Zufolge"],a:0,why:"aufgrund + genitive; gemäß takes the dative, zufolge follows its noun."},
+ {type:"mc",q:"Die Behandlung erfolgt gemäß ___ aktuellen Leitlinien.",o:["der","den","die"],a:1,why:"gemäß + dative plural: den Leitlinien."},
+ {type:"mc",q:"Dem Laborbericht ___ ist das Kalium normal.",o:["laut","zufolge","gemäß"],a:1,why:"zufolge stands after its dative noun."},
+ {type:"mc",q:"Die Diagnose wurde ___ einer Biopsie gesichert.",o:["mittels","mangels","binnen"],a:0,why:"mittels + genitive = by means of."},
+ {type:"gap",q:"Der Schmerz sitzt unterhalb ___ rechten Rippenbogens.",a:"des",alt:[],why:"unterhalb + genitive: des Rippenbogens."},
+ {type:"gap",q:"Im ___ der Aufnahmeuntersuchung wurde ein EKG geschrieben.",a:"Rahmen",alt:[],why:"im Rahmen + genitive = as part of."},
+ {type:"fix",q:"Infolge der Sturz erlitt sie eine Fraktur.",a:"Infolge des Sturzes erlitt sie eine Fraktur.",err:"der",why:"infolge + genitive: des Sturzes."},
+ {type:"transform",q:"Mit „trotz“: Obwohl er Fieber hatte, ging er zur Arbeit.",a:"Trotz des Fiebers ging er zur Arbeit.",alt:["Trotz Fieber ging er zur Arbeit.","Trotz Fiebers ging er zur Arbeit."],why:"trotz + genitive replaces the obwohl-clause."}]},
+{id:"g70",level:"C1",week:37,title:"Der Arztbrief: die Konventionen",sub:"Wir berichten über … — the fixed architecture and language of the discharge letter",
+ body:`<p>The Arztbrief is a genre with rules. In the FSP you write one in about 20 minutes.</p>
+<table><tr><th>1 · Anrede</th><td class="de">Sehr geehrte Frau Kollegin, sehr geehrter Herr Kollege, · wir berichten über Ihre Patientin / den o. g. Patienten Frau/Herrn …, geb. am …, die/der sich am … in unserer Notaufnahme vorstellte / vom … bis … in unserer stationären Behandlung befand.</td></tr>
+<tr><th>2 · Diagnosen</th><td class="de">Hauptdiagnose zuerst, dann Nebendiagnosen. Nominal, ohne Verb: „Ambulant erworbene Pneumonie rechts basal“ · V. a. (Verdacht auf) · Z. n. (Zustand nach) · DD (Differenzialdiagnose) · ED (Erstdiagnose)</td></tr>
+<tr><th>3 · Anamnese</th><td class="de"><b>Präteritum + Konjunktiv I</b> for what the patient said: Der Patient <b>stellte sich</b> mit seit drei Tagen bestehendem Husten <b>vor</b>. Er <b>berichtete</b>, er <b>habe</b> Fieber bis 39 °C gemessen. Vorerkrankungen <b>seien</b> nicht bekannt. Nikotin- und Alkoholkonsum <b>wurden verneint</b>.</td></tr>
+<tr><th>4 · Befund</th><td class="de"><b>Present or Präteritum, telegraphic</b>: 58-jähriger Patient in reduziertem Allgemeinzustand und adipösem Ernährungszustand. Wach, zu allen Qualitäten orientiert. Pulmo: feinblasige Rasselgeräusche rechts basal. Cor: rein, rhythmisch. Abdomen weich, kein Druckschmerz.</td></tr>
+<tr><th>5 · Therapie und Verlauf</th><td class="de"><b>Präteritum, passive, nominal</b>: Es <b>erfolgte</b> die stationäre Aufnahme. Wir <b>leiteten</b> eine kalkulierte antibiotische Therapie <b>ein</b>. Darunter <b>kam es zu</b> einer raschen Besserung. Der Verlauf <b>gestaltete sich</b> komplikationslos.</td></tr>
+<tr><th>6 · Procedere / Empfehlung</th><td class="de">Wir <b>bitten um</b> eine Kontrolle der Entzündungswerte in einer Woche. Wir <b>empfehlen</b> die Fortführung der Therapie bis einschließlich … Bei erneutem Fieber ist eine Wiedervorstellung <b>jederzeit möglich</b>.</td></tr>
+<tr><th>7 · Schluss</th><td class="de">Wir entlassen Herrn … in gebessertem Allgemeinzustand in Ihre geschätzte ambulante Weiterbetreuung. · Mit freundlichen kollegialen Grüßen</td></tr></table>
+<p><b>The six verbs that carry a letter:</b> <span class="de">sich vorstellen (mit) · berichten / angeben / verneinen · sich zeigen: Es zeigte sich … · erfolgen: Es erfolgte … · sich ergeben: Es ergab sich kein Hinweis auf … · bestehen: Es besteht der Verdacht auf …</span></p>
+<p><b>Negative findings</b> have their own phrases: <span class="de">kein Anhalt für … · kein Hinweis auf … · unauffällig · ohne pathologischen Befund (o. p. B.) · … wurde verneint · … ist nicht bekannt.</span></p>
+<p><b>Do not write:</b> ich, colloquial words (kriegen, ein bisschen), exclamation marks, speculation without V. a.</p>`,
+ merke:"Anamnese: Präteritum + Konjunktiv I. Befund: telegraphic. Verlauf: Es erfolgte … / Es zeigte sich …",
+ ex:[{type:"mc",q:"Welcher Satz gehört in die Anamnese?",o:["Der Patient sagt, er hat Fieber.","Der Patient gab an, er habe seit drei Tagen Fieber.","Der Patient hat halt Fieber gekriegt."],a:1,why:"Präteritum for the report, Konjunktiv I for what the patient said."},
+ {type:"mc",q:"„Z. n. Appendektomie 2010“ bedeutet:",o:["Zustand nach","Zeichen negativ","Zweifel nicht"],a:0,why:"Z. n. = Zustand nach."},
+ {type:"mc",q:"Der Patient ___ sich mit akuter Luftnot in unserer Notaufnahme ___.",o:["stellte … vor","kam … an","zeigte … an"],a:0,why:"sich vorstellen (mit) is the standard verb."},
+ {type:"mc",q:"Welche Formulierung passt in den Verlauf?",o:["Wir haben ihm dann Antibiotika gegeben.","Es erfolgte die Einleitung einer antibiotischen Therapie.","Ich gab Antibiotika!"],a:1,why:"Nominal style with erfolgen; no ich, no Perfekt."},
+ {type:"gap",q:"Röntgen-Thorax: kein ___ für ein Infiltrat.",a:"Anhalt",alt:["Hinweis"],why:"kein Anhalt für … = no evidence of …"},
+ {type:"gap",q:"Nikotin- und Alkoholkonsum wurden ___.",a:"verneint",alt:[],why:"verneinen = to deny."},
+ {type:"fix",q:"Der Patient berichtete, er hat keine Allergien.",a:"Der Patient berichtete, er habe keine Allergien.",err:"hat",why:"Reported speech in the letter: Konjunktiv I habe."},
+ {type:"transform",q:"Briefstil mit „Es erfolgte“: Wir haben den Patienten stationär aufgenommen.",a:"Es erfolgte die stationäre Aufnahme.",alt:["Es erfolgte die stationäre Aufnahme des Patienten."],why:"erfolgen + nominalised verb."}]},
+{id:"g71",level:"C1",week:38,title:"Fachwörter beugen",sub:"der Thrombus, die Thromben — gender, plural and genitive of Latin and Greek terms",
+ body:`<p>Medical terms keep traces of Latin and Greek. The ending tells you gender and plural.</p>
+<table><tr><th>Ending</th><th>Gender</th><th>Plural</th><th>Examples</th></tr>
+<tr><td>-itis</td><td>die</td><td>-itiden</td><td class="de">die Gastritis → die Gastritiden · Hepatitis, Bronchitis, Arthritis</td></tr>
+<tr><td>-ose</td><td>die</td><td>-n</td><td class="de">die Stenose → die Stenosen · Thrombose, Diagnose, Psychose, Arthrose</td></tr>
+<tr><td>-ie</td><td>die</td><td>-n</td><td class="de">die Embolie → die Embolien · Anämie, Therapie, Biopsie, Allergie</td></tr>
+<tr><td>-ion / -tät / -ur</td><td>die</td><td>-en</td><td class="de">die Infektion, die Läsion, die Mortalität, die Fraktur, die Ruptur</td></tr>
+<tr><td>-om</td><td>das</td><td>-e</td><td class="de">das Karzinom → die Karzinome · Hämatom, Lipom, Symptom, Syndrom</td></tr>
+<tr><td>-ma</td><td>das</td><td>-men / -mata</td><td class="de">das Trauma → die Traumen / Traumata · das Asthma, das Ödem (→ Ödeme), das Koma, das Ekzem</td></tr>
+<tr><td>-um</td><td>das</td><td>-a / -en</td><td class="de">das Antibiotikum → die Antibiotika · das Medikament (→ -e) · das Serum → Seren · das Virus → Viren (das, im Alltag auch der)</td></tr>
+<tr><td>-us</td><td>der</td><td>-en / -i</td><td class="de">der Thrombus → die Thromben · der Embolus → die Emboli · der Bolus → die Boli · der Tumor → die Tumoren · der Abszess → die Abszesse</td></tr>
+<tr><td>-is / -sis</td><td>die</td><td>-en / -es</td><td class="de">die Sepsis · die Basis → Basen · die Dosis → die Dosen · die Prognose → -n</td></tr>
+<tr><td>-ex / -ix</td><td>der / die</td><td>-izes</td><td class="de">der Index → die Indizes · der Apex · die Appendix → die Appendizes · die Zervix</td></tr></table>
+<p><b>Genitive:</b> masculine and neuter terms in -om, -em, -ament, -ess add <b>-s</b>: <span class="de">des Karzinom<b>s</b>, des Ödem<b>s</b>, des Abszess<b>es</b>.</span> Terms in -us stay unchanged: <span class="de">des Thrombus, des Diabetes, des Ikterus, des Ileus.</span> Feminine terms never change.</p>
+<p><b>Adjectives from terms</b> are ordinary adjectives and are declined: <span class="de">eine akut<b>e</b> Appendizitis, ein malign<b>es</b> Melanom, bei chronisch<b>er</b> Niereninsuffizienz, der distal<b>e</b> Radius.</span></p>
+<p><b>Latin phrases</b> stay frozen: <span class="de">in situ, per os, post mortem, Status post, Diabetes mellitus, Ulcus ventriculi, Arteria carotis.</span> In German text the anatomical genitive is often germanised: <span class="de">die Fraktur des Radius / die Radiusfraktur.</span></p>
+<p><b>Patient language is German:</b> every term has a plain twin, and the FSP tests the translation both ways — <span class="de">die Appendizitis = die Blinddarmentzündung · die Pneumonie = die Lungenentzündung · das Hämatom = der Bluterguss · die Fraktur = der Knochenbruch · der Ikterus = die Gelbsucht.</span></p>
+<p><b>Trap:</b> <span class="de">die Dosis</span> — plural <span class="de">die Dosen</span>, not Dosisse. <span class="de">Das Antibiotikum wirkt</span>, <span class="de">die Antibiotika wirk<b>en</b></span> — Antibiotika is plural.</p>`,
+ merke:"-itis, -ose, -ie = die · -om, -ma, -um = das · -us = der. Antibiotika ist Plural.",
+ ex:[{type:"mc",q:"___ Karzinom wurde früh entdeckt.",o:["Der","Die","Das"],a:2,why:"-om → neuter: das Karzinom."},
+ {type:"mc",q:"Plural von „der Thrombus“:",o:["die Thrombusse","die Thromben","die Thrombi"],a:1,why:"der Thrombus → die Thromben."},
+ {type:"mc",q:"Die Antibiotika ___ gut.",o:["wirkt","wirken","wirke"],a:1,why:"Antibiotika is the plural of Antibiotikum."},
+ {type:"mc",q:"Patientensprache für „das Hämatom“:",o:["der Bluterguss","die Blutvergiftung","der Blutdruck"],a:0,why:"Hämatom = Bluterguss (bruise)."},
+ {type:"gap",q:"Plural: die Dosis → die ___",a:"Dosen",alt:[],why:"die Dosis → die Dosen."},
+ {type:"gap",q:"Die Größe des ___ (das Karzinom) beträgt zwei Zentimeter.",a:"Karzinoms",alt:[],why:"Neuter in -om: genitive -s."},
+ {type:"fix",q:"Der Patient hat eine akut Appendizitis.",a:"Der Patient hat eine akute Appendizitis.",err:"akut",why:"Adjectives before the term are declined: eine akute Appendizitis."},
+ {type:"transform",q:"Fachsprache: die Lungenentzündung",a:"die Pneumonie",alt:["Pneumonie"],why:"Lungenentzündung = Pneumonie."}]}
+);
+// ===== Mephisto 13.0 · C1: Funktionsverbgefüge, Kollokationen, Brief- und Gesprächsformeln (only added if not already in the catalogue). [de, en, example, exampleEn, level, theme]
+const VOC4=[
+// ---- Funktionsverbgefüge
+["in Betracht ziehen","to take into consideration","Wir müssen auch eine Lungenembolie in Betracht ziehen.","We must also consider a pulmonary embolism.","C1","fvg"],
+["in Frage kommen","to be a possibility","Eine Operation kommt derzeit nicht in Frage.","Surgery is not an option at present.","B2","fvg"],
+["zur Verfügung stehen","to be available","Für Rückfragen stehen wir gern zur Verfügung.","We are happy to be available for queries.","B2","fvg"],
+["zur Verfügung stellen","to make available","Bitte stellen Sie uns die Vorbefunde zur Verfügung.","Please make the previous findings available to us.","B2","fvg"],
+["in Anspruch nehmen","to make use of, to take up","Er hat nie ärztliche Hilfe in Anspruch genommen.","He has never sought medical help.","C1","fvg"],
+["zum Ausdruck bringen","to express","Die Patientin brachte ihre Sorge zum Ausdruck.","The patient expressed her concern.","C1","fvg"],
+["eine Entscheidung treffen","to make a decision","Wir müssen heute eine Entscheidung treffen.","We must make a decision today.","B2","fvg"],
+["Maßnahmen ergreifen","to take measures","Es wurden sofort Maßnahmen ergriffen.","Measures were taken at once.","C1","fvg"],
+["in Kauf nehmen","to accept (a drawback)","Diese Nebenwirkung müssen wir in Kauf nehmen.","We have to accept this side effect.","C1","fvg"],
+["Rücksicht nehmen auf","to show consideration for","Bitte nehmen Sie Rücksicht auf die anderen Patienten.","Please show consideration for the other patients.","B2","fvg"],
+["Stellung nehmen zu","to comment on","Dazu möchte ich kurz Stellung nehmen.","I would like to comment briefly on that.","C1","fvg"],
+["zur Kenntnis nehmen","to take note of","Ich habe den Befund zur Kenntnis genommen.","I have taken note of the finding.","C1","fvg"],
+["in Erwägung ziehen","to consider","Wir ziehen eine Verlegung in Erwägung.","We are considering a transfer.","C1","fvg"],
+["unter Beobachtung stehen","to be under observation","Der Patient steht weiter unter Beobachtung.","The patient remains under observation.","B2","fvg"],
+["außer Frage stehen","to be beyond question","Es steht außer Frage, dass operiert werden muss.","There is no question that surgery is needed.","C1","fvg"],
+["eine Rolle spielen","to play a role","Das Alter spielt hier eine wichtige Rolle.","Age plays an important role here.","B2","fvg"],
+["zur Folge haben","to result in","Der Sturz hatte eine Fraktur zur Folge.","The fall resulted in a fracture.","C1","fvg"],
+["in Zusammenhang stehen mit","to be connected with","Die Beschwerden stehen in Zusammenhang mit dem Essen.","The complaints are connected with eating.","C1","fvg"],
+["Abstand nehmen von","to refrain from","Wir nehmen von einer Operation Abstand.","We are refraining from surgery.","C1","fvg"],
+["Bescheid geben","to let someone know","Geben Sie mir bitte Bescheid, wenn das Labor da ist.","Please let me know when the lab results are in.","B1","fvg"],
+["in Kraft treten","to come into force","Die neue Regelung tritt im Januar in Kraft.","The new rule comes into force in January.","C1","fvg"],
+["sich in Behandlung befinden","to be under treatment","Sie befindet sich in kardiologischer Behandlung.","She is under cardiological treatment.","B2","fvg"],
+["Verantwortung tragen","to bear responsibility","Die Stationsärztin trägt die Verantwortung.","The ward doctor bears the responsibility.","B2","fvg"],
+["einen Antrag stellen","to submit an application","Sie müssen einen Antrag auf Reha stellen.","You must apply for rehabilitation.","B2","fvg"],
+["zu dem Schluss kommen","to come to the conclusion","Wir kamen zu dem Schluss, dass keine Operation nötig ist.","We came to the conclusion that no surgery is needed.","C1","fvg"],
+// ---- klinische Kollokationen
+["eine Diagnose stellen","to make a diagnosis","Die Diagnose wurde anhand des CTs gestellt.","The diagnosis was made on the basis of the CT.","B2","kollokation"],
+["eine Diagnose sichern","to confirm a diagnosis","Die Diagnose wurde histologisch gesichert.","The diagnosis was confirmed histologically.","C1","kollokation"],
+["einen Befund erheben","to record a finding","Bei der Aufnahme wurde folgender Befund erhoben.","On admission the following findings were recorded.","C1","kollokation"],
+["die Anamnese erheben","to take the history","Ich möchte zuerst die Anamnese erheben.","I would first like to take the history.","B2","kollokation"],
+["eine Therapie einleiten","to start a therapy","Wir leiteten eine antibiotische Therapie ein.","We started antibiotic therapy.","C1","kollokation"],
+["eine Therapie absetzen","to stop a therapy","Das Medikament wurde wegen Übelkeit abgesetzt.","The drug was stopped because of nausea.","B2","kollokation"],
+["ein Medikament ansetzen","to start a drug","Wir haben einen Betablocker angesetzt.","We started a beta blocker.","C1","kollokation"],
+["die Dosis anpassen","to adjust the dose","Die Dosis wurde an die Nierenfunktion angepasst.","The dose was adjusted to renal function.","B2","kollokation"],
+["Blut abnehmen","to take blood","Ich nehme Ihnen jetzt Blut ab.","I am going to take blood from you now.","B1","kollokation"],
+["einen Zugang legen","to place an IV line","Wir legen Ihnen einen Zugang.","We are placing an IV line.","B2","kollokation"],
+["Beschwerden lindern","to relieve complaints","Das Mittel lindert die Beschwerden.","The remedy relieves the complaints.","B2","kollokation"],
+["Beschwerden äußern","to voice complaints","Der Patient äußerte keine Beschwerden.","The patient voiced no complaints.","C1","kollokation"],
+["einen Verdacht erhärten","to substantiate a suspicion","Das EKG erhärtete den Verdacht.","The ECG substantiated the suspicion.","C1","kollokation"],
+["einen Verdacht ausräumen","to dispel a suspicion","Der Verdacht konnte ausgeräumt werden.","The suspicion could be dispelled.","C1","kollokation"],
+["eine Erkrankung ausschließen","to rule out a disease","Ein Infarkt konnte ausgeschlossen werden.","An infarction could be ruled out.","B2","kollokation"],
+["einen Eingriff vornehmen","to perform a procedure","Der Eingriff wird in Vollnarkose vorgenommen.","The procedure is performed under general anaesthesia.","C1","kollokation"],
+["eine Einwilligung einholen","to obtain consent","Vor dem Eingriff holen wir Ihre Einwilligung ein.","Before the procedure we obtain your consent.","C1","kollokation"],
+["über Risiken aufklären","to inform about risks","Ich muss Sie über die Risiken aufklären.","I have to inform you about the risks.","B2","kollokation"],
+["sich einer Operation unterziehen","to undergo an operation","Er unterzog sich 2019 einer Bypass-Operation.","He underwent bypass surgery in 2019.","C1","kollokation"],
+["an einer Krankheit leiden","to suffer from a disease","Sie leidet an Diabetes.","She suffers from diabetes.","B1","kollokation"],
+["unter Schmerzen leiden","to suffer pain","Er leidet unter starken Schmerzen.","He is suffering severe pain.","B1","kollokation"],
+["einer Sache vorbeugen","to prevent something","Bewegung beugt Thrombosen vor.","Exercise prevents thromboses.","B2","kollokation"],
+["auf eine Therapie ansprechen","to respond to a therapy","Der Patient spricht gut auf die Therapie an.","The patient is responding well to the therapy.","C1","kollokation"],
+["mit Komplikationen einhergehen","to be accompanied by complications","Die Erkrankung geht häufig mit Fieber einher.","The disease is often accompanied by fever.","C1","kollokation"],
+["einen Verlauf nehmen","to take a course","Die Erkrankung nahm einen schweren Verlauf.","The disease took a severe course.","C1","kollokation"],
+["zu etwas neigen","to be prone to","Sie neigt zu Infekten.","She is prone to infections.","B2","kollokation"],
+["auf etwas zurückzuführen sein","to be attributable to","Die Anämie ist auf einen Eisenmangel zurückzuführen.","The anaemia is attributable to iron deficiency.","C1","kollokation"],
+["sich verschlechtern","to deteriorate","Der Zustand hat sich über Nacht verschlechtert.","The condition deteriorated overnight.","B1","kollokation"],
+["sich zurückbilden","to regress","Die Schwellung hat sich vollständig zurückgebildet.","The swelling has regressed completely.","C1","kollokation"],
+["abklingen","to subside","Das Fieber ist abgeklungen.","The fever has subsided.","B2","kollokation"],
+["auftreten","to occur","Die Schmerzen treten vor allem nachts auf.","The pain occurs mainly at night.","B1","kollokation"],
+["ausstrahlen","to radiate","Der Schmerz strahlt in den linken Arm aus.","The pain radiates into the left arm.","B1","kollokation"],
+// ---- Befundsprache
+["unauffällig","unremarkable","Das Abdomen ist unauffällig.","The abdomen is unremarkable.","B2","befund"],
+["rückläufig","decreasing","Die Entzündungswerte sind rückläufig.","The inflammatory markers are decreasing.","C1","befund"],
+["progredient","progressive","Es zeigt sich eine progrediente Dyspnoe.","There is progressive dyspnoea.","C1","befund"],
+["druckschmerzhaft","tender on pressure","Der rechte Unterbauch ist druckschmerzhaft.","The right lower abdomen is tender.","B2","befund"],
+["seitengleich","equal on both sides","Die Lunge ist seitengleich belüftet.","The lungs are ventilated equally on both sides.","C1","befund"],
+["regelrecht","normal, as expected","Regelrechter Sitz des Katheters.","Correct position of the catheter.","C1","befund"],
+["altersentsprechend","appropriate for age","Altersentsprechender Normalbefund.","Normal findings for age.","C1","befund"],
+["der Allgemeinzustand","general condition","Patient in reduziertem Allgemeinzustand.","Patient in reduced general condition.","B2","befund"],
+["der Ernährungszustand","nutritional status","Guter Ernährungszustand.","Good nutritional status.","B2","befund"],
+["die Abwehrspannung","guarding","Keine Abwehrspannung.","No guarding.","C1","befund"],
+["der Klopfschmerz","pain on percussion","Kein Klopfschmerz über den Nierenlagern.","No percussion pain over the renal beds.","C1","befund"],
+["die Rasselgeräusche","rales, crackles","Feinblasige Rasselgeräusche rechts basal.","Fine crackles at the right base.","C1","befund"],
+["vesikulär","vesicular","Vesikuläres Atemgeräusch beidseits.","Vesicular breath sounds on both sides.","C1","befund"],
+["der Verdacht auf","suspicion of","Es besteht der Verdacht auf eine Appendizitis.","There is a suspicion of appendicitis.","B2","befund"],
+["der Zustand nach","status post","Zustand nach Cholezystektomie 2015.","Status post cholecystectomy 2015.","B2","befund"],
+["kein Anhalt für","no evidence of","Kein Anhalt für eine Blutung.","No evidence of bleeding.","C1","befund"],
+["die Wiedervorstellung","re-presentation, return visit","Bei Fieber bitten wir um sofortige Wiedervorstellung.","In case of fever please return immediately.","C1","befund"],
+["das Procedere","further management","Zum weiteren Procedere empfehlen wir eine Koloskopie.","For further management we recommend a colonoscopy.","C1","befund"],
+["die Epikrise","summary and assessment in a discharge letter","In der Epikrise fassen wir den Verlauf zusammen.","In the epicrisis we summarise the course.","C1","befund"],
+["komplikationslos","without complications","Der postoperative Verlauf war komplikationslos.","The postoperative course was without complications.","C1","befund"],
+// ---- Gespräch: empathisch, strukturierend
+["Das kann ich gut nachvollziehen.","I can well understand that.","Sie haben Angst vor der Narkose. Das kann ich gut nachvollziehen.","You are afraid of the anaesthetic. I can well understand that.","B2","gespraech"],
+["Ich versichere Ihnen, dass …","I assure you that …","Ich versichere Ihnen, dass wir alles Nötige tun.","I assure you that we are doing everything necessary.","B2","gespraech"],
+["Darf ich kurz zusammenfassen?","May I briefly summarise?","Darf ich kurz zusammenfassen, was Sie mir erzählt haben?","May I briefly summarise what you have told me?","B2","gespraech"],
+["Habe ich Sie richtig verstanden, dass …?","Have I understood you correctly that …?","Habe ich Sie richtig verstanden, dass die Schmerzen nachts stärker sind?","Have I understood correctly that the pain is worse at night?","B2","gespraech"],
+["Lassen Sie sich ruhig Zeit.","Take your time.","Lassen Sie sich ruhig Zeit mit der Antwort.","Take your time with the answer.","B1","gespraech"],
+["Dazu komme ich gleich.","I'll come to that in a moment.","Eine gute Frage. Dazu komme ich gleich.","A good question. I'll come to that in a moment.","B2","gespraech"],
+["Was genau meinen Sie mit …?","What exactly do you mean by …?","Was genau meinen Sie mit „schwindelig“?","What exactly do you mean by 'dizzy'?","B1","gespraech"],
+["Ich würde Sie gern untersuchen.","I would like to examine you.","Wenn Sie einverstanden sind, würde ich Sie jetzt gern untersuchen.","If you agree, I would like to examine you now.","B1","gespraech"],
+["Sind Sie damit einverstanden?","Do you agree to that?","Wir würden Sie gern stationär aufnehmen. Sind Sie damit einverstanden?","We would like to admit you. Do you agree?","B1","gespraech"],
+["nach derzeitigem Stand","as things stand","Nach derzeitigem Stand ist keine Operation nötig.","As things stand, no surgery is needed.","C1","gespraech"],
+["Ich möchte Ihnen nichts vormachen.","I don't want to pretend to you.","Ich möchte Ihnen nichts vormachen: Der Befund ist ernst.","I don't want to pretend: the finding is serious.","C1","gespraech"],
+["Es tut mir leid, Ihnen das sagen zu müssen.","I am sorry to have to tell you this.","Es tut mir leid, Ihnen das sagen zu müssen: Die Gewebeprobe ist bösartig.","I am sorry to have to tell you: the tissue sample is malignant.","B2","gespraech"],
+// ---- Übergabe und Kollegengespräch
+["Ich möchte Ihnen einen Patienten vorstellen.","I would like to present a patient to you.","Herr Oberarzt, ich möchte Ihnen einen neuen Patienten vorstellen.","Sir, I would like to present a new patient to you.","B2","uebergabe"],
+["Es handelt sich um …","This is … / The case concerns …","Es handelt sich um einen 67-jährigen Patienten mit Thoraxschmerz.","This is a 67-year-old patient with chest pain.","B2","uebergabe"],
+["differenzialdiagnostisch","as a differential diagnosis","Differenzialdiagnostisch kommt eine Lungenembolie in Betracht.","As a differential, pulmonary embolism must be considered.","C1","uebergabe"],
+["am ehesten","most likely","Die Beschwerden sprechen am ehesten für eine Gastritis.","The complaints most likely indicate gastritis.","C1","uebergabe"],
+["für etwas sprechen","to point to something","Dafür spricht der plötzliche Beginn.","The sudden onset points to that.","B2","uebergabe"],
+["gegen etwas sprechen","to speak against something","Dagegen spricht das fehlende Fieber.","The absence of fever speaks against it.","B2","uebergabe"],
+["Ich würde folgendermaßen vorgehen:","I would proceed as follows:","Ich würde folgendermaßen vorgehen: zuerst Labor, dann Sonografie.","I would proceed as follows: first labs, then ultrasound.","C1","uebergabe"],
+["zum Ausschluss","to rule out","Zum Ausschluss eines Infarkts bestimmen wir das Troponin.","To rule out an infarction we measure troponin.","C1","uebergabe"],
+["zur Abklärung","for work-up","Wir nehmen die Patientin zur weiteren Abklärung auf.","We are admitting the patient for further work-up.","B2","uebergabe"],
+["in Rücksprache mit","after consultation with","In Rücksprache mit dem Oberarzt erfolgte die Verlegung.","After consultation with the senior physician the transfer took place.","C1","uebergabe"],
+["der Dienst","shift, duty","Ich habe heute Nachtdienst.","I am on night duty today.","A2","uebergabe"],
+["die Übergabe","handover","Die Übergabe ist um sieben Uhr.","Handover is at seven o'clock.","B1","uebergabe"],
+["die Visite","ward round","Die Visite beginnt um acht.","The ward round starts at eight.","A2","uebergabe"],
+["das Konsil","consult","Wir haben ein neurologisches Konsil angefordert.","We have requested a neurology consult.","C1","uebergabe"],
+// ---- Schriftsprache / Konnektoren C1
+["demzufolge","consequently","Das CT war unauffällig; demzufolge wurde der Patient entlassen.","The CT was unremarkable; consequently the patient was discharged.","C1","konnektor"],
+["infolgedessen","as a result","Er nahm die Tabletten nicht; infolgedessen stieg der Blutdruck.","He did not take the tablets; as a result his blood pressure rose.","C1","konnektor"],
+["nichtsdestotrotz","nevertheless","Nichtsdestotrotz empfehlen wir eine Kontrolle.","Nevertheless we recommend a check-up.","C1","konnektor"],
+["indessen","meanwhile; however","Die Schmerzen ließen nach; das Fieber indessen blieb.","The pain eased; the fever, however, remained.","C1","konnektor"],
+["insofern","in this respect","Der Befund ist insofern wichtig, als er die Therapie ändert.","The finding is important in that it changes the therapy.","C1","konnektor"],
+["hingegen","on the other hand","Das rechte Bein ist warm, das linke hingegen kalt.","The right leg is warm, the left, on the other hand, cold.","C1","konnektor"],
+["zumal","especially as","Wir sollten abwarten, zumal die Werte sich bessern.","We should wait, especially as the values are improving.","C1","konnektor"],
+["sofern","provided that","Sofern keine Komplikationen auftreten, entlassen wir Sie morgen.","Provided no complications occur, we will discharge you tomorrow.","B2","konnektor"],
+["wohingegen","whereas","Er hustet nachts, wohingegen er tagsüber beschwerdefrei ist.","He coughs at night, whereas he is symptom-free during the day.","C1","konnektor"],
+["geschweige denn","let alone","Er kann nicht stehen, geschweige denn gehen.","He cannot stand, let alone walk.","C1","konnektor"],
+["im Übrigen","besides, moreover","Im Übrigen ist der Befund unverändert.","Otherwise the finding is unchanged.","C1","konnektor"],
+["letztlich","ultimately","Letztlich entscheidet die Patientin selbst.","Ultimately the patient decides herself.","B2","konnektor"],
+["gegebenenfalls","if applicable, if need be","Gegebenenfalls muss die Dosis erhöht werden.","If need be the dose must be increased.","B2","konnektor"],
+["vorbehaltlich","subject to","Vorbehaltlich des Laborbefundes kann sie morgen gehen.","Subject to the lab result she can go tomorrow.","C1","konnektor"],
+["umgehend","immediately","Bitte stellen Sie sich umgehend wieder vor.","Please come back immediately.","B2","konnektor"],
+// ---- Alltag C1: Redewendungen, die man im Krankenhaus wirklich hört
+["auf dem Zahnfleisch gehen","to be completely exhausted","Nach drei Nachtdiensten gehe ich auf dem Zahnfleisch.","After three night shifts I am running on empty.","C1","redewendung"],
+["jemandem auf die Nerven gehen","to get on someone's nerves","Der Piepser geht mir auf die Nerven.","The pager is getting on my nerves.","B1","redewendung"],
+["die Nase voll haben","to be fed up","Ich habe die Nase voll von diesem Formular.","I am fed up with this form.","B1","redewendung"],
+["etwas auf dem Herzen haben","to have something on one's mind","Haben Sie noch etwas auf dem Herzen?","Is there anything else on your mind?","B2","redewendung"],
+["jemandem etwas ans Herz legen","to urge someone to do something","Ich lege Ihnen ans Herz, mit dem Rauchen aufzuhören.","I urge you to stop smoking.","C1","redewendung"],
+["Hand und Fuß haben","to be well founded","Ihr Therapieplan hat Hand und Fuß.","Your treatment plan is sound.","C1","redewendung"],
+["über den Berg sein","to be out of the woods","Die Patientin ist über den Berg.","The patient is out of the woods.","B2","redewendung"],
+["am seidenen Faden hängen","to hang by a thread","Sein Leben hing am seidenen Faden.","His life hung by a thread.","C1","redewendung"],
+["den Löffel abgeben","(colloquial) to die","„Ich gebe noch lange nicht den Löffel ab“, sagte der Patient.","'I'm not kicking the bucket for a long time yet,' said the patient.","C1","redewendung"],
+["jemandem reinen Wein einschenken","to tell someone the plain truth","Schenken Sie mir bitte reinen Wein ein, Herr Doktor.","Please tell me the plain truth, Doctor.","C1","redewendung"],
+["den Teufel an die Wand malen","to tempt fate by imagining the worst","Malen Sie nicht den Teufel an die Wand.","Don't imagine the worst.","C1","redewendung"],
+["in Teufels Küche kommen","to get into deep trouble","Ohne Aufklärung kommen Sie in Teufels Küche.","Without informed consent you will get into deep trouble.","C1","redewendung"]];
+// ===== Mephisto 13.0 · Verbotene Seiten: eleven more Chronik pages, each behind a secret. Seven are hidden in the app, four are earned in the story.
+LORE_REALM.N="Verbotene Seiten";
+Object.assign(EGGS,{
+ mehrlicht:["Mehr Licht!","Schreib irgendwo Goethes letzte zwei Wörter.","Zwei Wörter, und alle Welt zitiert sie. Von mir zitiert man ganze Akte. Niemand dankt es mir.","Two words, and the whole world quotes them. Of me they quote entire acts. Nobody thanks me."],
+ zauber:["Die Geister, die ich rief","Schreib den Zauberspruch des Lehrlings: „Walle! walle …“","Walle, walle. Und wer wischt jetzt auf? Der Meister kommt nicht. Der Meister bin ich.","Walle, walle. And who mops up now? The master isn't coming. The master is me."],
+ rumpel:["Ach, wie gut, dass niemand weiß","Schreib den Namen, den die Königin erraten musste.","Wer den Namen kennt, hat die Macht. Darum lernen wir Vokabeln.","Whoever knows the name holds the power. That is why we learn vocabulary."],
+ wolf:["Die Stunde des Nachtwächters","Komm, wenn die Notaufnahme am dunkelsten ist: um drei.","Drei Uhr. Um diese Zeit sterben die meisten und lernen die wenigsten. Willkommen.","Three o'clock. At this hour most people die and the fewest study. Welcome."],
+ sandmann:["Der Sandmann kommt","Lerne noch, wenn Kinder längst schlafen müssen: nach elf.","Noch wach? Der Sandmann war schon da. Ich habe ihn weggeschickt. Er nimmt nur die Augen – ich brauche den ganzen Kopf.","Still awake? The Sandman has been. I sent him away. He only takes the eyes — I need the whole head."],
+ schlemihl:["Der Mann ohne Schatten","Tippe dreimal auf den Namen dessen, der hinter dir geht.","Sie zupfen an Ihrem Schatten? Vorsicht. Ein Kollege von mir hat einmal einen gekauft. Für einen Geldbeutel.","Tugging at your shadow? Careful. A colleague of mine once bought one. For a purse."],
+ kyff:["Fliegen die Raben noch?","Im Schwarzwald fliegt etwas. Fang es.","Sie haben einen Raben gefangen. Jetzt fehlt einer am Berg, und der alte Kaiser verschläft noch einmal hundert Jahre.","You have caught a raven. Now one is missing at the mountain, and the old emperor will oversleep another hundred years."],
+ wette:["Prolog im Himmel","Lies das Kapitel, in dem die ältere Wette ans Licht kommt.","Jetzt kennen Sie den Vertrag über dem Vertrag. Ich hätte ihn besser verstecken sollen. Ich wollte nicht.","Now you know the contract above the contract. I should have hidden it better. I didn't want to."],
+ koepenick:["Die Uniform","Lies die Akte, die du nie lesen solltest.","Papier glaubt in diesem Land alles. Man muss nur die richtige Uniform dazu tragen.","In this country paper believes anything. One only has to wear the right uniform with it."],
+ eid:["Das Gelöbnis","Besuche Bett vier viermal.","Viermal Bett vier. Sie kommen wieder, obwohl ich Sie nicht zwinge. Das steht in keinem meiner Verträge.","Bed four, four times. You keep coming back although I don't force you. That is in none of my contracts."],
+ schluss:["Das Unbeschreibliche","Erfülle den Pakt. Dann berühre die Laterne.","Das ist das Ende, das er mir geschrieben hat. Ich verliere darin. Seit 1832, jeden Abend, auf jeder Bühne.","This is the ending he wrote for me. I lose in it. Since 1832, every night, on every stage."]});
+LORE.push(
+{id:"n_licht",r:"N",ch:0,egg:"mehrlicht",y:"1832",sort:1832.2,t:"Mehr Licht!",art:"delacroix_2",
+ de:"Am 22. März 1832 starb Goethe in Weimar, in seinem Lehnstuhl, mit zweiundachtzig Jahren. Seine letzten Worte sollen „Mehr Licht!“ gewesen sein. Die Nachwelt machte daraus ein Vermächtnis der Aufklärung. Wahrscheinlicher ist, dass er nur darum bat, einen Fensterladen zu öffnen, weil es im Zimmer zu dunkel war.",
+ en:"On 22 March 1832 Goethe died in Weimar, in his armchair, aged eighty-two. His last words are said to have been 'More light!' Posterity turned them into a testament of the Enlightenment. More probably he was only asking for a shutter to be opened because the room was too dark.",
+ dk:"Sein Arzt Carl Vogel beschrieb die letzte Nacht ohne Verklärung: fürchterliche Angst und Unruhe, der Kranke habe keine Lage gefunden, die ihm Ruhe gab. Der Bericht wurde lange weniger gern zitiert als die zwei Wörter.",dken:"His physician Carl Vogel described the last night without any halo: terrible fear and restlessness, the sick man finding no position that gave him rest. For a long time the report was quoted less gladly than the two words."},
+{id:"n_zauber",r:"N",ch:0,egg:"zauber",y:"1797",sort:1797,t:"Der Zauberlehrling",art:"rackham_7",
+ de:"1797, im sogenannten Balladenjahr, schrieb Goethe den „Zauberlehrling“. Der Meister ist aus dem Haus, der Lehrling verzaubert einen Besen, damit er Wasser trägt – und kennt das Wort nicht, das ihn wieder anhält. Er spaltet den Besen mit dem Beil. Nun tragen zwei. Der Stoff ist alt: Schon der Grieche Lukian erzählte ihn im zweiten Jahrhundert.",
+ en:"In 1797, the so-called year of ballads, Goethe wrote 'The Sorcerer's Apprentice'. The master is out, the apprentice enchants a broom to carry water — and does not know the word that stops it. He splits the broom with an axe. Now two are carrying. The material is old: the Greek writer Lucian told it in the second century.",
+ dk:"„Die ich rief, die Geister, werd ich nun nicht los.“ Der Satz steht heute über jeder Erfindung, die ihrem Erfinder entgleitet. In der Ballade kommt der Meister zurück. Im Leben ist das nicht vorgesehen.",dken:"'The spirits that I summoned I cannot now be rid of.' Today the sentence stands over every invention that slips from its inventor's hands. In the ballad the master returns. In life that is not provided for."},
+{id:"n_rumpel",r:"N",ch:0,egg:"rumpel",y:"1812",sort:1812.1,t:"Rumpelstilzchen",art:"rackham_19",
+ de:"Ein Müller behauptet, seine Tochter könne Stroh zu Gold spinnen. Der König sperrt sie ein. Ein Männchen spinnt für sie – zuerst für ihr Halsband, dann für ihren Ring, zuletzt für ihr erstes Kind. Sie kann es nur behalten, wenn sie seinen Namen errät. Das Märchen kennt ein altes Gesetz: Wer den wahren Namen eines Wesens weiß, hat Macht über es.",
+ en:"A miller claims his daughter can spin straw into gold. The king locks her up. A little man spins for her — first for her necklace, then for her ring, finally for her first child. She may keep it only if she guesses his name. The tale knows an old law: whoever knows a being's true name has power over it.",
+ dk:"In der ersten Ausgabe von 1812 läuft das Männchen nur zornig davon. Erst in der zweiten Ausgabe von 1819 packt es seinen linken Fuß mit beiden Händen und reißt sich selbst mitten entzwei. Die Grimms fanden das besser.",dken:"In the first edition of 1812 the little man merely runs away in anger. Only in the second edition of 1819 does he seize his left foot with both hands and tear himself in two. The Grimms thought that was better."},
+{id:"n_wacht",r:"N",ch:0,egg:"wolf",y:"um 1600",sort:1600,t:"Der Nachtwächter",art:"dore_23",
+ de:"Bis ins neunzehnte Jahrhundert ging in deutschen Städten nachts ein Mann mit Laterne, Horn und Hellebarde durch die Gassen. Er rief die Stunden aus: „Hört, ihr Herrn, und lasst euch sagen, unsre Glock hat drei geschlagen.“ Er achtete auf Feuer, auf Diebe und auf offene Türen. Wer heute um drei Uhr nachts mit einem Licht über einen dunklen Flur geht und nach den Schlafenden sieht, hat seinen Beruf geerbt.",
+ en:"Into the nineteenth century a man with a lantern, a horn and a halberd walked the lanes of German towns at night. He called out the hours: 'Hear, good sirs, and let me tell you, our bell has struck three.' He watched for fire, for thieves and for open doors. Whoever walks down a dark corridor at three in the morning with a light, looking in on the sleepers, has inherited his trade.",
+ dk:"Vielerorts galt der Nachtwächter als „unehrlich“ – wie der Henker, der Abdecker und der Totengräber. Wer nachts für alle wach war, durfte am Tag oft in keine Zunft eintreten und saß im Wirtshaus allein.",dken:"In many places the night watchman counted as 'dishonourable' — like the executioner, the knacker and the gravedigger. The man who stayed awake at night for everyone was often barred by day from every guild and sat alone in the tavern."},
+{id:"n_sand",r:"N",ch:0,egg:"sandmann",y:"1816",sort:1816,t:"Der Sandmann",art:"clarke_48",
+ de:"In E. T. A. Hoffmanns Erzählung von 1816 fragt der kleine Nathanael, wer der Sandmann sei. Die Kinderfrau antwortet: ein böser Mann, der den Kindern, die nicht schlafen wollen, Sand in die Augen wirft, bis sie blutig aus dem Kopf springen. Er trägt sie in einem Sack zum Mond und füttert damit seine eigenen Kinder. Nathanael glaubt es ein Leben lang – und verliebt sich in eine Puppe mit Glasaugen.",
+ en:"In E. T. A. Hoffmann's tale of 1816 little Nathanael asks who the Sandman is. The nurse answers: a wicked man who throws sand into the eyes of children who will not sleep, until they spring bleeding from their heads. He carries them to the moon in a sack and feeds them to his own children. Nathanael believes it all his life — and falls in love with a doll with glass eyes.",
+ dk:"Sigmund Freud baute 1919 auf dieser Geschichte seinen Aufsatz „Das Unheimliche“: Unheimlich sei nicht das Fremde, sondern das Vertraute, das verdrängt wurde und wiederkehrt. Das deutsche Wort trägt es in sich – un-heim-lich.",dken:"In 1919 Sigmund Freud built his essay 'The Uncanny' on this story: the uncanny, he argued, is not the foreign but the familiar that was repressed and returns. The German word carries it inside itself — un-heim-lich, un-home-ly."},
+{id:"n_schlemihl",r:"N",ch:0,egg:"schlemihl",y:"1814",sort:1814,t:"Peter Schlemihl",art:"clarke_18",
+ de:"1814 erschien „Peter Schlemihls wundersame Geschichte“. Ein höflicher Mann im grauen Rock rollt Schlemihls Schatten vom Boden auf, steckt ihn ein und gibt ihm dafür einen Beutel, der nie leer wird. Schlemihl ist nun reich – und überall ausgestoßen, denn einem Menschen ohne Schatten traut niemand. Später bietet der Graue den Schatten zurück: gegen die Seele. Schlemihl lehnt ab, wirft den Beutel fort und wird Naturforscher.",
+ en:"In 1814 'Peter Schlemihl's Wondrous Story' appeared. A polite man in a grey coat rolls Schlemihl's shadow up from the ground, pockets it and gives him in return a purse that never empties. Schlemihl is now rich — and shunned everywhere, for nobody trusts a man without a shadow. Later the grey man offers the shadow back: for the soul. Schlemihl refuses, throws the purse away and becomes a naturalist.",
+ dk:"Der Autor Adelbert von Chamisso war als Kind mit seiner Familie aus Frankreich geflohen und schrieb in einer Sprache, die er erst hatte lernen müssen. Viele lasen den fehlenden Schatten als das, was dem Fremden fehlt: die Selbstverständlichkeit, dazuzugehören.",dken:"The author Adelbert von Chamisso had fled France with his family as a child and wrote in a language he had first had to learn. Many read the missing shadow as what the foreigner lacks: the taken-for-granted right to belong."},
+{id:"n_kyff",r:"N",ch:0,egg:"kyff",y:"1190",sort:1190,t:"Der Kaiser im Berg",art:"dore_31",
+ de:"1190 ertrank Kaiser Friedrich Barbarossa auf dem Kreuzzug im Fluss Saleph. Die Sage ließ ihn nicht sterben: Er schlafe im Kyffhäuser, einem Berg in Thüringen, an einem steinernen Tisch, und sein roter Bart sei durch die Tischplatte gewachsen. Alle hundert Jahre erwache er und frage, ob die Raben noch um den Berg fliegen. Fliegen sie noch, schläft er weiter.",
+ en:"In 1190 Emperor Frederick Barbarossa drowned in the river Saleph on crusade. Legend would not let him die: he sleeps in the Kyffhäuser, a mountain in Thuringia, at a stone table, and his red beard has grown through the tabletop. Every hundred years he wakes and asks whether the ravens are still flying round the mountain. If they are, he sleeps on.",
+ dk:"Ursprünglich galt die Sage wohl seinem Enkel Friedrich II.; erst später wurde sie auf Barbarossa übertragen. Das neunzehnte Jahrhundert machte aus dem Schläfer ein nationales Versprechen. 1941 erhielt der Überfall auf die Sowjetunion seinen Namen.",dken:"The legend probably first belonged to his grandson Frederick II; only later was it transferred to Barbarossa. The nineteenth century turned the sleeper into a national promise. In 1941 the invasion of the Soviet Union was given his name."},
+{id:"n_prolog",r:"N",ch:0,egg:"wette",y:"1808",sort:1808.1,t:"Prolog im Himmel",art:"delacroix_12",
+ de:"Bevor Faust zum ersten Mal auftritt, wettet Mephisto mit dem Herrn um ihn – nach dem Vorbild des Buches Hiob. Der Herr erlaubt alles, solange Faust lebt, und sagt den Satz, der das ganze Stück trägt: „Es irrt der Mensch, solang er strebt.“ Der Irrtum ist also kein Fehler im Plan. Er ist der Plan. Erst danach schließt Faust seine eigene Wette: Wenn er je zum Augenblick sagt „Verweile doch! du bist so schön!“, dann gehört er dem Teufel.",
+ en:"Before Faust first appears, Mephisto wagers with the Lord over him — after the model of the Book of Job. The Lord permits everything as long as Faust lives, and speaks the sentence that carries the whole play: 'Man errs as long as he strives.' Error, then, is not a flaw in the plan. It is the plan. Only afterwards does Faust make his own wager: if he ever says to the moment 'Stay! you are so beautiful!', he belongs to the devil.",
+ dk:"Faust sagt den Satz am Ende wirklich – hundertjährig, erblindet. Er hört Spaten und glaubt, man grabe seinen großen Kanal. Es sind die Lemuren. Sie graben sein Grab.",dken:"In the end Faust really does say the sentence — a hundred years old, blind. He hears spades and believes his great canal is being dug. It is the lemures. They are digging his grave."},
+{id:"n_koepenick",r:"N",ch:0,egg:"koepenick",y:"1906",sort:1906,t:"Der Hauptmann von Köpenick",art:"struwwel_8",
+ de:"Am 16. Oktober 1906 zog der Schuster Wilhelm Voigt eine gebraucht gekaufte Hauptmannsuniform an, hielt auf der Straße ein paar Soldaten an und befahl ihnen, ihm zu folgen. Sie folgten. Er besetzte das Rathaus von Köpenick, ließ den Bürgermeister verhaften und sich die Stadtkasse aushändigen – gegen Quittung. Niemand fragte nach einem Papier. Die Uniform war das Papier. Ganz Europa lachte; der Kaiser soll ihn ein „geniales Kerlchen“ genannt haben.",
+ en:"On 16 October 1906 the shoemaker Wilhelm Voigt put on a captain's uniform bought second-hand, stopped a few soldiers in the street and ordered them to follow him. They followed. He occupied the town hall of Köpenick, had the mayor arrested and the municipal treasury handed over — against a receipt. Nobody asked for a document. The uniform was the document. All Europe laughed; the Kaiser is said to have called him a 'brilliant little fellow'.",
+ dk:"Voigt hatte viele Jahre im Zuchthaus gesessen. Danach bekam er ohne Arbeit keine Aufenthaltserlaubnis und ohne Aufenthaltserlaubnis keine Arbeit; mehrere Städte wiesen ihn aus. Carl Zuckmayer machte 1931 aus diesem Kreis ein Theaterstück.",dken:"Voigt had spent many years in prison. Afterwards he could get no residence permit without work and no work without a residence permit; several towns expelled him. In 1931 Carl Zuckmayer turned this circle into a play."},
+{id:"n_eid",r:"N",ch:0,egg:"eid",y:"1947",sort:1947,t:"Das Gelöbnis",art:"clarke_39",
+ de:"Vom Dezember 1946 bis zum August 1947 standen in Nürnberg dreiundzwanzig Angeklagte vor Gericht, zwanzig davon Ärzte. Sie hatten Menschen in Lagern unterkühlt, infiziert, vergiftet und getötet und es Forschung genannt. Das Urteil enthielt zehn Sätze, den Nürnberger Kodex. Der erste lautet: Die freiwillige Zustimmung der Versuchsperson ist unbedingt erforderlich. 1948 verabschiedete der Weltärztebund in Genf ein neues Gelöbnis. Es steht heute der Berufsordnung der deutschen Ärztinnen und Ärzte voran.",
+ en:"From December 1946 to August 1947 twenty-three defendants stood trial in Nuremberg, twenty of them physicians. They had chilled, infected, poisoned and killed people in camps and called it research. The judgment contained ten sentences, the Nuremberg Code. The first reads: the voluntary consent of the human subject is absolutely essential. In 1948 the World Medical Association adopted a new pledge in Geneva. Today it stands at the head of the professional code of German physicians.",
+ dk:"Jedes Aufklärungsgespräch, das du auf Deutsch führen wirst – „Ich muss Sie über die Risiken aufklären. Sind Sie einverstanden?“ –, ist die Antwort auf diesen Prozess. Sieben der Angeklagten wurden 1948 in Landsberg gehängt. Viele andere praktizierten weiter.",dken:"Every informed-consent talk you will hold in German — 'I have to inform you about the risks. Do you agree?' — is the answer to this trial. Seven of the defendants were hanged at Landsberg in 1948. Many others went on practising."},
+{id:"n_schluss",r:"N",ch:0,egg:"schluss",y:"1832",sort:1832.3,t:"Das Unbeschreibliche",art:"delacroix_18",
+ de:"Goethe versiegelte das Manuskript von „Faust II“ im Sommer 1831 und ließ es erst nach seinem Tod drucken. Am Ende tragen Engel Fausts Unsterbliches davon und sagen, warum sie es dürfen: „Wer immer strebend sich bemüht, den können wir erlösen.“ Nicht der Erfolg rettet ihn, nicht die Tugend – Faust hat beides nicht –, sondern dass er nie aufgehört hat. Die letzten Worte des Stücks gehören einem Chor: „Das Unbeschreibliche, hier ist’s getan.“",
+ en:"Goethe sealed the manuscript of 'Faust II' in the summer of 1831 and had it printed only after his death. At the end angels carry off Faust's immortal part and say why they may: 'Whoever strives with all his might, him we can redeem.' It is not success that saves him, nor virtue — Faust has neither — but that he never stopped. The last words of the play belong to a chorus: 'The indescribable, here it is done.'",
+ dk:"Und Mephisto? Er verliert die Seele, weil er im entscheidenden Augenblick abgelenkt ist: Die Engel streuen Rosen, und er verguckt sich in sie. Als er wieder hinsieht, ist Faust fort. Der Teufel wird um seinen Lohn geprellt – und Goethe gönnt ihm dazu noch die komischste Szene des Stücks.",dken:"And Mephisto? He loses the soul because at the decisive moment he is distracted: the angels scatter roses, and he becomes infatuated with them. When he looks again, Faust is gone. The devil is cheated of his wages — and Goethe grants him the funniest scene in the play on top of it."}
+);
 // ================= CORE (v2) =================
 "use strict";
 MEDVOCAB.forEach(v=>VOCAB.push(v));ALLTAGVOCAB.forEach(v=>VOCAB.push(v));MEDL2.forEach(m=>MEDL.push(m));
@@ -4170,7 +4691,14 @@ function lev(a,b){if(a===b)return 0;const m=a.length,n=b.length;if(!m)return n;i
 function similarity(a,b){a=normT(a);b=normT(b);if(!a&&!b)return 1;return 1-lev(a,b)/Math.max(a.length,b.length)}
 function wordDiff(got,want){const A=String(got||"").trim().split(/\s+/).filter(Boolean),B=String(want||"").trim().split(/\s+/).filter(Boolean);const a=A.map(normT),b=B.map(normT);const m=a.length,n=b.length;const L=Array.from({length:m+1},()=>new Array(n+1).fill(0));for(let i=m-1;i>=0;i--)for(let j=n-1;j>=0;j--)L[i][j]=a[i]===b[j]?1+L[i+1][j+1]:Math.max(L[i+1][j],L[i][j+1]);
   const out=[];let i=0,j=0;while(i<m&&j<n){if(a[i]===b[j]){out.push(`<span class="d-ok">${esc(B[j])}</span>`);i++;j++}else if(L[i+1][j]>=L[i][j+1]){out.push(`<span class="d-del">${esc(A[i])}</span>`);i++}else{out.push(`<span class="d-ins">${esc(B[j])}</span>`);j++}}while(i<m)out.push(`<span class="d-del">${esc(A[i++])}</span>`);while(j<n)out.push(`<span class="d-ins">${esc(B[j++])}</span>`);return out.join(" ")}
-function gradeTyped(got,want){const g=normT(got),w=normT(want);if(!g)return {q:0,msg:"Keine Antwort."};if(g===w)return {q:2,msg:"Richtig."};
+// spelling that normT forgives (capitals, ß, umlauts) is still shown to the learner; from B1 it costs the "Richtig" on cards
+function spellNote(got,wants){try{const x=s=>String(s||"").replace(/[.,!?;:„"“”‚‘’'()«»–—]/g," ").replace(/\s+/g," ").trim();const g=x(got);const w=(wants||[]).filter(Boolean).find(v=>normT(v)===normT(got));if(!w||!g)return "";const ww=x(w);if(ww===g)return "";
+  const why=[];if(ww.toLowerCase()!==g.toLowerCase()){if(/ß/.test(ww)!==/ß/.test(g))why.push("ß");if(/[äöüÄÖÜ]/.test(ww)&&!/[äöüÄÖÜ]/.test(g))why.push("Umlaute (ä, ö, ü)");if(/-/.test(ww)!==/-/.test(g)&&!why.length)why.push("Bindestrich")}
+  const lw=ww.replace(/ß/g,"ss").replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/Ä/g,"Ae").replace(/Ö/g,"Oe").replace(/Ü/g,"Ue").replace(/-/g," "),lg=g.replace(/ß/g,"ss").replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/Ä/g,"Ae").replace(/Ö/g,"Oe").replace(/Ü/g,"Ue").replace(/-/g," ");
+  if(lw!==lg&&lw.toLowerCase()===lg.toLowerCase())why.push("Groß- und Kleinschreibung");if(!why.length)return "";
+  return ` <span class="spell-note">Rechtschreibung: <b>${esc(w)}</b> – achte auf ${why.join(" und ")}.</span>`}catch(e){return ""}}
+function spellStrict(){try{if(S.strict===true)return true;if(S.strict===false)return false;return typeof learnerLv==="function"&&learnerLv()>=2}catch(e){return false}}
+function gradeTyped(got,want){const g=normT(got),w=normT(want);if(!g)return {q:0,msg:"Keine Antwort."};if(g===w){const sn=spellNote(got,[want]);if(sn&&spellStrict())return {q:1,msg:"Fast richtig."+sn};return {q:2,msg:"Richtig."+sn}}
   const wg=genderOf(want);if(wg){const gm=/^(der|die|das|den|dem|des)\s+(.*)$/.exec(g);const wn=normT(want.slice(wg.length+1));if(gm&&gm[2]===wn&&gm[1]!==wg){addErrors([{type:"Artikel/Genus",original:gm[1]+" "+wn,fix:want,why:"Gender: "+wg}],"typed");return {q:0,msg:`Artikel: <b class="g-${wg}">${wg}</b>, nicht ${gm[1]}.`,art:true}}if(!gm&&g===wn)return {q:1,msg:`Fast: mit Artikel <b class="g-${wg}">${wg}</b>.`}}
   const s=similarity(got,want);if(s>=.88)return {q:1,msg:"Fast richtig. Kleiner Tippfehler."};return {q:0,msg:"Noch nicht."}}
 // ---------- speech
@@ -4807,7 +5335,7 @@ ACT.saveYuzu=async()=>{const p=yuzuPack();const r=await saveFile("mephisto-core.
 ACT.copyYuzu=()=>{const p=yuzuPack();copyText(JSON.stringify(p),$(".bk-txt"));toast(p.cards.length+" Karten")};
 ACT.reset=()=>{const v=($(".rs-in")||{}).value;if(v!=="LÖSCHEN")return toast("Tippe LÖSCHEN zur Bestätigung");lsSet("mephisto_before_reset",JSON.stringify(S));S=fresh();saveNow();buildDict();applyPrefs();R.tab="home";toast("Zurückgesetzt. Eine Kopie liegt unter „mephisto_before_reset“.");rerender()};
 // ================= PHONE FEATURES (v10): speech check, Artikel-Blitz, numbers, terms, undo, haptics, coach, PWA =================
-const APP_VERSION="12.10.0";
+const APP_VERSION="13.0.0";
 const IS_PWA=!!window.MEPHISTO_PWA;
 const IS_STANDALONE=(()=>{try{return matchMedia("(display-mode: standalone)").matches||navigator.standalone===true}catch(e){return false}})();
 const IS_IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
@@ -5757,7 +6285,7 @@ function gramRunner(el,exs,o){o=o||{};const items=exs.slice();let i=0,right=0;co
     const re=$(".gr-re",el);if(re)re.onclick=()=>gramRunner(el,exs,o);const nw=$(".gr-new",el);if(nw)nw.onclick=()=>gramRunner(el,o.pool?pickEx(o.pool,items.length):shuffle(exs),o);KEYS=null;if(o.onDone)o.onDone(sc)}
   function head(e){return `<div class="eyebrow">${{mc:"Wähle",gap:"Lücke",order:"Satz bauen",transform:"Umformen",fix:"Fehler finden"}[e.type]} · ${i+1} / ${items.length}</div>`}
   function after(e,ok,got){if(e._l)el.dataset.lesson=e._l;else if(o.lesson)el.dataset.lesson=o.lesson;res.push({type:e.type,q:e.q||(e.words||[]).join(" ").replace(/\s+([.,!?;:])/g,"$1"),a:e.a,why:e.why,ok});if(ok)right++;if(typeof fb==="function")fb(ok);
-    const box=$(".gr-why",el);box.innerHTML=`<div class="verdict ${ok?"ok":"no"}"><b>${ok?"Richtig.":"Lösung: "}</b>${ok?"":`<span class="gr-ans">${esc(e.a)}</span>`}${!ok&&got&&e.type!=="mc"&&e.type!=="order"?`<div style="font-size:1.05rem;margin-top:.3rem">${wordDiff(got,e.a)}</div>`:""}<div class="why" style="margin-top:.35rem">${esc(e.why||"")}</div></div><div class="row" style="margin-top:.7rem"><button class="sm ghost" data-say="${esc(e.a)}">${ic("vol")}</button><button class="primary gr-nx">Weiter <span class="kbd">↵</span></button></div>`;
+    const box=$(".gr-why",el);box.innerHTML=`<div class="verdict ${ok?"ok":"no"}"><b>${ok?"Richtig.":"Lösung: "}</b>${ok?(got&&e.type!=="mc"&&e.type!=="order"?spellNote(got,[e.a].concat(e.alt||[])):""):`<span class="gr-ans">${esc(e.a)}</span>`}${!ok&&got&&e.type!=="mc"&&e.type!=="order"?`<div style="font-size:1.05rem;margin-top:.3rem">${wordDiff(got,e.a)}</div>`:""}<div class="why" style="margin-top:.35rem">${esc(e.why||"")}</div></div><div class="row" style="margin-top:.7rem"><button class="sm ghost" data-say="${esc(e.a)}">${ic("vol")}</button><button class="primary gr-nx">Weiter <span class="kbd">↵</span></button></div>`;
     $(".gr-nx",el).onclick=next;KEYS=ev=>{if(ev.key==="Enter"){ev.preventDefault();next()}};if(!ok&&e.type!=="mc"&&got){const r=document.createElement("button");r.className="sm ghost gr-mine";r.textContent="Ich hatte recht";r.title="Meine Antwort ist auch korrekt";$(".gr-nx",el).before(r);r.onclick=()=>{right++;res[res.length-1].ok=true;r.disabled=true;r.textContent="Gezählt ✓";S.overrides=(S.overrides||[]).concat([{d:todayKey(),q:e.q||(e.words||[]).join(" "),got,a:e.a}]).slice(-80);saveSoon()}}}
   function next(){i++;draw()}
   function draw(){if(i>=items.length)return finish();const e=items[i];if(o.onProgress)o.onProgress(i/items.length);
@@ -6788,7 +7316,7 @@ const LEMMA_TRIES=w=>{const x=String(w||"").toLowerCase();const tries=[];const S
 // ===== Mephisto 12 · Soundscape: generated ambience per realm + public-domain music (PAKT_MUSIC) + effect sounds. WebAudio only, no files.
 const SND=(function(){
   let ctx=null,master,busMusic,busAmb,busFx,rev,revWet,noiseBuf,ambNodes=[],ambTimers=[],realm=null,started=false,unlocked=false;
-  let playing=null,queue=[],schedTimer=null,gapTimer=null,lastErr="";
+  let playing=null,queue=[],schedTimer=null,gapTimer=null,lastErr="",hushed=false;
   const cfg=()=>{S.sound=Object.assign({on:true,music:.55,amb:.45,fx:.6},S.sound||{});return S.sound};
   function make(){if(ctx)return true;const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return false;try{ctx=new AC()}catch(e){lastErr=String(e);return false}
     const comp=ctx.createDynamicsCompressor();comp.threshold.value=-18;comp.ratio.value=3;comp.connect(ctx.destination);
@@ -6860,6 +7388,9 @@ const SND=(function(){
     next(){if(!ctx||!started){start();return}playPiece(nextPiece())},
     play(id){const p=(PAKT_MUSIC||[]).find(x=>x.id===id);if(!p)return;if(!ctx||!started){S.sound.on=true;unlocked=true;start()}playPiece(p)},
     now(){return playing&&playing.p},
+    // 13.0: boss music needs the realm score out of the way; ambience stays
+    hush(on){if(!ctx||!started){hushed=false;return}if(on){stopPiece();hushed=true}else if(hushed){hushed=false;if(!playing)try{playPiece(nextPiece())}catch(e){}}},
+    hushed(){return hushed},
     // 12.7: leitmotifs and bells. ev: [[midi, startStep, durSteps], …] in 16ths at bpm
     motif(ev,inst,bpm){if(!cfg().on)return;if(!ctx||!started){unlocked=true;start()}if(!ctx)return;try{const spt=60/(bpm||84)/4,t0=ctx.currentTime+.08,I=INST[inst]||INST.musicbox;ev.forEach(([m,s0,d])=>I(hz(m),t0+s0*spt,d*spt,inst==="organ"?.8:1))}catch(e){}},
     bell(n,low){if(!cfg().on)return;if(!ctx||!started){unlocked=true;start()}if(!ctx)return;try{const f=low?98:146.8;for(let k=0;k<(n||1);k++){const t=ctx.currentTime+.1+k*2.4;[[.56,.2],[.92,.14],[1.19,.1],[1.71,.08],[2,.07],[2.74,.05],[3,.04],[3.76,.03],[4.07,.03]].forEach(([r,g])=>tone(f*r*2,t,7*(1.2-r/5),"sine",g*.5,busMusic))}}catch(e){}},
@@ -7876,11 +8407,11 @@ ACT.chronik=el=>{if(el&&el.dataset&&el.dataset.tab)CHR_TAB=el.dataset.tab;const 
   const n=LORE.filter(loreOpen).length;const tab=(k,l)=>`<button class="${CHR_TAB===k?"on":""}" data-act="chronik" data-tab="${k}">${l}</button>`;
   let body="";
   if(CHR_TAB==="zeit"){const L=LORE.slice().sort((a,b)=>a.sort-b.sort);body=`<div class="chr-time">${L.map(e=>{const o=loreOpen(e);return `<button class="chr-tl r${e.r}${o?"":" locked"}" ${o?`data-act="loreRead" data-id="${e.id}"`:""}><span class="yr">${esc(e.y)}</span><span class="dot"></span><span class="tt">${o?esc(e.t):"???"}</span></button>`}).join("")}</div>`}
-  else{const realms=CHR_TAB==="funde"?["H"]:["I","II","III","IV","V"];body=realms.map(r=>{const L=LORE.filter(e=>e.r===r);return `<div class="chr-realm"><div class="chr-rh"><span class="num">${r==="H"?"✠":r}</span><div><b>${esc(LORE_REALM[r])}</b><small>${L.filter(loreOpen).length} von ${L.length} Seiten</small></div>${r!=="H"?`<button class="sm ghost" data-act="realmIntro" data-r="${r}" ${LVX.indexOf(r)<=LVX.indexOf(pkCh().r)?"":"disabled"}>▶ Auftakt</button>`:""}</div>
+  else{const realms=CHR_TAB==="funde"?["H","N"]:["I","II","III","IV","V"];body=realms.map(r=>{const L=LORE.filter(e=>e.r===r);return `<div class="chr-realm"><div class="chr-rh"><span class="num">${r==="H"?"✠":r}</span><div><b>${esc(LORE_REALM[r])}</b><small>${L.filter(loreOpen).length} von ${L.length} Seiten</small></div>${r!=="H"?`<button class="sm ghost" data-act="realmIntro" data-r="${r}" ${LVX.indexOf(r)<=LVX.indexOf(pkCh().r)?"":"disabled"}>▶ Auftakt</button>`:""}</div>
      <div class="chr-grid">${L.map(e=>{const o=loreOpen(e);const nw=o&&!loreSeen()[e.id];return `<button class="chr-tile${o?"":" locked"}${nw?" new":""}" ${o?`data-act="loreRead" data-id="${e.id}"`:""}>${loreArt(e.art,"chr-img")}<span class="chr-y">${esc(e.y)}</span><b>${o?esc(e.t):"Versiegelt"}</b><small>${o?"":e.egg?esc(EGGS[e.egg][1]):"Kapitel "+e.ch}</small>${nw?`<i class="chr-nw">neu</i>`:""}</button>`}).join("")}</div></div>`}).join("")}
   box.innerHTML=`<div class="chr stack" style="max-width:900px;margin:0 auto">
    <div class="card orn">${pkSay(["Jede Sage hat einen wahren Kern. Und jeder wahre Kern ist schlimmer als die Sage.","Every legend has a true core. And every true core is worse than the legend."])}</div>
-   <div class="row between" style="flex-wrap:wrap;gap:.5rem"><div class="seg">${tab("reiche","Die Reiche")}${tab("zeit","Zeitstrahl")}${tab("funde","Heidelberger Funde")}</div><span class="chip">${n} / ${LORE.length} Seiten</span></div>
+   <div class="row between" style="flex-wrap:wrap;gap:.5rem"><div class="seg">${tab("reiche","Die Reiche")}${tab("zeit","Zeitstrahl")}${tab("funde","Funde &amp; Verbotenes")}</div><span class="chip">${n} / ${LORE.length} Seiten</span></div>
    ${body}</div>`};
 ACT.loreRead=el=>{const id=el.dataset.id;const i=LORE.findIndex(e=>e.id===id);const e=LORE[i];if(!e||!loreOpen(e))return;loreSeen()[id]=todayKey();saveSoon();
   const box=Focus.open({title:"Die Chronik",sub:`${LORE_REALM[e.r]} · ${e.y}`,onClose:()=>ACT.chronik()});const open=LORE.filter(loreOpen);const k=open.indexOf(e);const prev=open[k-1],next=open[k+1];
@@ -7903,7 +8434,7 @@ ACT.realmIntro=el=>realmIntro(el.dataset.r,false);
 // ---------------------------------------------------------------- 3. easter eggs
 function findEgg(id){const E=eggs();if(E[id]||!EGGS[id])return;E[id]=todayKey();saveSoon();const g=EGGS[id];try{SND.sting("egg")}catch(e){}
   const lore=LORE.find(e=>e.egg===id);let ov=document.createElement("div");ov.className="egg-pop";
-  ov.innerHTML=`<div class="egg-card"><div class="eyebrow">Geheimnis gefunden · ${Object.keys(E).length} / ${Object.keys(EGGS).length}</div><h2>${esc(g[0])}</h2>${pkSay([P().du===true&&DU_MAP[g[2]]?DU_MAP[g[2]]:g[2],g[3]])}${lore?`<p class="ui">Neue Seite: <b>${esc(lore.t)}</b> (Heidelberger Funde)</p>`:""}<div class="row" style="justify-content:flex-end;gap:.5rem"><button class="sm ghost egg-x">Später</button>${lore?`<button class="go sm egg-go">Lesen</button>`:""}</div></div>`;
+  ov.innerHTML=`<div class="egg-card"><div class="eyebrow">Geheimnis gefunden · ${Object.keys(E).length} / ${Object.keys(EGGS).length}</div><h2>${esc(g[0])}</h2>${pkSay([P().du===true&&DU_MAP[g[2]]?DU_MAP[g[2]]:g[2],g[3]])}${lore?`<p class="ui">Neue Seite: <b>${esc(lore.t)}</b> (${esc(LORE_REALM[lore.r]||"")})</p>`:""}<div class="row" style="justify-content:flex-end;gap:.5rem"><button class="sm ghost egg-x">Später</button>${lore?`<button class="go sm egg-go">Lesen</button>`:""}</div></div>`;
   document.body.appendChild(ov);requestAnimationFrame(()=>ov.classList.add("on"));const close=()=>{ov.classList.remove("on");setTimeout(()=>ov.remove(),400)};ov.querySelector(".egg-x").onclick=close;const go2=ov.querySelector(".egg-go");if(go2)go2.onclick=()=>{close();ACT.loreRead({dataset:{id:lore.id}})}}
 // konami (keyboard; also the gamepad D-pad arrives as arrow keys in some browsers)
 (function(){const K=["ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowLeft","ArrowRight","ArrowLeft","ArrowRight","b","a"];let i=0;document.addEventListener("keydown",e=>{const k=e.key.length===1?e.key.toLowerCase():e.key;i=k===K[i]?i+1:(k===K[0]?1:0);if(i===K.length){i=0;findEgg("konami")}},true)})();
@@ -8136,10 +8667,7 @@ function st3Bett(id,then){const B=BOSSES[id];const p=P();p.bett=p.bett||{};p.bet
 (function(){const _d=bossDuel;bossDuel=function(id){const r=_d.apply(this,arguments);try{const _g=ACT.pkGoPakt;
   ACT.pkGoPakt=function(){const won=(S.bossWins||{})[id];if(won&&BETT[id]&&!(P().bett||{})[id]){document.documentElement.classList.add("st-white");setTimeout(()=>document.documentElement.classList.remove("st-white"),900);return st3Bett(id,()=>{Focus.close(true);go("pakt")})}return _g.apply(this,arguments)}}catch(e){}return r}})();
 // B4: when a duel or any overlay closes, the sound goes home to the realm you are in
-(function(){const _c=Focus.close;Focus.close=function(){const r=_c.apply(this,arguments);try{if(P().signed)SND.setRealm(pkRealm())}catch(e){}return r}})();
-// boss tension: a low tritone pulse under the duel; it quickens as the candles go out
-setInterval(()=>{try{const d=document.querySelector(".duel");if(!d||document.hidden||!Focus.isOpen())return;const lives=d.querySelectorAll(".duel-lives i.on").length;if(!d.querySelector(".duel-q")||!d.querySelector(".duel-q").children.length)return;
-  const low=lives<=2;SND.motif(low?[[26,0,2],[32,3,2],[26,6,2],[32,9,2]]:[[26,0,3],[32,8,3]],"piano",low?96:66)}catch(e){}},3200);
+(function(){const _c=Focus.close;Focus.close=function(){const r=_c.apply(this,arguments);try{if(P().signed){SND.setRealm(pkRealm());SND.hush(false)}}catch(e){}return r}})();
 // ---------------------------------------------------------------- 3. the ending
 function st3End(){const p=P();const box=Focus.open({title:"Der Pakt ist erfüllt",sub:"Kapitel 40 · Die Kommission",onClose:()=>go("pakt")});const d0=p.date||todayKey();let days=0;try{days=Math.max(1,Math.round((new Date(todayKey())-new Date(d0))/864e5))}catch(e){}
   const words=typeof knownWords==="function"?knownWords():0;const sess=Object.keys(S.log||{}).filter(k=>S.log[k]&&S.log[k].act).length;
@@ -8183,7 +8711,7 @@ ACT.loreRead=el=>{const id=el.dataset.id;const e=LORE.find(x=>x.id===id);if(!e||
     <aside class="lore-dark no-sig"><div class="eyebrow">Die dunkle Fußnote</div><p>${esc(e.dk)}</p><details><summary class="ui">English</summary><p class="en">${esc(e.dken)}</p></details></aside>
     <div class="row" style="justify-content:space-between;margin-top:1rem;gap:.5rem;flex-wrap:wrap"><button class="sm ghost" data-say="${esc(e.de+" "+e.dk)}">${ic("vol")} Vorlesen</button>
      <span class="row" style="gap:.4rem;flex-wrap:wrap">${prev?`<button class="sm" data-act="loreRead" data-id="${prev.id}">‹ ${esc(cut(prev.t))}</button>`:""}${next?`<button class="sm" data-act="loreRead" data-id="${next.id}">${esc(cut(next.t))} ›</button>`:""}</span></div></article>`;
-  motif(e.r==="H"?"H":e.r);if(first1&&P().signed)setTimeout(()=>toast("Mephisto: "+ml("lore1")[0],5200),1200)};
+  motif(e.r==="H"||e.r==="N"?"H":e.r);if(first1&&P().signed)setTimeout(()=>toast("Mephisto: "+ml("lore1")[0],5200),1200)};
 // B16: the hour is struck once, not counted out
 (function(){const _b=SND.bell;SND.bell=function(n,low){return _b.call(SND,low?n:1,low)}})();
 // ---------------------------------------------------------------- 6. styles: reader voices, documents, choices, the ending; realm II in night-blue; r7 fixes
@@ -8225,6 +8753,56 @@ body:has(#focus:not([hidden])) .sp-poodle,body:has(#lore-cine) .sp-poodle{displa
 .duel-hud .sig,.duel-intro .sig{display:none!important}.duel-hud [class^="g-"]{color:inherit!important}
 `;document.head.appendChild(s)})();
 try{document.documentElement.lang="de"}catch(e){}
+// ===== Mephisto 13.0 · Schlussstein: C1 vocabulary, grammar map for g57–g71, eleven secrets, boss music, spelling setting.
+// ---------------------------------------------------------------- 1. vocabulary and grammar wiring
+(function(){try{let n=0;(typeof VOC4!=="undefined"?VOC4:[]).forEach(([de,en,ex,exEn,level,theme])=>{const id="w:"+de;if(CATALOG.has(id))return;CATALOG.set(id,{id,de,en,type:/\s/.test(de)?"phrase":"word",ex,exEn,tag:theme,kind:"word",pl:"",info:"",level,syn:"",src:"c1"});n++});if(n)buildDict()}catch(e){try{logError(e)}catch(x){}}})();
+(function(){try{const add=(name,ids)=>{const a=GRAM_AREAS.find(x=>x[0]===name);if(a)ids.forEach(i=>{if(!a[1].includes(i))a[1].push(i)});else GRAM_AREAS.push([name,ids])};
+  add("Verben: Formen",["g57","g63","g65","g67"]);add("Nomen & Artikel",["g58","g62"]);add("Fälle & Präpositionen",["g59","g60","g69"]);add("Nebensätze",["g64","g66","g68"]);
+  add("Fachsprache & Schreiben",["g61","g70","g71"]);
+  BOSS_GR.hexe.push("g57","g58");BOSS_GR.golem.push("g59","g60","g61");BOSS_GR.pudel.push("g62","g63","g64");BOSS_GR.caligari.push("g65","g66","g67","g68");if(BOSS_GR.kommission)BOSS_GR.kommission.push("g69","g70","g71")}catch(e){}})();
+// ---------------------------------------------------------------- 2. the secrets
+function f13Egg(id,ms){setTimeout(()=>{try{if(P().signed)findEgg(id)}catch(e){}},ms||0)}
+document.addEventListener("input",e=>{try{const v=String((e.target&&e.target.value)||"").toLowerCase();if(/mehr licht/.test(v))f13Egg("mehrlicht");if(/walle[!,]? walle/.test(v))f13Egg("zauber");if(/rumpelstilzchen/.test(v))f13Egg("rumpel")}catch(x){}},true);
+// hour secrets wait until nothing is open (never over a session) and stay quiet under browser automation, so tests do not depend on the clock
+function f13Hours(){try{if(!P().signed||document.hidden||navigator.webdriver||Focus.isOpen()||!(R.tab==="home"||R.tab==="pakt"))return;const h=new Date().getHours();if(h===3)f13Egg("wolf",1500);if(h===23)f13Egg("sandmann",1500)}catch(e){}}
+setTimeout(f13Hours,6000);setInterval(f13Hours,2*60*1000);
+(function(){let n=0,t=0;document.addEventListener("click",e=>{try{const el=e.target&&e.target.closest?e.target:null;if(!el)return;
+  if(el.closest(".pk-shadow .eyebrow")){const now=Date.now();n=now-t<1500?n+1:1;t=now;if(n>=3){n=0;f13Egg("schlemihl")}}
+  if(el.closest(".st-lantern")&&P().done)f13Egg("schluss");
+  if(el.closest(".sp-rabe")){const r=el.closest(".sp-rabe");r.remove();f13Egg("kyff")}
+  if(el.closest('[data-act="pkReadDone"]')){const ti=(($("#fTitle")||{}).textContent||"");if(/^Kapitel 21\b/.test(ti))f13Egg("wette",700);if(/^Kapitel 29\b/.test(ti))f13Egg("koepenick",700);if(/^Bett vier/.test(ti)&&Object.keys(P().bett||{}).length>=4)f13Egg("eid",900)}}catch(x){}},true)})();
+// one raven flies low enough to be caught — in the Black Forest only, until it has been caught
+function f13Raven(){try{if(!P().signed||eggs().kyff||document.hidden||document.querySelector(".sp-rabe"))return;const inI=document.documentElement.dataset.realm==="I"&&!Focus.isOpen()&&(R.tab==="home"||R.tab==="pakt");const onPage=!!document.querySelector(".lore-page.rI");if(!inI&&!onPage)return;
+  const b=document.createElement("button");b.className="sp-rabe";b.setAttribute("aria-label","Ein Rabe");b.innerHTML=`<svg viewBox="0 0 60 30"><path d="M30 18 C22 6 10 6 2 12 C12 12 20 14 30 20 C40 14 48 12 58 12 C50 6 38 6 30 18Z" fill="#050806" stroke="#F08A3F" stroke-width=".6"/></svg>`;document.body.appendChild(b);setTimeout(()=>b.remove(),15000)}catch(e){}}
+setInterval(f13Raven,75000);setTimeout(f13Raven,20000);
+// ---------------------------------------------------------------- 3. boss music: each boss has a two-bar ostinato; the realm score steps aside, the ambience stays
+const BOSS_MUSIC={
+ hexe:{inst:"harpsichord",bpm:92,steps:24,ev:[[45,0,6],[57,6,2],[60,8,2],[64,10,2],[44,12,6],[56,18,2],[59,20,2],[65,22,2],[76,0,4],[75,6,2],[76,8,4],[72,12,4],[71,18,6]]},
+ golem:{inst:"piano",bpm:60,steps:32,ev:[[26,0,6],[38,0,6],[26,8,6],[38,8,6],[29,16,6],[41,16,6],[32,24,3],[44,24,3],[31,28,3],[43,28,3],[62,4,2],[65,12,2],[68,20,6]]},
+ pudel:{inst:"harpsichord",bpm:132,steps:32,ev:[[50,0,2],[57,2,2],[62,4,2],[61,6,2],[62,8,2],[57,10,2],[53,12,2],[57,14,2],[49,16,2],[55,18,2],[61,20,2],[60,22,2],[61,24,2],[58,26,2],[56,28,2],[52,30,2],[38,0,8],[37,16,8]]},
+ caligari:{inst:"piano",bpm:104,steps:24,ev:[[36,0,4],[54,4,2],[60,8,2],[42,12,4],[58,16,2],[64,20,2],[72,0,6],[78,6,6],[70,12,6],[76,18,4],[74,22,2]]},
+ kommission:{inst:"organ",bpm:54,steps:32,ev:[[38,0,16],[50,0,8],[53,0,8],[57,0,8],[49,8,8],[52,8,8],[57,8,8],[36,16,8],[48,16,8],[52,16,8],[55,16,8],[33,24,8],[49,24,8],[52,24,8],[57,24,8]]}};
+let BOSS_NOW=null,BOSS_AT=0;
+(function(){const _d=bossDuel;bossDuel=function(id){BOSS_NOW=id;BOSS_AT=0;return _d.apply(this,arguments)}})();
+setInterval(()=>{try{const d=document.querySelector(".duel");const q=d&&d.querySelector(".duel-q");const live=!!(q&&q.children.length&&Focus.isOpen()&&!document.hidden);
+  if(!live){if(BOSS_AT){BOSS_AT=0}return}const M=BOSS_MUSIC[BOSS_NOW];if(!M||!SND.state().on||!SND.state().started)return;
+  const lives=d.querySelectorAll(".duel-lives i.on").length;const bpm=Math.round(M.bpm*(lives<=2?1.18:1));const now=performance.now();
+  if(now>=BOSS_AT){if(!SND.hushed())SND.hush(true);const ev=lives<=2?M.ev.concat([[26,0,2],[32,M.steps/2,2]]):M.ev;SND.motif(ev,M.inst,bpm);BOSS_AT=now+M.steps*(60/bpm/4)*1000}}catch(e){}},200);
+// ---------------------------------------------------------------- 4. settings: spelling
+(function(){const _v=viewMe;viewMe=function(m){_v(m);try{if(meSeg!=="set")return;const v=m.querySelector(".view");if(!v||v.querySelector(".f13-spell"))return;const cur=S.strict===true?"an":S.strict===false?"aus":"auto";
+  v.insertAdjacentHTML("beforeend",`<div class="card stack s f13-spell"><div class="eyebrow">Rechtschreibung <span class="en">spelling</span></div><p class="ui" style="margin:0">Großschreibung, ß und Umlaute werden immer angezeigt. Streng heißt: Auf Karten gilt eine Antwort mit Rechtschreibfehler nur als „fast richtig“. <span class="en">Capitals, ß and umlauts are always pointed out. Strict means a card answer with a spelling slip only counts as 'almost'.</span></p><div class="seg">${[["auto","Ab B1 streng"],["an","Immer streng"],["aus","Nie streng"]].map(([k,n])=>`<button class="${cur===k?"on":""}" data-act="f13Strict" data-k="${k}">${n}</button>`).join("")}</div></div>`)}catch(e){}}})();
+ACT.f13Strict=el=>{const k=el.dataset.k;if(k==="an")S.strict=true;else if(k==="aus")S.strict=false;else delete S.strict;saveSoon();rerender()};
+// ---------------------------------------------------------------- 5. styles
+(function(){const s=document.createElement("style");s.textContent=`
+.spell-note{display:block;margin-top:.25rem;font-family:var(--ui);font-size:.86rem;color:var(--accent)}
+.sp-rabe{position:fixed;top:24vh;left:-70px;width:64px;height:44px;padding:0;border:0!important;background:none!important;box-shadow:none!important;z-index:40;cursor:pointer;animation:f13Rabe 15s linear forwards;min-height:0}
+.sp-rabe svg{width:100%;animation:f13Flap .5s ease-in-out infinite alternate;transform-origin:50% 60%}
+@keyframes f13Rabe{0%{transform:translate(0,0)}35%{transform:translate(45vw,-6vh)}70%{transform:translate(80vw,5vh)}100%{transform:translate(calc(100vw + 140px),-4vh)}}
+@keyframes f13Flap{from{transform:scaleY(1)}to{transform:scaleY(.55)}}
+@media (prefers-reduced-motion: reduce){.sp-rabe svg{animation:none}}
+body:has(#lore-cine) .sp-rabe{display:none}
+.lore-page.rN .lore-y{color:#9BD08A}
+`;document.head.appendChild(s)})();
 // ===== Mephisto 12.5.1 · Wolke: Drive sync that never asks "which one?" and never destroys.
 // Record-level, deterministic merge (merge(a,b) == merge(b,a)); settings by per-key timestamps (S._ts); reviews by review time;
 // reset / replace by epoch (S._epoch); read failures abort (never overwrite what we could not read); twins merged before trashing;
@@ -8237,8 +8815,8 @@ const pick=(x,y)=>J(x)>=J(y)?x:y; // deterministic tie-break
 function cardWin(a,b){if(!a)return b;if(!b)return a;const la=a.last||"",lb=b.last||"";if(la!==lb)return la>lb?a:b;const na=(a.n||0),nb=(b.n||0);if(na!==nb)return na>nb?a:b;const sa=(a.reps||0)+(a.lapses||0),sb=(b.reps||0)+(b.lapses||0);if(sa!==sb)return sa>sb?a:b;return pick(a,b)}
 function tsOf(o,k){return (o&&o._ts&&o._ts[k])||""}
 function normC(o){if(!o||!Array.isArray(o.custom)||!isObj(o.cards))return o;const m={};o.custom.forEach((c,i)=>{if(c&&c.de)m["c:"+i]="cde:"+c.de});const cards={};for(const k in o.cards)cards[m[k]||k]=o.cards[k];return Object.assign({},o,{cards})}
-function denormC(o){if(!o||!Array.isArray(o.custom))return o;const arr=o.custom.slice().sort((x,y)=>String(x.de).localeCompare(String(y.de)));const idx={};arr.forEach((c,i)=>idx["cde:"+c.de]="c:"+i);const cards={};for(const k in (o.cards||{})){if(k.startsWith("cde:")){if(idx[k])cards[idx[k]]=o.cards[k]}else if(!/^c:\d+$/.test(k))cards[k]=o.cards[k]}return Object.assign({},o,{custom:arr,cards})}
-function mergeStates(L,R){if(!R)return L;if(!L)return R;return denormC(mergeCore(normC(L),normC(R)))}
+function denormC(o,pref){if(!o||!Array.isArray(o.custom))return o;const pos={};(pref||[]).forEach((c,i)=>{if(c&&c.de&&!(c.de in pos))pos[c.de]=i});const rk=c=>(c.de in pos)?pos[c.de]:1e9;const arr=o.custom.slice().sort((x,y)=>rk(x)-rk(y)||String(x.de).localeCompare(String(y.de)));const idx={};arr.forEach((c,i)=>idx["cde:"+c.de]="c:"+i);const cards={};for(const k in (o.cards||{})){if(k.startsWith("cde:")){if(idx[k])cards[idx[k]]=o.cards[k]}else if(!/^c:\d+$/.test(k))cards[k]=o.cards[k]}return Object.assign({},o,{custom:arr,cards})}
+function mergeStates(L,R){if(!R)return L;if(!L)return R;return denormC(mergeCore(normC(L),normC(R)),L&&L.custom)}
 function mergeCore(L,R){
   const eL=L._epoch||"",eR=R._epoch||"";if(eL!==eR){const win=eL>eR?L:R,lose=win===L?R:L;const out=Object.assign({},win);for(const k of DEVICE_KEYS)if(L[k]!==undefined)out[k]=L[k];
     const ep=win._epoch;if(isObj(lose.cards)){out.cards=Object.assign({},win.cards);for(const id in lose.cards){const c=lose.cards[id];if((c.last||"")>ep)out.cards[id]=cardWin(out.cards[id],c)}}
