@@ -3192,6 +3192,672 @@ const EGGS={
  datum:["Kalender des Teufels","Komm an einem Tag, der Goethe oder den Hexen gehört.","An diesem Tag ist die Grenze dünn. Gut, dass Sie gekommen sind.","On this day the border is thin. Good that you came."],
  portrait:["Der Geist, der stets verneint","Tippe dreimal auf mein Gesicht.","Ich bin der Geist, der stets verneint! Und das mit Recht.","I am the spirit that always denies! And rightly so."]};
 const EGG_DATES={"04-30":"Walpurgisnacht","05-01":"Walpurgisnacht","08-28":"Goethes Geburtstag (1749)","03-22":"Goethes Todestag (1832)","01-14":"Hinrichtung der Susanna Margaretha Brandt (1772)","06-26":"Auszug der Kinder von Hameln (1284)","03-24":"Robert Kochs Vortrag (1882)","11-08":"Röntgens Entdeckung (1895)","12-06":"Nikolaus – der große Nikolas aus dem Struwwelpeter","10-31":"Reformationstag (1517)"};
+// ===== Mephisto 12.8 · Grammatik komplett, Teil 1 (A1–A2): the lessons that were missing between the big chapters.
+const GRAMMAR3=[
+{id:"g31",level:"A1",week:2,title:"Negation: nicht & kein",sub:"Two ways to say no, and where nicht stands",
+ body:`<p><b>kein</b> negates a noun that would have <i>ein</i> or no article. It takes the same endings as <i>ein</i>.</p>
+<table><tr><th></th><th>masc.</th><th>fem.</th><th>neut.</th><th>plural</th></tr><tr><td>Nom.</td><td><b class="g">kein</b></td><td><b class="g">keine</b></td><td><b class="g">kein</b></td><td><b class="g">keine</b></td></tr><tr><td>Akk.</td><td><b class="g">keinen</b></td><td>keine</td><td>kein</td><td>keine</td></tr></table>
+<p><span class="de">Ich habe <b>kein</b> Fieber. Ich habe <b>keine</b> Schmerzen. Ich habe <b>keinen</b> Hunger.</span></p>
+<p><b>nicht</b> negates everything else: verbs, adjectives, adverbs, nouns with <i>der/die/das</i> or <i>mein</i>.</p>
+<p>Position of <b>nicht</b>: at the <b>end</b> when it negates the whole sentence (<span class="de">Ich rauche <b>nicht</b>.</span>), but <b>before</b> an adjective, an adverb, a preposition phrase or the second verb part: <span class="de">Das ist <b>nicht</b> gut. Ich komme <b>nicht</b> aus Berlin. Ich kann <b>nicht</b> schlafen.</span></p>
+<p><b>Trap for English speakers:</b> never <span class="de">nicht ein</span> for "not a". "I am not a doctor" = <span class="de">Ich bin <b>kein</b> Arzt.</span></p>
+<p>More negatives: <span class="de">nie</span> (never), <span class="de">nichts</span> (nothing), <span class="de">niemand</span> (nobody), <span class="de">noch nicht</span> (not yet), <span class="de">nicht mehr</span> (no longer).</p>`,
+ merke:"ein → kein. Everything else → nicht. Never „nicht ein“.",
+ ex:[{type:"mc",q:"Ich habe ___ Allergien.",o:["nicht","keine","kein"],a:1,why:"Allergien is a plural noun without article → keine."},
+ {type:"mc",q:"Der Patient ist ___ wach.",o:["kein","keine","nicht"],a:2,why:"wach is an adjective → nicht, placed before it."},
+ {type:"mc",q:"I am not a nurse. →",o:["Ich bin nicht ein Pfleger.","Ich bin kein Pfleger.","Ich bin Pfleger nicht."],a:1,why:"'not a' is always kein, never nicht ein."},
+ {type:"mc",q:"Ich trinke ___ Alkohol.",o:["keinen","keine","nicht"],a:0,why:"der Alkohol, accusative, no article → keinen."},
+ {type:"mc",q:"Where does nicht go? „Ich verstehe das ___.“ / „Ich ___ verstehe das.“",o:["Ich verstehe das nicht.","Ich nicht verstehe das.","Nicht ich verstehe das."],a:0,why:"When the whole sentence is negated, nicht goes to the end."},
+ {type:"gap",q:"Das ist ___ mein Ausweis. (not)",a:"nicht",alt:[],why:"A noun with a possessive (mein) is negated with nicht."},
+ {type:"gap",q:"Wir haben heute ___ Zeit. (no)",a:"keine",alt:[],why:"die Zeit, no article → keine Zeit."},
+ {type:"order",words:["Ich","kann","heute","nicht","kommen","."],a:"Ich kann heute nicht kommen.",why:"nicht stands before the second verb part (kommen)."},
+ {type:"fix",q:"Er hat nicht ein Auto.",a:"Er hat kein Auto.",err:"nicht ein",why:"nicht ein → kein."},
+ {type:"transform",q:"Verneinen: Ich habe Fieber.",a:"Ich habe kein Fieber.",alt:[],why:"das Fieber, no article → kein Fieber."}]},
+{id:"g32",level:"A1",week:2,title:"Fragen: W-Fragen, Ja/Nein und „doch“",sub:"Question words, verb-first questions, and the answer English lacks",
+ body:`<p><b>W-Frage:</b> question word in position 1, <b>verb in position 2</b>. <span class="de">Wo <b>haben</b> Sie Schmerzen? Seit wann <b>haben</b> Sie Fieber?</span></p>
+<table><tr><th>wer</th><td>who</td><th>was</th><td>what</td><th>wo</th><td>where</td></tr><tr><th>wohin</th><td>where to</td><th>woher</th><td>where from</td><th>wann</th><td>when</td></tr><tr><th>wie</th><td>how</td><th>warum</th><td>why</td><th>wie lange</th><td>how long</td></tr><tr><th>wie viel</th><td>how much</td><th>wie oft</th><td>how often</td><th>welcher</th><td>which</td></tr></table>
+<p><b>False friends:</b> <span class="de">wer</span> = who (not where), <span class="de">wo</span> = where (not who).</p>
+<p><b>Ja/Nein-Frage:</b> the verb comes <b>first</b>. No "do". <span class="de"><b>Haben</b> Sie Schmerzen? <b>Nehmen</b> Sie Medikamente?</span></p>
+<p><b>doch</b> answers "yes" to a <b>negative</b> question: <span class="de">Haben Sie keine Schmerzen? — <b>Doch</b>, im Bauch.</span> (<span class="de">Ja</span> would be confusing here.)</p>
+<p><span class="de">wem</span> = to whom (dative), <span class="de">wen</span> = whom (accusative): <span class="de">Wen rufen Sie an? Wem gehört das?</span></p>`,
+ merke:"W-Frage: verb second. Ja/Nein: verb first. Negative question + yes = doch.",
+ ex:[{type:"mc",q:"___ tut es weh? — Im Bauch.",o:["Wer","Wo","Wann"],a:1,why:"wo = where. wer = who."},
+ {type:"mc",q:"___ haben Sie die Schmerzen? — Seit gestern.",o:["Seit wann","Wie viel","Wohin"],a:0,why:"seit wann = since when."},
+ {type:"mc",q:"Rauchen Sie nicht? — ___, zehn Zigaretten am Tag.",o:["Ja","Nein","Doch"],a:2,why:"A 'yes' to a negative question is doch."},
+ {type:"mc",q:"Do you take medication? →",o:["Tun Sie nehmen Medikamente?","Nehmen Sie Medikamente?","Sie nehmen Medikamente?"],a:1,why:"German has no 'do': the verb simply comes first."},
+ {type:"mc",q:"___ kommen Sie? — Aus Saudi-Arabien.",o:["Wo","Wohin","Woher"],a:2,why:"woher = where from; wohin = where to; wo = where (no movement)."},
+ {type:"gap",q:"___ heißen Sie? (how)",a:"Wie",alt:["wie"],why:"Wie heißen Sie? = What is your name? (literally: how are you called)"},
+ {type:"gap",q:"___ rufen wir an? — Den Oberarzt. (whom)",a:"Wen",alt:["wen"],why:"anrufen takes the accusative → wen."},
+ {type:"order",words:["Wie","lange","haben","Sie","schon","Husten","?"],a:"Wie lange haben Sie schon Husten?",why:"Question phrase (wie lange) first, then the verb."},
+ {type:"fix",q:"Wo Sie wohnen?",a:"Wo wohnen Sie?",err:"Sie wohnen",why:"After the question word the verb comes second, then the subject."},
+ {type:"transform",q:"Mach eine Ja/Nein-Frage: Sie haben Fieber.",a:"Haben Sie Fieber?",alt:[],why:"Verb first."}]},
+{id:"g33",level:"A1",week:3,title:"Der Plural",sub:"Five endings, some umlauts, and how to guess",
+ body:`<p>German has five plural patterns. The article is always <b class="g">die</b>. Learn every noun as a triple: <span class="de">der Arzt, die Ärzte</span>.</p>
+<table><tr><th>Ending</th><th>Typical for</th><th>Example</th></tr>
+<tr><td><b>-(e)n</b></td><td>most feminine nouns; all in -e, -ung, -heit, -keit, -ion</td><td>die Lunge → die Lunge<b>n</b>, die Untersuchung → die Untersuchung<b>en</b></td></tr>
+<tr><td><b>-e</b> / <b>¨-e</b></td><td>many masculine, short neuter</td><td>der Tag → die Tag<b>e</b>, der Arzt → die <b>Ä</b>rzt<b>e</b></td></tr>
+<tr><td><b>-er</b> / <b>¨-er</b></td><td>many short neuter nouns</td><td>das Kind → die Kind<b>er</b>, das Haus → die H<b>ä</b>us<b>er</b></td></tr>
+<tr><td><b>–</b> / <b>¨</b></td><td>masc./neut. in -er, -el, -en; -chen, -lein</td><td>der Finger → die Finger, der Vater → die V<b>ä</b>ter</td></tr>
+<tr><td><b>-s</b></td><td>foreign words, words ending in a vowel, abbreviations</td><td>das Auto → die Auto<b>s</b>, das EKG → die EKG<b>s</b></td></tr></table>
+<p><b>-in → -innen:</b> <span class="de">die Ärztin → die Ärztin<b>nen</b></span>. <b>-nis → -nisse:</b> <span class="de">das Ergebnis → die Ergebnis<b>se</b></span>. Latin words: <span class="de">das Virus → die Viren, das Antibiotikum → die Antibiotika</span>.</p>
+<p><b>Dative plural adds -n:</b> <span class="de">mit den Kinder<b>n</b>, seit drei Tage<b>n</b></span> (not after -s or -n).</p>
+<p>Practise in <b>Die Gruft</b> (Pakt › Werkstatt).</p>`,
+ merke:"Feminine → mostly -(e)n. Learn noun + article + plural together.",
+ ex:[{type:"mc",q:"die Lunge → die ___",o:["Lunge","Lungen","Lunges"],a:1,why:"Nouns in -e add -n."},
+ {type:"mc",q:"das Kind → die ___",o:["Kinder","Kinden","Kinds"],a:0,why:"Short neuter nouns often take -er."},
+ {type:"mc",q:"der Arzt → die ___",o:["Arzte","Ärzte","Arzten"],a:1,why:"-e with umlaut: die Ärzte."},
+ {type:"mc",q:"die Ärztin → die ___",o:["Ärztinen","Ärztinnen","Ärztin"],a:1,why:"-in doubles the n: -innen."},
+ {type:"mc",q:"seit drei ___ (der Tag)",o:["Tage","Tagen","Tags"],a:1,why:"seit + dative; the dative plural adds -n: Tagen."},
+ {type:"gap",q:"zwei ___ (das Medikament)",a:"Medikamente",alt:[],why:"Neuter nouns in -ment take -e."},
+ {type:"gap",q:"Wir haben drei ___ gemacht. (das EKG)",a:"EKGs",alt:[],why:"Abbreviations take -s."},
+ {type:"order",words:["Die","Kinder","haben","seit","zwei","Tagen","Fieber","."],a:"Die Kinder haben seit zwei Tagen Fieber.",why:"Plural subject → haben; seit + dative plural (Tagen)."},
+ {type:"fix",q:"Ich habe zwei Bruder.",a:"Ich habe zwei Brüder.",err:"Bruder",why:"der Bruder → die Brüder (umlaut, no ending)."},
+ {type:"transform",q:"In den Plural: Der Patient wartet.",a:"Die Patienten warten.",alt:[],why:"der Patient → die Patienten (n-declension), verb → warten."}]},
+{id:"g34",level:"A1",week:3,title:"Possessivartikel",sub:"mein, dein, sein, ihr, unser, euer, Ihr — and their endings",
+ body:`<p>The possessive agrees with the <b>owner</b> (which word) and with the <b>thing owned</b> (which ending). Endings are those of <i>ein/kein</i>.</p>
+<table><tr><th>ich</th><td>mein</td><th>du</th><td>dein</td><th>er / es</th><td>sein</td></tr><tr><th>sie (she)</th><td>ihr</td><th>wir</th><td>unser</td><th>ihr</th><td>euer</td></tr><tr><th>sie (they)</th><td>ihr</td><th>Sie</th><td><b>Ihr</b></td><th></th><td></td></tr></table>
+<table><tr><th></th><th>masc.</th><th>fem.</th><th>neut.</th><th>plural</th></tr><tr><td>Nom.</td><td>mein Arm</td><td>mein<b>e</b> Hand</td><td>mein Bein</td><td>mein<b>e</b> Augen</td></tr><tr><td>Akk.</td><td>mein<b>en</b> Arm</td><td>meine Hand</td><td>mein Bein</td><td>meine Augen</td></tr><tr><td>Dat.</td><td>mein<b>em</b> Arm</td><td>mein<b>er</b> Hand</td><td>mein<b>em</b> Bein</td><td>mein<b>en</b> Augen</td></tr></table>
+<p><b>sein</b> for a male or neuter owner, <b>ihr</b> for a female owner or several owners: <span class="de">Herr Nowak und <b>seine</b> Frau. Frau Nowak und <b>ihr</b> Mann.</span></p>
+<p>Polite <b>Ihr</b> is always capital: <span class="de">Wie ist <b>Ihr</b> Name? Zeigen Sie mir bitte <b>Ihren</b> Ausweis.</span></p>
+<p>With body parts German often uses the article, not the possessive: <span class="de">Heben Sie bitte <b>den</b> Arm.</span></p>`,
+ merke:"Owner picks the word, the noun picks the ending. Polite Ihr is capital.",
+ ex:[{type:"mc",q:"Frau Weber, wo ist ___ Versichertenkarte?",o:["ihre","Ihre","Ihr"],a:1,why:"Polite form, capital: Ihre; die Karte → -e."},
+ {type:"mc",q:"Herr Nowak nimmt ___ Tabletten nicht.",o:["seine","ihre","sein"],a:0,why:"Male owner → sein-; plural noun → seine."},
+ {type:"mc",q:"Die Patientin sucht ___ Mann.",o:["seinen","ihren","ihr"],a:1,why:"Female owner → ihr-; der Mann in the accusative → ihren."},
+ {type:"mc",q:"Ich wohne bei ___ Schwester.",o:["meine","meiner","meinem"],a:1,why:"bei + dative, feminine → meiner."},
+ {type:"mc",q:"Das ist ___ Kollege, Dr. Braun.",o:["unser","unsere","unseren"],a:0,why:"der Kollege, nominative → unser (no ending)."},
+ {type:"gap",q:"Wie ist ___ Telefonnummer? (your, polite)",a:"Ihre",alt:[],why:"die Telefonnummer → Ihre, capital I."},
+ {type:"gap",q:"Ich rufe ___ Arzt an. (my)",a:"meinen",alt:[],why:"anrufen + accusative, der Arzt → meinen."},
+ {type:"order",words:["Bitte","geben","Sie","mir","Ihren","Ausweis","."],a:"Bitte geben Sie mir Ihren Ausweis.",why:"der Ausweis, accusative → Ihren."},
+ {type:"fix",q:"Frau Klein und sein Sohn warten draußen.",a:"Frau Klein und ihr Sohn warten draußen.",err:"sein",why:"A woman's son → ihr Sohn."},
+ {type:"transform",q:"Höflich (Sie): Wo ist dein Ausweis?",a:"Wo ist Ihr Ausweis?",alt:[],why:"dein → Ihr (capital)."}]},
+{id:"g35",level:"A1",week:4,title:"Präpositionen mit Akkusativ & die Zeit",sub:"für, ohne, durch, gegen, um — and am, um, im for time",
+ body:`<p><b>Always accusative:</b> <span class="de">für, ohne, durch, gegen, um, bis, entlang</span>. Chant: <i>durch, für, gegen, ohne, um</i>.</p>
+<p><span class="de">ein Rezept <b>für den</b> Patienten · <b>ohne</b> Befund · <b>durch die</b> Nase atmen · eine Tablette <b>gegen die</b> Schmerzen · <b>um die</b> Ecke</span></p>
+<p>Only the masculine changes in the accusative: <span class="de">der → den, ein → einen</span>.</p>
+<p><b>Time:</b></p>
+<table><tr><th>um</th><td>clock time</td><td class="de">um 8 Uhr, um halb neun</td></tr><tr><th>am</th><td>days, dates, parts of the day</td><td class="de">am Montag, am 3. Mai, am Abend (but: <b>in der</b> Nacht)</td></tr><tr><th>im</th><td>months, seasons, years with <i>Jahr</i></td><td class="de">im Januar, im Winter, im Jahr 2026</td></tr><tr><th>seit</th><td>since / for (still going on) + dative</td><td class="de">seit gestern, seit drei Tagen</td></tr><tr><th>vor</th><td>ago + dative</td><td class="de">vor zwei Wochen</td></tr><tr><th>von … bis</th><td>from … to</td><td class="de">von 8 bis 16 Uhr</td></tr></table>
+<p><b>Trap:</b> a bare year has no preposition: <span class="de">Ich bin 1997 geboren.</span> — never <i>in 1997</i>. And "for three days" (ongoing) is <span class="de">seit drei Tagen</span>, not <i>für</i>.</p>`,
+ merke:"durch, für, gegen, ohne, um → accusative. um + Uhr, am + Tag, im + Monat.",
+ ex:[{type:"mc",q:"Das Rezept ist für ___ Mann. (Ihr)",o:["Ihr","Ihren","Ihrem"],a:1,why:"für + accusative, der Mann → Ihren."},
+ {type:"mc",q:"Der Termin ist ___ 14 Uhr.",o:["am","im","um"],a:2,why:"Clock time → um."},
+ {type:"mc",q:"Ich habe ___ Montag Nachtdienst.",o:["am","im","um"],a:0,why:"Days → am."},
+ {type:"mc",q:"I have had a cough for three days. →",o:["Ich habe Husten für drei Tage.","Ich habe seit drei Tagen Husten.","Ich hatte Husten vor drei Tagen."],a:1,why:"Still going on → seit + dative, present tense."},
+ {type:"mc",q:"Er wurde ___ operiert. (2019)",o:["in 2019","2019","am 2019"],a:1,why:"A bare year takes no preposition (or: im Jahr 2019)."},
+ {type:"gap",q:"Atmen Sie bitte durch ___ Mund. (der Mund)",a:"den",alt:[],why:"durch + accusative: der → den."},
+ {type:"gap",q:"Ich komme ___ Januar nach Heidelberg. (in)",a:"im",alt:[],why:"Months → im."},
+ {type:"order",words:["Ich","arbeite","von","Montag","bis","Freitag","."],a:"Ich arbeite von Montag bis Freitag.",why:"von … bis = from … to."},
+ {type:"fix",q:"Ich bin in 1997 geboren.",a:"Ich bin 1997 geboren.",err:"in 1997",why:"No preposition before a bare year."},
+ {type:"transform",q:"Mit „ohne“: Ich trinke Kaffee mit Zucker.",a:"Ich trinke Kaffee ohne Zucker.",alt:[],why:"ohne + accusative; Zucker needs no article here."}]},
+{id:"g36",level:"A1",week:4,title:"Zahlen, Uhrzeit, Datum",sub:"Reading numbers backwards, half past, and the date with a dot",
+ body:`<p><b>21–99 are said backwards:</b> <span class="de">einundzwanzig</span> (one-and-twenty), <span class="de">fünfundvierzig</span> = 45. Write it down digit by digit when a patient dictates a number.</p>
+<p><b>Trap:</b> <span class="de">sechs</span> but <span class="de">se<b>ch</b>zehn, se<b>ch</b>zig</span>; <span class="de">sieben</span> but <span class="de">sie<b>b</b>zehn, sie<b>b</b>zig</span>; <span class="de">dreißig</span> with ß.</p>
+<p><b>Decimals use a comma:</b> <span class="de">38,5 °C = achtunddreißig Komma fünf</span>. Thousands use a dot or space: 1.000.</p>
+<p><b>Clock:</b> official (hospital, train) = 24 h: <span class="de">14:30 = vierzehn Uhr dreißig</span>. Spoken:</p>
+<table><tr><td>8:15</td><td class="de">Viertel nach acht</td><td>8:30</td><td class="de"><b>halb neun</b></td></tr><tr><td>8:45</td><td class="de">Viertel vor neun</td><td>8:25</td><td class="de">fünf vor halb neun</td></tr></table>
+<p><b>halb neun = 8:30</b>, half <i>towards</i> nine. This costs foreigners appointments.</p>
+<p><b>Date:</b> ordinal + dot, day first: <span class="de">der 3. Mai = der dritte Mai</span>; "on" = <span class="de">am dritt<b>en</b> Mai</span>. Written 03.05.2026.</p>
+<p>Ordinals: <span class="de">erste, zweite, <b>dritte</b>, vierte … <b>siebte</b>, achte … zwanzig<b>ste</b></span> (-te up to 19, -ste from 20).</p>
+<p>Age and birthdate: <span class="de">Ich bin 29 Jahre alt. Geboren am 14.03.1997.</span> Years: <span class="de">neunzehnhundertsiebenundneunzig, zweitausendsechsundzwanzig</span>.</p>`,
+ merke:"Units before tens. halb neun = 8:30. Dates: day.month.year with dots.",
+ ex:[{type:"mc",q:"„siebenundsechzig“ =",o:["76","67","607"],a:1,why:"Units first: sieben-und-sechzig = 67."},
+ {type:"mc",q:"„halb vier“ =",o:["4:30","3:30","3:45"],a:1,why:"halb vier = half towards four = 3:30."},
+ {type:"mc",q:"38,5 °C spricht man:",o:["achtunddreißig Punkt fünf","achtunddreißig Komma fünf","achtunddreißig und fünf"],a:1,why:"German decimals use Komma."},
+ {type:"mc",q:"„am 03.05.“ spricht man:",o:["am drei Mai","am dritten Mai","am dritte Mai"],a:1,why:"am + ordinal with -en: am dritten Mai (or: am dritten Fünften)."},
+ {type:"mc",q:"„Viertel vor neun“ =",o:["9:15","8:45","9:45"],a:1,why:"A quarter before nine = 8:45."},
+ {type:"gap",q:"16 = ___",a:"sechzehn",alt:[],why:"sechs loses its s: sechzehn."},
+ {type:"gap",q:"Der Termin ist um ___ zehn. (9:30, spoken)",a:"halb",alt:[],why:"9:30 = halb zehn."},
+ {type:"order",words:["Ich","bin","am","vierzehnten","März","geboren","."],a:"Ich bin am vierzehnten März geboren.",why:"am + ordinal in -en."},
+ {type:"fix",q:"Der Patient ist dreiundsiebenzig Jahre alt.",a:"Der Patient ist dreiundsiebzig Jahre alt.",err:"dreiundsiebenzig",why:"sieben shortens: siebzig."},
+ {type:"transform",q:"In Ziffern (Uhrzeit, 24 h): Viertel nach sieben am Abend",a:"19:15",alt:["19.15","19:15 Uhr","19.15 Uhr"],why:"Evening: 7 + 12 = 19; Viertel nach = :15."}]},
+{id:"g37",level:"A1",week:5,title:"und, aber, oder, denn, sondern",sub:"Five connectors that do not move the verb",
+ body:`<p>These five stand in <b>position 0</b>: they join two main clauses and the word order after them stays normal. Memory word: <b>ADUSO</b> (aber, denn, und, sondern, oder).</p>
+<p><span class="de">Ich bin müde, <b>aber</b> ich <b>arbeite</b> weiter.</span><br><span class="de">Ich bleibe zu Hause, <b>denn</b> ich <b>bin</b> krank.</span> (denn = because, with normal word order)</p>
+<p><b>sondern</b> = "but rather", only after a negation, and it corrects: <span class="de">Das ist <b>nicht</b> das Herz, <b>sondern</b> der Magen.</span> <b>aber</b> only adds a contrast: <span class="de">Er ist nicht reich, aber glücklich.</span></p>
+<p><b>Comma:</b> before <span class="de">aber, denn, sondern</span> always; before <span class="de">und, oder</span> normally none.</p>
+<p>Compare with adverbs that take <b>position 1</b> and push the subject behind the verb: <span class="de">Ich bin krank, <b>deshalb bleibe</b> ich zu Hause.</span> Same for <span class="de">dann, danach, trotzdem, also</span>.</p>
+<p>If the subject is the same, you can drop it after <span class="de">und</span>: <span class="de">Ich komme und (ich) helfe.</span></p>`,
+ merke:"ADUSO = position 0, verb stays second. deshalb/trotzdem/dann = position 1, verb follows directly.",
+ ex:[{type:"mc",q:"Ich nehme die Tablette, ___ ich habe Schmerzen.",o:["denn","deshalb","sondern"],a:0,why:"denn = because, normal word order after it."},
+ {type:"mc",q:"Das ist kein Infarkt, ___ eine Muskelzerrung.",o:["aber","sondern","oder"],a:1,why:"After a negation, a correction → sondern."},
+ {type:"mc",q:"Ich habe Fieber, deshalb ___",o:["ich bleibe im Bett.","bleibe ich im Bett.","ich im Bett bleibe."],a:1,why:"deshalb takes position 1, so the verb comes next."},
+ {type:"mc",q:"Möchten Sie Tee ___ Wasser?",o:["oder","denn","sondern"],a:0,why:"oder = or."},
+ {type:"mc",q:"Er ist alt, aber ___",o:["ist er fit.","er ist fit.","er fit ist."],a:1,why:"aber is position 0: subject, then verb."},
+ {type:"gap",q:"Ich komme nicht heute, ___ morgen. (but rather)",a:"sondern",alt:[],why:"nicht … sondern."},
+ {type:"gap",q:"Sie hat Husten ___ Fieber. (and)",a:"und",alt:[],why:"und joins two words; no comma."},
+ {type:"order",words:["Ich","bin","müde",",","aber","ich","arbeite","weiter","."],a:"Ich bin müde, aber ich arbeite weiter.",why:"Comma before aber; normal word order after it."},
+ {type:"fix",q:"Ich bin krank, denn bleibe ich zu Hause.",a:"Ich bin krank, deshalb bleibe ich zu Hause.",err:"denn",why:"denn gives the reason; the consequence needs deshalb."},
+ {type:"transform",q:"Verbinde mit „denn“: Ich gehe zum Arzt. Ich habe Schmerzen.",a:"Ich gehe zum Arzt, denn ich habe Schmerzen.",alt:[],why:"denn + normal word order, comma before it."}]},
+{id:"g38",level:"A2",week:6,title:"Reflexive Verben",sub:"sich waschen, sich fühlen, sich erinnern — and when sich is dative",
+ body:`<p>The subject does something to itself. The reflexive pronoun equals the personal pronoun except in the third person: <b>sich</b>.</p>
+<table><tr><th></th><th>Akk.</th><th>Dat.</th></tr><tr><td>ich</td><td><b class="g">mich</b></td><td><b class="g">mir</b></td></tr><tr><td>du</td><td><b class="g">dich</b></td><td><b class="g">dir</b></td></tr><tr><td>er/sie/es · sie · Sie</td><td colspan="2"><b class="g">sich</b></td></tr><tr><td>wir</td><td colspan="2">uns</td></tr><tr><td>ihr</td><td colspan="2">euch</td></tr></table>
+<p><span class="de">Wie fühlen Sie <b>sich</b>? Ich fühle <b>mich</b> schwach. Setzen Sie <b>sich</b> bitte. Bitte ziehen Sie <b>sich</b> aus.</span></p>
+<p><b>Dative</b> when there is another accusative object (usually a body part or clothing): <span class="de">Ich wasche <b>mich</b>.</span> but <span class="de">Ich wasche <b>mir die Hände</b>. Ich habe <b>mir den Arm</b> gebrochen.</span></p>
+<p>Many verbs are reflexive only in German: <span class="de">sich erinnern an, sich freuen auf/über, sich ärgern über, sich beeilen, sich erkälten, sich verletzen, sich übergeben, sich Sorgen machen, sich vorstellen</span>.</p>
+<p><b>Position:</b> directly after the verb, or after the subject if it follows the verb: <span class="de">Heute fühlt <b>er sich</b> besser. Haben Sie <b>sich</b> verletzt?</span> Perfect always with <b>haben</b>.</p>`,
+ merke:"Third person and Sie: sich. Body part as object → dative: Ich wasche mir die Hände.",
+ ex:[{type:"mc",q:"Wie fühlen Sie ___ heute?",o:["Sie","sich","Ihnen"],a:1,why:"Reflexive for Sie is sich (lowercase)."},
+ {type:"mc",q:"Ich habe ___ erkältet.",o:["mir","mich","sich"],a:1,why:"sich erkälten, accusative: ich → mich."},
+ {type:"mc",q:"Ich habe ___ das Bein gebrochen.",o:["mich","mir","mein"],a:1,why:"Body part is the accusative object → the pronoun is dative: mir."},
+ {type:"mc",q:"Bitte setzen Sie ___.",o:["Sie","sich","dich"],a:1,why:"sich setzen; polite imperative: Setzen Sie sich."},
+ {type:"mc",q:"Der Patient hat ___ dreimal übergeben.",o:["sich","ihn","ihm"],a:0,why:"sich übergeben = to vomit; third person → sich."},
+ {type:"gap",q:"Erinnern Sie ___ an den Unfall?",a:"sich",alt:[],why:"sich erinnern an + accusative."},
+ {type:"gap",q:"Wir freuen ___ auf das Wochenende.",a:"uns",alt:[],why:"wir → uns."},
+ {type:"order",words:["Ich","habe","mir","die","Hand","verletzt","."],a:"Ich habe mir die Hand verletzt.",why:"Dative pronoun (mir) because the hand is the accusative object."},
+ {type:"fix",q:"Ich wasche mich die Hände.",a:"Ich wasche mir die Hände.",err:"mich",why:"With a body part as object the reflexive is dative."},
+ {type:"transform",q:"Ins Perfekt: Er verletzt sich.",a:"Er hat sich verletzt.",alt:[],why:"Reflexive verbs always form the perfect with haben."}]},
+{id:"g39",level:"A2",week:6,title:"Pronomen im Akkusativ & Dativ — und ihre Reihenfolge",sub:"ihn or ihm? And who comes first: Ich gebe es ihm.",
+ body:`<table><tr><th>Nom.</th><td>ich</td><td>du</td><td>er</td><td>sie</td><td>es</td><td>wir</td><td>ihr</td><td>sie / Sie</td></tr><tr><th>Akk.</th><td>mich</td><td>dich</td><td><b class="g">ihn</b></td><td>sie</td><td>es</td><td>uns</td><td>euch</td><td>sie / Sie</td></tr><tr><th>Dat.</th><td>mir</td><td>dir</td><td><b class="g">ihm</b></td><td><b class="g">ihr</b></td><td>ihm</td><td>uns</td><td>euch</td><td><b class="g">ihnen / Ihnen</b></td></tr></table>
+<p><span class="de">Ich sehe <b>ihn</b>. Ich helfe <b>ihm</b>. Ich gebe <b>ihr</b> das Rezept. Wie geht es <b>Ihnen</b>?</span></p>
+<p>Things are <span class="de">er, sie, es</span> by their gender: <span class="de">Wo ist der Befund? — Ich habe <b>ihn</b> hier.</span></p>
+<p><b>Order of two objects:</b></p>
+<ul><li>Two nouns: <b>dative before accusative</b>. <span class="de">Ich gebe <b>dem Patienten das Rezept</b>.</span></li>
+<li>A pronoun always comes <b>before</b> a noun. <span class="de">Ich gebe <b>ihm</b> das Rezept. Ich gebe <b>es</b> dem Patienten.</span></li>
+<li>Two pronouns: <b>accusative before dative</b>. <span class="de">Ich gebe <b>es ihm</b>.</span></li></ul>
+<p>Verbs that take both: <span class="de">geben, zeigen, bringen, erklären, schicken, verschreiben, empfehlen, sagen</span>.</p>
+<p>Phrases with dative: <span class="de">Mir ist schlecht / kalt / schwindelig. Es tut mir leid. Das tut mir weh.</span></p>`,
+ merke:"Nouns: Dat. before Akk. Pronouns first. Two pronouns: Akk. before Dat. — „Ich gebe es ihm.“",
+ ex:[{type:"mc",q:"Wo ist Herr Braun? Ich suche ___.",o:["ihm","ihn","er"],a:1,why:"suchen + accusative → ihn."},
+ {type:"mc",q:"Frau Weber, ich verschreibe ___ ein Antibiotikum.",o:["Sie","Ihnen","Ihr"],a:1,why:"verschreiben: to whom → dative, polite: Ihnen."},
+ {type:"mc",q:"Der Befund? Ich schicke ___ morgen.",o:["Ihnen ihn","ihn Ihnen","ihm Sie"],a:1,why:"Two pronouns: accusative (ihn) before dative (Ihnen)."},
+ {type:"mc",q:"___ ist schwindelig.",o:["Ich","Mich","Mir"],a:2,why:"Feelings of this kind use the dative: Mir ist schwindelig."},
+ {type:"mc",q:"Ich erkläre ___ die Untersuchung.",o:["der Patientin","die Patientin","ihn"],a:0,why:"Dative noun before accusative noun: der Patientin die Untersuchung."},
+ {type:"gap",q:"Das ist meine Kollegin. Kennen Sie ___?",a:"sie",alt:[],why:"kennen + accusative, feminine → sie."},
+ {type:"gap",q:"Können Sie ___ helfen? (me)",a:"mir",alt:[],why:"helfen + dative → mir."},
+ {type:"order",words:["Ich","gebe","es","Ihnen","sofort","."],a:"Ich gebe es Ihnen sofort.",why:"Two pronouns: accusative (es) first, then dative (Ihnen)."},
+ {type:"fix",q:"Ich gebe das Rezept ihm.",a:"Ich gebe ihm das Rezept.",err:"das Rezept ihm",why:"A pronoun comes before a noun."},
+ {type:"transform",q:"Ersetze beide Objekte durch Pronomen: Ich zeige dem Arzt den Befund.",a:"Ich zeige ihn ihm.",alt:[],why:"den Befund → ihn, dem Arzt → ihm; accusative first."}]}
+];
+// ===== Mephisto 12.8 · Grammatik komplett, Teil 2 (A2–B1)
+GRAMMAR3.push(
+{id:"g40",level:"A2",week:7,title:"Erste Nebensätze: weil, dass, wenn, ob",sub:"The verb goes to the end — the most German rule of all",
+ body:`<p>In a subordinate clause the conjugated <b>verb goes to the end</b>. A comma always separates the clauses.</p>
+<p><span class="de">Ich bleibe zu Hause, <b>weil</b> ich krank <b>bin</b>.</span> (because)<br><span class="de">Ich glaube, <b>dass</b> er Fieber <b>hat</b>.</span> (that)<br><span class="de"><b>Wenn</b> Sie Schmerzen <b>haben</b>, klingeln Sie bitte.</span> (if / whenever)<br><span class="de">Ich weiß nicht, <b>ob</b> sie allergisch <b>ist</b>.</span> (whether)</p>
+<p><b>Two verbs:</b> the conjugated one is last. <span class="de">…, weil ich nicht schlafen <b>kann</b>. …, dass er operiert <b>wurde</b>. …, weil sie gestern gestürzt <b>ist</b>.</span></p>
+<p><b>Separable verbs</b> join again: <span class="de">…, wenn der Arzt <b>anruft</b>.</span></p>
+<p><b>Subordinate clause first</b> → it counts as position 1, so the main verb follows the comma directly: <span class="de"><b>Wenn</b> ich Zeit <b>habe</b>, <b>komme</b> ich.</span> Verb, comma, verb.</p>
+<p><b>ob or wenn?</b> If you can say "whether" → <span class="de">ob</span>. <b>weil or denn?</b> Same meaning; <span class="de">denn</span> keeps normal word order.</p>
+<p>Indirect questions work the same way: <span class="de">Wissen Sie, <b>wo</b> die Notaufnahme <b>ist</b>? Können Sie mir sagen, <b>wann</b> der Arzt <b>kommt</b>?</span></p>`,
+ merke:"weil, dass, wenn, ob → verb last. Clause first → verb, comma, verb.",
+ ex:[{type:"mc",q:"Ich komme nicht, weil ___",o:["ich bin krank.","ich krank bin.","bin ich krank."],a:1,why:"weil sends the verb to the end."},
+ {type:"mc",q:"Ich weiß nicht, ___ er Diabetes hat.",o:["wenn","ob","dass"],a:1,why:"'whether' → ob."},
+ {type:"mc",q:"Wenn Sie Fieber haben, ___",o:["Sie rufen an.","rufen Sie an.","Sie anrufen."],a:1,why:"The wenn-clause is position 1, so the verb comes right after the comma."},
+ {type:"mc",q:"Er sagt, dass er nicht ___",o:["kann schlafen.","schlafen kann.","schlafen können."],a:1,why:"Conjugated verb (kann) last, infinitive before it."},
+ {type:"mc",q:"Können Sie mir sagen, wo ___?",o:["ist die Toilette","die Toilette ist","die Toilette sein"],a:1,why:"Indirect question: verb at the end."},
+ {type:"gap",q:"Ich glaube, ___ das Bein gebrochen ist.",a:"dass",alt:[],why:"dass = that."},
+ {type:"gap",q:"Sie kommt nicht, weil sie keine Zeit ___. (haben)",a:"hat",alt:[],why:"Verb at the end, conjugated: sie hat."},
+ {type:"order",words:["Ich","bleibe","hier",",","weil","ich","Dienst","habe","."],a:"Ich bleibe hier, weil ich Dienst habe.",why:"Comma, weil, … verb last."},
+ {type:"fix",q:"Ich nehme das nicht, weil ich bin allergisch.",a:"Ich nehme das nicht, weil ich allergisch bin.",err:"bin allergisch",why:"After weil the verb goes to the end."},
+ {type:"transform",q:"Verbinde mit „weil“: Er bleibt im Bett. Er hat Fieber.",a:"Er bleibt im Bett, weil er Fieber hat.",alt:[],why:"weil + verb last."}]},
+{id:"g41",level:"A2",week:8,title:"Präteritum: war, hatte und die Modalverben",sub:"The past forms you need before any others",
+ body:`<p>In spoken German the past is the <b>Perfekt</b> — except for <b>sein, haben</b> and the <b>modal verbs</b>, which use the <b>Präteritum</b> almost always.</p>
+<table><tr><th></th><th>sein</th><th>haben</th><th>können</th><th>müssen</th><th>wollen</th></tr>
+<tr><td>ich</td><td>war</td><td>hatte</td><td>konnte</td><td>musste</td><td>wollte</td></tr><tr><td>du</td><td>warst</td><td>hattest</td><td>konntest</td><td>musstest</td><td>wolltest</td></tr><tr><td>er/sie/es</td><td><b class="g">war</b></td><td><b class="g">hatte</b></td><td>konnte</td><td>musste</td><td>wollte</td></tr><tr><td>wir</td><td>waren</td><td>hatten</td><td>konnten</td><td>mussten</td><td>wollten</td></tr><tr><td>ihr</td><td>wart</td><td>hattet</td><td>konntet</td><td>musstet</td><td>wolltet</td></tr><tr><td>sie/Sie</td><td>waren</td><td>hatten</td><td>konnten</td><td>mussten</td><td>wollten</td></tr></table>
+<p><b>ich = er</b>: no ending in the first and third person. Modal verbs <b>lose the umlaut</b>: <span class="de">können → konnte, müssen → musste, dürfen → durfte, mögen → mochte</span>; <span class="de">sollen → sollte, wollen → wollte</span>.</p>
+<p><span class="de">Wo <b>waren</b> Sie gestern? <b>Hatten</b> Sie das schon einmal? Ich <b>konnte</b> nicht schlafen. Er <b>musste</b> operiert werden.</span></p>
+<p><b>Trap:</b> <span class="de">Ich <b>wollte</b> …</span> = I wanted. <span class="de">Ich <b>möchte</b> …</span> = I would like (now). The past of <span class="de">möchte</span> is <span class="de">wollte</span>.</p>
+<p><span class="de">konnte</span> (was able to) is not <span class="de">könnte</span> (could, would be able to) — the two dots change the meaning.</p>`,
+ merke:"war, hatte, konnte, musste, wollte: ich = er, no umlaut.",
+ ex:[{type:"mc",q:"Gestern ___ ich krank.",o:["bin","war","hatte"],a:1,why:"Past of sein → war."},
+ {type:"mc",q:"___ Sie schon einmal eine Operation?",o:["Hatten","Waren","Hattet"],a:0,why:"haben → hatten (Sie)."},
+ {type:"mc",q:"Ich ___ die ganze Nacht nicht schlafen.",o:["könnte","konnte","kann"],a:1,why:"Past: konnte (no umlaut). könnte = could (hypothetical)."},
+ {type:"mc",q:"Past of „Ich möchte einen Termin.“",o:["Ich möchtete einen Termin.","Ich wollte einen Termin.","Ich mochte einen Termin."],a:1,why:"möchte has no past of its own; use wollte."},
+ {type:"mc",q:"Er ___ gestern nicht arbeiten. (was not allowed to)",o:["durfte","dürfte","darf"],a:0,why:"dürfen → durfte."},
+ {type:"gap",q:"Wo ___ du gestern Abend? (sein)",a:"warst",alt:[],why:"du warst."},
+ {type:"gap",q:"Wir ___ lange warten. (müssen, past)",a:"mussten",alt:[],why:"wir mussten."},
+ {type:"order",words:["Als","Kind","hatte","ich","oft","Asthma","."],a:"Als Kind hatte ich oft Asthma.",why:"Time phrase first, verb second."},
+ {type:"fix",q:"Ich musste gestern arbeiten und könnte nicht kommen.",a:"Ich musste gestern arbeiten und konnte nicht kommen.",err:"könnte",why:"The simple past has no umlaut: konnte."},
+ {type:"transform",q:"Ins Präteritum: Ich habe Kopfschmerzen.",a:"Ich hatte Kopfschmerzen.",alt:[],why:"haben → hatte."}]},
+{id:"g42",level:"A2",week:9,title:"Infinitiv mit zu · um … zu · ohne … zu",sub:"When zu appears, where it stands, and how to say 'in order to'",
+ body:`<p>After many verbs, nouns and adjectives the second verb comes at the end with <b>zu</b>:</p>
+<p><span class="de">Ich versuche, mehr <b>zu trinken</b>. Vergessen Sie nicht, die Tablette <b>zu nehmen</b>. Es ist wichtig, viel <b>zu schlafen</b>. Ich habe keine Lust <b>zu kochen</b>.</span></p>
+<p><b>No zu</b> after modal verbs and after <span class="de">werden, lassen, sehen, hören, gehen, bleiben</span>: <span class="de">Ich muss <b>gehen</b>. Ich gehe <b>einkaufen</b>.</span></p>
+<p><b>Separable verbs:</b> zu goes in the middle, one word: <span class="de">an<b>zu</b>rufen, auf<b>zu</b>stehen, ein<b>zu</b>nehmen</span>. <span class="de">Bitte vergessen Sie nicht anzurufen.</span></p>
+<table><tr><th>um … zu</th><td>in order to (purpose)</td><td class="de">Ich bin hier, <b>um</b> Deutsch <b>zu</b> lernen.</td></tr><tr><th>ohne … zu</th><td>without …ing</td><td class="de">Er ging, <b>ohne</b> ein Wort <b>zu</b> sagen.</td></tr><tr><th>(an)statt … zu</th><td>instead of …ing</td><td class="de"><b>Statt zu</b> schlafen, lernt er.</td></tr></table>
+<p>These only work when both parts have the <b>same subject</b>. With different subjects use <span class="de">damit</span>: <span class="de">Ich spreche langsam, <b>damit</b> Sie mich verstehen.</span></p>
+<p><b>Trap:</b> purpose is never <span class="de">für zu</span>. "to learn" = <span class="de">um zu lernen</span>.</p>`,
+ merke:"zu + infinitive at the end. Purpose: um … zu (same subject) or damit (different subject).",
+ ex:[{type:"mc",q:"Ich versuche, weniger ___",o:["rauchen.","zu rauchen.","zu geraucht."],a:1,why:"versuchen + zu + infinitive."},
+ {type:"mc",q:"Ich muss heute lange ___",o:["zu arbeiten.","arbeiten.","gearbeitet."],a:1,why:"No zu after a modal verb."},
+ {type:"mc",q:"Vergessen Sie nicht, mich ___",o:["zu anrufen.","anzurufen.","anrufen zu."],a:1,why:"Separable verb: zu goes between prefix and verb."},
+ {type:"mc",q:"Ich lerne Deutsch, ___ in Heidelberg ___ arbeiten.",o:["für … zu","um … zu","damit … zu"],a:1,why:"Purpose with the same subject → um … zu."},
+ {type:"mc",q:"Ich erkläre es langsam, ___ der Patient es versteht.",o:["um","damit","ohne"],a:1,why:"Different subjects (ich / der Patient) → damit."},
+ {type:"gap",q:"Es ist wichtig, die Hände ___ waschen.",a:"zu",alt:[],why:"Es ist wichtig, … zu + infinitive."},
+ {type:"gap",q:"Er verließ die Klinik, ___ sich abzumelden. (without)",a:"ohne",alt:[],why:"ohne … zu = without doing."},
+ {type:"order",words:["Ich","habe","keine","Zeit",",","zu","frühstücken","."],a:"Ich habe keine Zeit, zu frühstücken.",why:"zu + infinitive at the end."},
+ {type:"fix",q:"Ich bin hier für zu arbeiten.",a:"Ich bin hier, um zu arbeiten.",err:"für zu",why:"Purpose: um … zu, never für zu."},
+ {type:"transform",q:"Mit „um … zu“: Ich gehe in die Apotheke. Ich will Tabletten kaufen.",a:"Ich gehe in die Apotheke, um Tabletten zu kaufen.",alt:[],why:"um + … + zu + infinitive; wollen disappears."}]},
+{id:"g43",level:"A2",week:10,title:"dieser, jeder, alle · man, jemand, niemand, etwas, nichts",sub:"Pointing words and words for nobody in particular",
+ body:`<p><b>dieser</b> (this), <b>jeder</b> (every), <b>welcher</b> (which) take the endings of <i>der/die/das</i>:</p>
+<table><tr><th></th><th>masc.</th><th>fem.</th><th>neut.</th><th>plural</th></tr><tr><td>Nom.</td><td>dies<b>er</b></td><td>dies<b>e</b></td><td>dies<b>es</b></td><td>dies<b>e</b></td></tr><tr><td>Akk.</td><td>dies<b>en</b></td><td>diese</td><td>dieses</td><td>diese</td></tr><tr><td>Dat.</td><td>dies<b>em</b></td><td>dies<b>er</b></td><td>dies<b>em</b></td><td>dies<b>en</b></td></tr></table>
+<p><span class="de">Nehmen Sie <b>diese</b> Tablette <b>jeden</b> Morgen. <b>Welches</b> Bein tut weh?</span> <b>jeder</b> has no plural — use <b>alle</b>: <span class="de">alle Patienten</span>.</p>
+<p><b>man</b> = one / people / you in general. Verb in the third person singular: <span class="de">Hier darf <b>man</b> nicht rauchen. Wie sagt <b>man</b> das auf Deutsch?</span> Not the same as <span class="de">der Mann</span>.</p>
+<table><tr><th>jemand</th><td>somebody</td><th>niemand</th><td>nobody</td></tr><tr><th>etwas</th><td>something</td><th>nichts</th><td>nothing</td></tr><tr><th>alles</th><td>everything</td><th>viel / wenig</th><td>much / little</td></tr></table>
+<p><span class="de">Ist <b>jemand</b> bei Ihnen zu Hause? — Nein, <b>niemand</b>. Haben Sie heute <b>etwas</b> gegessen? — Nein, <b>nichts</b>.</span></p>
+<p><b>etwas / nichts + adjective</b> = capital and -es: <span class="de">etwas Neu<b>es</b>, nichts Besonder<b>es</b>, etwas Wichtig<b>es</b></span>.</p>
+<p><b>Trap:</b> one negative is enough: <span class="de">Ich habe <b>nichts</b> gesehen.</span> — not <i>nicht nichts</i>.</p>`,
+ merke:"dieser/jeder/welcher decline like der. man + er-form. etwas Neues, nichts Besonderes.",
+ ex:[{type:"mc",q:"Nehmen Sie die Tablette ___ Abend.",o:["jeder","jeden","jedes"],a:1,why:"Time expressions without preposition are accusative: der Abend → jeden Abend."},
+ {type:"mc",q:"Hier ___ man nicht parken.",o:["darf","dürfen","darfst"],a:0,why:"man takes the er-form."},
+ {type:"mc",q:"Haben Sie heute ___ gegessen? — Nein, nichts.",o:["jemand","etwas","alle"],a:1,why:"etwas = something / anything."},
+ {type:"mc",q:"Gibt es etwas ___?",o:["neu","Neues","neue"],a:1,why:"After etwas the adjective is a capitalised noun in -es."},
+ {type:"mc",q:"___ Arm tut weh, der rechte oder der linke?",o:["Welcher","Welche","Welches"],a:0,why:"der Arm, nominative → welcher."},
+ {type:"gap",q:"Ist ___ zu Hause, der Ihnen helfen kann? (somebody)",a:"jemand",alt:[],why:"jemand = somebody."},
+ {type:"gap",q:"Mit ___ Medikament habe ich Probleme. (this)",a:"diesem",alt:[],why:"mit + dative, das Medikament → diesem."},
+ {type:"order",words:["In","Deutschland","trinkt","man","viel","Kaffee","."],a:"In Deutschland trinkt man viel Kaffee.",why:"Place first, verb second, then man."},
+ {type:"fix",q:"Ich habe nicht nichts gehört.",a:"Ich habe nichts gehört.",err:"nicht nichts",why:"German uses a single negative."},
+ {type:"transform",q:"In den Plural: Jeder Patient bekommt ein Armband.",a:"Alle Patienten bekommen ein Armband.",alt:[],why:"jeder has no plural → alle; verb plural."}]},
+{id:"g44",level:"A2",week:11,title:"Die n-Deklination",sub:"der Patient, den Patienten, dem Patienten — the nouns that grow an -n",
+ body:`<p>A group of <b>masculine</b> nouns adds <b>-(e)n in every case except the nominative singular</b>. Many of them are people — and you will say them a hundred times a day.</p>
+<table><tr><th>Nom.</th><td>der Patient</td><td>der Kollege</td><td>der Herr</td></tr><tr><th>Akk.</th><td>den Patient<b>en</b></td><td>den Kolleg<b>en</b></td><td>den Herr<b>n</b></td></tr><tr><th>Dat.</th><td>dem Patient<b>en</b></td><td>dem Kolleg<b>en</b></td><td>dem Herr<b>n</b></td></tr><tr><th>Gen.</th><td>des Patient<b>en</b></td><td>des Kolleg<b>en</b></td><td>des Herr<b>n</b></td></tr></table>
+<p><b>Who belongs?</b></p>
+<ul><li>masculine nouns ending in <b>-e</b>: <span class="de">der Kollege, der Junge, der Kunde, der Zeuge, der Experte, der Neffe, der Löwe</span></li>
+<li>foreign endings <b>-ent, -ant, -ist, -at, -oge, -and</b>: <span class="de">der Patient, der Student, der Assistent, der Praktikant, der Spezialist, der Internist, der Kardiologe, der Soldat, der Doktorand</span></li>
+<li>a few short ones: <span class="de">der Mensch, der Herr, der Nachbar, der Bauer, der Held</span></li></ul>
+<p><span class="de">Ich untersuche <b>den Patienten</b>. Ich spreche mit <b>Herrn</b> Weber. Fragen Sie <b>den Kollegen</b>.</span> On envelopes and in handovers: <span class="de"><b>Herrn</b> Dr. Müller</span>.</p>
+<p>Special: <span class="de">der Name → den Namen, dem Namen, des Name<b>ns</b></span> (also <span class="de">der Gedanke, der Buchstabe, das Herz → dem Herzen, des Herzens</span>).</p>
+<p>Not n-declension: <span class="de">der Arzt, der Doktor, der Professor</span> (den Arzt, dem Professor).</p>`,
+ merke:"der Patient → den/dem/des Patienten. Herr → Herrn. Only the nominative singular is bare.",
+ ex:[{type:"mc",q:"Ich stelle Ihnen ___ Weber vor.",o:["Herr","Herrn","Herren"],a:1,why:"Accusative of Herr → Herrn."},
+ {type:"mc",q:"Der Arzt untersucht ___.",o:["den Patient","den Patienten","dem Patient"],a:1,why:"Accusative: den Patienten."},
+ {type:"mc",q:"Ich spreche mit ___.",o:["dem Kollege","dem Kollegen","den Kollege"],a:1,why:"mit + dative: dem Kollegen."},
+ {type:"mc",q:"Which noun is NOT n-declension?",o:["der Student","der Arzt","der Nachbar"],a:1,why:"der Arzt declines normally: den Arzt, dem Arzt."},
+ {type:"mc",q:"Wie ist der Name ___?",o:["des Patient","des Patienten","des Patients"],a:1,why:"Genitive: des Patienten (no -s)."},
+ {type:"gap",q:"Wir rufen den ___ an. (der Kardiologe)",a:"Kardiologen",alt:[],why:"-oge nouns are n-declension."},
+ {type:"gap",q:"Bitte buchstabieren Sie Ihren ___. (der Name)",a:"Namen",alt:[],why:"der Name → den Namen."},
+ {type:"order",words:["Ich","habe","den","Patienten","schon","aufgenommen","."],a:"Ich habe den Patienten schon aufgenommen.",why:"Accusative: den Patienten."},
+ {type:"fix",q:"Ich habe mit dem Student gesprochen.",a:"Ich habe mit dem Studenten gesprochen.",err:"Student",why:"-ent nouns add -en in the dative."},
+ {type:"transform",q:"Setze in den Akkusativ: Das ist der Nachbar. → Ich kenne …",a:"Ich kenne den Nachbarn.",alt:[],why:"der Nachbar → den Nachbarn."}]},
+{id:"g45",level:"A2",week:12,title:"Die Reihenfolge im Satz: TeKaMoLo",sub:"When, why, how, where — the order inside the sentence",
+ body:`<p>Between the verb in position 2 and the verb part at the end lies the <b>Mittelfeld</b>. Information there usually follows <b>Te-Ka-Mo-Lo</b>:</p>
+<table><tr><th>Te</th><td>temporal · when?</td><td class="de">heute</td></tr><tr><th>Ka</th><td>kausal · why?</td><td class="de">wegen der Schmerzen</td></tr><tr><th>Mo</th><td>modal · how?</td><td class="de">mit dem Taxi</td></tr><tr><th>Lo</th><td>lokal · where (to)?</td><td class="de">in die Klinik</td></tr></table>
+<p><span class="de">Ich bin <b>heute wegen der Schmerzen mit dem Taxi in die Klinik</b> gefahren.</span></p>
+<p><b>English order is the opposite</b> (place before time): "I went to the clinic today." German: <span class="de">Ich bin <b>heute in die Klinik</b> gegangen.</span> <b>Time before place.</b></p>
+<p><b>Position 1 is free:</b> anything can go first for emphasis, and then the <b>subject jumps behind the verb</b>: <span class="de"><b>Heute</b> fahre <b>ich</b> in die Klinik. <b>In die Klinik</b> fahre <b>ich</b> heute.</span></p>
+<p><b>Short before long, known before new:</b> pronouns come early, right after the verb or subject: <span class="de">Ich habe <b>es ihm gestern</b> gesagt.</span></p>
+<p><b>nicht</b> comes after time and objects but before manner and place: <span class="de">Ich fahre heute <b>nicht</b> mit dem Bus.</span></p>`,
+ merke:"Time before manner before place. Whatever stands first, the verb stays second.",
+ ex:[{type:"mc",q:"Choose the natural order:",o:["Ich fahre nach Heidelberg morgen.","Ich fahre morgen nach Heidelberg.","Ich morgen fahre nach Heidelberg."],a:1,why:"Time (morgen) before place (nach Heidelberg)."},
+ {type:"mc",q:"Morgen ___ zum Arzt.",o:["ich gehe","gehe ich","ich gehen"],a:1,why:"Time in position 1 → verb second, subject after it."},
+ {type:"mc",q:"Er kommt ___ .",o:["mit dem Auto um acht in die Klinik","um acht mit dem Auto in die Klinik","in die Klinik mit dem Auto um acht"],a:1,why:"Te (um acht) – Mo (mit dem Auto) – Lo (in die Klinik)."},
+ {type:"mc",q:"Ich bin ___ gestürzt.",o:["zu Hause gestern","gestern zu Hause","gestern in zu Hause"],a:1,why:"Time before place."},
+ {type:"mc",q:"Ich habe ___ gesagt.",o:["gestern es ihm","es ihm gestern","ihm gestern es"],a:1,why:"Pronouns come first, accusative before dative, then the time."},
+ {type:"gap",q:"Heute ___ ich Nachtdienst. (haben)",a:"habe",alt:[],why:"Verb in position 2 after heute."},
+ {type:"gap",q:"Ich arbeite seit Januar ___ Heidelberg. (in)",a:"in",alt:[],why:"Place comes last: seit Januar (Te) in Heidelberg (Lo)."},
+ {type:"order",words:["Ich","bin","gestern","mit","dem","Zug","nach","Berlin","gefahren","."],a:"Ich bin gestern mit dem Zug nach Berlin gefahren.",why:"Te – Mo – Lo, participle at the end."},
+ {type:"fix",q:"Ich gehe ins Bett früh heute.",a:"Ich gehe heute früh ins Bett.",err:"ins Bett früh heute",why:"Time (heute), manner (früh), place (ins Bett)."},
+ {type:"transform",q:"Beginne mit „Seit drei Tagen“: Ich habe seit drei Tagen Husten.",a:"Seit drei Tagen habe ich Husten.",alt:[],why:"The verb stays second; the subject moves behind it."}]},
+{id:"g46",level:"B1",week:13,title:"Plusquamperfekt · als, wenn, wann · nachdem, bevor, während",sub:"The past before the past, and three words for 'when'",
+ body:`<p><b>Plusquamperfekt</b> = <span class="de">hatte / war</span> + Partizip II. It tells what happened <b>before</b> another past event.</p>
+<p><span class="de">Als der Notarzt kam, <b>hatte</b> der Patient schon das Bewusstsein <b>verloren</b>. Sie <b>war</b> schon <b>gegangen</b>, als ich ankam.</span></p>
+<p><b>nachdem</b> needs a time step: <span class="de">Nachdem er die Tablette <b>genommen hatte</b>, <b>ging</b> es ihm besser.</span> (Plusquamperfekt → Präteritum/Perfekt). In the present: <span class="de">Nachdem ich gegessen <b>habe</b>, <b>nehme</b> ich die Tablette.</span></p>
+<table><tr><th>als</th><td>when — <b>once</b> in the past</td><td class="de">Als ich ein Kind war, …</td></tr><tr><th>wenn</th><td>whenever (repeated) · when/if in present and future</td><td class="de">Immer wenn ich huste, … / Wenn Sie kommen, …</td></tr><tr><th>wann</th><td>when? — only in questions (direct or indirect)</td><td class="de">Wann beginnt es? Ich weiß nicht, wann …</td></tr></table>
+<table><tr><th>bevor</th><td>before</td><td class="de">Bevor Sie gehen, unterschreiben Sie bitte.</td></tr><tr><th>während</th><td>while</td><td class="de">Während er schlief, fiel der Blutdruck.</td></tr><tr><th>seit(dem)</th><td>since</td><td class="de">Seit ich hier wohne, …</td></tr><tr><th>bis</th><td>until</td><td class="de">Warten Sie, bis ich zurückkomme.</td></tr><tr><th>sobald</th><td>as soon as</td><td class="de">Sobald das Labor da ist, rufe ich an.</td></tr></table>
+<p><b>Trap:</b> <span class="de">bevor</span> and <span class="de">nachdem</span> join clauses; <span class="de">vor</span> and <span class="de">nach</span> stand before nouns: <span class="de"><b>vor</b> dem Essen · <b>bevor</b> Sie essen</span>.</p>`,
+ merke:"als = once in the past. wenn = repeated or future. wann = question. nachdem + one tense earlier.",
+ ex:[{type:"mc",q:"___ ich gestern nach Hause kam, war ich sehr müde.",o:["Wenn","Als","Wann"],a:1,why:"One event in the past → als."},
+ {type:"mc",q:"Immer ___ ich Treppen steige, bekomme ich Luftnot.",o:["als","wenn","wann"],a:1,why:"Repeated → wenn."},
+ {type:"mc",q:"Ich weiß nicht, ___ der Arzt kommt.",o:["als","wenn","wann"],a:2,why:"Indirect question about time → wann."},
+ {type:"mc",q:"Nachdem er gegessen ___, ging er spazieren.",o:["hat","hatte","war"],a:1,why:"nachdem + Plusquamperfekt before a Präteritum."},
+ {type:"mc",q:"Als wir ankamen, ___ der Zug schon abgefahren.",o:["hatte","war","ist"],a:1,why:"abfahren forms its perfect with sein → war abgefahren."},
+ {type:"gap",q:"___ Sie die Tablette nehmen, essen Sie bitte etwas. (before)",a:"Bevor",alt:["bevor"],why:"bevor joins clauses; vor stands before nouns."},
+ {type:"gap",q:"Warten Sie bitte, ___ ich Sie aufrufe. (until)",a:"bis",alt:[],why:"bis = until."},
+ {type:"order",words:["Als","ich","klein","war",",","hatte","ich","Asthma","."],a:"Als ich klein war, hatte ich Asthma.",why:"als-clause first, then verb – subject."},
+ {type:"fix",q:"Wenn ich zehn Jahre alt war, bin ich vom Baum gefallen.",a:"Als ich zehn Jahre alt war, bin ich vom Baum gefallen.",err:"Wenn",why:"A single time in the past needs als."},
+ {type:"transform",q:"Ins Plusquamperfekt: Er hat die Tablette genommen.",a:"Er hatte die Tablette genommen.",alt:[],why:"hat → hatte."}]},
+{id:"g47",level:"B1",week:14,title:"lassen · werden · brauchen",sub:"Three small verbs with many jobs",
+ body:`<p><b>lassen</b> (lässt, ließ, hat gelassen) behaves like a modal verb: second verb at the end, <b>no zu</b>.</p>
+<table><tr><th>have something done</th><td class="de">Ich <b>lasse</b> mein Blut <b>untersuchen</b>. Wir lassen ein Röntgenbild machen.</td></tr><tr><th>allow, let</th><td class="de"><b>Lassen</b> Sie mich bitte <b>ausreden</b>. Der Arzt lässt ihn nach Hause gehen.</td></tr><tr><th>leave</th><td class="de">Lassen Sie den Arm locker. Ich habe den Schlüssel zu Hause gelassen.</td></tr><tr><th>sich lassen = can be done</th><td class="de">Das <b>lässt sich</b> leicht <b>erklären</b>. Die Tür lässt sich nicht öffnen.</td></tr></table>
+<p><b>werden</b> (wird, wurde, ist geworden) has three jobs:</p>
+<table><tr><th>become (+ noun/adjective)</th><td class="de">Er <b>wird</b> Arzt. Mir <b>wird</b> schlecht. Es wird dunkel.</td></tr><tr><th>future (+ infinitive)</th><td class="de">Der Arzt <b>wird</b> gleich <b>kommen</b>.</td></tr><tr><th>passive (+ Partizip II)</th><td class="de">Sie <b>werden</b> morgen <b>operiert</b>.</td></tr></table>
+<p><b>brauchen</b> = need (+ accusative): <span class="de">Ich brauche einen Termin.</span> With <b>nicht/kein/nur + zu</b> it replaces <span class="de">müssen</span>: <span class="de">Sie <b>brauchen nicht zu</b> kommen</span> = you don't have to come. <span class="de">Sie brauchen <b>nur zu</b> klingeln.</span></p>
+<p><b>Trap:</b> <span class="de">nicht müssen</span> = don't have to. <span class="de">nicht dürfen</span> = must not. <span class="de">Sie müssen nicht aufstehen</span> (no need) vs. <span class="de">Sie dürfen nicht aufstehen</span> (forbidden).</p>`,
+ merke:"lassen + infinitive (no zu). werden = become / will / is being. nicht brauchen zu = nicht müssen.",
+ ex:[{type:"mc",q:"Ich ___ mir morgen Blut abnehmen.",o:["lasse","werde lassen zu","lässt"],a:0,why:"ich lasse + infinitive at the end."},
+ {type:"mc",q:"„Sie werden morgen operiert.“ — werden is here:",o:["future","passive","'become'"],a:1,why:"werden + Partizip II (operiert) = passive."},
+ {type:"mc",q:"Mir ___ schwindelig.",o:["wird","werde","lässt"],a:0,why:"werden = become: Mir wird schwindelig."},
+ {type:"mc",q:"You must not get up. →",o:["Sie müssen nicht aufstehen.","Sie dürfen nicht aufstehen.","Sie brauchen nicht aufzustehen."],a:1,why:"Prohibition = nicht dürfen. nicht müssen = no need."},
+ {type:"mc",q:"Das Fenster ___ nicht öffnen.",o:["lässt sich","lässt","wird sich"],a:0,why:"sich lassen + infinitive = can (not) be done."},
+ {type:"gap",q:"Sie brauchen morgen nicht ___ kommen.",a:"zu",alt:[],why:"nicht brauchen + zu + infinitive."},
+ {type:"gap",q:"Er ___ gestern entlassen. (werden, past)",a:"wurde",alt:[],why:"Passive in the past: wurde + Partizip II."},
+ {type:"order",words:["Wir","lassen","ein","EKG","schreiben","."],a:"Wir lassen ein EKG schreiben.",why:"lassen in position 2, infinitive at the end, no zu."},
+ {type:"fix",q:"Ich lasse meine Augen zu untersuchen.",a:"Ich lasse meine Augen untersuchen.",err:"zu untersuchen",why:"No zu after lassen."},
+ {type:"transform",q:"Mit „brauchen“: Sie müssen nicht warten.",a:"Sie brauchen nicht zu warten.",alt:[],why:"nicht müssen = nicht brauchen zu."}]},
+{id:"g48",level:"B1",week:15,title:"Präpositionen mit Genitiv",sub:"wegen, trotz, während, statt, aufgrund, innerhalb — the language of letters and reports",
+ body:`<p>These prepositions take the <b>genitive</b>. You hear them in every handover and read them in every Arztbrief.</p>
+<table><tr><th>wegen</th><td>because of</td><td class="de">wegen <b>des</b> Fieber<b>s</b>, wegen <b>der</b> Schmerzen</td></tr><tr><th>trotz</th><td>in spite of</td><td class="de">trotz <b>der</b> Therapie</td></tr><tr><th>während</th><td>during</td><td class="de">während <b>der</b> Operation</td></tr><tr><th>(an)statt</th><td>instead of</td><td class="de">statt <b>eines</b> Antibiotikum<b>s</b></td></tr><tr><th>aufgrund</th><td>on the basis of, due to</td><td class="de">aufgrund <b>des</b> Befund<b>es</b></td></tr><tr><th>innerhalb / außerhalb</th><td>within / outside</td><td class="de">innerhalb <b>eines</b> Tages, außerhalb <b>der</b> Sprechzeiten</td></tr><tr><th>infolge</th><td>as a result of</td><td class="de">infolge <b>eines</b> Sturzes</td></tr><tr><th>mithilfe</th><td>with the help of</td><td class="de">mithilfe <b>eines</b> Katheters</td></tr><tr><th>bezüglich / hinsichtlich</th><td>regarding</td><td class="de">bezüglich <b>Ihres</b> Schreibens</td></tr></table>
+<p><b>Genitive forms:</b> masc./neut. <span class="de">des / eines + -(e)s</span> on the noun; fem./plural <span class="de">der / einer</span>, noun unchanged.</p>
+<p>In everyday speech you will hear <span class="de">wegen dem Wetter</span> (dative). Write the genitive.</p>
+<p><b>Preposition → conjunction → adverb:</b></p>
+<table><tr><td class="de">wegen + Gen.</td><td class="de">weil …</td><td class="de">deshalb</td></tr><tr><td class="de">trotz + Gen.</td><td class="de">obwohl …</td><td class="de">trotzdem</td></tr><tr><td class="de">während + Gen.</td><td class="de">während …</td><td class="de">währenddessen</td></tr></table>
+<p><span class="de"><b>Trotz</b> der Schmerzen arbeitet er. = <b>Obwohl</b> er Schmerzen hat, arbeitet er. = Er hat Schmerzen, <b>trotzdem</b> arbeitet er.</span></p>`,
+ merke:"wegen, trotz, während, statt, aufgrund + Genitiv: des …s / der.",
+ ex:[{type:"mc",q:"Wegen ___ konnte er nicht schlafen.",o:["dem Husten","des Hustens","der Husten"],a:1,why:"wegen + genitive: der Husten → des Hustens."},
+ {type:"mc",q:"___ der Schmerzen geht sie arbeiten.",o:["Wegen","Trotz","Statt"],a:1,why:"in spite of → trotz."},
+ {type:"mc",q:"Während ___ ist der Blutdruck gefallen.",o:["die Operation","der Operation","dem Operation"],a:1,why:"während + genitive, feminine → der."},
+ {type:"mc",q:"Er hat Fieber, ___ geht er zur Arbeit.",o:["trotz","obwohl","trotzdem"],a:2,why:"Adverb in position 1 before the verb → trotzdem."},
+ {type:"mc",q:"___ er Fieber hat, geht er zur Arbeit.",o:["Trotz","Obwohl","Trotzdem"],a:1,why:"Conjunction with verb at the end → obwohl."},
+ {type:"gap",q:"Die Aufnahme erfolgte aufgrund ___ Sturzes. (ein)",a:"eines",alt:[],why:"aufgrund + genitive, masculine → eines Sturzes."},
+ {type:"gap",q:"Bitte melden Sie sich innerhalb ___ Woche. (eine)",a:"einer",alt:[],why:"innerhalb + genitive, feminine → einer."},
+ {type:"order",words:["Trotz","der","Therapie","hat","er","noch","Schmerzen","."],a:"Trotz der Therapie hat er noch Schmerzen.",why:"Prepositional phrase first, then verb – subject."},
+ {type:"fix",q:"Trotz er krank ist, arbeitet er.",a:"Obwohl er krank ist, arbeitet er.",err:"Trotz",why:"trotz stands before a noun; a clause needs obwohl."},
+ {type:"transform",q:"Mit „wegen“: Er bleibt zu Hause, weil er eine Erkältung hat.",a:"Wegen einer Erkältung bleibt er zu Hause.",alt:["Er bleibt wegen einer Erkältung zu Hause.","Wegen der Erkältung bleibt er zu Hause.","Er bleibt wegen der Erkältung zu Hause."],why:"wegen + genitive: einer Erkältung."}]}
+);
+// ===== Mephisto 12.8 · Grammatik komplett, Teil 3 (B1–C1)
+GRAMMAR3.push(
+{id:"g49",level:"B1",week:16,title:"Das kleine Wort „es“",sub:"es gibt, es regnet, es tut weh — and the es that disappears",
+ body:`<p><b>es</b> has four jobs.</p>
+<table><tr><th>1 · Pronoun</th><td>for a neuter noun</td><td class="de">Das Kind weint. <b>Es</b> hat Fieber.</td></tr>
+<tr><th>2 · Fixed subject</th><td>weather, time, feelings, fixed phrases — it can never be dropped</td><td class="de"><b>Es</b> regnet. <b>Es</b> ist spät. <b>Es</b> gibt keinen Befund. Wie geht <b>es</b> Ihnen? <b>Es</b> tut weh. <b>Es</b> handelt sich um …</td></tr>
+<tr><th>3 · Placeholder</th><td>fills position 1 and vanishes when something else stands there</td><td class="de"><b>Es</b> wurden drei Patienten aufgenommen. → Heute wurden drei Patienten aufgenommen.</td></tr>
+<tr><th>4 · Pointer</th><td>announces a <i>dass</i>-clause or infinitive</td><td class="de"><b>Es</b> ist wichtig, dass Sie viel trinken. <b>Es</b> freut mich, Sie zu sehen.</td></tr></table>
+<p><b>es gibt + accusative</b> = there is / there are: <span class="de">Es gibt <b>einen</b> Aufzug. Gibt es hier <b>einen</b> Arzt?</span> Never <i>es sind</i> for "there are".</p>
+<p><b>Feelings with dative</b> can drop es when the person comes first: <span class="de"><b>Es</b> ist mir kalt. → <b>Mir</b> ist kalt.</span> <span class="de">Mir ist schlecht. Mir ist schwindelig.</span></p>
+<p>Clinical phrases: <span class="de">Es besteht der Verdacht auf … · Es zeigt sich … · Es kam zu einer Blutung · Es liegt kein Anhalt für … vor · Es handelt sich um einen 60-jährigen Patienten.</span></p>
+<p><b>Trap:</b> as an object, es can never stand first: <span class="de">Ich weiß <b>es</b>.</span> but <span class="de"><b>Das</b> weiß ich.</span> (not <i>Es weiß ich</i>).</p>`,
+ merke:"es gibt + Akkusativ. Placeholder-es disappears when position 1 is taken.",
+ ex:[{type:"mc",q:"___ gibt hier keinen Aufzug.",o:["Das","Es","Er"],a:1,why:"es gibt = there is."},
+ {type:"mc",q:"Es gibt ___ Arzt im Dorf.",o:["ein","einen","einem"],a:1,why:"es gibt + accusative: einen Arzt."},
+ {type:"mc",q:"„Es wurden zwei Patienten verlegt.“ → Gestern ___",o:["es wurden zwei Patienten verlegt.","wurden zwei Patienten verlegt.","wurden es zwei Patienten verlegt."],a:1,why:"Placeholder-es disappears when another word takes position 1."},
+ {type:"mc",q:"Mir ___ schlecht.",o:["bin","ist","es ist"],a:1,why:"Mir ist schlecht (es is dropped when mir comes first)."},
+ {type:"mc",q:"I know it. — With emphasis on 'it' first:",o:["Es weiß ich.","Das weiß ich.","Es ich weiß."],a:1,why:"Object es cannot stand first; use das."},
+ {type:"gap",q:"___ handelt sich um eine 45-jährige Patientin.",a:"Es",alt:["es"],why:"Fixed phrase: Es handelt sich um + accusative."},
+ {type:"gap",q:"Wie geht ___ Ihnen heute?",a:"es",alt:[],why:"Wie geht es Ihnen?"},
+ {type:"order",words:["Es","ist","wichtig",",","dass","Sie","viel","trinken","."],a:"Es ist wichtig, dass Sie viel trinken.",why:"es points forward to the dass-clause."},
+ {type:"fix",q:"Es sind viele Apotheken in Heidelberg.",a:"Es gibt viele Apotheken in Heidelberg.",err:"sind",why:"'There are' = es gibt + accusative."},
+ {type:"transform",q:"Beginne mit „Mir“: Es ist mir schwindelig.",a:"Mir ist schwindelig.",alt:[],why:"es drops out when the dative stands first."}]},
+{id:"g50",level:"B2",week:28,title:"Modalpartikeln: doch, ja, mal, halt, eben, denn, eigentlich, wohl",sub:"The little words that make German sound human",
+ body:`<p>Modal particles carry no content — they carry <b>attitude</b>. They stand in the Mittelfeld, are never stressed, and cannot be translated one-to-one. Without them your German is correct and cold.</p>
+<table><tr><th>mal</th><td>softens a request</td><td class="de">Zeigen Sie <b>mal</b> her. Machen Sie <b>mal</b> den Mund auf.</td></tr>
+<tr><th>doch</th><td>friendly urging · reminder of something known · surprise</td><td class="de">Kommen Sie <b>doch</b> rein. Sie wissen <b>doch</b>, dass Sie nicht rauchen sollen. Das ist <b>doch</b> nicht normal!</td></tr>
+<tr><th>ja</th><td>"as we both know" · surprise</td><td class="de">Sie haben <b>ja</b> Diabetes. Das ist <b>ja</b> furchtbar!</td></tr>
+<tr><th>denn</th><td>makes a question friendly or interested (only in questions)</td><td class="de">Was ist <b>denn</b> passiert? Wie heißen Sie <b>denn</b>?</td></tr>
+<tr><th>eigentlich</th><td>"by the way", "actually" — in questions casual, in statements a reservation</td><td class="de">Rauchen Sie <b>eigentlich</b>? <b>Eigentlich</b> wollte ich nach Hause.</td></tr>
+<tr><th>halt / eben</th><td>resignation: "that's just how it is" (halt is southern, eben northern)</td><td class="de">Das ist <b>halt</b> so. Dann müssen wir <b>eben</b> warten.</td></tr>
+<tr><th>wohl</th><td>assumption: probably</td><td class="de">Das ist <b>wohl</b> ein Infekt. Er hat es <b>wohl</b> vergessen.</td></tr>
+<tr><th>schon</th><td>reassurance · limited agreement</td><td class="de">Das wird <b>schon</b> wieder. Das stimmt <b>schon</b>, aber …</td></tr>
+<tr><th>bloß / nur</th><td>warning · wish</td><td class="de">Stehen Sie <b>bloß</b> nicht auf! Wenn ich <b>nur</b> schlafen könnte!</td></tr>
+<tr><th>einfach</th><td>"simply"</td><td class="de">Ich kann <b>einfach</b> nicht mehr.</td></tr></table>
+<p>They combine in a fixed order: <span class="de">Kommen Sie <b>doch mal</b> her. Das ist <b>ja wohl</b> ein Witz. Hören Sie <b>doch einfach mal</b> zu.</span></p>
+<p>At the bedside: a bare imperative sounds like an order. <span class="de">Atmen Sie tief ein.</span> → <span class="de">Atmen Sie <b>mal</b> tief ein.</span></p>
+<p>Do not confuse with the same words as real words: <span class="de">doch</span> (yes, on the contrary), <span class="de">ja</span> (yes), <span class="de">denn</span> (because), <span class="de">schon</span> (already), <span class="de">eben</span> (just now; flat).</p>`,
+ merke:"mal softens, doch urges or reminds, ja = we both know, denn warms a question, halt/eben = that's life, wohl = probably.",
+ ex:[{type:"mc",q:"Friendly to a patient: „Machen Sie ___ den Oberkörper frei.“",o:["mal","wohl","halt"],a:0,why:"mal softens a request."},
+ {type:"mc",q:"„Was ist ___ passiert?“ (interested, friendly)",o:["ja","denn","eben"],a:1,why:"denn makes questions warmer."},
+ {type:"mc",q:"„Der Bus ist weg. Dann gehen wir ___ zu Fuß.“",o:["eben","denn","ja"],a:0,why:"eben/halt = nothing to be done about it."},
+ {type:"mc",q:"„Das ist ___ ein Virusinfekt.“ (probably)",o:["mal","wohl","doch"],a:1,why:"wohl marks an assumption."},
+ {type:"mc",q:"„Sie nehmen ___ Marcumar, oder?“ (as we both know)",o:["ja","denn","bloß"],a:0,why:"ja signals shared knowledge."},
+ {type:"gap",q:"Keine Sorge, das wird ___ wieder. (reassuring)",a:"schon",alt:[],why:"Das wird schon wieder = it will be all right."},
+ {type:"gap",q:"Setzen Sie sich ___ ! (friendly urging, 'do sit down')",a:"doch",alt:[],why:"doch in an imperative = friendly urging."},
+ {type:"order",words:["Kommen","Sie","doch","mal","bitte","her","."],a:"Kommen Sie doch mal bitte her.",why:"doch before mal; particles stand in the middle."},
+ {type:"fix",q:"Was ist ja passiert?",a:"Was ist denn passiert?",err:"ja",why:"In questions the friendly particle is denn; ja does not occur in W-questions."},
+ {type:"transform",q:"Freundlicher, mit „mal“: Zeigen Sie mir den Arm.",a:"Zeigen Sie mir mal den Arm.",alt:["Zeigen Sie mal den Arm.","Zeigen Sie mir doch mal den Arm."],why:"mal follows the pronoun."}]},
+{id:"g51",level:"B2",week:30,title:"Subjektive Modalverben",sub:"müsste, dürfte, könnte, soll, will — how sure are you, and who says so?",
+ body:`<p>Modal verbs also express <b>how certain</b> the speaker is, or that a claim comes from <b>someone else</b>. You need this for differential diagnoses and for reporting what a patient says.</p>
+<p><b>How sure am I?</b></p>
+<table><tr><th>muss</th><td>~ 95 %, logical conclusion</td><td class="de">Das <b>muss</b> ein Infarkt sein.</td></tr><tr><th>müsste</th><td>~ 90 %, if all is as expected</td><td class="de">Das Labor <b>müsste</b> gleich da sein.</td></tr><tr><th>dürfte</th><td>~ 75 %, probably</td><td class="de">Es <b>dürfte</b> sich um einen Infekt handeln.</td></tr><tr><th>kann / könnte</th><td>~ 50 % / less, possible</td><td class="de">Das <b>könnte</b> eine Embolie sein.</td></tr><tr><th>kann nicht</th><td>~ 0 %, impossible</td><td class="de">Das <b>kann nicht</b> stimmen.</td></tr></table>
+<p><b>Who claims it?</b></p>
+<table><tr><th>sollen</th><td>others say so (hearsay)</td><td class="de">Er <b>soll</b> gestürzt sein. (= Man sagt, dass er gestürzt ist.)</td></tr><tr><th>wollen</th><td>the person claims it about himself — and I doubt it</td><td class="de">Er <b>will</b> nichts getrunken haben. (= Er behauptet, nichts getrunken zu haben.)</td></tr></table>
+<p><b>Past:</b> modal verb in the present + <b>Infinitiv Perfekt</b> (Partizip II + <span class="de">haben/sein</span>): <span class="de">Er <b>muss</b> gestürzt <b>sein</b>. Sie <b>dürfte</b> das Medikament vergessen <b>haben</b>.</span></p>
+<p>Compare the ordinary meaning: <span class="de">Er <b>musste</b> gehen</span> (had to go) vs. <span class="de">Er <b>muss</b> gegangen sein</span> (he must have left).</p>
+<p>The same without modal verbs: <span class="de">sicher, bestimmt, höchstwahrscheinlich, vermutlich, wahrscheinlich, vielleicht, möglicherweise, angeblich</span> (= sollen).</p>`,
+ merke:"muss > müsste > dürfte > könnte. sollen = others say. wollen = he claims. Past: modal + Partizip + haben/sein.",
+ ex:[{type:"mc",q:"„Vermutlich ist es ein Infekt.“ =",o:["Es dürfte ein Infekt sein.","Es soll ein Infekt sein.","Es will ein Infekt sein."],a:0,why:"vermutlich / wahrscheinlich → dürfte."},
+ {type:"mc",q:"„Angeblich ist der Patient gestürzt.“ =",o:["Der Patient muss gestürzt sein.","Der Patient soll gestürzt sein.","Der Patient sollte stürzen."],a:1,why:"Hearsay → sollen + Infinitiv Perfekt."},
+ {type:"mc",q:"„Er behauptet, keinen Alkohol getrunken zu haben.“ =",o:["Er will keinen Alkohol getrunken haben.","Er soll keinen Alkohol getrunken haben.","Er wollte keinen Alkohol trinken."],a:0,why:"A claim about oneself → wollen."},
+ {type:"mc",q:"Most certain:",o:["Das könnte eine Fraktur sein.","Das dürfte eine Fraktur sein.","Das muss eine Fraktur sein."],a:2,why:"muss expresses near certainty."},
+ {type:"mc",q:"He must have forgotten it. →",o:["Er musste es vergessen.","Er muss es vergessen haben.","Er hat es vergessen müssen."],a:1,why:"Assumption about the past: muss + Partizip II + haben."},
+ {type:"gap",q:"Das ___ nicht sein — das EKG ist völlig normal. (impossible)",a:"kann",alt:[],why:"kann nicht = impossible."},
+ {type:"gap",q:"Die Ergebnisse ___ in einer Stunde vorliegen. (should, if all goes as expected)",a:"müssten",alt:["dürften"],why:"müssten: expected with high probability."},
+ {type:"order",words:["Die","Patientin","soll","Fieber","gehabt","haben","."],a:"Die Patientin soll Fieber gehabt haben.",why:"sollen + Partizip II + haben = it is said that she had."},
+ {type:"fix",q:"Er muss gestern gestürzt haben.",a:"Er muss gestern gestürzt sein.",err:"haben",why:"stürzen forms its perfect with sein."},
+ {type:"transform",q:"Mit „könnte“: Vielleicht ist es eine Lungenembolie.",a:"Es könnte eine Lungenembolie sein.",alt:["Das könnte eine Lungenembolie sein."],why:"vielleicht → könnte + sein."}]},
+{id:"g52",level:"B2",week:32,title:"Funktionsverbgefüge",sub:"eine Entscheidung treffen, in Frage kommen — noun-verb pairs of formal German",
+ body:`<p>Formal German loves a <b>noun + a pale verb</b> where everyday German uses one verb. The noun carries the meaning; the verb is fixed and must be learned with it. Exams (B2 writing, FSP) reward these.</p>
+<table><tr><th>Funktionsverbgefüge</th><th>simple verb</th></tr>
+<tr><td class="de">eine Entscheidung <b>treffen</b></td><td class="de">entscheiden</td></tr>
+<tr><td class="de">eine Frage <b>stellen</b></td><td class="de">fragen</td></tr>
+<tr><td class="de">einen Antrag <b>stellen</b></td><td class="de">beantragen</td></tr>
+<tr><td class="de">eine Diagnose <b>stellen</b></td><td class="de">diagnostizieren</td></tr>
+<tr><td class="de">Abschied <b>nehmen</b></td><td class="de">sich verabschieden</td></tr>
+<tr><td class="de">Rücksicht <b>nehmen</b> auf</td><td class="de">berücksichtigen</td></tr>
+<tr><td class="de">in Anspruch <b>nehmen</b></td><td class="de">beanspruchen, nutzen</td></tr>
+<tr><td class="de">Einfluss <b>nehmen / haben</b> auf</td><td class="de">beeinflussen</td></tr>
+<tr><td class="de">zur Verfügung <b>stehen / stellen</b></td><td class="de">verfügbar sein / bereitstellen</td></tr>
+<tr><td class="de">in Frage <b>kommen</b></td><td class="de">möglich sein</td></tr>
+<tr><td class="de">zum Einsatz <b>kommen</b></td><td class="de">eingesetzt werden</td></tr>
+<tr><td class="de">in Betracht <b>ziehen</b></td><td class="de">erwägen</td></tr>
+<tr><td class="de">zur Kenntnis <b>nehmen</b></td><td class="de">bemerken</td></tr>
+<tr><td class="de">eine Rolle <b>spielen</b></td><td class="de">wichtig sein</td></tr>
+<tr><td class="de">Kritik <b>üben</b> an</td><td class="de">kritisieren</td></tr>
+<tr><td class="de">Bescheid <b>geben / sagen</b></td><td class="de">informieren</td></tr>
+<tr><td class="de">sich Sorgen <b>machen</b> um</td><td class="de">sich sorgen</td></tr>
+<tr><td class="de">in Kraft <b>treten</b></td><td class="de">gültig werden</td></tr></table>
+<p>Clinical: <span class="de">eine Indikation <b>stellen</b> · eine Therapie <b>einleiten</b> · einen Zugang <b>legen</b> · Blut <b>abnehmen</b> · eine Aufklärung <b>durchführen</b> · unter Beobachtung <b>stehen</b> · in Behandlung <b>sein</b> · zur Aufnahme <b>kommen</b> · Beschwerden <b>angeben</b> · eine Besserung <b>zeigen</b>.</span></p>
+<p>Negation with <b>kein</b> when the noun has no article: <span class="de">Das kommt <b>nicht</b> in Frage.</span> but <span class="de">Er nimmt <b>keine</b> Rücksicht.</span></p>`,
+ merke:"Learn noun + verb as one chunk: Entscheidung treffen, Frage/Antrag/Diagnose stellen, in Frage kommen, in Betracht ziehen.",
+ ex:[{type:"mc",q:"eine Entscheidung ___",o:["machen","treffen","nehmen"],a:1,why:"eine Entscheidung treffen — never machen."},
+ {type:"mc",q:"einen Antrag ___",o:["stellen","geben","tun"],a:0,why:"einen Antrag stellen = to apply."},
+ {type:"mc",q:"Diese Therapie kommt nicht in ___.",o:["Frage","Antwort","Betracht ziehen"],a:0,why:"in Frage kommen = to be an option."},
+ {type:"mc",q:"Wir müssen eine Operation in Betracht ___.",o:["nehmen","ziehen","stellen"],a:1,why:"in Betracht ziehen = to consider."},
+ {type:"mc",q:"Das Alter spielt hier eine große ___.",o:["Rolle","Frage","Stelle"],a:0,why:"eine Rolle spielen = to matter."},
+ {type:"gap",q:"Darf ich Ihnen eine Frage ___?",a:"stellen",alt:[],why:"eine Frage stellen."},
+ {type:"gap",q:"Bitte geben Sie mir ___, wenn das Labor da ist. (let me know)",a:"Bescheid",alt:[],why:"Bescheid geben = to let someone know."},
+ {type:"order",words:["Der","Arzt","hat","die","Diagnose","gestellt","."],a:"Der Arzt hat die Diagnose gestellt.",why:"eine Diagnose stellen."},
+ {type:"fix",q:"Wir haben eine Entscheidung gemacht.",a:"Wir haben eine Entscheidung getroffen.",err:"gemacht",why:"Entscheidung + treffen (getroffen)."},
+ {type:"transform",q:"Formell, mit Funktionsverb: Der Patient hat beantragt, verlegt zu werden.",a:"Der Patient hat einen Antrag auf Verlegung gestellt.",alt:["Der Patient hat einen Antrag gestellt, verlegt zu werden."],why:"beantragen → einen Antrag stellen (auf + accusative)."}]},
+{id:"g53",level:"C1",week:34,title:"Erweiterte Partizipialattribute",sub:"„der seit drei Tagen bestehende Schmerz“ — how to unpack the long noun phrases of the Arztbrief",
+ body:`<p>Written German packs a whole relative clause <b>between the article and the noun</b>. Doctors' letters are full of it. You must read it fluently and write a few yourself.</p>
+<p><span class="de"><b>der</b> [seit drei Tagen bestehend<b>e</b>] <b>Schmerz</b></span> = <span class="de">der Schmerz, der seit drei Tagen besteht</span></p>
+<p><b>Partizip I</b> (Infinitiv + d) = <b>active, at the same time</b>:<br><span class="de">die in den linken Arm ausstrahlend<b>en</b> Schmerzen = die Schmerzen, die in den linken Arm ausstrahlen</span></p>
+<p><b>Partizip II</b> = <b>passive or completed</b>:<br><span class="de">der gestern operiert<b>e</b> Patient = der Patient, der gestern operiert wurde</span><br><span class="de">das vom Hausarzt verordnet<b>e</b> Medikament = das Medikament, das vom Hausarzt verordnet wurde</span></p>
+<p><b>zu + Partizip I</b> = <b>must / can be done</b>:<br><span class="de">die noch durchzuführend<b>en</b> Untersuchungen = die Untersuchungen, die noch durchgeführt werden müssen</span></p>
+<p><b>How to read:</b> 1. find the article; 2. jump to the noun; 3. the word before the noun is the participle (with an adjective ending); 4. read everything in between as the rest of the clause.</p>
+<p><b>How to write:</b> take the relative clause, drop the relative pronoun and the verb, put the participle with the right adjective ending directly before the noun, and everything else before the participle.</p>
+<p>FSP style: <span class="de">Der 67-jährige, mit akuter Luftnot <b>eingelieferte</b> Patient · bei <b>bekannter</b> koronarer Herzkrankheit · die seit gestern <b>zunehmenden</b> Beschwerden · der initial <b>erhobene</b> Befund · das <b>einzuleitende</b> Procedere.</span></p>`,
+ merke:"Article … [everything else] participle + ending → noun. Partizip I = active now; Partizip II = passive/done; zu + Partizip I = to be done.",
+ ex:[{type:"mc",q:"„der Schmerz, der seit gestern besteht“ =",o:["der seit gestern bestandene Schmerz","der seit gestern bestehende Schmerz","der seit gestern zu bestehende Schmerz"],a:1,why:"Active, ongoing → Partizip I: bestehend + e."},
+ {type:"mc",q:"„das Medikament, das der Hausarzt verordnet hat“ =",o:["das vom Hausarzt verordnende Medikament","das vom Hausarzt verordnete Medikament","das vom Hausarzt zu verordnete Medikament"],a:1,why:"Completed/passive → Partizip II; the agent becomes von + dative."},
+ {type:"mc",q:"„die noch durchzuführenden Untersuchungen“ means:",o:["the examinations already carried out","the examinations still to be carried out","the examinations being carried out"],a:1,why:"zu + Partizip I = must/can be done."},
+ {type:"mc",q:"In „die in den Rücken ausstrahlenden Schmerzen“, the core noun phrase is:",o:["die Schmerzen","den Rücken","die ausstrahlenden"],a:0,why:"Article (die) … noun (Schmerzen); everything between is the attribute."},
+ {type:"mc",q:"„der Patient, der gestern aufgenommen wurde“ =",o:["der gestern aufnehmende Patient","der gestern aufgenommene Patient","der gestern aufzunehmende Patient"],a:1,why:"Passive, completed → Partizip II: aufgenommen + e."},
+ {type:"gap",q:"die seit einer Woche ___ Beschwerden (zunehmen, Partizip I)",a:"zunehmenden",alt:[],why:"zunehmen + d + plural ending -en."},
+ {type:"gap",q:"der vor zwei Jahren ___ Herzinfarkt (erleiden, Partizip II)",a:"erlittene",alt:[],why:"erleiden → erlitten; after der, masculine nominative → -e."},
+ {type:"order",words:["Die","gestern","begonnene","Therapie","zeigt","Wirkung","."],a:"Die gestern begonnene Therapie zeigt Wirkung.",why:"Article – attribute – participle – noun, then the verb."},
+ {type:"fix",q:"Die in den Arm ausstrahlende Schmerzen bestehen seit gestern.",a:"Die in den Arm ausstrahlenden Schmerzen bestehen seit gestern.",err:"ausstrahlende",why:"After die in the plural the ending is -en."},
+ {type:"transform",q:"Als Partizipialattribut: die Patientin, die mit Fieber eingeliefert wurde",a:"die mit Fieber eingelieferte Patientin",alt:[],why:"Partizip II (eingeliefert) + -e, placed before the noun."}]},
+{id:"g54",level:"C1",week:36,title:"Konnektoren für Fortgeschrittene",sub:"indem, sofern, zumal, wohingegen, es sei denn, geschweige denn",
+ body:`<p>These connectors lift your writing from B2 to C1. All <b>conjunctions</b> below send the verb to the end; the <b>adverbs</b> take position 1.</p>
+<table><tr><th>indem</th><td>by …ing (means)</td><td class="de">Man senkt das Fieber, <b>indem</b> man Wadenwickel macht.</td></tr>
+<tr><th>dadurch, dass</th><td>by the fact that</td><td class="de">Die Wunde heilte <b>dadurch, dass</b> sie sauber gehalten wurde.</td></tr>
+<tr><th>sofern / falls</th><td>provided that / in case</td><td class="de"><b>Sofern</b> keine Komplikationen auftreten, werden Sie morgen entlassen.</td></tr>
+<tr><th>es sei denn, …</th><td>unless (+ main clause order or <i>dass</i>)</td><td class="de">Wir operieren morgen, <b>es sei denn</b>, das Fieber steigt.</td></tr>
+<tr><th>zumal</th><td>especially since</td><td class="de">Er sollte nicht fliegen, <b>zumal</b> er gerade operiert wurde.</td></tr>
+<tr><th>wohingegen / während</th><td>whereas</td><td class="de">Der Puls ist normal, <b>wohingegen</b> der Blutdruck erhöht ist.</td></tr>
+<tr><th>sodass</th><td>so that (result)</td><td class="de">Er hatte starke Schmerzen, <b>sodass</b> er nicht schlafen konnte.</td></tr>
+<tr><th>ohne dass / anstatt dass</th><td>without / instead (different subject)</td><td class="de">Er ging, <b>ohne dass</b> wir es merkten.</td></tr>
+<tr><th>soweit / soviel</th><td>as far as</td><td class="de"><b>Soweit</b> ich weiß, ist er allergisch.</td></tr>
+<tr><th>je nachdem, ob/wie</th><td>depending on</td><td class="de"><b>Je nachdem, wie</b> das Labor ausfällt, …</td></tr>
+<tr><th>geschweige denn</th><td>let alone</td><td class="de">Er kann nicht stehen, <b>geschweige denn</b> gehen.</td></tr></table>
+<p><b>Adverbs (position 1, verb follows):</b> <span class="de">folglich, demnach, somit</span> (therefore) · <span class="de">allerdings, jedoch, hingegen, dennoch, gleichwohl</span> (however / nevertheless) · <span class="de">andernfalls, sonst</span> (otherwise) · <span class="de">zudem, außerdem, darüber hinaus, ferner</span> (moreover) · <span class="de">insofern</span> (in that respect) · <span class="de">stattdessen</span> (instead).</p>
+<p><span class="de">Die Schmerzen ließen nach; <b>dennoch</b> blieb der Patient zur Beobachtung. Nehmen Sie das Antibiotikum zu Ende, <b>andernfalls</b> droht ein Rückfall.</span></p>
+<p><b>Trap:</b> <span class="de">indem</span> (by doing) is not <span class="de">in dem</span> (in which), and <span class="de">sodass</span> (result) is not <span class="de">damit</span> (purpose).</p>`,
+ merke:"indem = how. sofern = if. zumal = all the more because. es sei denn = unless. dennoch/allerdings/folglich take position 1.",
+ ex:[{type:"mc",q:"Man verhindert Infektionen, ___ man die Hände desinfiziert.",o:["indem","sodass","zumal"],a:0,why:"Means (by doing) → indem."},
+ {type:"mc",q:"Sie können morgen nach Hause, ___ das Fieber nicht wiederkommt.",o:["zumal","sofern","wohingegen"],a:1,why:"Condition → sofern (provided that)."},
+ {type:"mc",q:"Er sollte nicht Auto fahren, ___ er starke Schmerzmittel nimmt.",o:["zumal","es sei denn","indem"],a:0,why:"An additional, stronger reason → zumal."},
+ {type:"mc",q:"Der Patient kann kaum sitzen, ___ laufen.",o:["geschweige denn","es sei denn","je nachdem"],a:0,why:"let alone → geschweige denn."},
+ {type:"mc",q:"Die Therapie schlug an; ___ blieb er noch zwei Tage stationär.",o:["obwohl","dennoch","zumal"],a:1,why:"Adverb in position 1 before the verb → dennoch."},
+ {type:"gap",q:"Wir entlassen Sie heute, es sei ___, die Werte verschlechtern sich.",a:"denn",alt:[],why:"es sei denn = unless."},
+ {type:"gap",q:"Er hustete so stark, ___ er nicht sprechen konnte. (result)",a:"sodass",alt:["so dass"],why:"Result → sodass."},
+ {type:"order",words:["Soweit","ich","weiß",",","nimmt","er","keine","Medikamente","."],a:"Soweit ich weiß, nimmt er keine Medikamente.",why:"Subordinate clause first, then verb – subject."},
+ {type:"fix",q:"Er wurde gesund, in dem er viel schlief.",a:"Er wurde gesund, indem er viel schlief.",err:"in dem",why:"The conjunction is one word: indem."},
+ {type:"transform",q:"Mit „indem“: Man kann Stürze vermeiden. Man trägt feste Schuhe.",a:"Man kann Stürze vermeiden, indem man feste Schuhe trägt.",alt:[],why:"indem + verb last."}]},
+{id:"g55",level:"B2",week:38,title:"Kommas, ß und Großschreibung",sub:"The spelling rules examiners actually mark",
+ body:`<p><b>Comma — always:</b></p>
+<ul><li>between main clause and subordinate clause: <span class="de">Ich glaube<b>,</b> dass er kommt. Der Mann<b>,</b> der dort sitzt<b>,</b> ist mein Chef.</span></li>
+<li>before <span class="de">aber, sondern, denn, doch, jedoch</span>: <span class="de">klein<b>,</b> aber fein</span></li>
+<li>in lists without <span class="de">und/oder</span>: <span class="de">Fieber<b>,</b> Husten und Schnupfen</span></li>
+<li>before <span class="de">um … zu, ohne … zu, statt … zu</span>: <span class="de">Ich bin hier<b>,</b> um zu helfen.</span></li>
+<li>around insertions and appositions: <span class="de">Dr. Braun<b>,</b> der Oberarzt<b>,</b> kommt gleich.</span></li></ul>
+<p><b>No comma</b> before <span class="de">und / oder</span> joining words or short clauses, and <b>none after an opening phrase</b>: <span class="de">Nach der Operation ging es ihm gut.</span> (English writers add one here — do not.)</p>
+<p><b>ß or ss?</b> After a <b>long</b> vowel or diphthong: <b>ß</b> — <span class="de">Fuß, groß, heißen, draußen, Straße, schließen</span>. After a <b>short</b> vowel: <b>ss</b> — <span class="de">muss, Fluss, essen, Wasser, dass, Schluss</span>. So: <span class="de">ich weiß · wir wissen</span>; <span class="de">der Fuß · der Fluss</span>.</p>
+<p><b>das or dass?</b> If you can say <span class="de">dieses / welches</span> → <b>das</b>. Otherwise → <b>dass</b>. <span class="de">Ich weiß, <b>dass das</b> Medikament hilft.</span></p>
+<p><b>Capital letters:</b> all nouns; nominalised verbs and adjectives (<span class="de">das Essen, beim Gehen, etwas Neues, im Allgemeinen</span>); polite <span class="de">Sie, Ihr, Ihnen</span>. <b>Lowercase:</b> adjectives of nationality and language as adjectives (<span class="de">die deutsche Sprache</span> — but <span class="de">auf Deutsch, das Deutsche</span>); <span class="de">heute Morgen, gestern Abend</span> (day lower, part of day capital); <span class="de">montags, abends</span>.</p>
+<p><b>Together or apart:</b> <span class="de">kennenlernen, teilnehmen, stattfinden, zurückkommen</span> are one word in the infinitive; <span class="de">Rad fahren, Auto fahren, spazieren gehen</span> are two.</p>`,
+ merke:"Comma before every Nebensatz, aber, sondern, um … zu. Long vowel → ß, short → ss. dieses/welches → das, else dass.",
+ ex:[{type:"mc",q:"Which is correct?",o:["Ich glaube das er krank ist.","Ich glaube, dass er krank ist.","Ich glaube, das er krank ist."],a:1,why:"Comma before the clause; the conjunction is dass."},
+ {type:"mc",q:"Which is correct?",o:["der Fuss","der Fuß","der Fus"],a:1,why:"Long u → ß."},
+ {type:"mc",q:"Which is correct?",o:["Nach dem Essen, nehme ich die Tablette.","Nach dem Essen nehme ich die Tablette.","Nach dem essen nehme ich die Tablette."],a:1,why:"No comma after an opening phrase; das Essen is a noun."},
+ {type:"mc",q:"Which is correct?",o:["Ich spreche Deutsch und lese deutsche Bücher.","Ich spreche deutsch und lese Deutsche Bücher.","Ich spreche Deutsch und lese Deutsche Bücher."],a:0,why:"The language as a noun is capital; the adjective is lowercase."},
+ {type:"mc",q:"Ich weiß, ___ ___ Kind Fieber hat.",o:["das dass","dass das","dass dass"],a:1,why:"Conjunction dass, then article das."},
+ {type:"gap",q:"Er ___ sofort ins Krankenhaus. (müssen, er)",a:"muss",alt:[],why:"Short u → ss: muss."},
+ {type:"gap",q:"Wir sehen uns heute ___. (evening)",a:"Abend",alt:[],why:"heute Abend: the part of the day is a capitalised noun."},
+ {type:"order",words:["Ich","bin","hier",",","um","Ihnen","zu","helfen","."],a:"Ich bin hier, um Ihnen zu helfen.",why:"Comma before um … zu."},
+ {type:"fix",q:"Ich hoffe, das es Ihnen besser geht.",a:"Ich hoffe, dass es Ihnen besser geht.",err:"das",why:"You cannot replace it with dieses/welches → dass."},
+ {type:"transform",q:"Setze das Komma: Der Patient der gestern kam ist entlassen.",a:"Der Patient, der gestern kam, ist entlassen.",alt:[],why:"A relative clause is enclosed by two commas."}]},
+{id:"g56",level:"B2",week:39,title:"Gesprochenes Deutsch & Umgangssprache",sub:"What patients really say: nix, 'n bisschen, ich hab, kriegen, gucken",
+ body:`<p>Textbook German is not what you hear at three in the morning. Understand everything here; in exams and with patients <b>use</b> the standard forms.</p>
+<p><b>Sounds that disappear:</b></p>
+<table><tr><td class="de">ich hab, ich komm, ich geh</td><td>final -e dropped</td></tr><tr><td class="de">is, nich, jetz, ma</td><td>ist, nicht, jetzt, mal</td></tr><tr><td class="de">'n, 'ne, 'nen</td><td>ein, eine, einen: <span class="de">Ich hab 'ne Frage.</span></td></tr><tr><td class="de">nix</td><td>nichts</td></tr><tr><td class="de">haste, biste, kannste</td><td>hast du, bist du, kannst du</td></tr><tr><td class="de">gibt's, geht's, wie's, auf'm, in'n</td><td>gibt es, geht es, wie es, auf dem, in den</td></tr><tr><td class="de">was (für etwas)</td><td><span class="de">Ich hab was gegessen.</span></td></tr></table>
+<p><b>Everyday words:</b> <span class="de">kriegen</span> = bekommen · <span class="de">gucken / schauen</span> = sehen · <span class="de">kaputt</span> = broken, exhausted · <span class="de">klappen</span> = work out · <span class="de">quatschen</span> = chat · <span class="de">pennen</span> = sleep · <span class="de">Klamotten</span> = clothes · <span class="de">Kohle</span> = money · <span class="de">mies, übel</span> = bad · <span class="de">krass</span> = extreme · <span class="de">echt?</span> = really? · <span class="de">Quatsch!</span> = nonsense · <span class="de">ne? / gell? / oder?</span> = isn't it?</p>
+<p><b>Patients describing symptoms:</b> <span class="de">Mir ist kotzübel. Ich hab's im Kreuz</span> (back pain)<span class="de">. Ich krieg keine Luft. Mir brummt der Schädel. Ich bin fix und fertig. Das zwickt / zieht / sticht. Ich hab Rücken</span> (I have back trouble)<span class="de">. Ich hab mich übergeben / gebrochen / gekotzt. Ich muss ständig aufs Klo. Ich bin umgekippt</span> (fainted)<span class="de">. Ich hab einen Kater</span> (hangover).</p>
+<p><b>Grammar of speech:</b> <span class="de">weil</span> with main-clause order (<span class="de">…, weil ich hab keine Zeit</span>) — common, but wrong in writing. <span class="de">wegen dem</span> instead of <span class="de">wegen des</span>. <span class="de">der/die</span> instead of <span class="de">er/sie</span>: <span class="de">Der hat gesagt …</span> <span class="de">tun</span> as a helper: <span class="de">Ich tu grad kochen.</span></p>
+<p><b>Greetings by region:</b> <span class="de">Moin</span> (north, all day) · <span class="de">Grüß Gott / Servus</span> (south) · <span class="de">Guude</span> (Hessen) · <span class="de">Tschüss / Ciao / Ade</span> (Baden: <span class="de">Ade!</span>). In the Kurpfalz around Heidelberg you will hear <span class="de">Alla (hopp)!</span> = okay then, bye.</p>`,
+ merke:"Understand: hab, nix, 'ne, kriegen, gucken, kaputt. Write and say to patients: habe, nichts, eine, bekommen, sehen.",
+ ex:[{type:"mc",q:"„Ich krieg keine Luft.“ =",o:["Ich bekomme keine Luft.","Ich möchte keine Luft.","Ich brauche keine Luft."],a:0,why:"kriegen = bekommen."},
+ {type:"mc",q:"„Ich hab nix gegessen.“ — nix =",o:["nicht","nichts","nie"],a:1,why:"nix = nichts."},
+ {type:"mc",q:"„Ich bin gestern umgekippt.“ means:",o:["I fell out of bed","I fainted / collapsed","I changed my mind"],a:1,why:"umkippen = to keel over, faint."},
+ {type:"mc",q:"„Hast du 'ne Tablette?“ — 'ne =",o:["keine","eine","meine"],a:1,why:"'ne = eine."},
+ {type:"mc",q:"„Mir ist kotzübel.“ The patient feels:",o:["very nauseous","very cold","very angry"],a:0,why:"kotzübel = extremely nauseous (vulgar-colloquial)."},
+ {type:"gap",q:"Standardsprache: „Das hat nicht geklappt.“ = Das hat nicht ___.",a:"funktioniert",alt:["geklappt"],why:"klappen = funktionieren, to work out."},
+ {type:"gap",q:"Standardsprache: „Guck mal!“ = ___ mal!",a:"Schau",alt:["Sieh"],why:"gucken = schauen / sehen."},
+ {type:"order",words:["Ich","bin","fix","und","fertig","."],a:"Ich bin fix und fertig.",why:"fix und fertig = completely exhausted."},
+ {type:"fix",q:"Schriftlich: Ich komme nicht, weil ich habe keine Zeit.",a:"Ich komme nicht, weil ich keine Zeit habe.",err:"habe keine Zeit",why:"In writing, weil always sends the verb to the end."},
+ {type:"transform",q:"In Standardsprache: Haste mal 'n Stift?",a:"Hast du mal einen Stift?",alt:[],why:"haste = hast du; 'n = einen."}]}
+);
+// ===== Mephisto 12.8 · Funktionswörter: the small words that hold German together (only added if not already in the catalogue). [de, en, example, exampleEn, level, theme]
+const VOC3=[
+["mal","(particle) softens a request; short for einmal","Zeigen Sie mal her.","Let me have a look.","A2","partikeln"],
+["halt","(particle) that's just how it is","Das ist halt so.","That's just how it is.","B1","partikeln"],
+["eben","(particle) simply, just; (adverb) just now","Dann müssen wir eben warten.","Then we'll just have to wait.","B1","partikeln"],
+["bloß","(particle) just, only; warning","Stehen Sie bloß nicht auf!","Don't you get up!","B1","partikeln"],
+["ruhig","(particle) feel free to; (adjective) calm","Fragen Sie ruhig.","Feel free to ask.","B1","partikeln"],
+["übrigens","by the way","Übrigens, Ihr Befund ist da.","By the way, your result is here.","B1","kleine-woerter"],
+["sowieso","anyway, in any case","Ich muss sowieso zur Apotheke.","I have to go to the pharmacy anyway.","B1","kleine-woerter"],
+["ohnehin","anyway (formal)","Die Untersuchung war ohnehin geplant.","The examination was planned anyway.","B2","kleine-woerter"],
+["bereits","already (formal)","Der Patient wurde bereits aufgeklärt.","The patient has already been informed.","B1","kleine-woerter"],
+["damals","back then","Damals hatte ich noch keine Beschwerden.","Back then I had no complaints yet.","A2","kleine-woerter"],
+["neulich","the other day, recently","Neulich bin ich auf der Treppe gestürzt.","The other day I fell on the stairs.","B1","kleine-woerter"],
+["kürzlich","recently","Sie wurde kürzlich operiert.","She was operated on recently.","B1","kleine-woerter"],
+["vorhin","a little while ago (today)","Vorhin war mir schwindelig.","A little while ago I felt dizzy.","B1","kleine-woerter"],
+["gleich","in a moment; same","Der Arzt kommt gleich.","The doctor will be with you in a moment.","A1","kleine-woerter"],
+["sofort","immediately","Rufen Sie sofort den Notarzt.","Call the emergency doctor immediately.","A1","kleine-woerter"],
+["bald","soon","Gute Besserung, bis bald!","Get well soon, see you!","A1","kleine-woerter"],
+["inzwischen","meanwhile, by now","Inzwischen geht es ihr besser.","By now she is doing better.","B1","kleine-woerter"],
+["bisher","so far, until now","Bisher gab es keine Komplikationen.","So far there have been no complications.","B1","kleine-woerter"],
+["zunächst","first of all, for now","Zunächst machen wir ein EKG.","First we'll do an ECG.","B1","kleine-woerter"],
+["anschließend","afterwards","Anschließend kommen Sie auf die Station.","Afterwards you will go to the ward.","B1","kleine-woerter"],
+["schließlich","finally; after all","Schließlich ist er Arzt.","After all, he is a doctor.","B1","kleine-woerter"],
+["ständig","constantly","Ich muss ständig husten.","I have to cough constantly.","B1","kleine-woerter"],
+["gelegentlich","occasionally","Ich trinke gelegentlich ein Glas Wein.","I occasionally drink a glass of wine.","B1","kleine-woerter"],
+["selten","rarely","Ich bin selten krank.","I am rarely ill.","A2","kleine-woerter"],
+["kaum","hardly, barely","Ich kann kaum atmen.","I can hardly breathe.","B1","kleine-woerter"],
+["fast","almost","Ich wäre fast gestürzt.","I almost fell.","A2","kleine-woerter"],
+["ziemlich","quite, rather","Die Schmerzen sind ziemlich stark.","The pain is quite strong.","A2","kleine-woerter"],
+["etwa","about, approximately","Seit etwa drei Wochen.","For about three weeks.","A2","kleine-woerter"],
+["ungefähr","roughly","Ungefähr einmal im Monat.","Roughly once a month.","A2","kleine-woerter"],
+["mindestens","at least","Trinken Sie mindestens zwei Liter am Tag.","Drink at least two litres a day.","A2","kleine-woerter"],
+["höchstens","at most","Höchstens drei Tabletten täglich.","At most three tablets a day.","B1","kleine-woerter"],
+["sogar","even","Er hat sogar nachts Schmerzen.","He even has pain at night.","A2","kleine-woerter"],
+["überhaupt","at all; in general","Ich habe überhaupt keinen Appetit.","I have no appetite at all.","B1","kleine-woerter"],
+["jedenfalls","in any case","Jedenfalls sollten Sie nicht rauchen.","In any case you should not smoke.","B1","kleine-woerter"],
+["nämlich","namely; you see","Ich kann nicht kommen, ich habe nämlich Dienst.","I can't come — I'm on duty, you see.","B1","kleine-woerter"],
+["allerdings","however, though","Die Therapie wirkt, allerdings langsam.","The therapy works, though slowly.","B1","kleine-woerter"],
+["dennoch","nevertheless","Er hatte Schmerzen, dennoch ging er arbeiten.","He was in pain; nevertheless he went to work.","B2","kleine-woerter"],
+["hingegen","on the other hand","Der Puls ist normal, der Blutdruck hingegen erhöht.","The pulse is normal; the blood pressure, on the other hand, is raised.","B2","kleine-woerter"],
+["folglich","consequently","Die Werte sind normal, folglich können Sie nach Hause.","The values are normal, so you can go home.","B2","kleine-woerter"],
+["andernfalls","otherwise","Nehmen Sie es regelmäßig, andernfalls wirkt es nicht.","Take it regularly, otherwise it won't work.","B2","kleine-woerter"],
+["stattdessen","instead","Nehmen Sie stattdessen Paracetamol.","Take paracetamol instead.","B1","kleine-woerter"],
+["solange","as long as","Solange Sie Fieber haben, bleiben Sie im Bett.","As long as you have a fever, stay in bed.","B1","kleine-woerter"],
+["sobald","as soon as","Sobald das Labor da ist, rufe ich Sie.","As soon as the lab results are in, I'll call you.","B1","kleine-woerter"],
+["sofern","provided that","Sofern Sie einverstanden sind, beginnen wir.","Provided you agree, we'll begin.","B2","kleine-woerter"],
+["indem","by (doing)","Sie helfen sich, indem Sie viel trinken.","You help yourself by drinking a lot.","B2","kleine-woerter"],
+["zumal","especially since","Bleiben Sie hier, zumal es schon spät ist.","Stay here, especially since it is already late.","C1","kleine-woerter"],
+["wegen","because of (+ genitive)","Wegen der Schmerzen kann ich nicht schlafen.","Because of the pain I can't sleep.","A2","kleine-woerter"],
+["aufgrund","due to (+ genitive)","Aufgrund des Befundes empfehlen wir eine Operation.","Due to the findings we recommend an operation.","B2","kleine-woerter"],
+["innerhalb","within (+ genitive)","Innerhalb einer Stunde wurde es besser.","Within an hour it got better.","B1","kleine-woerter"],
+["anhand","on the basis of (+ genitive)","Anhand der Bilder sehen wir einen Bruch.","From the images we can see a fracture.","B2","kleine-woerter"],
+["bezüglich","regarding (+ genitive)","Bezüglich Ihrer Frage rufe ich Sie zurück.","Regarding your question I'll call you back.","B2","kleine-woerter"],
+["gegenüber","opposite; towards (+ dative)","Die Apotheke ist gegenüber dem Bahnhof.","The pharmacy is opposite the station.","A2","kleine-woerter"],
+["sich","oneself (reflexive, 3rd person and Sie)","Setzen Sie sich bitte.","Please sit down.","A1","kleine-woerter"],
+["einander","each other","Wir helfen einander.","We help each other.","B1","kleine-woerter"],
+["irgendwie","somehow","Mir ist irgendwie komisch.","I feel somehow strange.","B1","kleine-woerter"],
+["irgendwann","at some point","Irgendwann hörten die Schmerzen auf.","At some point the pain stopped.","B1","kleine-woerter"],
+["irgendwo","somewhere","Tut es noch irgendwo weh?","Does it hurt anywhere else?","B1","kleine-woerter"],
+["nirgends","nowhere","Ich finde meine Brille nirgends.","I can't find my glasses anywhere.","B1","kleine-woerter"],
+["beide","both","Beide Beine sind geschwollen.","Both legs are swollen.","A2","kleine-woerter"],
+["sämtliche","all (formal)","Sämtliche Werte sind im Normbereich.","All values are within the normal range.","B2","kleine-woerter"],
+["einige","some, a few","Ich habe einige Fragen.","I have a few questions.","A2","kleine-woerter"],
+["mehrere","several","Er nimmt mehrere Medikamente.","He takes several medications.","A2","kleine-woerter"],
+["derselbe","the same (one)","Es ist derselbe Schmerz wie gestern.","It is the same pain as yesterday.","B1","kleine-woerter"],
+["solch","such","Solche Schmerzen hatte ich noch nie.","I have never had such pain.","B1","kleine-woerter"],
+["umso","all the (more)","Je früher wir beginnen, umso besser.","The sooner we begin, the better.","B2","kleine-woerter"],
+["zwar","admittedly (… aber)","Das hilft zwar, aber nur kurz.","It does help, but only briefly.","B1","kleine-woerter"],
+["weder","neither (… noch)","Ich habe weder Fieber noch Husten.","I have neither fever nor cough.","B1","kleine-woerter"],
+["sowohl","both (… als auch)","Sowohl der Puls als auch der Blutdruck sind normal.","Both the pulse and the blood pressure are normal.","B1","kleine-woerter"],
+["entweder","either (… oder)","Entweder heute oder morgen.","Either today or tomorrow.","A2","kleine-woerter"],
+["je","ever; per; the (… desto)","Je mehr Sie trinken, desto besser.","The more you drink, the better.","B1","kleine-woerter"],
+["hin","there (away from the speaker)","Wo gehen Sie hin?","Where are you going?","A2","kleine-woerter"],
+["her","here (towards the speaker)","Kommen Sie bitte her.","Please come here.","A2","kleine-woerter"],
+["daher","therefore; from there","Er ist Diabetiker, daher die Kontrolle.","He is diabetic, hence the check.","B1","kleine-woerter"],
+["dabei","at the same time; with it","Haben Sie Ihre Medikamente dabei?","Do you have your medication with you?","A2","kleine-woerter"],
+["davon","of it, from it","Davon weiß ich nichts.","I know nothing about that.","B1","kleine-woerter"],
+["dafür","for it; in return","Dafür brauchen Sie eine Überweisung.","For that you need a referral.","A2","kleine-woerter"],
+["dagegen","against it; on the other hand","Was kann man dagegen tun?","What can be done about it?","B1","kleine-woerter"],
+["worüber","about what","Worüber machen Sie sich Sorgen?","What are you worried about?","B1","kleine-woerter"]];
+// ===== Mephisto 12.8 · Der Schatten: a second voice in every chapter. He speaks in the grammar of that chapter, at its level, and changes from enemy to ally (Jung's shadow, integrated at the end).
+const SHADOW={
+1:["Ich bin dein Schatten. Ich bin müde. Ich will nach Hause.","I am your shadow. I am tired. I want to go home."],
+2:["Der, die, das. Wer braucht das? Niemand.","Der, die, das. Who needs that? Nobody."],
+3:["Ich habe Angst. Du hast auch Angst. Wir sind allein.","I am afraid. You are afraid too. We are alone."],
+4:["Heute lerne ich nicht. Morgen lerne ich. Vielleicht.","Today I won't study. Tomorrow I will. Maybe."],
+5:["Der Wolf frisst den Mann. Der Wald frisst den Weg. Die Sprache frisst dich.","The wolf eats the man. The forest eats the path. The language eats you."],
+6:["Eins, zwei, drei … Ich zähle deine Fehler. Ich bin schon bei hundert.","One, two, three … I am counting your mistakes. I have reached a hundred already."],
+7:["Warum bist du hier? Wohin gehst du? Wer wartet auf dich?","Why are you here? Where are you going? Who is waiting for you?"],
+8:["Die Hexe ist alt und stark. Du bist neu und schwach. Geh nicht hinein.","The witch is old and strong. You are new and weak. Do not go in."],
+9:["Der Stadt gefällst du nicht. Dem Kellner dankst du falsch. Mir kannst du glauben: Wir gehören nicht hierher.","The city does not like you. You thank the waiter wrongly. You can believe me: we do not belong here."],
+10:["Du gehst in das Café. Ich sitze schon im Café. Ich bin immer vor dir da.","You walk into the café. I am already sitting in the café. I am always there before you."],
+11:["Du musst nicht lernen. Du kannst aufhören. Du darfst müde sein. Ich will es so.","You don't have to study. You can stop. You are allowed to be tired. I want it that way."],
+12:["Gib auf. Hör auf. Mach das Buch zu. Ich fange gar nicht erst an.","Give up. Stop. Close the book. I won't even begin."],
+13:["Was hast du gelernt? Was hast du vergessen? Ich habe alles gesehen.","What have you learned? What have you forgotten? I have seen everything."],
+14:["Du meldest dich an. Du setzt dich. Du wartest. Und ich frage mich: Wozu?","You register. You sit down. You wait. And I ask myself: what for?"],
+15:["Ich weiß, dass du zweifelst. Ich weiß nicht, ob du bleibst. Ich hoffe, dass du gehst.","I know that you doubt. I don't know whether you will stay. I hope that you leave."],
+16:["Der Golem gehorcht jedem Befehl. Du gehorchst jeder Angst. Wer von euch ist aus Lehm?","The golem obeys every command. You obey every fear. Which of you is made of clay?"],
+17:["Es war einmal ein Arzt, der alles wusste. Dann kam er nach Deutschland und wusste nichts mehr. Das warst du.","Once upon a time there was a doctor who knew everything. Then he came to Germany and knew nothing any more. That was you."],
+18:["Ich bin der Hund, der dir folgt, weil du mich nicht ansiehst.","I am the dog that follows you because you won't look at me."],
+19:["Die Angst des Schülers ist die Freude des Teufels. Und ich bin der Schatten des Schülers.","The pupil's fear is the devil's joy. And I am the pupil's shadow."],
+20:["Ein müder Mann mit einem schweren Kopf in einem lauten Keller: ein schönes Bild von dir.","A tired man with a heavy head in a loud cellar: a fine picture of you."],
+21:["Wenn du zu Hause geblieben wärst, hättest du jetzt Ruhe. Ich würde an deiner Stelle umkehren.","If you had stayed at home, you would have peace now. In your place I would turn back."],
+22:["Gretchen wurde verlassen. Du wirst geprüft. Ich werde nie gefragt.","Gretchen was abandoned. You are being tested. I am never asked."],
+23:["„Zwei Seelen wohnen, ach! in meiner Brust.“ Eine davon bin ich. Rate, welche lauter ist.","'Two souls, alas, dwell in my breast.' One of them is me. Guess which is louder."],
+24:["Der Pudel bin nicht ich. Aber wir kennen uns. Wenn du ihn besiegst, werde ich leiser.","The poodle is not me. But we know each other. If you defeat him, I will grow quieter."],
+25:["Du wartest auf den Tag, an dem du dich nicht mehr für deine Fehler schämst. Ich kümmere mich darum, dass er nicht kommt.","You are waiting for the day when you are no longer ashamed of your mistakes. I am seeing to it that it does not come."],
+26:["Ich bin der Schlafwandler, dessen Augen offen sind und in dessen Kopf ein anderer spricht.","I am the sleepwalker whose eyes are open and in whose head another speaks."],
+27:["Entweder du lernst, oder du schläfst. Weder das eine noch das andere gelingt dir ganz. Je müder du bist, desto lauter bin ich.","Either you study or you sleep. You manage neither the one nor the other completely. The more tired you are, the louder I am."],
+28:["Obwohl du mich nicht hören willst, höre ich dir zu, damit ich weiß, wann du aufgibst.","Although you don't want to hear me, I listen to you, so that I know when you give up."],
+29:["Nach Abschluss der Prüfung erfolgt die Ablehnung Ihres Antrags. So klingt meine Hoffnung im Nominalstil.","Upon completion of the examination, your application will be rejected. That is how my hope sounds in nominal style."],
+30:["Es wird gelernt, es wird vergessen, es wird gelitten. Von wem? Das Passiv verrät es nicht. Ich schon: von dir.","There is learning, there is forgetting, there is suffering. By whom? The passive won't tell. I will: by you."],
+31:["Man sagt, du seist begabt. Man sagt, du habest Fortschritte gemacht. Ich sage nichts. Ich warte.","They say you are gifted. They say you have made progress. I say nothing. I wait."],
+32:["Vielleicht hat er recht, und du bist der Verrückte. Vielleicht bin ich der einzige Vernünftige hier.","Perhaps he is right and you are the madman. Perhaps I am the only sane one here."],
+33:["Du bist ja immer noch da. Dann mach halt weiter. Ich bin mir eigentlich gar nicht mehr so sicher, dass du scheiterst.","Well, you are still here. Then just carry on. Actually I am no longer so sure that you will fail."],
+34:["Du dürftest es schaffen. Ich muss mich geirrt haben. Der Teufel soll schon nervös sein.","You will probably make it. I must have been wrong. The devil is said to be nervous already."],
+35:["Ich habe eine Entscheidung getroffen: Ich nehme Abschied von meinen Zweifeln. Sie kommen nicht mehr in Frage.","I have made a decision: I am taking leave of my doubts. They are no longer an option."],
+36:["Der seit sechsunddreißig Kapiteln hinter dir gehende, lange von dir gefürchtete Schatten bittet um das Wort: Danke.","The shadow that has walked behind you for thirty-six chapters, long feared by you, asks to speak: thank you."],
+37:["Schattenlos wirst du nie sein. Aber furchtlos, vielleicht. Das Wort habe ich selbst gebaut.","You will never be shadowless. But fearless, perhaps. I built that word myself."],
+38:["Meiner Meinung nach hast du es verdient. Davon bin ich überzeugt. Abschließend lässt sich sagen: Wir sind bereit.","In my opinion you have earned it. Of that I am convinced. In conclusion it can be said: we are ready."],
+39:["Im Kerker ist es dunkel. Dort sieht man keine Schatten. Deshalb bin ich jetzt in dir – und dort bleibe ich.","It is dark in the dungeon. No shadows can be seen there. That is why I am inside you now — and there I stay."],
+40:["Wir treten gemeinsam ein. Du sprichst, und ich schweige. Zum ersten Mal habe ich keine Angst.","We enter together. You speak, and I stay silent. For the first time I am not afraid."]};
 // ================= CORE (v2) =================
 "use strict";
 MEDVOCAB.forEach(v=>VOCAB.push(v));ALLTAGVOCAB.forEach(v=>VOCAB.push(v));MEDL2.forEach(m=>MEDL.push(m));
@@ -3965,7 +4631,7 @@ ACT.saveYuzu=async()=>{const p=yuzuPack();const r=await saveFile("mephisto-core.
 ACT.copyYuzu=()=>{const p=yuzuPack();copyText(JSON.stringify(p),$(".bk-txt"));toast(p.cards.length+" Karten")};
 ACT.reset=()=>{const v=($(".rs-in")||{}).value;if(v!=="LÖSCHEN")return toast("Tippe LÖSCHEN zur Bestätigung");lsSet("mephisto_before_reset",JSON.stringify(S));S=fresh();saveNow();buildDict();applyPrefs();R.tab="home";toast("Zurückgesetzt. Eine Kopie liegt unter „mephisto_before_reset“.");rerender()};
 // ================= PHONE FEATURES (v10): speech check, Artikel-Blitz, numbers, terms, undo, haptics, coach, PWA =================
-const APP_VERSION="12.7.0";
+const APP_VERSION="12.8.0";
 const IS_PWA=!!window.MEPHISTO_PWA;
 const IS_STANDALONE=(()=>{try{return matchMedia("(display-mode: standalone)").matches||navigator.standalone===true}catch(e){return false}})();
 const IS_IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
@@ -6080,7 +6746,7 @@ function pkSealChapter(){const p=P();const c=pkCh();if(!pkGate(c).ready)return;p
 function pkRead(n){const c=pkCh(n);const p=P();const box=Focus.open({title:`Kapitel ${c.n} · ${c.t}`,sub:`${REALMS[c.r].n} · ${REALMS[c.r].de}`,onClose:()=>{if(R.tab==="pakt")rerender()}});let i=0;
   const lines=c.scene;const de=c.r==="I"||c.r==="II";
   const draw=()=>{box.innerHTML=`<div class="stack" style="max-width:680px;margin:0 auto">${i===0?pkFig(c.art):""}
-    ${lines.slice(0,i+1).map((ln,j)=>ln[0]==="M"?`<div class="card ${j===i?"pk-fade":""}">${pkSay([ln[1],ln[2]])}<div class="row" style="margin-top:.5rem"><button class="sm ghost" data-act="pkSpeakLine" data-t="${esc(ln[1])}">${ic("play")}Mephisto hören</button></div></div>`:`<p class="pk-nar ${j===i?"pk-fade":""}">${esc(ln[1])}</p>`).join("")}
+    ${lines.slice(0,i+1).map((ln,j)=>ln[0]==="M"?`<div class="card ${j===i?"pk-fade":""}">${pkSay([ln[1],ln[2]])}<div class="row" style="margin-top:.5rem"><button class="sm ghost" data-act="pkSpeakLine" data-t="${esc(ln[1])}">${ic("play")}Mephisto hören</button></div></div>`:ln[0]==="S"?`<div class="card pk-shadow ${j===i?"pk-fade":""}"><div class="eyebrow">Dein Schatten <span class="en">your shadow</span></div><div class="sh-de">${glossify(ln[1])}</div><div class="pk-say" style="display:block"><div class="en">${esc(ln[2]||"")}</div></div><div class="row" style="margin-top:.4rem"><button class="sm ghost" data-say="${esc(ln[1])}">${ic("vol")} Anhören</button></div></div>`:`<p class="pk-nar ${j===i?"pk-fade":""}">${esc(ln[1])}</p>`).join("")}${i>=lines.length-1&&typeof LORE!=="undefined"&&LORE.find(e=>e.ch===c.n)?`<button class="card lore-new pk-fade" data-act="loreRead" data-id="${LORE.find(e=>e.ch===c.n).id}"><span><span class="eyebrow">Zu diesem Kapitel in der Chronik</span><b>${esc(LORE.find(e=>e.ch===c.n).t)}</b><small>${esc(LORE.find(e=>e.ch===c.n).y)}</small></span></button>`:""}
     ${i>=lines.length-1?`<div class="card orn pk-fade"><div class="eyebrow">Faust</div><div class="pk-faust">${esc(c.faust.de.replace(/ \/ /g,"\n"))}<small>${esc(c.faust.src)} — ${esc(c.faust.en)}</small></div><div class="row" style="margin-top:.6rem"><button class="sm ghost" data-act="pkSpeakFaust" data-n="${c.n}">${ic("play")}Vorlesen</button></div></div>
       <div class="card pk-fade"><div class="eyebrow">Klausel des Pakts</div><p style="font-family:var(--body);font-size:1.12rem;margin:.3rem 0">${esc(c.clause.de)}</p><small class="muted ui">${esc(c.clause.en)} · ${esc(c.jung)}</small></div>`:""}</div>`;
     Focus.foot(i<lines.length-1?`<button class="go" data-act="pkNext">Weiter</button>`:`<button class="go" data-act="pkReadDone">${c.n===p.ch?"Zur Klausel":"Schließen"}</button>`);
@@ -7150,6 +7816,41 @@ setInterval(()=>{if(Math.random()<.18)poodleRun()},45000);
 :root[data-ui="paper"] #lore-sprites{opacity:.35}:root[data-ui="clean"] #lore-sprites{opacity:.5}
 @media (prefers-reduced-motion: reduce){.lore-img,.cine-img{animation:none}}
 `;document.head.appendChild(s)})();
+// ===== Mephisto 12.8 · Grammatik komplett: registers 26 new lessons (g31–g56), binds them to weeks, chapters and bosses, and adds the coverage map.
+(function(){const G3=typeof GRAMMAR3!=="undefined"?GRAMMAR3:[];const LVI={A1:0,A2:1,B1:2,B2:3,C1:4};
+  G3.forEach(L=>{if(GRAMMAR.some(g=>g.id===L.id))return;const mcs=(L.ex||[]).filter(e=>e.type==="mc").slice(0,4).map(e=>({q:e.q,o:e.o,a:e.a,why:e.why}));
+    GRAMMAR.push({id:L.id,week:L.week,title:L.title,sub:L.sub,level:L.level,body:L.body+(L.merke?`<p class="g-merke"><b>Merke:</b> ${esc(L.merke)}</p>`:""),quiz:mcs,ex:L.ex,merke:L.merke||"",neu:1});
+    const W=WEEKS[L.week-1];if(W){W.gram=W.gram||[];if(!W.gram.includes(L.id))W.gram.push(L.id)}});
+  const num=id=>+String(id).slice(1);GRAMMAR.sort((a,b)=>(LVI[a.level]??3)-(LVI[b.level]??3)||(a.week||0)-(b.week||0)||num(a.id)-num(b.id));
+  const bind={6:"g36",7:"g32",14:"g38",15:"g40",33:"g50",34:"g51",35:"g52",36:"g53"};CHAPTERS.forEach(c=>{if(!c.lesson&&!c.boss&&bind[c.n])c.lesson=bind[c.n]});
+  try{BOSS_GR.hexe.push("g31","g32","g33","g34","g35","g37");BOSS_GR.golem.push("g38","g39","g40","g41","g42","g43","g44","g45");BOSS_GR.pudel.push("g46","g47","g48","g49");BOSS_GR.caligari.push("g50","g51","g52","g55")}catch(e){}
+  // offer unseen new lessons from weeks already passed, every other day
+  const _pl=pickLesson;pickLesson=function(){try{const wn=weekNumber();if(dayNumber()%2===0){const miss=G3.filter(L=>L.week<wn&&!S.lessons[L.id]&&(LVI[L.level]??3)<=learnerLv()+1).sort((a,b)=>a.week-b.week)[0];if(miss)return miss.id}}catch(e){}return _pl()};
+})();
+const GRAM_AREAS=[["Laute & Schrift",["g0","g1","g36","g55"]],["Nomen & Artikel",["g1","g33","g34","g43","g44","g12"]],["Fälle & Präpositionen",["g4","g5","g6","g35","g39","g48","g17"]],["Verben: Zeiten",["g2","g3","g9","g41","g10","g46","g26"]],["Verben: Formen",["g7","g8","g38","g42","g47","g51"]],["Satzbau",["g3","g31","g32","g37","g45","g49"]],["Nebensätze",["g40","g11","g18","g20","g46","g54"]],["Adjektive",["g13","g28","g23","g53"]],["Konjunktiv & Passiv",["g14","g15","g22","g24","g25"]],["Stil & Wortschatz",["g16","g19","g21","g27","g52","g29","g30"]],["Gesprochenes Deutsch",["g50","g56"]]];
+ACT.gramMap=()=>{const box=Focus.open({title:"Grammatik komplett",sub:`${GRAMMAR.length} Lektionen · A1 bis C1`});const best=id=>Math.max((S.lessons[id]||{}).best||0,((S.gram||{})[id]||{}).best||0);const seen=id=>!!S.lessons[id]||!!(S.gram||{})[id];
+  const done=GRAMMAR.filter(g=>best(g.id)>=70).length;const LV5=["A1","A2","B1","B2","C1"];
+  const chip=g=>{const b=best(g.id);return `<button class="gm-l ${b>=70?"ok":seen(g.id)?"part":""} lv-${g.level}" data-act="gramOpen" data-id="${g.id}"><b>${esc(g.title)}</b><small>${g.level}${g.neu?" · neu":""}${seen(g.id)?` · ${b} %`:""}</small></button>`};
+  box.innerHTML=`<div class="stack" style="max-width:900px;margin:0 auto"><div class="card orn">${pkSay(["Die ganze Grammatik. Jede Lücke, die Sie lassen, gehört mir.","The whole grammar. Every gap you leave belongs to me."])}</div>
+   <div class="card stack s"><div class="row between"><div class="eyebrow">Stand</div><b>${done} / ${GRAMMAR.length} ab 70 %</b></div><div class="rd-bar"><i style="width:${100*done/GRAMMAR.length}%"></i></div>
+    <div class="gm-lv">${LV5.map(l=>{const L=GRAMMAR.filter(g=>g.level===l);return `<span><b>${l}</b> ${L.filter(g=>best(g.id)>=70).length}/${L.length}</span>`}).join("")}</div></div>
+   ${GRAM_AREAS.map(([n,ids])=>`<div class="gm-area"><div class="eyebrow">${esc(n)}</div><div class="gm-grid">${ids.map(id=>GRAMMAR.find(g=>g.id===id)).filter(Boolean).map(chip).join("")}</div></div>`).join("")}</div>`};
+ACT.gramOpen=el=>{if(Focus.isOpen())Focus.close(true);go("learn","id:"+el.dataset.id)};
+(function(){const _w=werkstattHTML;werkstattHTML=function(){const h=_w();const best=id=>Math.max((S.lessons[id]||{}).best||0,((S.gram||{})[id]||{}).best||0);const done=GRAMMAR.filter(g=>best(g.id)>=70).length;
+  if(R.tab==="learn")return h+`<button class="card row between gm-link" data-act="gramMap" style="text-align:left"><span><span class="eyebrow">Grammatik komplett</span><br><b>${done} / ${GRAMMAR.length} Lektionen · A1 bis C1 · 26 neu</b></span>${ic("chev")}</button>`;
+  return h.replace('<div class="werk-grid">',`<div class="werk-grid"><button data-act="gramMap"><b>Grammatik komplett</b><small>${done} / ${GRAMMAR.length} Lektionen</small></button>`)}})();
+(function(){const s=document.createElement("style");s.textContent=`
+.gm-lv{display:flex;gap:.8rem;flex-wrap:wrap;font-size:.9rem}.gm-area{display:grid;gap:.4rem;margin-top:.5rem}
+.gm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.45rem}
+.gm-l{display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:.1rem;min-height:56px;border-left:4px solid var(--line2)}.gm-l b{font-size:.92rem;line-height:1.2;font-weight:600}.gm-l small{opacity:.7;font-size:.75rem}
+.gm-l.part{border-left-color:var(--accent)}.gm-l.ok{border-left-color:var(--good)}.gm-l.ok b::after{content:" ✓";color:var(--good)}
+`;document.head.appendChild(s)})();
+// Funktionswörter pack → catalogue
+(function(){try{let n=0;(typeof VOC3!=="undefined"?VOC3:[]).forEach(([de,en,ex,exEn,level,theme])=>{const id="w:"+de;if(CATALOG.has(id))return;CATALOG.set(id,{id,de,en,type:"word",ex,exEn,tag:theme,kind:"word",pl:"",info:"",level,syn:"",src:"funktion"});n++});if(n)buildDict()}catch(e){}})();
+
+// Der Schatten joins every chapter scene
+(function(){try{CHAPTERS.forEach(c=>{const l=SHADOW[c.n];if(l&&!c.scene.some(x=>x[0]==="S"))c.scene.push(["S",l[0],l[1]])})}catch(e){}
+  const s=document.createElement("style");s.textContent=`.pk-shadow{background:linear-gradient(180deg,rgba(0,0,0,.55),rgba(20,20,30,.5))!important;border-color:#3a3a4a!important;border-left:3px solid #6a6a8a!important}.pk-shadow .eyebrow{color:#9a9ab8}.pk-shadow .sh-de{font-family:var(--body);font-size:1.15rem;line-height:1.6;font-style:italic;color:#d8d8e8}:root[data-ui="paper"] .pk-shadow .sh-de,:root[data-ui="paper"] .pk-shadow .eyebrow{color:#e8e8f4}`;document.head.appendChild(s)})();
 // ===== Mephisto 12.5.1 · Wolke: Drive sync that never asks "which one?" and never destroys.
 // Record-level, deterministic merge (merge(a,b) == merge(b,a)); settings by per-key timestamps (S._ts); reviews by review time;
 // reset / replace by epoch (S._epoch); read failures abort (never overwrite what we could not read); twins merged before trashing;
