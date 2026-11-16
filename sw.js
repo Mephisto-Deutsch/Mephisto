@@ -3,9 +3,9 @@
    - single download: "./" is not a second copy; files that did not change between versions are not fetched again;
    - resumable: every verified file is kept at once, so an interrupted install continues where it stopped;
    - atomic: the new version only takes over when every file is stored and matches its SHA-256 (a stale CDN copy fails and is retried later). */
-const VERSION = "13.4.0-68252d778f";
+const VERSION = "13.5.0-c0f233b71a";
 const FILES = {
-"index.html": "cbf84950468057d705404c5bdcf33ba5f2b29e62db4eafb36daf304f56cd246b",
+"index.html": "18f8e6505acae5da168b4bcd72854a172514dcd1790994d3b0a838e0f7a684a7",
 "manifest.webmanifest": "d573eb33cf31c814060c21e4f4cb29abf24b12f9ab8950b4ca18aabd1c360cd9",
 "fonts.css": "8d483729ffa0c8054319a0ab4223a52671c7471c86e678358d990a13b24fcd39",
 "icons/apple-touch-icon.png": "3911a4362fc845fbaf7c9fcc664ef3a538a6e3050a7dd7ad20f1435eb99fd0e7",
@@ -21,15 +21,22 @@ const FILES = {
 "fonts/sourceserif4-italic.woff": "65cb81b09f72ccd03e756b200d2c08bdd4e8a30e6634a59dc5310e43cba9857e",
 "fonts/sourceserif4.woff": "0375575b7d682774f40208171de11fd99a042c083fdd17b925721455ea21278f",
 "fonts/unifraktur.woff": "961e1cfdcf923c87df0dbf6215a32d3f02fa40b2f330e04c4b6dc90f842cfe35",
-"js/app.js": "f11c1d9f0445e358c85116d8a2d7f1102c0b1aa404b1ddae74af3e02c3ff3e06",
+"js/app.js": "14ed9088ca074c424557950f231213e90ba6e2f8e0a566aa177d4ecedade8abe",
 "js/data-b2.js": "f1a561e5277a177631eb4ecfda8c324e5daa36f1bddfc5ec779ff06d5f90900a",
-"js/data-base.js": "ba8d146f92a885e0d18c1eae0423afeb972cd4ebdb65631bdc9e976bfac1f129",
+"js/data-base.js": "07493a083247f897614827666b263e49867630369d41ecaab97be94c365692f2",
 "js/data-bib.js": "dc6d0bf4d328c70f9abe260f5cc1abc2661f376283a6ab71b8d88feb036994a7",
 "js/data-fix.js": "72c37f9b910ac55c00acae4288e34bee4396f37610e2248d58d7ca20cf8379f6",
-"js/data-integ.js": "b5f455b9108b86899aad27beca98b5ed32287f4042e86a9db8debd24bca75142",
+"js/data-integ.js": "800a3036fb0a1d643c33318fad5b8d4351da4ecf443bd6bb954a652ac9496680",
+"js/data-l1.js": "4fb209b8ac22c80d913ca6dcc9bf0f6f89fc77859b50bf86f465413e549d8acb",
+"js/data-l10.js": "8d50020c408a4b316020e1a205b97bef1a56c75773f1328fec8b9c5e70f26417",
+"js/data-l2.js": "2f20b02881dc2751c8031038e37605a6343361203d89dc418115bdc43c9e4049",
 "js/data-l4.js": "b42778ca03961f4d1c62645b5a9107e0532441d9baf53beca8da8a0d0745a7c7",
+"js/data-l6.js": "32591cf3a73d9cdf24bf7e9bb45cff4feed7059580a961aee683a8a49ff8405c",
+"js/data-l7.js": "6715c0924fc450a1b6de7366e54b09f28846360bc6ef05362bbe8aa65bf641a4",
+"js/data-l8.js": "7bf37c1e4ae44aa16bd0d92b28ca1db655cd42de127bdf3ba02e167e99a051d7",
+"js/data-l9.js": "93231079e6eac71efe66634c6136908475e46e19e8a42461fd12f3838bbac14c",
 "js/data-media.js": "07a5088b8e81c3f7271264c63f2f6baea8471d042d3faaa992ce6734c2cdbb38",
-"js/data-more.js": "9f7a29cec486f2b553f150f77817a5db9588c1023c0d1fe1418ffb39bc58014e",
+"js/data-more.js": "4f18419725eb3654399deeed50289df1b384e676dcde33bba75d7c4dfe4c9c84",
 "js/data-story.js": "f43d6ce3745e33d218103cfb4bf48d8e853abfb28988da06fe25b7794afdc0c9",
 "media/art/a8_finale.webp": "a0e4bce554fee3bf2640551c33e0058ab35038719d068235bcdda591d446c357",
 "media/art/a8_finale@2x.webp": "dca3850a1add4b9c579f3266942a076c49bd77f175cffeac2913dbc703a89f87",
@@ -154,7 +161,15 @@ const FILES = {
 "media/fonts/pk-13-c5d86f65.woff": "5118eaf54dab1e00b607506cd3836766a560ea41d4e5dfef4edae16059fc22d7",
 "media/fonts/pk-14-e7c85c02.woff": "be170768796c40a30ef4aba893c7e0f15cabd2a07b3ccdef5b404b688a980cc7",
 "media/fonts/pk-15-83135100.woff": "448a4a73adc3baeab8f71911ea4dc9fccb01136e246936915a1c2907dc441091",
-"media/fonts/pk-16-4602c59e.woff": "45b416cda6f4fa76423707b2ab48a3c9f5b56624fa341bf27eb22bac54bc3ad5"
+"media/fonts/pk-16-4602c59e.woff": "45b416cda6f4fa76423707b2ab48a3c9f5b56624fa341bf27eb22bac54bc3ad5",
+"media/l6/hoer-b1.json": "cef6851de1005cb8ebb3ccf3aa34ca421a6896529a1815f3b7f601276ebfc489",
+"media/l6/hoer-b2.json": "7421c45c9a61d0bb72edb2b9fad83f774767f3411ad4460ec6ba5c46c94037b4",
+"media/l6/hoer-c1.json": "2b3c0a8cae3723870fb0a3e62030be818620659586e60a8b7170246e6328442f",
+"media/l6/les-b1.json": "6eb2027b0de0e5ab5f797cbe4f0875b4815f2fff25898a0a36c15bd7c5e6f291",
+"media/l6/les-b2.json": "739f52300932f5ea5671939d631d92907aef01ee45f46fe5c61e0e6705eb9596",
+"media/l9/set5.json": "ba71691a19a6795768cbaa3745e6708c17d5421fe6494a3c1c25f97e8474340c",
+"media/l9/set6.json": "599eef03e241bda105a5d1859cb4283dcf9ed6289e691545b09161a3f4663d3f",
+"media/packs.json": "ddb0683e6691c37d6a690baa21b2c479222ac6767ac77aee9fe563be18d2285c"
 };            // {path: sha256 hex}
 const FC = "mephisto-files", RT = "mephisto-rt";
 const keyOf = p => new Request(new URL(p + "?sha=" + FILES[p], self.registration.scope).href);
@@ -201,6 +216,7 @@ self.addEventListener("fetch", event => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return; // API calls, external links: straight to the network
+  if (url.pathname.includes("/media/audio/")) return; // l8 Hörpakete: c_l8_pack keeps them in its own cache (mph-packs-1); never copied into the version cache
   if (url.pathname.endsWith("manifest.webmanifest")) {
     event.respondWith(fetch(req).catch(() => caches.open(FC).then(c => c.match(keyOf("manifest.webmanifest")))));
     return;

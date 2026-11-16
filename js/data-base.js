@@ -379,7 +379,7 @@ const GRAMMAR = [
 <tr><td>ch</td><td>soft hiss after i/e; throat after a/o/u</td><td class="de">ich, Licht / Nacht, Buch</td></tr>
 <tr><td>sch, st-, sp-</td><td><i>sh</i>; initial st/sp = sht/shp</td><td class="de">schön, Stern, sprechen</td></tr>
 <tr><td>w / v / z</td><td>w = v, v = f, z = ts</td><td class="de">Welt, Vater, Zeit</td></tr>
-<tr><td>ß</td><td>sharp s after long vowel</td><td class="de">heißen, groß</td></tr></table>
+<tr><td>ß</td><td>sharp s after a long vowel or diphthong</td><td class="de">heißen, groß</td></tr></table>
 <p>Every noun is <b class="g">der</b> (masculine), <b class="g">die</b> (feminine) or <b class="g">das</b> (neuter). Learn the article as part of the word, never the bare noun. Nouns are capitalised, which makes them easy to spot in a text.</p>
 <p>Gender is not random. Reliable cues:</p>
 <ul><li><b>die</b>: -ung, -heit, -keit, -schaft, -ion, -tät, -ie (<span class="de">die Hoffnung, die Wahrheit, die Religion</span>); most nouns ending in -e (<span class="de">die Seele, die Liebe</span>)</li>
@@ -390,7 +390,7 @@ quiz:[
 {q:"Which article goes with Hoffnung?",o:["der","die","das"],a:1,why:"-ung nouns are always feminine: die Hoffnung."},
 {q:"Which article goes with Mädchen?",o:["der","die","das"],a:2,why:"-chen is a diminutive ending, always neuter — even for a girl."},
 {q:"How is 'ei' in Geist pronounced?",o:["like English 'eye'","like English 'ee'","like 'ay' in day"],a:0,why:"ei = 'eye'. ie = 'ee'. Remember: the second letter tells you the sound."},
-{q:"Which is feminine?",o:["das Streben","die Wissenschaft","der Zweifel"],a:1,why:"-schaft is a feminine ending. Streben is a nominalised verb (neuter)."}]},
+{q:"Which is feminine?",o:["Wissenschaft","Streben","Zweifel"],a:0,why:"-schaft is a feminine ending: die Wissenschaft. das Streben is a nominalised verb (neuter); der Zweifel is masculine."}]},
 {id:"g2",week:1,title:"sein, haben, werden & Pronomen",sub:"The three verbs that carry the whole language",body:`
 <table><tr><th></th><th>sein (be)</th><th>haben (have)</th><th>werden (become)</th></tr>
 <tr><td>ich</td><td>bin</td><td>habe</td><td>werde</td></tr>
@@ -403,10 +403,10 @@ quiz:[
 <p>Pronouns: <span class="de">ich, du, er, sie, es, wir, ihr, sie</span>. <span class="de">Sie</span> (capital) is polite "you". <span class="de">ihr</span> is plural "you all" and is how Faust addresses the spirits: <span class="de">Ihr naht euch wieder</span>.</p>
 <div class="tip">In poetry the -e of <i>ich habe</i> is often dropped: <span class="de">Habe nun, ach!...</span> keeps it; <span class="de">Drum hab ich mich...</span> drops it. Same word.</div>`,
 quiz:[
-{q:"Ihr ___ müde. (you all)",o:["seid","sind","bist"],a:0,why:"ihr → seid. sind is for wir/sie."},
-{q:"'Es ward Licht' — ward means:",o:["was","became","will be"],a:1,why:"ward is the archaic Präteritum of werden: 'it became light'."},
-{q:"Du ___ ein Buch.",o:["habe","hast","hat"],a:1,why:"du → hast."},
-{q:"Which sentence uses werden as future?",o:["Er wird Arzt.","Ich werde lesen.","Es wird gesagt."],a:1,why:"werden + infinitive = future. + noun = become. + participle = passive."}]},
+{q:"Ihr ___ müde. (you all)",o:["sind","seid","bist"],a:1,why:"ihr → seid. sind is for wir/sie."},
+{q:"'Es ward Licht' — ward means:",o:["became","was","will be"],a:0,why:"ward is the archaic Präteritum of werden: 'it became light'."},
+{q:"Du ___ ein Buch.",o:["hast","habe","hat"],a:0,why:"du → hast."},
+{q:"Which sentence uses werden as future?",o:["Er wird Arzt.","Es wird gesagt.","Ich werde lesen."],a:2,why:"werden + infinitive = future. + noun = become. + participle = passive."}]},
 {id:"g3",week:2,title:"Präsens & die V2-Regel",sub:"Conjugation, and the one word-order rule that unlocks German",body:`
 <p>Regular verbs: stem + <b class="g">-e, -st, -t, -en, -t, -en</b>. <span class="de">lieben → ich liebe, du liebst, er liebt, wir lieben, ihr liebt, sie lieben</span>.</p>
 <p>Strong verbs change the vowel in <b>du</b> and <b>er</b> forms: e→i/ie (<span class="de">sprechen: du sprichst; sehen: er sieht; nehmen: er nimmt</span>), a→ä (<span class="de">tragen: er trägt; fallen: er fällt</span>).</p>
@@ -418,23 +418,23 @@ quiz:[
 <div class="tip">Goethe exploits V2 constantly for emphasis: <span class="de">Da steh ich nun, ich armer Tor</span> — "Da" first, then the verb, then "ich". Once you expect the verb in slot two, inverted poetry stops looking scrambled.</div>`,
 quiz:[
 {q:"Morgen ___ ich nach Weimar.",o:["ich fahre","fahre","fahren"],a:1,why:"'Morgen' takes slot one, so the verb must be slot two: Morgen fahre ich."},
-{q:"Er ___ ein Gewand. (tragen)",o:["tragt","trägt","trage"],a:1,why:"tragen is a→ä strong: er trägt."},
-{q:"Which is correct?",o:["Heute ich lese.","Heute lese ich.","Ich heute lese."],a:1,why:"Verb second, always."},
-{q:"Du ___ die Wahrheit. (sehen)",o:["sehst","siehst","sieht"],a:1,why:"sehen: e→ie in du/er: du siehst."}]},
+{q:"Er ___ ein Gewand. (tragen)",o:["trägt","tragt","trage"],a:0,why:"tragen is a→ä strong: er trägt."},
+{q:"Which is correct?",o:["Heute ich lese.","Ich heute lese.","Heute lese ich."],a:2,why:"Verb second, always."},
+{q:"Du ___ die Wahrheit. (sehen)",o:["sehst","sieht","siehst"],a:2,why:"sehen: e→ie in du/er: du siehst."}]},
 {id:"g4",week:2,title:"Nominativ & Akkusativ",sub:"Subject vs. direct object: only masculine changes",body:`
 <p>Cases mark a noun's role. Nominative = subject; Accusative = direct object (the thing acted on).</p>
 <table><tr><th></th><th>masc.</th><th>fem.</th><th>neut.</th><th>plural</th></tr>
 <tr><td>Nom.</td><td>der / ein</td><td>die / eine</td><td>das / ein</td><td>die / keine</td></tr>
 <tr><td>Akk.</td><td><b class="g">den / einen</b></td><td>die / eine</td><td>das / ein</td><td>die / keine</td></tr></table>
 <p>Only masculine changes: <span class="de">Der Mann sieht <b>den</b> Hund. Der Hund sieht <b>den</b> Mann.</span></p>
-<p>Pronouns: <span class="de">ich→mich, du→dich, er→ihn, sie→sie, es→es, wir→uns, ihr→euch</span>. <span class="de">Ich liebe dich. Sie sieht ihn.</span></p>
+<p>Pronouns: <span class="de">ich→mich, du→dich, er→ihn, sie→sie, es→es, wir→uns, ihr→euch, sie→sie, Sie→Sie</span>. <span class="de">Ich liebe dich. Sie sieht ihn.</span></p>
 <p>Because case marks the role, word order is free: <span class="de"><b>Den Mann</b> sieht der Hund</span> still means the dog sees the man.</p>
 <div class="tip"><span class="de">Ihr naht euch wieder, schwankende Gestalten</span> — "euch" is the accusative reflexive of ihr: you draw yourselves near.</div>`,
 quiz:[
-{q:"Ich sehe ___ Mann.",o:["der","den","dem"],a:1,why:"Direct object, masculine → den."},
+{q:"Ich sehe ___ Mann.",o:["der","dem","den"],a:2,why:"Direct object, masculine → den."},
 {q:"___ Frau liest ___ Buch.",o:["Die / das","Die / den","Den / das"],a:0,why:"Feminine and neuter don't change in the accusative."},
 {q:"Sie liebt ___. (him)",o:["er","ihn","ihm"],a:1,why:"Accusative of er is ihn."},
-{q:"'Den Teufel fürchtet er nicht.' Who is the subject?",o:["der Teufel","er","nicht"],a:1,why:"'Den' marks the devil as object; 'er' is nominative, so he is the one not fearing."}]},
+{q:"'Den Teufel fürchtet er nicht.' Who is the subject?",o:["der Teufel","nicht","er"],a:2,why:"'Den' marks the devil as object; 'er' is nominative, so he is the one not fearing."}]},
 {id:"g5",week:3,title:"Dativ",sub:"The case of recipients and locations",body:`
 <p>Dative marks the indirect object (to whom / for whom) and follows many prepositions.</p>
 <table><tr><th></th><th>masc.</th><th>fem.</th><th>neut.</th><th>plural</th></tr>
@@ -445,9 +445,9 @@ quiz:[
 <p>Dative of feeling (very Faust): <span class="de">Mir ist bang. Mir ist das Grab.</span> Literally "to me is fear".</p>
 <div class="tip"><span class="de">Die ganze Welt ist <b>mir</b> vergällt. Mein armer Kopf ist <b>mir</b> verrückt.</span> Gretchen stacks dative "mir" to say: for me, as I experience it.</div>`,
 quiz:[
-{q:"Ich gebe ___ Mann das Buch.",o:["den","dem","der"],a:1,why:"Recipient = dative masculine → dem."},
-{q:"Sie spricht mit ___ Teufel.",o:["den","dem","der"],a:1,why:"mit always takes dative."},
-{q:"Das gefällt ___. (me)",o:["mich","mir","ich"],a:1,why:"gefallen is a dative verb: mir."},
+{q:"Ich gebe ___ Mann das Buch.",o:["dem","den","der"],a:0,why:"Recipient = dative masculine → dem."},
+{q:"Sie spricht mit ___ Teufel.",o:["dem","den","der"],a:0,why:"mit always takes dative."},
+{q:"Das gefällt ___. (me)",o:["mich","ich","mir"],a:2,why:"gefallen is a dative verb: mir."},
 {q:"Which preposition is NOT always dative?",o:["mit","für","von"],a:1,why:"für takes the accusative. aus-bei-mit-nach-seit-von-zu are the dative set."}]},
 {id:"g6",week:3,title:"Wechselpräpositionen",sub:"Two-way prepositions: motion vs. location",body:`
 <p>Nine prepositions take <b>accusative for movement toward</b> and <b>dative for location</b>: <span class="de">an, auf, hinter, in, neben, über, unter, vor, zwischen</span>.</p>
@@ -458,51 +458,53 @@ quiz:[
 <p>Contractions you will see everywhere: <span class="de">im = in dem, am = an dem, zum = zu dem, zur = zu der, ins = in das, ans = an das, vom = von dem</span>.</p>
 <div class="tip"><span class="de">Im Tale grünet Hoffnungsglück</span> — location, so dative; and Goethe adds the old dative -e: dem Tale.</div>`,
 quiz:[
-{q:"Er geht ___ Studierzimmer. (into)",o:["ins","im","in"],a:0,why:"Motion toward → accusative: in das = ins."},
-{q:"Das Buch liegt ___ Tisch.",o:["auf den","auf dem","auf der"],a:1,why:"Location → dative: auf dem Tisch."},
-{q:"Sie kämpft ___ den Teufel.",o:["gegen","mit","bei"],a:0,why:"gegen + accusative = against."},
-{q:"'zur' is short for:",o:["zu der","zu dem","zu das"],a:0,why:"zur = zu der (feminine dative). zum = zu dem."}]},
+{q:"Er geht ___ Studierzimmer. (into)",o:["in","im","ins"],a:2,why:"Motion toward → accusative: in das = ins."},
+{q:"Das Buch liegt ___ Tisch.",o:["auf dem","auf den","auf der"],a:0,why:"Location → dative: auf dem Tisch."},
+{q:"Sie kämpft ___ den Teufel.",o:["bei","mit","gegen"],a:2,why:"gegen + accusative = against."},
+{q:"'zur' is short for:",o:["zu dem","zu der","zu das"],a:1,why:"zur = zu der (feminine dative). zum = zu dem."}]},
 {id:"g7",week:4,title:"Modalverben & die Satzklammer",sub:"The verbal bracket: German holds its breath till the end",body:`
 <p>Modal verbs (<span class="de">können, müssen, wollen, sollen, dürfen, mögen</span>) are conjugated in slot two; the main verb goes to the <b>end</b> as an infinitive. This "bracket" (Satzklammer) is the deep shape of German.</p>
 <p><span class="de">Ich <b>will</b> heute Abend Faust <b>lesen</b>. Du <b>darfst</b> hier nicht <b>rauchen</b>.</span></p>
 <table><tr><th></th><th>können</th><th>müssen</th><th>wollen</th><th>sollen</th><th>dürfen</th><th>mögen</th></tr>
 <tr><td>ich/er</td><td>kann</td><td>muss</td><td>will</td><td>soll</td><td>darf</td><td>mag</td></tr>
 <tr><td>du</td><td>kannst</td><td>musst</td><td>willst</td><td>sollst</td><td>darfst</td><td>magst</td></tr>
-<tr><td>wir/sie</td><td>können</td><td>müssen</td><td>wollen</td><td>sollen</td><td>dürfen</td><td>mögen</td></tr></table>
+<tr><td>wir/sie/Sie</td><td>können</td><td>müssen</td><td>wollen</td><td>sollen</td><td>dürfen</td><td>mögen</td></tr>
+<tr><td>ihr</td><td>könnt</td><td>müsst</td><td>wollt</td><td>sollt</td><td>dürft</td><td>mögt</td></tr></table>
 <p><span class="de">möchte</span> ("would like") is the polite form of mögen: <span class="de">Ich möchte wissen...</span></p>
 <p>Reading tip: when you meet a modal, your eyes should jump to the end of the clause to find the real verb, then read the middle.</p>
+<p><b>Trap:</b> "must not" is <span class="de">nicht dürfen</span>. <span class="de">Sie müssen nicht aufstehen</span> = you don't have to get up. <span class="de">Sie dürfen nicht aufstehen</span> = you must not get up.</p>
 <div class="tip"><span class="de">Dann <b>magst</b> du mich in Fesseln <b>schlagen</b>, / Dann <b>will</b> ich gern zugrunde <b>gehn</b>!</span> Two perfect brackets in the wager.</div>`,
 quiz:[
-{q:"Ich ___ Deutsch ___.",o:["lerne will","will lernen","will lerne"],a:1,why:"Modal second, infinitive last: Ich will Deutsch lernen."},
-{q:"Er ___ nicht schlafen. (can)",o:["kann","kannst","können"],a:0,why:"er → kann."},
+{q:"Ich ___ Deutsch ___.",o:["lerne will","will lerne","will lernen"],a:2,why:"Modal second, infinitive last: Ich will Deutsch lernen."},
+{q:"Er ___ nicht schlafen. (can)",o:["können","kannst","kann"],a:2,why:"er → kann."},
 {q:"Where does the main verb go with a modal?",o:["second","end of clause","first"],a:1,why:"The infinitive closes the bracket at the end."},
-{q:"'Hier darf ich's sein' — darf means:",o:["must","may/am allowed","want"],a:1,why:"dürfen = to be allowed. Faust: here I may be human."}]},
+{q:"'Hier darf ich's sein' — darf means:",o:["may/am allowed","must","want"],a:0,why:"dürfen = to be allowed. Faust: here I may be human."}]},
 {id:"g8",week:4,title:"Trennbare Verben & Imperativ",sub:"Prefixes that fly to the end; commands",body:`
-<p>Separable verbs have a stressed prefix (<span class="de">an-, auf-, aus-, ein-, mit-, nach-, vor-, zu-, zurück-, zusammen-</span>) that detaches and goes to the end of a main clause.</p>
+<p>Separable verbs have a stressed prefix (<span class="de">ab-, an-, auf-, aus-, ein-, her-, hin-, los-, mit-, nach-, vor-, weg-, zu-, zurück-, zusammen-</span>) that detaches and goes to the end of a main clause.</p>
 <p><span class="de">aufstehen → Ich <b>stehe</b> um sechs <b>auf</b>. zusammenhalten → Was die Welt im Innersten <b>zusammenhält</b>.</span> (In a subordinate clause it re-joins.)</p>
-<p>Inseparable prefixes never detach and are unstressed: <span class="de">be-, emp-, ent-, er-, ge-, ver-, zer-</span>. <span class="de">Ich <b>verstehe</b>. Es <b>entsteht</b>. Er <b>erkennt</b>.</span></p>
-<p>Imperative: du-form = stem (often no ending): <span class="de">Komm! Gib! Sag! Lies!</span> ihr-form = ihr-form without pronoun: <span class="de">Kommt!</span> Sie-form: <span class="de">Kommen Sie!</span></p>
-<div class="tip"><span class="de"><b>Verweile</b> doch! du bist so schön!</span> — imperative with the softening particle doch. <span class="de">Schau alle Wirkenskraft</span> — imperative of schauen.</div>`,
+<p>Inseparable prefixes never detach and are unstressed: <span class="de">be-, emp-, ent-, er-, ge-, miss-, ver-, zer-</span>. <span class="de">Ich <b>verstehe</b>. Es <b>entsteht</b>. Er <b>erkennt</b>.</span></p>
+<p>Imperative: du-form = stem (often no ending): <span class="de">Komm! Gib! Sag! Lies!</span> ihr-form = the present-tense ihr-form without the pronoun: <span class="de">Kommt!</span> Sie-form: <span class="de">Kommen Sie!</span> Add <span class="de">bitte</span> or <span class="de">mal</span> and the command becomes a request: <span class="de">Kommen Sie bitte herein. Zeigen Sie mal.</span></p>
+<div class="tip"><span class="de"><b>Verweile</b> doch! du bist so schön!</span> — imperative with the softening particle doch. <span class="de"><b>Bedenke</b> wohl die erste Zeile</span> — imperative of bedenken; be- is inseparable, so nothing splits off.</div>`,
 quiz:[
-{q:"aufstehen: Ich ___ früh ___.",o:["aufstehe —","stehe auf","stehe — auf"],a:2,why:"Prefix detaches to the very end: Ich stehe früh auf."},
+{q:"aufstehen: Ich ___ früh ___.",o:["stehe / auf","aufstehe / —","auf / stehe"],a:0,why:"The conjugated part is second, the prefix goes to the very end: Ich stehe früh auf."},
 {q:"Which prefix is inseparable?",o:["an-","ver-","mit-"],a:1,why:"ver- never separates: ich verstehe, ich verfluche."},
-{q:"Imperative (du) of geben:",o:["Gebe!","Gib!","Gibst!"],a:1,why:"Strong e→i verbs keep the vowel change: Gib!"},
-{q:"'Verweile doch!' — doch here:",o:["means 'but'","softens/urges the command","negates"],a:1,why:"As a particle, doch adds urging: 'do stay!'"}]},
+{q:"Imperative (du) of geben:",o:["Gebe!","Gibst!","Gib!"],a:2,why:"Strong e→i verbs keep the vowel change: Gib!"},
+{q:"'Verweile doch!' — doch here:",o:["softens/urges the command","means 'but'","negates"],a:0,why:"As a particle, doch adds urging: 'do stay!'"}]},
 {id:"g9",week:5,title:"Perfekt",sub:"Spoken past: haben/sein + Partizip II",body:`
 <p>The Perfekt is the everyday past in speech. Auxiliary in slot two, participle at the end (another bracket).</p>
 <p>Partizip II: weak verbs <span class="de">ge- + stem + -t</span> (<span class="de">gesagt, geliebt, gemacht</span>); strong verbs <span class="de">ge- + changed stem + -en</span> (<span class="de">gesehen, gesprochen, gefunden</span>). Inseparable and -ieren verbs take no ge-: <span class="de">verstanden, studiert</span>.</p>
-<p><b class="g">sein</b> with verbs of movement or change of state: <span class="de">ist gegangen, ist gekommen, ist gestorben, ist geworden, ist geblieben</span>. Everything else: <b class="g">haben</b>.</p>
+<p><b class="g">sein</b> with verbs of movement or change of state: <span class="de">ist gegangen, ist gekommen, ist gestorben, ist geworden</span> — and with three verbs you simply learn: <span class="de">ist gewesen, ist geblieben, ist passiert</span>. Everything else: <b class="g">haben</b>.</p>
 <p><span class="de">Ich <b>habe</b> Philosophie <b>studiert</b>. Er <b>ist</b> nach Weimar <b>gefahren</b>.</span></p>
 <div class="tip">Goethe shortens the auxiliary: <span class="de">Drum <b>hab</b> ich mich der Magie <b>ergeben</b></span> (habe → hab; ergeben = participle of sich ergeben, no ge- because er- is inseparable).</div>`,
 quiz:[
-{q:"Ich ___ das Buch ___. (lesen)",o:["habe gelesen","bin gelesen","habe geliest"],a:0,why:"lesen is transitive → haben; strong participle gelesen."},
+{q:"Ich ___ das Buch ___. (lesen)",o:["habe geliest","bin gelesen","habe gelesen"],a:2,why:"lesen is transitive → haben; strong participle gelesen."},
 {q:"Sie ___ nach Hause ___. (gehen)",o:["hat gegangen","ist gegangen","ist geht"],a:1,why:"Movement → sein: ist gegangen."},
-{q:"Partizip II of verstehen:",o:["geverstanden","verstanden","verstehen"],a:1,why:"ver- is inseparable → no ge-: verstanden."},
-{q:"Partizip II of studieren:",o:["gestudiert","studiert","studieren"],a:1,why:"-ieren verbs take no ge-: studiert."}]},
+{q:"Partizip II of verstehen:",o:["verstanden","geverstanden","verstehen"],a:0,why:"ver- is inseparable → no ge-: verstanden."},
+{q:"Partizip II of studieren:",o:["gestudiert","studieren","studiert"],a:2,why:"-ieren verbs take no ge-: studiert."}]},
 {id:"g10",week:5,title:"Präteritum — die Zeit der Literatur",sub:"The written past. Faust and every novel run on it.",body:`
 <p>Books narrate in the Präteritum. You must <b>recognise</b> these forms instantly, even if you rarely produce them in speech.</p>
 <p>Weak verbs: stem + <span class="de">-te, -test, -te, -ten, -tet, -ten</span>: <span class="de">ich liebte, er sagte, wir machten</span>.</p>
-<p>Strong verbs change the vowel and take <b>no ending</b> in ich/er. Learn these 24 as a chant:</p>
+<p>Strong verbs change the vowel and take <b>no ending</b> in ich/er: ich ging, er ging. A few common verbs change the vowel and still take <b>-te</b> (mixed verbs): hatte, wusste, dachte, brachte; and wurde keeps its -e. Learn these 24 as a chant.</p>
 <div class="tablewrap"><table><tr><td class="de">war</td><td>was</td><td class="de">hatte</td><td>had</td><td class="de">wurde / ward</td><td>became</td></tr>
 <tr><td class="de">ging</td><td>went</td><td class="de">kam</td><td>came</td><td class="de">sah</td><td>saw</td></tr>
 <tr><td class="de">sprach</td><td>spoke</td><td class="de">gab</td><td>gave</td><td class="de">nahm</td><td>took</td></tr>
@@ -515,76 +517,78 @@ quiz:[
 <div class="tip"><span class="de">Ein Teil der Finsternis, die sich das Licht <b>gebar</b></span> — gebären → gebar. <span class="de">Der alte Winter <b>zog</b> sich in rauhe Berge zurück</span> — ziehen → zog.</div>`,
 quiz:[
 {q:"Präteritum of 'er geht':",o:["er gehte","er ging","er gegangen"],a:1,why:"gehen is strong: ging."},
-{q:"'Sie sprach kein Wort.' sprach =",o:["speaks","spoke","will speak"],a:1,why:"sprechen → sprach (past)."},
+{q:"'Sie sprach kein Wort.' sprach =",o:["speaks","will speak","spoke"],a:2,why:"sprechen → sprach (past)."},
 {q:"Präteritum of 'wir lieben':",o:["wir liebten","wir liebte","wir lieben"],a:0,why:"Weak: liebten."},
-{q:"'ward' is the archaic form of:",o:["war","wurde","hatte"],a:1,why:"ward = wurde (became)."}]},
+{q:"'ward' is the archaic form of:",o:["war","hatte","wurde"],a:2,why:"ward = wurde (became)."}]},
 {id:"g11",week:6,title:"Nebensätze & Relativsätze",sub:"Subordinate clauses push the verb to the very end",body:`
 <p>After a subordinating conjunction the conjugated verb goes to the <b>end</b> of its clause. Key conjunctions: <span class="de">dass, weil, wenn, ob, als, obwohl, damit, bevor, nachdem, während, solange</span>.</p>
-<p><span class="de">Ich weiß, <b>dass</b> wir nichts wissen <b>können</b>. Es irrt der Mensch, <b>solang</b> er <b>strebt</b>.</span></p>
+<p><span class="de">Und sehe, <b>dass</b> wir nichts wissen <b>können</b>! Es irrt der Mensch, <b>solang</b> er <b>strebt</b>.</span></p>
 <p>Question words also subordinate: <span class="de">Ich weiß nicht, <b>wer</b> er <b>ist</b>.</span></p>
 <p>If the subordinate clause comes first, the main verb follows immediately (V2 counts the whole clause as slot one): <span class="de"><b>Wenn</b> ich Zeit <b>habe</b>, <b>lese</b> ich.</span></p>
-<p><b>Relative clauses</b> use der/die/das (declined like the definite article, genitive dessen/deren) and send the verb to the end:</p>
+<p><b>Relative clauses</b> use der/die/das (declined like the definite article; only the genitive dessen/deren and the dative plural denen differ) and send the verb to the end:</p>
 <ul><li><span class="de">der Geist, <b>der</b> stets verneint</span> (nom. masc.)</li>
 <li><span class="de">alles, <b>was</b> entsteht</span> (after alles/nichts/etwas: was)</li>
 <li><span class="de">Ein Teil der Finsternis, <b>die</b> sich das Licht gebar</span></li>
 <li><span class="de">der Mann, <b>dessen</b> Buch ich lese</span> (whose)</li></ul>
 <div class="tip">Reading strategy: when you see a comma + dass/weil/der..., find the verb at the end of that clause first, then read the clause.</div>`,
 quiz:[
-{q:"Ich glaube, dass er ___.",o:["kommt morgen","morgen kommt","kommt"],a:1,why:"Verb last in the dass-clause: dass er morgen kommt."},
-{q:"'alles, ___ entsteht'",o:["das","was","dass"],a:1,why:"After alles, nichts, etwas the relative pronoun is was."},
-{q:"Weil ich müde bin, ___.",o:["ich schlafe","schlafe ich","ich schlafen"],a:1,why:"The subordinate clause fills slot one, so the main verb comes next: schlafe ich."},
+{q:"Ich glaube, dass er ___.",o:["morgen kommt","kommt morgen","morgen kommen"],a:0,why:"Verb last in the dass-clause, and it agrees with er: dass er morgen kommt."},
+{q:"'alles, ___ entsteht'",o:["das","dass","was"],a:2,why:"After alles, nichts, etwas the relative pronoun is was."},
+{q:"Weil ich müde bin, ___.",o:["schlafe ich","ich schlafe","ich schlafen"],a:0,why:"The subordinate clause fills slot one, so the main verb comes next: schlafe ich."},
 {q:"der Mann, ___ Buch ich lese",o:["der","dessen","dem"],a:1,why:"Possessive relative (whose) masculine → dessen."}]},
 {id:"g12",week:6,title:"Genitiv & Possessiv",sub:"Of, whose, and Goethe's inverted genitives",body:`
 <p>Genitive = possession/"of". <span class="de">des / der / des / der</span>; masculine and neuter nouns add <span class="de">-(e)s</span>.</p>
 <p><span class="de">das Buch <b>des Mannes</b>, die Kraft <b>des Geistes</b>, das Ende <b>der Welt</b></span>.</p>
-<p>Genitive prepositions: <span class="de">wegen, trotz, während, statt, innerhalb</span>.</p>
-<p>Possessives: <span class="de">mein, dein, sein, ihr, unser, euer, ihr/Ihr</span> — declined like ein/kein: <span class="de">mein Herz, meine Ruh, meinen Kopf (Akk.), meinem Freund (Dat.)</span>.</p>
+<p>Genitive prepositions: <span class="de">wegen, trotz, während, statt, innerhalb</span>. In speech you will hear wegen and trotz with the dative; write the genitive.</p>
+<p>Possessives (mein, dein, sein, ihr, unser, euer, Ihr) take the genitive endings of ein: <span class="de">meines Vaters, meiner Mutter, meiner Eltern</span>.</p>
 <p><b>Poetic preposed genitive</b>: Goethe often puts the genitive <i>before</i> the noun, like English 's: <span class="de"><b>des Pudels</b> Kern, durch <b>des Frühlings</b> holden Blick, <b>Geistes</b> Kraft</span>. Modern prose would say der Kern des Pudels.</p>
 <p>Genitive with adjectives: <span class="de">des Lebens müde</span> (weary of life), <span class="de">des rechten Weges bewusst</span> (aware of the right path).</p>
 <div class="tip"><span class="de">Ein guter Mensch in seinem dunklen Drange / Ist sich <b>des rechten Weges</b> wohl bewusst.</span> Genitive object of bewusst.</div>`,
 quiz:[
-{q:"die Kraft ___ Geistes",o:["des","der","dem"],a:0,why:"Genitive masculine: des Geistes."},
-{q:"'des Pudels Kern' in modern prose:",o:["der Kern des Pudels","des Kern Pudels","die Pudel Kern"],a:0,why:"Preposed genitive = 'the poodle's core' → der Kern des Pudels."},
-{q:"Ich sehe ___ Kopf. (my)",o:["mein","meinen","meinem"],a:1,why:"Accusative masculine → meinen."},
-{q:"'des Lebens müde' means:",o:["of life, weary","the life is tired","living tiredly"],a:0,why:"müde takes a genitive object: weary of life."}]},
+{q:"die Kraft ___ Geistes",o:["der","des","dem"],a:1,why:"Genitive masculine: des Geistes."},
+{q:"'des Pudels Kern' in modern prose:",o:["des Kern Pudels","der Kern des Pudels","die Pudel Kern"],a:1,why:"Preposed genitive = 'the poodle's core' → der Kern des Pudels."},
+{q:"Ich sehe ___ Kopf. (my)",o:["meinen","mein","meinem"],a:0,why:"Accusative masculine → meinen."},
+{q:"'des Lebens müde' means:",o:["living tiredly","the life is tired","of life, weary"],a:2,why:"müde takes a genitive object: weary of life."}]},
 {id:"g13",week:7,title:"Adjektivendungen & Steigerung",sub:"One rule to survive adjective endings; comparatives",body:`
 <p>An adjective before a noun takes an ending. The simplest workable rule:</p>
 <ol><li>If the article already shows the case clearly (der, die, das, den, dem, des...), the adjective takes <b class="g">-e</b> in nom./akk. singular (except masc. akk. → -en) and <b class="g">-en</b> everywhere else.</li>
-<li>After ein/kein/mein in nominative, the adjective shows the gender itself: <span class="de">ein gut<b>er</b> Mensch, eine gut<b>e</b> Frau, ein gut<b>es</b> Kind</span>.</li>
+<li>After ein/kein/mein in the nominative (and the neuter accusative), the adjective shows the gender itself: <span class="de">ein gut<b>er</b> Mensch, eine gut<b>e</b> Frau, ein gut<b>es</b> Kind</span>.</li>
 <li>With no article, the adjective takes the article's ending: <span class="de">gut<b>er</b> Wein, kalt<b>es</b> Wasser, schwankend<b>e</b> Gestalten</span>.</li></ol>
 <p>Comparison: <span class="de">-er / am -sten</span>: <span class="de">klug, klüger, am klügsten; gut, besser, am besten; hoch, höher, am höchsten; gern, lieber, am liebsten</span>. "than" = <span class="de">als</span>; "as...as" = <span class="de">so...wie</span>.</p>
-<div class="tip"><span class="de">Und bin so klug <b>als wie</b> zuvor</span> — Goethe's "als wie" is an old doubled form of "as...as". <span class="de">Zwar bin ich gescheit<b>er</b> als all die Laffen</span> — comparative + als.</div>`,
+<div class="tip"><span class="de">Und bin so klug <b>als wie</b> zuvor</span> — Goethe's "als wie" is an old doubled form of "as...as". <span class="de">Zwar bin ich gescheit<b>er</b> als alle die Laffen</span> — comparative + als.</div>`,
 quiz:[
-{q:"ein ___ Mensch (gut)",o:["gute","guter","guten"],a:1,why:"After ein (which shows no gender) the adjective shows masculine nominative: guter."},
+{q:"ein ___ Mensch (gut)",o:["gute","guten","guter"],a:2,why:"After ein (which shows no gender) the adjective shows masculine nominative: guter."},
 {q:"der ___ Winter (alt)",o:["alte","alter","alten"],a:0,why:"After der (nominative) → -e: der alte Winter."},
-{q:"Er ist klüger ___ ich.",o:["wie","als","dann"],a:1,why:"Comparative + als."},
+{q:"Er ist klüger ___ ich.",o:["wie","dann","als"],a:2,why:"Comparative + als."},
 {q:"Comparative of gern:",o:["gerner","lieber","mehr gern"],a:1,why:"gern, lieber, am liebsten."}]},
 {id:"g14",week:8,title:"Konjunktiv II",sub:"Would, could, if only — the mood of wishes and hypotheticals",body:`
 <p>Konjunktiv II expresses the unreal: wishes, conditions, politeness. Key forms:</p>
 <table><tr><th></th><th>wäre</th><th>hätte</th><th>würde</th><th>könnte</th><th>müsste</th><th>wollte</th></tr>
 <tr><td>ich/er</td><td>wäre</td><td>hätte</td><td>würde</td><td>könnte</td><td>müsste</td><td>wollte</td></tr>
-<tr><td>du</td><td>wärst</td><td>hättest</td><td>würdest</td><td>könntest</td><td>müsstest</td><td>wolltest</td></tr></table>
-<p>For most verbs modern German uses <span class="de">würde + Infinitiv</span>: <span class="de">Ich würde gern lesen.</span> Literature uses the synthetic forms: strong Präteritum + umlaut + -e: <span class="de">ginge, käme, sähe, gäbe, fände, stünde, wüsste</span>.</p>
+<tr><td>du</td><td>wärst</td><td>hättest</td><td>würdest</td><td>könntest</td><td>müsstest</td><td>wolltest</td></tr>
+<tr><td>wir / sie / Sie</td><td>wären</td><td>hätten</td><td>würden</td><td>könnten</td><td>müssten</td><td>wollten</td></tr></table>
+<p>The same way: <span class="de">sollte, dürfte</span>. sollte and wollte have no umlaut.</p>
+<p>For most verbs modern German uses <span class="de">würde + Infinitiv</span>: <span class="de">Ich würde gern lesen.</span> Literature uses the synthetic forms: strong Präteritum + umlaut where possible + -e (stünde and wüsste are irregular): <span class="de">ginge, käme, sähe, gäbe, fände, stünde, wüsste</span>.</p>
 <p>Conditions: <span class="de"><b>Wenn</b> ich Zeit <b>hätte</b>, <b>läse</b> ich Faust.</span> Goethe drops wenn and starts with the verb: <span class="de"><b>Hättst</b> du ihm nicht den Schein des Himmelslichts gegeben...</span> = Wenn du ihm nicht... gegeben hättest.</p>
 <p>Past unreal: <span class="de">hätte/wäre + Partizip II</span>: <span class="de">Er wäre gekommen.</span></p>
 <div class="tip"><span class="de">Drum besser <b>wär's</b>, dass nichts <b>entstünde</b>.</span> wär's = wäre es; entstünde = Konj. II of entstehen (entstand → entstünde).</div>`,
 quiz:[
 {q:"Wenn ich reich ___, würde ich reisen.",o:["bin","wäre","war"],a:1,why:"Unreal condition → Konjunktiv II: wäre."},
-{q:"'Hättst du ihm nicht... gegeben' is equivalent to:",o:["Wenn du ihm nicht... gegeben hättest","Du hast ihm nicht gegeben","Hast du ihm gegeben?"],a:0,why:"Verb-first replaces wenn in conditional clauses."},
-{q:"Konjunktiv II of 'er kommt':",o:["er kam","er käme","er kommte"],a:1,why:"kam + umlaut + e → käme."},
-{q:"Past unreal: Ich ___ das Buch ___ (lesen).",o:["hätte gelesen","würde lesen","habe gelesen"],a:0,why:"hätte + Partizip II = would have read."}]},
+{q:"'Hättst du ihm nicht... gegeben' is equivalent to:",o:["Hast du ihm gegeben?","Du hast ihm nicht gegeben","Wenn du ihm nicht... gegeben hättest"],a:2,why:"Verb-first replaces wenn in conditional clauses."},
+{q:"Konjunktiv II of 'er kommt':",o:["er käme","er kam","er kommte"],a:0,why:"kam + umlaut + e → käme."},
+{q:"Past unreal: Ich ___ das Buch ___ (lesen).",o:["habe gelesen","würde lesen","hätte gelesen"],a:2,why:"hätte + Partizip II = would have read."}]},
 {id:"g15",week:8,title:"Konjunktiv I & Passiv",sub:"Reported speech, blessings, and 'es wird gesagt'",body:`
-<p><b>Konjunktiv I</b> = infinitive stem + -e: <span class="de">er sage, er habe, er sei, er komme</span>. Uses: reported speech (<span class="de">Er sagt, er <b>sei</b> müde</span>), wishes and formulas (<span class="de">Es <b>sei</b>! Gott <b>helfe</b> mir. Es <b>werde</b> Licht.</span>), and in Goethe, exhortations: <span class="de">So <b>mögt</b> ihr walten; die Uhr <b>mag</b> stehn; Es <b>sei</b> die Zeit für mich vorbei!</span> — "may/let it be".</p>
+<p><b>Konjunktiv I</b> = infinitive stem + -e: <span class="de">er sage, er habe, er komme</span> — only sein has no -e: <span class="de">er sei</span>. Uses: reported speech (<span class="de">Er sagt, er <b>sei</b> müde</span>), wishes and formulas (<span class="de">Es <b>sei</b>! Gott <b>helfe</b> mir. Es <b>werde</b> Licht.</span>), and in Goethe, exhortations — with Konjunktiv I (Es sei …!) or with the modal verb mögen (mögt, mag = "may"; its own Konjunktiv I is möge) — <span class="de">So <b>mögt</b> ihr walten; die Uhr <b>mag</b> stehn; Es <b>sei</b> die Zeit für mich vorbei!</span> — "may/let it be".</p>
 <p><b>Passiv</b> = <span class="de">werden + Partizip II</span>: <span class="de">Das Buch <b>wird</b> gelesen. Faust <b>wurde</b> gerettet.</span> Agent with <span class="de">von</span>. The state passive uses sein: <span class="de">Die Tür <b>ist</b> geschlossen.</span></p>
-<p>Impersonal passive, common in Faust: <span class="de">Geschrieben steht: Im Anfang war das Wort</span> = "it stands written". <span class="de">Es wird gesagt</span> = it is said.</p>
+<p>Impersonal passive — a passive without a real subject: <span class="de">Es wird gesagt</span> = it is said. <span class="de">Hier wird nicht geraucht</span> = no smoking here. Do not confuse it with Faust's <span class="de">Geschrieben steht: Im Anfang war das Wort</span> ("it stands written"): that is stehen + participle, a state, not a passive.</p>
 <div class="tip">When you see <span class="de">sei, mag, möge, werde</span> opening a clause with no "if" meaning, read it as a wish or command: <span class="de">Es sei!</span> = so be it.</div>`,
 quiz:[
-{q:"Er sagt, er ___ Arzt. (reported)",o:["ist","sei","wäre"],a:1,why:"Konjunktiv I for reported speech: sei."},
+{q:"Er sagt, er ___ Arzt. (Konjunktiv I)",o:["sei","ist","wäre"],a:0,why:"Konjunktiv I for reported speech: sei."},
 {q:"Das Buch ___ von vielen gelesen.",o:["wird","ist","hat"],a:0,why:"Process passive: wird + Partizip II."},
-{q:"'Es werde Licht' is:",o:["a question","a wish/command (Konj. I)","a past statement"],a:1,why:"Konjunktiv I expresses 'let there be'."},
+{q:"'Es werde Licht' is:",o:["a question","a past statement","a wish/command (Konj. I)"],a:2,why:"Konjunktiv I expresses 'let there be'."},
 {q:"'Die Uhr mag stehn' means:",o:["The clock likes standing","Let the clock stop","The clock might be standing"],a:1,why:"mag here is an exhortation: let/may the clock stop."}]},
 {id:"g16",week:10,title:"Goethes Deutsch",sub:"Archaic forms, elisions and poetic licence — the Faust decoder",body:`
-<p>Faust (1808) is 200 years old. Its grammar is the grammar you now know, plus a short list of period habits:</p>
+<p>Faust (1808) is more than 200 years old. Its grammar is the grammar you now know, plus a short list of period habits:</p>
 <table><tr><th>Habit</th><th>Example</th><th>Modern</th></tr>
 <tr><td>Apokope (drop final -e)</td><td class="de">ich hab, ich steh, ich fühl, Ruh, Freud, Müh</td><td>habe, stehe, fühle, Ruhe, Freude, Mühe</td></tr>
 <tr><td>Elision with 's</td><td class="de">wär's, ist's, nennt's, braucht's, hast du's</td><td>wäre es, ist es, nennt es...</td></tr>
@@ -596,13 +600,13 @@ quiz:[
 <tr><td>Verb-first condition</td><td class="de">Werd ich zum Augenblicke sagen...</td><td>Wenn ich ... sagen werde</td></tr>
 <tr><td>Es + verb + subject</td><td class="de">Es irrt der Mensch</td><td>Der Mensch irrt</td></tr>
 <tr><td>Dative of experience</td><td class="de">Mir ist bang; ist mir vergällt</td><td>Ich habe Angst</td></tr></table>
-<p>Pronoun <span class="de">Ihr/Euch</span> was the polite form of the period (where modern German uses Sie): Mephisto to Faust: <span class="de">Fürwahr, er dient Euch auf besondre Weise.</span></p>
+<p>Pronoun <span class="de">Ihr/Euch</span> was the polite form of the period (where modern German uses Sie): Mephisto to the Lord, about Faust: <span class="de">Fürwahr! er dient Euch auf besondre Weise.</span></p>
 <div class="tip">Decoding routine for any Faust line: (1) restore dropped e's and expand 's; (2) find the verb (slot two or clause-end); (3) find the subject by case; (4) only then translate.</div>`,
 quiz:[
-{q:"'wär's' expands to:",o:["wäre es","war es","wir es"],a:0,why:"wär = wäre (Konj. II), 's = es."},
-{q:"'Es irrt der Mensch' — the subject is:",o:["Es","der Mensch","irrt"],a:1,why:"Es is a dummy placeholder; der Mensch (nominative) is the real subject."},
-{q:"'zum Augenblicke' shows:",o:["plural","the old dative -e","genitive"],a:1,why:"Archaic dative singular ending -e on masculine/neuter nouns."},
-{q:"'Habe nun, ach! Philosophie... studiert' — the dropped word is:",o:["Ich","Er","Wir"],a:0,why:"Goethe omits the subject pronoun ich: (Ich) habe... studiert."}]}
+{q:"'wär's' expands to:",o:["wir es","war es","wäre es"],a:2,why:"wär = wäre (Konj. II), 's = es."},
+{q:"'Es irrt der Mensch' — the subject is:",o:["Es","irrt","der Mensch"],a:2,why:"Es is a dummy placeholder; der Mensch (nominative) is the real subject."},
+{q:"'zum Augenblicke' shows:",o:["the old dative -e","plural","genitive"],a:0,why:"Archaic dative singular ending -e on masculine/neuter nouns."},
+{q:"'Habe nun, ach! Philosophie... studiert' — the dropped word is:",o:["Er","Ich","Wir"],a:1,why:"Goethe omits the subject pronoun ich: (Ich) habe... studiert."}]}
 ];
 // ---- CASE DRILL
 const CASES = [
