@@ -8,5 +8,5 @@ or Chrome (Android: menu → Install app). Works offline after the first visit.
 
 Progress is stored only on the device (IndexedDB, with daily and weekly backups under Ich → Daten → Sicherungen). Move it between devices with Ich → Daten → Backup.
 
-Build 13.6.0-9c72bd7464. Fonts: Fraunces, Source Serif 4, Source Sans 3, JetBrains Mono, UnifrakturMaguntia,
+Build 13.7.0-2580f01a55. Fonts: Fraunces, Source Serif 4, Source Sans 3, JetBrains Mono, UnifrakturMaguntia,
 all under the SIL Open Font License (fonts/OFL.txt), subset for this app.

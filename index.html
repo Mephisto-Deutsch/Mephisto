@@ -704,7 +704,7 @@ html{font-size:calc(100% * var(--vp,1) * var(--ts,1));-webkit-text-size-adjust:1
   --d-1:4px; --d-2:8px; --d-3:16px; --d-4:32px; --stagger:40ms; --s-in:.97; --s-stamp:1.18;
   /* 2.5 layers (one table; nobody invents a level) */
   --z-scene:0; --z-fx-back:1; --z-gutter:14; --z-side:15; --z-top:20; --z-eye:31; --z-focus:40; --z-whisper:56; --z-fx-front:59;
-  --z-sheet:60; --z-kit:70; --z-toast:80; --z-snack:85; --z-slip:88; --z-cine:90; --z-fx-over:96;
+  --z-sheet:60; --z-kit:70; --z-legend:79; --z-toast:80; --z-snack:85; --z-slip:88; --z-cine:90; --z-fx-over:96;
   /* 2.1 colour roles that every look has (Clean / Pixel values; Paper and Gothic override below) */
   --accent-text:var(--accent);
   --field-line:color-mix(in srgb,var(--fg) 45%,var(--surface));
@@ -946,11 +946,658 @@ img[src^="media/art/"],image[href^="media/art/"]{filter:var(--duo,var(--a4-duo))
 .plate-c{font-size:var(--fs-cap,.8125rem);color:var(--muted);letter-spacing:var(--ls-caps,.08em);text-transform:uppercase}
 /* a lore page whose slot has no plate (e.g. "Der Hauptmann von Köpenick") shows no empty frame */
 .lore-fig:not(:has(img)){display:none}
+
+/* ===== Mephisto 13.1 · a5 · painted scenes (A8): six compositor layers, parallax, time of day, the learner's state, boss / Bett vier / finale, scrims.
+   Owner a5. Consumes a1 tokens when present (--scrim --scrim-fg --scrim-muted --t-4 --e-out), falls back to A8's measured numbers.
+   Only transform and opacity move. Endless animations: <= 5 per scene (the "small life" below) + the existing grain; all paused under html.idle, none in calm. */
+#pakt-scene{--a5-scrim:var(--scrim,var(--bg));--a5-sfg:calc(var(--scrim-fg,.78)*100%);--a5-smu:calc(var(--scrim-muted,.88)*100%);
+  --a5-fade:900ms;--a5-ease:var(--e-out,cubic-bezier(.16,.84,.24,1));background:var(--bg);contain:strict}
+/* the old P1 strip (PK_SCENE in c_pakt.js) and its one-colour fog stay in the DOM but are hidden once a painted scene has mounted */
+#pakt-scene.a5-on>svg,#pakt-scene.a5-on>.fog{display:none}
+#pakt-scene.a5-on>.vig{background:radial-gradient(120% 90% at 50% 30%,transparent 45%,rgba(0,0,0,.45) 100%)}
+#pakt-scene .a5-stage{position:absolute;inset:0}
+#pakt-scene .a5-set{position:absolute;inset:0;opacity:1;transition:opacity var(--a5-fade) var(--a5-ease)}
+#pakt-scene .a5-set.a5-old{opacity:0}
+/* g_gothic.css still styles "#pakt-scene svg" (bottom strip, opacity .55) and "#pakt-scene .fog" (38 s drift): neutralise both inside a5 sets */
+#pakt-scene .a5-set svg{opacity:1;bottom:auto;right:auto}
+#pakt-scene .a5-set .fog{animation:none}
+#pakt-scene .a5-defs{position:absolute;width:0;height:0;overflow:hidden}
+/* each layer is its own <svg>; parallax writes transform on it from JS (rAF only while the pointer/scroll moves) */
+#pakt-scene .a5-set>.pl{position:absolute;left:-4%;top:-4%;width:108%;height:108%;display:block;overflow:visible;transform:translate(0,0)}
+#pakt-scene.a5-moving .a5-set>.pl{will-change:transform}
+#pakt-scene .a5-shadow{pointer-events:none;opacity:0;transition:opacity 2s}
+#pakt-scene[data-shadow="1"] .a5-shadow{opacity:1}
+/* time of day for scenes that have one file (II-V; realm I by day): a multiply wash never brightens, so the scrim numbers hold */
+#pakt-scene .a5-tod{position:absolute;inset:0;mix-blend-mode:multiply;background:transparent;display:none;transition:background 3s}
+#pakt-scene[data-tod="dawn"] .a5-tod{display:block;background:#C9A9A0}
+#pakt-scene[data-tod="day"] .a5-tod{display:block;background:#B9C2C6}
+#pakt-scene[data-tod="dusk"] .a5-tod{display:block;background:#D8B08A}
+/* reading scrim (A8 §4 rules 2-3): clear header zone, solid under the content column; wide screens keep the side gutters clear */
+#pakt-scene .a5-scrim{position:absolute;inset:0;transition:opacity var(--a5-fade) var(--a5-ease);
+  background:linear-gradient(to bottom,transparent 0,transparent 14vh,rgba(6,6,8,.78) 30vh,rgba(6,6,8,.88) 100%);
+  background:linear-gradient(to bottom,transparent 0,transparent 14vh,color-mix(in srgb,var(--a5-scrim) var(--a5-sfg),transparent) 30vh,color-mix(in srgb,var(--a5-scrim) var(--a5-smu),transparent) 100%)}
+@media (min-width:1100px){#pakt-scene .a5-scrim{
+  background:linear-gradient(to right,transparent 0,rgba(6,6,8,.88) 24%,rgba(6,6,8,.88) 76%,transparent 100%);
+  background:linear-gradient(to right,transparent 0,color-mix(in srgb,var(--a5-scrim) var(--a5-smu),transparent) 24%,color-mix(in srgb,var(--a5-scrim) var(--a5-smu),transparent) 76%,transparent 100%)}}   /* a5: A8's extra 60 % vertical band dropped - it dimmed the gutters, which hold no text (rule 3) */
+/* a scene that belongs to a Focus screen (duel, Bett vier, the ending): Focus turns transparent, the shell behind it is hidden,
+   and the scrim becomes one reading column (phone: everywhere) at the muted level */
+:root[data-ui="gothic"][data-scene-ctx] #focus{background:transparent}
+:root[data-ui="gothic"][data-scene-ctx] :is(#app,#lore-sprites,.sp-poodle,.sp-rabe){visibility:hidden}
+:root[data-scene-ctx] #pakt-scene .a5-scrim{background:rgba(6,6,8,.88);background:color-mix(in srgb,var(--a5-scrim) var(--a5-smu),transparent)}
+@media (min-width:900px){:root[data-scene-ctx] #pakt-scene .a5-scrim{
+  background:linear-gradient(to right,color-mix(in srgb,var(--a5-scrim) 30%,transparent) 0,color-mix(in srgb,var(--a5-scrim) var(--a5-smu),transparent) calc(50% - 430px),
+    color-mix(in srgb,var(--a5-scrim) var(--a5-smu),transparent) calc(50% + 430px),color-mix(in srgb,var(--a5-scrim) 30%,transparent) 100%)}}
+/* full strength for a moment (boss intro, Bett vier's first line, the ending; a7's cinematics call sceneShow) - the text waits */
+:root[data-scene-mode="show"] #pakt-scene .a5-scrim{opacity:0}
+:root[data-scene-mode="show"][data-scene-ctx] #fBody,:root[data-scene-mode="show"][data-scene-ctx] #fFoot{opacity:0;pointer-events:none}
+:root[data-scene-ctx] #fBody,:root[data-scene-ctx] #fFoot{transition:opacity var(--t-4,560ms) var(--a5-ease)}
+/* sober screens (s6/s2: clinical bad news, consent, death) - no boss light, quieter picture */
+:root[data-sober="1"] #pakt-scene .a5-scrim{opacity:1;background:color-mix(in srgb,var(--a5-scrim) 92%,transparent)}
+/* free-standing text on a page (A8 §4 rule 2): a local ground of the realm's --bg; cards stay opaque as they are */
+:root[data-ui="gothic"] .view>.head{background:color-mix(in srgb,var(--a5-scrim,var(--bg)) var(--a5-smu,88%),transparent);
+  box-shadow:0 0 0 .5rem color-mix(in srgb,var(--a5-scrim,var(--bg)) var(--a5-smu,88%),transparent);border-radius:var(--r-s,4px)}
+:root[data-ui="gothic"] :is(.view>h1,.view>h2,.view>h3,.view>.eyebrow){background:color-mix(in srgb,var(--a5-scrim,var(--bg)) var(--a5-sfg,78%),transparent);
+  box-shadow:0 0 0 .4rem color-mix(in srgb,var(--a5-scrim,var(--bg)) var(--a5-sfg,78%),transparent);border-radius:var(--r-s,4px)}
+:root[data-ui="gothic"] :is(.view>p,.view>small,.view>.muted,.view>.row>small,#fIn>.duel .duel-say,#fIn>.duel .duel-qq,#fIn>.duel .eyebrow){
+  background:color-mix(in srgb,var(--a5-scrim,var(--bg)) var(--a5-smu,88%),transparent);box-shadow:0 0 0 .35rem color-mix(in srgb,var(--a5-scrim,var(--bg)) var(--a5-smu,88%),transparent);border-radius:var(--r-s,4px)}
+:root[data-ui="gothic"]{--a5-scrim:var(--scrim,var(--bg));--a5-sfg:calc(var(--scrim-fg,.78)*100%);--a5-smu:calc(var(--scrim-muted,.88)*100%)}
+/* the learner's state, painted (ids are prefixed at mount, hence the suffix selectors) */
+#pakt-scene [id$="-debt"]{opacity:var(--a5-debt,0);transition:opacity 2s}
+#pakt-scene .fogx{opacity:var(--a5-fogx,0);transition:opacity 2s}
+#pakt-scene .a5-lt>g{opacity:calc(1 - var(--a5-fogx,0)*.45);transition:opacity 2s}
+#pakt-scene .sw{transition:opacity 1.2s}
+#pakt-scene[data-streak="1"] .s1,#pakt-scene[data-streak="2"] :is(.s1,.s2),#pakt-scene[data-streak="3"] :is(.s1,.s2,.s3),
+#pakt-scene[data-streak="4"] :is(.s1,.s2,.s3,.s4),#pakt-scene[data-streak="5"] :is(.s1,.s2,.s3,.s4,.s5),
+#pakt-scene[data-streak="6"] :is(.s1,.s2,.s3,.s4,.s5,.s6),#pakt-scene[data-streak="7"] .sw{opacity:1}
+/* realm V: one more gallery fills per two sealed chapters of the realm (z4 = lowest gallery first) */
+#pakt-scene .zuschauer{transition:opacity 1.2s}
+#pakt-scene[data-gal="1"] :is(.z0,.z1,.z2,.z3),#pakt-scene[data-gal="2"] :is(.z0,.z1,.z2),#pakt-scene[data-gal="3"] :is(.z0,.z1),#pakt-scene[data-gal="4"] .z0{opacity:0}
+/* small life, addressed by id or class, lifted into its own layer by c_a5 so it composites (no repaint of the picture) */
+@keyframes a5Flick{0%,100%{opacity:1}23%{opacity:.9}41%{opacity:.97}67%{opacity:.84}83%{opacity:.95}}
+@keyframes a5Breathe{from{opacity:.72}to{opacity:1}}
+@keyframes a5Drift{from{translate:0 0}to{translate:3.5vw 0}}
+@keyframes a5Dust{from{translate:0 0}to{translate:1.2vw -1.6vh}}
+@keyframes a5Steam{0%{translate:0 0;opacity:0}20%{opacity:1}100%{translate:0 calc(-26px * var(--a5-u,1));opacity:0}}
+@keyframes a5Rain1{from{translate:0 0}to{translate:calc(-37.4px * var(--a5-u,1)) calc(150px * var(--a5-u,1))}}
+@keyframes a5Rain2{from{translate:0 0}to{translate:calc(-57.3px * var(--a5-u,1)) calc(230px * var(--a5-u,1))}}
+@keyframes a5Blink{0%,92%,100%{opacity:1}95%{opacity:0}}
+@keyframes a5Ekg{from{stroke-dashoffset:260}to{stroke-dashoffset:0}}
+#pakt-scene .a5-life-flick{animation:a5Flick 2.3s steps(1) infinite}
+#pakt-scene .a5-life-flickfast{animation:a5Flick 1.1s steps(1) infinite}
+#pakt-scene .a5-life-flickslow{animation:a5Flick 3.7s steps(1) infinite}
+#pakt-scene .a5-life-breathe{animation:a5Breathe 7s cubic-bezier(.37,0,.63,1) infinite alternate}
+#pakt-scene .a5-life-drift{animation:a5Drift 40s cubic-bezier(.37,0,.63,1) infinite alternate}
+#pakt-scene .a5-life-dust{animation:a5Dust 26s cubic-bezier(.37,0,.63,1) infinite alternate}
+#pakt-scene .a5-life-steam{animation:a5Steam 6s var(--e-out,cubic-bezier(.16,.84,.24,1)) infinite}
+#pakt-scene .a5-life-rain1{animation:a5Rain1 .9s linear infinite}
+#pakt-scene .a5-life-rain2{animation:a5Rain2 .6s linear infinite}
+#pakt-scene .a5-life-blink{animation:a5Blink 5.5s steps(1) infinite}
+#pakt-scene [id$="-ekg"]{stroke-dasharray:260;animation:a5Ekg 2.4s steps(24) infinite}
+/* pause: idle (a6 sets html.idle after 20 s), hidden scene, sober; off: calm / nomotion / OS reduced motion */
+:root.idle #pakt-scene *,:root.idle #pakt-scene .grain,:root[data-sober="1"] #pakt-scene *{animation-play-state:paused!important}
+:root:is(.calm,.nomotion) #pakt-scene *,:root:is(.calm,.nomotion) #pakt-scene .grain{animation:none!important;transition:none!important}
+:root:is(.calm,.nomotion) #pakt-scene .a5-set>.pl{transform:none!important;will-change:auto}
+@media (prefers-reduced-motion:reduce){#pakt-scene *,#pakt-scene .grain{animation:none!important;transition:none!important}#pakt-scene .a5-set>.pl{transform:none!important;will-change:auto}}
+
+/* ===== Mephisto 13.1 · a6 · s_a6.css — layers and static looks of the effects kit FX (v2/c_a6.js). From A9's fx.css; changes marked a6.
+   Motion is WAAPI on transform/opacity, or the one canvas. Layers per PLAN-A §2.5: #fx-back/#fx-cv 1 (behind #app) · #fx-front 59 · #fx-over 96. */
+#fx-back,#fx-front,#fx-over,#fx-cv{position:fixed;inset:0;pointer-events:none;overflow:hidden;contain:strict}
+#fx-back{z-index:1}
+#fx-cv{z-index:1;width:100%;height:100%}
+#fx-cv.front{z-index:59}
+#fx-front{z-index:59}
+#fx-over{z-index:96}
+#fx-clip{position:absolute;inset:0}
+#fx-clip>*,#fx-over>*,#fx-back>*{position:absolute}
+#fx-defs{position:absolute;width:0;height:0;overflow:hidden}
+/* light */
+#fx-glow{inset:-12%;opacity:.9;transition:opacity 1.2s}
+#fx-glow>i{position:absolute;inset:0;background:radial-gradient(ellipse 62vmax 54vmax at var(--fx-lx,50%) var(--fx-ly,22%),var(--fx-lc,rgba(240,138,63,.30)),var(--fx-lc2,rgba(240,138,63,.09)) 45%,transparent 72%)}
+#fx-vig{inset:-6%;opacity:.8;transition:opacity 1.2s}
+#fx-vig>i{position:absolute;inset:0;background:radial-gradient(ellipse 74% 70% at 50% 46%,transparent 52%,rgba(0,0,0,.34) 78%,rgba(0,0,0,.72) 100%)}
+:root[data-ui="paper"] #fx-vig>i{background:radial-gradient(ellipse 76% 72% at 50% 46%,transparent 58%,rgba(60,20,10,.10) 82%,rgba(60,20,10,.24) 100%)}
+#fx-grain{inset:-128px;background-size:128px 128px;opacity:.07}
+:root[data-ui="paper"] #fx-grain{opacity:.05}
+#fx-flash{inset:0;background:linear-gradient(180deg,rgba(214,226,255,.95),rgba(214,226,255,.35) 38%,transparent 62%);opacity:0}
+#fx-cone{left:50%;top:0;width:min(70vw,720px);height:78vh;margin-left:calc(min(70vw,720px)/-2);background:linear-gradient(180deg,rgba(214,232,255,.16),rgba(214,232,255,.05) 60%,transparent);clip-path:polygon(38% 0,62% 0,100% 100%,0 100%);opacity:0;transition:opacity 1.4s}
+/* a6: one fog element (three banks as three gradients), one drift */
+.fx-fog{left:-20%;width:140%;bottom:4vh;height:30vh;background:radial-gradient(30% 50% at 22% 55%,rgba(var(--fx-fogc),.13),transparent 70%),radial-gradient(34% 50% at 60% 50%,rgba(var(--fx-fogc),.10),transparent 70%),radial-gradient(26% 46% at 88% 62%,rgba(var(--fx-fogc),.08),transparent 70%)}
+.fx-puff{width:14px;height:14px;border-radius:50%;background:radial-gradient(closest-side,rgba(215,210,200,.75),transparent);pointer-events:none}
+/* blood */
+.fx-bloom{width:var(--s);height:var(--s);margin:calc(var(--s)/-2) 0 0 calc(var(--s)/-2);mix-blend-mode:var(--fx-blend,normal)}
+.fx-bloom svg,.fx-seep svg,.fx-hand svg,.fx-seal svg{display:block;width:100%;height:100%;overflow:visible}
+.fx-seep{left:0;right:0;height:64px;transform-origin:50% 0;mix-blend-mode:var(--fx-blend,normal)}
+/* a6: a drip is a run of liquid, not a rounded bar: tapered body (narrow at the top, full at the bead), wet highlight, bead with a meniscus */
+.fx-drip{width:var(--w);height:var(--l)}
+.fx-drip b{position:absolute;left:0;top:0;width:100%;height:100%;transform-origin:50% 0;clip-path:polygon(30% 0,70% 0,100% 100%,0 100%);background:linear-gradient(90deg,var(--fx-deep),var(--fx-blood) 30%,var(--fx-hi) 48%,var(--fx-blood) 66%,var(--fx-deep));opacity:.92}
+.fx-drip i{position:absolute;left:-2px;top:-3px;width:calc(var(--w) + 4px);height:calc(var(--w) + 7px);border-radius:46% 46% 50% 50%/38% 38% 62% 62%;background:radial-gradient(circle at 34% 30%,rgba(255,235,225,.85) 0 7%,var(--fx-hi) 18%,var(--fx-blood) 55%,var(--fx-deep) 100%)}
+.fx-hand{width:var(--s);height:calc(var(--s)*1.25);opacity:0;mix-blend-mode:var(--fx-blend,normal)}
+.fx-line{position:absolute;left:0;top:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.fx-line path{transform:skewX(-11deg);transform-origin:0 100%}
+.fx-seal{position:absolute;width:var(--s);height:var(--s);margin:calc(var(--s)/-2) 0 0 calc(var(--s)/-2);pointer-events:none;z-index:3;filter:drop-shadow(0 3px 5px rgba(0,0,0,.55))}
+/* feedback — a6: the rim sits in the front layer around the card; only its OUTER light shows (the card's hole hides the rest) */
+.fx-rim{position:absolute;pointer-events:none;opacity:0;box-sizing:border-box}
+.fx-rim.bad{box-shadow:0 0 0 3px var(--fx-hi),0 0 26px 3px var(--fx-rimglow)}
+.fx-rim.good{box-shadow:0 0 0 3px #FFD08A,0 0 26px 2px rgba(255,190,110,.45)}
+.fx-slash{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3;overflow:visible}
+.fx-flashplate{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:3;border-radius:inherit;mix-blend-mode:screen}
+.fx-spat{position:absolute;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;background:radial-gradient(circle at 35% 30%,var(--fx-hi),var(--fx-blood) 55%,var(--fx-deep));pointer-events:none;z-index:3}
+.fx-under{position:absolute;inset:0;pointer-events:none;z-index:2;background:linear-gradient(0deg,var(--fx-rimglow),transparent 62%);opacity:0;border-radius:inherit}
+.fx-wick{width:4px;height:4px;border-radius:50%;background:radial-gradient(closest-side,#FFE2B8,#FFB566 50%,rgba(240,138,63,0));pointer-events:none}
+.fx-out{opacity:0!important}
+.fx-glint{width:34px;height:34px;margin:-17px 0 0 -17px;background:radial-gradient(closest-side,rgba(255,236,190,.95),transparent 70%),linear-gradient(90deg,transparent 46%,rgba(255,236,190,.9) 50%,transparent 54%),linear-gradient(0deg,transparent 46%,rgba(255,236,190,.9) 50%,transparent 54%);opacity:0}
+/* uncanny */
+.fx-eyes{width:58px;height:18px;margin:-9px 0 0 -29px;transform-origin:50% 50%;filter:drop-shadow(0 0 5px var(--fx-eye,rgba(232,197,71,.55)))}
+.fx-shadow{left:0;top:0;width:min(46vw,340px);height:92vh;opacity:0}
+.fx-refl{position:absolute;left:50%;bottom:0;width:62%;height:86%;margin-left:-31%;pointer-events:none;opacity:0;z-index:1}
+.fx-pupil{position:absolute;width:var(--d);height:var(--d);margin:calc(var(--d)/-2) 0 0 calc(var(--d)/-2);border-radius:50%;background:radial-gradient(circle at 35% 30%,#5a4a3a 0 12%,#090605 45%);pointer-events:none;transition:transform .25s var(--e-out,cubic-bezier(.16,1,.3,1));z-index:2}
+.fx-curl{position:absolute;right:0;bottom:0;width:48px;height:48px;pointer-events:none;z-index:3;transform-origin:100% 100%;border-top-left-radius:5px;background:linear-gradient(315deg,var(--bg,#0A100C) 0 49.2%,rgba(0,0,0,.6) 50%,#B9A57E 55%,#EDE0BF 70%,#CDB98E 100%);box-shadow:-4px -4px 9px -2px rgba(0,0,0,.6)}
+.fx-mis{display:inline-block;color:inherit}
+.fx-trail{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1}
+.fx-breath{width:var(--s);height:calc(var(--s)*.72);margin:calc(var(--s)*-.36) 0 0 calc(var(--s)/-2);border-radius:50%;background:radial-gradient(closest-side,rgba(214,226,232,.20),rgba(214,226,232,.10) 55%,transparent);opacity:0}
+/* transitions */
+.fx-t{inset:0}
+.fx-t.solid{background:#050202;opacity:0}
+.fx-t.iris{background:#030101;-webkit-mask-image:radial-gradient(circle at var(--fx-ix,50%) var(--fx-iy,50%),transparent calc(var(--fx-r) - 14px),#000 var(--fx-r));mask-image:radial-gradient(circle at var(--fx-ix,50%) var(--fx-iy,50%),transparent calc(var(--fx-r) - 14px),#000 var(--fx-r))}
+.fx-t.page{background:linear-gradient(90deg,rgba(0,0,0,.75),rgba(0,0,0,0) 26px),linear-gradient(90deg,var(--raise,#16221A),var(--surface,#111A14));box-shadow:-30px 0 60px rgba(0,0,0,.7)}
+.fx-t.door{width:50.5%;inset:0 auto 0 0;background:repeating-linear-gradient(90deg,#120a06 0 2px,#1d120b 2px 58px,#0c0603 58px 61px),#1a0f09;box-shadow:inset -14px 0 30px rgba(0,0,0,.8)}
+.fx-t.door.r{inset:0 0 0 auto;box-shadow:inset 14px 0 30px rgba(0,0,0,.8)}
+.fx-t.curtain{inset:-4% -4% 0 -4%;background:repeating-linear-gradient(90deg,#2a0507 0,#5a0c10 22px,#7a1216 34px,#3a0709 52px,#1c0304 70px);box-shadow:0 18px 40px rgba(0,0,0,.8);border-bottom:6px solid #B8862E}
+/* intensity 0: nothing; reduced motion: nothing moves (JS writes end states); idle: every animation in the app pauses (platform D10/P5, PLAN-A §2.9) */
+:root[data-fx="0"] #fx-front,:root[data-fx="0"] #fx-cv,:root[data-fx="0"] #fx-back{display:none}
+:root.nomotion #fx-grain,:root.calm #fx-grain{transform:none!important}
+@media (prefers-reduced-motion:reduce){#fx-grain{transform:none!important}}
+/* a6: idle pauses ENDLESS motion only — entrance animations (.fade-in) must finish or content stays invisible (ux D44). The ambient containers
+   pause by CSS; every other endless animation (CSS or WAAPI) is paused by c_a6.js through document.getAnimations(). */
+:root.idle #pakt-scene,:root.idle #pakt-scene *,:root.idle #pakt-scene *::before,:root.idle #pakt-scene *::after,:root.idle #fx-back *,:root.idle #hor-embers *{animation-play-state:paused!important}
+/* a6: the 13.0 effect half of c_horror.js is retired once FX runs (PLAN-A D8, risk 1: two systems drawing blood at once). The eye (#hor-eye) and the
+   whispers (.hor-whisper) stay s6's. The monster's own drips on a hit (.duel-boss .hor-drip) stay: blood as a reward. */
+:root[data-fx-kit="1"] #hor-embers,:root[data-fx-kit="1"] #hor-flash,:root[data-fx-kit="1"] #hor-veil,:root[data-fx-kit="1"] #hor-edge{display:none!important}
+:root[data-fx-kit="1"] .hor-drip{display:none!important}
+:root[data-fx-kit="1"] .duel-boss .hor-drip{display:block!important}
+:root[data-fx-kit="1"] .hor-shake{animation:none!important}
+:root[data-fx-kit="1"] .hor-glitch{animation:none!important;text-shadow:none!important}
+:root[data-fx-kit="1"] .verdict.no{text-shadow:none}
+:root[data-fx-kit="1"][data-realm="V"] body::after{animation:none!important}
+
+/* ===== a7 · motion rules (PLAN-A D9; A6-motion §5). Tokens (--t-*, --e-*, --d-*, --stagger, --s-*) are a1's (s_a1.css); the calm collapse
+   (:root.calm / :root.nomotion → durations var(--m-dur), one iteration, pseudo-elements included) is a1's block in head.html.
+   Rules here: only transform and opacity are animated; every duration is a token (tests/motion_lint.js); an element that must keep a real
+   duration in calm mode sets --m-dur. Not here: answer feedback, blood, duel hits and candles (a6, FX), scenes (a5), #amb (dropped, D8). */
+:root{--rot:1;--s-press:.97;--m-x:0;--m-ox:50%;--m-oy:50%}
+:root.calm{--rot:0;--s-press:1}
+
+/* ---------------------------------------------------------------- shared keyframes */
+@keyframes mFade{from{opacity:0}}
+@keyframes mFadeOut{to{opacity:0}}
+@keyframes mRise{from{opacity:0;transform:translateY(var(--d-2))}}
+@keyframes mRise3{from{opacity:0;transform:translateY(var(--d-3))}}
+@keyframes mSlide{from{opacity:0;transform:translateX(calc(var(--m-x)*var(--d-3)))}}
+@keyframes mZoom{from{opacity:0;transform:scale(var(--s-in))}}
+@keyframes mStamp{0%{opacity:0;transform:scale(var(--s-stamp))}60%{opacity:1}100%{opacity:1;transform:none}}
+@keyframes mFlash{from{opacity:var(--m-a,.45)}to{opacity:0}}
+@keyframes mThud{0%,100%{transform:none}40%{transform:translateY(calc(var(--d-1)*.75))}}
+@keyframes mWipe{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+@keyframes mDraw{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes mRing{from{opacity:.55;transform:scale(1)}to{opacity:0;transform:scale(calc(1 + .8*var(--rot)))}}
+@keyframes mBreath{50%{opacity:1}}
+@keyframes mUnfold{0%{opacity:0;transform:perspective(900px) rotateX(calc(var(--rot)*-78deg)) rotate(-.6deg)}35%{opacity:1}100%{opacity:1;transform:perspective(900px) rotateX(0deg) rotate(-.6deg)}}
+@keyframes mFlipIn{from{transform:rotateY(0deg)}to{transform:rotateY(180deg)}}
+@keyframes mShadeIn{from{opacity:0;transform:translateX(calc(-1*var(--d-4)))}}
+@keyframes mSweep{0%{opacity:0;transform:translateX(-120%) skewX(-14deg)}20%,80%{opacity:1}100%{opacity:0;transform:translateX(420%) skewX(-14deg)}}
+@keyframes mBurnOut{0%{opacity:1;transform:none}100%{opacity:0;transform:translateY(calc(-1*var(--d-3))) scale(calc(1 - .3*var(--rot))) rotate(calc(var(--rot)*8deg))}}
+@keyframes mDrop{0%{opacity:0;transform:translateY(calc(-1*var(--d-3))) rotate(calc(var(--rot)*-8deg))}100%{opacity:1;transform:none}}
+@keyframes mPerch{0%{opacity:0}8%,90%{opacity:1}100%{opacity:0}}
+@keyframes mBeat{0%,100%{opacity:0}25%,70%{opacity:var(--m-a,.94)}}
+@keyframes mWipeA{from{transform:translateX(-101%)}}
+@keyframes mWipeB{from{transform:translateX(101%)}}
+
+/* ---------------------------------------------------------------- reduced motion and battery (what a1's collapse cannot know) */
+/* secrets stay catchable (A6 D2): the raven perches and the poodle sits for 12 s */
+:root.calm .sp-rabe,:root.calm .sp-poodle{--m-dur:calc(var(--t-5)*30);left:auto!important;right:14vw;animation:mPerch calc(var(--t-5)*30) linear both!important;transform:none!important}
+:root.calm .sp-poodle{right:auto;left:14vw!important}
+/* the old cinematic, if it ever shows (D1): its text is visible in calm mode */
+:root.calm #lore-cine :is(.cine-num,h1,.cine-en,.cine-intro,.cine-boss,.cine-go){opacity:1!important}
+:root.calm #lore-cine .cine-img{animation:none!important}
+#lore-cine.a7-hidden{visibility:hidden!important;opacity:0!important;pointer-events:none!important}
+/* wipes become fades */
+:root.calm .st-doc.pk-fade>p.hand::after{animation-name:mFadeOut}
+:root.calm .m-ledger>span,:root.calm .m-ledger>span>span{animation-name:mFade}
+:root.calm .egg-pop.on .egg-card::after,:root.calm .pk-shadow.pk-fade::before{animation:none}
+:root.calm .kit-holding{transform:none!important;transition:none!important}       /* R4: its !important beat the OS rule */
+:root.calm .pk-say .who.speaking::after{animation:none;opacity:.6}
+:root.spar *{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+
+/* ---------------------------------------------------------------- 1 · app start */
+:root.m-boot header.top{--m-dur:var(--t-3);animation:mFade var(--t-3) var(--e-lin) backwards}
+:root.m-boot nav.bar,:root.m-boot #sideNav{--m-dur:var(--t-3);animation:mFade var(--t-3) var(--e-lin) var(--t-1) backwards}
+/* 2 · tab change from its side; an in-place rerender is still (D11); content is never hidden after the entrance (ux D44: fill backwards) */
+#main .view.fade-in{--m-dur:var(--t-2);animation:mSlide var(--t-2) var(--e-out) backwards}
+#main.m-still .fade-in,#main.m-still .pk-fade{animation:none}
+/* 3 · Focus overlay grows out of the place that was pressed; on close the page settles back; the word sheet rises */
+#focus:not([hidden]){--m-dur:var(--t-3);transform-origin:var(--m-ox) var(--m-oy);animation:mZoom var(--t-3) var(--e-out) backwards}
+#focus .in.fade-in{--m-dur:var(--t-2);animation:mRise var(--t-2) var(--e-out) backwards}
+body:has(#focus[hidden]) #main{--m-dur:var(--t-2);animation:mZoomBack var(--t-2) var(--e-out) backwards}
+@keyframes mZoomBack{from{opacity:.4;transform:scale(calc(1 + .015*var(--rot)))}}
+#sheet:not([hidden]){--m-dur:var(--t-3);animation:mSheet var(--t-3) var(--e-out) backwards}
+@keyframes mSheet{from{transform:translateY(calc(var(--d-4)*3));opacity:0}}
+/* 4 · card reveal: the new back face enters turning (the app replaces the element, so its transition could never run, D3) */
+.fc{transition:none}
+.fc.flip{--m-dur:var(--t-3);animation:mFlipIn var(--t-3) var(--e-inout) both}
+:root.calm .fc.flip{animation:none}:root.calm .fc.flip .back{--m-dur:var(--t-3);animation:mFade var(--t-3) linear both}
+.rate button{--m-dur:var(--t-2);animation:mRise var(--t-2) var(--e-out) backwards}
+.rate button:nth-child(2){animation-delay:var(--stagger)}.rate button:nth-child(3){animation-delay:calc(var(--stagger)*2)}.rate button:nth-child(4){animation-delay:calc(var(--stagger)*3)}
+/* 7 · spelling note after the verdict; a quill line under the word */
+.spell-note{--m-dur:var(--t-3);animation:mRise var(--t-3) var(--e-out) calc(var(--t-3) + var(--t-1)) backwards}
+.spell-note b{position:relative}.spell-note b::after{content:"";position:absolute;left:0;right:0;bottom:-2px;height:2px;background:currentColor;transform-origin:0 50%;--m-dur:var(--t-4);animation:mDraw var(--t-4) var(--e-inout) calc(var(--t-4) + var(--t-2)) both}
+/* 8 · streak grew */
+.chip.flame.m-up{--m-dur:var(--t-3);animation:mStamp var(--t-3) var(--e-stamp) both}
+/* 9 · session complete (embers come from M.sparks, not confetti) */
+.celebrate>*{--m-dur:var(--t-3);animation:mRise3 var(--t-3) var(--e-out) backwards}
+.celebrate>*:nth-child(2){animation-delay:calc(var(--stagger)*2)}.celebrate>*:nth-child(3){animation-delay:calc(var(--stagger)*4)}.celebrate>*:nth-child(n+4){animation-delay:calc(var(--stagger)*6)}
+.m-spark{position:fixed;left:0;top:0;width:4px;height:4px;border-radius:50%;background:radial-gradient(#FFE2B0,#F08A3F 60%,transparent 70%);pointer-events:none;z-index:59}
+/* 11 · reader: a new line arrives in 320 ms, sharp (no blur, D5); what was read steps back */
+.pk-fade{--m-dur:var(--t-3);animation:mRise var(--t-3) var(--e-out) backwards}
+.st-read>:not(:last-child):not(figure){opacity:.82;transition:opacity var(--t-4) var(--e-lin);--m-dur:var(--t-3)}
+.st-read>:hover,.st-read>:focus-within{opacity:1}
+/* 12 · choice appears: the line lands first, then the label and the options (focusable at once; the delay is visual) */
+.st-choice.pk-fade{animation:none}
+.st-choice.pk-fade>*{--m-dur:var(--t-3);animation:mRise var(--t-3) var(--e-out) backwards;animation-delay:calc(var(--t-3) + var(--t-1))}
+.st-choice.pk-fade>.st-opt:nth-of-type(1){animation-delay:calc(var(--t-3) + var(--t-2))}.st-choice.pk-fade>.st-opt:nth-of-type(2){animation-delay:calc(var(--t-3) + var(--t-2) + var(--stagger)*2)}
+.st-choice.pk-fade>.st-opt:nth-of-type(3){animation-delay:calc(var(--t-3) + var(--t-2) + var(--stagger)*4)}.st-choice.pk-fade>.st-opt:nth-of-type(4){animation-delay:calc(var(--t-3) + var(--t-2) + var(--stagger)*6)}
+/* 13 · choice made: the learner's line comes from the left, a rule is drawn under it */
+.st-opt{transition:transform var(--t-1) var(--e-out),background-color var(--t-1) linear;--m-dur:var(--t-1)}.st-opt:active{transform:scale(var(--s-press))}
+.st-pick.pk-fade{--m-dur:var(--t-3);animation:mPick var(--t-3) var(--e-out) backwards;position:relative}
+@keyframes mPick{from{opacity:0;transform:translateX(calc(-1*var(--d-4)))}}
+.st-pick.pk-fade::after{content:"";position:absolute;right:0;bottom:0;width:38%;height:1px;background:var(--accent);transform-origin:100% 50%;--m-dur:var(--t-4);animation:mDraw var(--t-4) var(--e-inout) var(--t-2) both}
+/* 14 · document unfolds from its top edge, then the handwriting is written */
+.st-doc.pk-fade{--m-dur:var(--t-4);transform-origin:50% 0;animation:mUnfold var(--t-4) var(--e-out) backwards;backface-visibility:hidden}
+.st-doc.pk-fade>p,.st-doc.pk-fade>.st-doc-h{--m-dur:var(--t-3);animation:mFade var(--t-3) var(--e-lin) backwards;animation-delay:calc(var(--t-4) - var(--t-2))}
+.st-doc.pk-fade>p.hand{position:relative;animation-delay:var(--t-4)}
+.st-doc.pk-fade>p.hand::after{content:"";position:absolute;inset:-2px -4px;background:#E9DFC6;transform-origin:100% 50%;--m-dur:var(--t-5);animation:mWipe var(--t-5) var(--e-lin) calc(var(--t-4) + var(--t-2)) both}
+/* 15 · Mephisto speaks: he leans in once; the glow breathes only while his voice runs (replaces the endless box-shadow horBreath) */
+:root:not([data-ui="pixel"]) .pk-say .who{animation:none;position:relative}
+.pk-say .who::after{content:"";position:absolute;inset:0;border-radius:50%;background:radial-gradient(closest-side,transparent 62%,rgba(224,60,48,.85));opacity:0;pointer-events:none;--m-dur:var(--t-4)}
+.pk-fade .pk-say .who{--m-dur:var(--t-4);animation:mLean var(--t-4) var(--e-out) backwards}
+.pk-fade .pk-say .who::after{animation:mFlash var(--t-5) var(--e-out) both;--m-a:1}
+@keyframes mLean{0%{transform:scale(calc(1 - .1*var(--rot))) rotate(calc(var(--rot)*-6deg))}60%{transform:scale(calc(1 + .06*var(--rot)))}100%{transform:none}}
+.pk-say .who.speaking::after{animation:mBreath calc(var(--t-5) + var(--t-1)*4) var(--e-inout) infinite}
+.pk-say .who.angry{--m-dur:var(--t-3);animation:mAngry var(--t-3) var(--e-stamp) both}.pk-say .who.angry::after{opacity:1}
+@keyframes mAngry{0%{transform:none}40%{transform:scale(calc(1 + .1*var(--rot))) rotate(calc(var(--rot)*4deg))}100%{transform:rotate(calc(var(--rot)*2deg))}}
+.pk-say .who.pleased{--m-dur:var(--t-4);animation:mNod var(--t-4) var(--e-inout) both}
+@keyframes mNod{0%,100%{transform:none}35%{transform:translateY(calc(var(--d-1)*.75))}70%{transform:translateY(-1px)}}
+/* 16 · the Shadow: late, from the left, a shade rising over the line before it */
+.pk-shadow.pk-fade{--m-dur:var(--t-4);animation:mShadeIn var(--t-4) var(--e-inout) var(--t-3) backwards;position:relative}
+.pk-shadow.pk-fade::before{content:"";position:absolute;left:-16px;right:-16px;bottom:100%;height:120px;background:linear-gradient(0deg,rgba(0,0,0,.55),transparent);pointer-events:none;transform-origin:50% 100%;opacity:0;--m-dur:var(--t-5);animation:mShadeUp var(--t-5) var(--e-out) var(--t-3) both}
+@keyframes mShadeUp{0%{opacity:0;transform:scaleY(calc(1 - .8*var(--rot)))}40%{opacity:1}100%{opacity:0;transform:scaleY(1)}}
+/* the dark beat after a choice and the white-out before Bett vier: a layer's opacity instead of a filter on the whole overlay (D23) — kept in calm */
+:root.st-dark #focus,:root.st-white #focus{animation:none!important}
+:root.st-dark #focus::after,:root.st-white #focus::after{content:"";position:fixed;inset:0;z-index:89;pointer-events:none;opacity:0;background:#000;--m-a:.94;--m-dur:calc(var(--t-5)*2 + var(--t-2));animation:mBeat calc(var(--t-5)*2 + var(--t-2)) var(--e-inout) both}
+:root.st-white #focus::after{background:#F4EEDF;--m-a:.85;--m-dur:var(--t-4);animation:mFlash var(--t-4) var(--e-out) both}
+/* 17 · sealing a chapter: wax, signet, impact */
+.m-seal,.m-seal-slot{position:relative;width:132px;height:132px;margin:0 auto;font-size:0}
+.m-seal .wax,.m-seal .sig{position:absolute;inset:0}
+.m-seal .wax{--m-dur:var(--t-3);animation:mWax var(--t-3) var(--e-out) both}
+@keyframes mWax{from{opacity:0;transform:scale(calc(1 - .8*var(--rot)))}}
+.m-seal .sig{--m-dur:var(--t-2);animation:mPress var(--t-2) var(--e-in) var(--t-3) both}
+@keyframes mPress{from{opacity:0;transform:translateY(calc(-3*var(--d-2))) scale(var(--s-stamp))}}
+.m-seal .ring{position:absolute;inset:8px;border-radius:50%;border:2px solid var(--accent);opacity:0;--m-dur:var(--t-4);animation:mRing var(--t-4) var(--e-out) calc(var(--t-3) + var(--t-2)) both}
+.m-sealed{--m-dur:var(--t-2);animation:mThud var(--t-2) var(--e-out) calc(var(--t-3) + var(--t-2)) both}
+.m-sealed>h2,.m-sealed>.card,.m-sealed>button{--m-dur:var(--t-3);animation:mRise var(--t-3) var(--e-out) backwards}
+.m-sealed>h2,.m-sealed>button{animation-delay:calc(var(--t-4) + var(--t-2)*.8)}.m-sealed>.card{animation-delay:calc(var(--t-4) + var(--t-3))}
+.m-sealed>.card~.card{animation-delay:calc(var(--t-4) + var(--t-3) + var(--stagger)*3)}.m-sealed>.card~.card~.card{animation-delay:calc(var(--t-4) + var(--t-3) + var(--stagger)*6)}
+/* 18 · debt incurred: a ledger line written in blood, the note drops in; 19 · debt paid: the note burns where it hung */
+.m-ledger{position:relative;font-family:var(--f-read,var(--body));font-style:italic;font-size:var(--fs-body);color:#C2362C;padding:var(--sp-1) 0;overflow:hidden}
+.m-ledger>span,.m-ledger>span>span{display:inline-block;--m-dur:var(--t-5);animation:mWipeA var(--t-5) var(--e-lin) var(--t-3) both}.m-ledger>span>span{animation-name:mWipeB}
+.m-ledger i{display:inline-block;width:.5em;height:.5em;margin-left:.25em;border-radius:50% 50% 50% 0;rotate:-45deg;background:#B3261E;--m-dur:var(--t-2);animation:mStamp var(--t-2) var(--e-stamp) calc(var(--t-5) + var(--t-3)) both}
+.pk-debt i.m-new{--m-dur:var(--t-3);animation:mDrop var(--t-3) var(--e-stamp) calc(var(--t-5) + var(--t-4)) both}
+.m-ghost{position:fixed;width:18px;height:24px;z-index:30;pointer-events:none;background:linear-gradient(180deg,#E9D9B8,#B9A57E);clip-path:polygon(0 0,100% 0,100% 85%,50% 100%,0 85%);--m-dur:var(--t-4);animation:mBurnOut var(--t-4) var(--e-in) both}
+/* 20 · secret found: the card settles, one band of light crosses it, the counter stamps */
+.egg-pop{transition:opacity var(--t-3) var(--e-lin);--m-dur:var(--t-3)}
+.egg-card{transform:scale(var(--s-in));transition:transform var(--t-3) var(--e-out);--m-dur:var(--t-3);position:relative;overflow:hidden}
+.egg-pop.on .egg-card{transform:none}
+.egg-pop.on .egg-card::after{content:"";position:absolute;top:0;bottom:0;left:0;width:30%;background:linear-gradient(100deg,transparent,rgba(255,226,170,.22),transparent);pointer-events:none;opacity:0;--m-dur:var(--t-5);animation:mSweep var(--t-5) var(--e-inout) var(--t-2) both}
+.egg-pop.on .egg-card .eyebrow{--m-dur:var(--t-3);animation:mStamp var(--t-3) var(--e-stamp) calc(var(--t-3) + var(--stagger)) backwards}
+/* 21 · Chronik page: the plate settles once and is still (D19), the text is sharp at once, the dark footnote draws its rule */
+.lore-img{animation:mPlate calc(var(--t-5)*6.5) var(--e-out) both!important;--m-dur:var(--t-4)}
+@keyframes mPlate{from{opacity:0;transform:scale(calc(1 + .08*var(--rot)))}12%{opacity:1}to{transform:scale(1)}}
+.lore-page h1{--m-dur:var(--t-3);animation:mRise var(--t-3) var(--e-out) var(--t-2) backwards}
+.lore-dark{position:relative}
+.lore-dark::before{content:"";position:absolute;left:-3px;top:0;bottom:0;width:3px;background:#A01818;transform-origin:50% 0;transform:scaleY(0);transition:transform var(--t-5) var(--e-inout);--m-dur:var(--t-3)}
+.lore-dark.m-seen::before{transform:scaleY(1)}
+.chr-tile .chr-img{transition:transform var(--t-4) var(--e-out)!important;--m-dur:var(--t-3)}.chr-tile:is(:hover,:focus-visible) .chr-img{transform:scale(1.05)}
+/* 22 · boss intro: the plate comes out of the dark, the name rises, his line follows (end screen: 25/26 below) */
+.stack>.duel-intro:has(+ h2[style]) img{--m-dur:var(--t-5);animation:mBoss var(--t-5) var(--e-out) backwards}
+@keyframes mBoss{from{opacity:0;transform:scale(calc(1 + .12*var(--rot)))}}
+.stack>.duel-intro+h2[style]{--m-dur:var(--t-4);animation:mRise3 var(--t-4) var(--e-out) calc(var(--t-4) - var(--t-1)) backwards}
+.stack>.duel-intro+h2[style]~.card{--m-dur:var(--t-3);animation:mRise var(--t-3) var(--e-out) calc(var(--t-4) + var(--t-3)) backwards}
+/* 25 · victory / 26 · defeat (the end screen of the duel; hits, candles and darkness inside the fight are a6's) */
+.stack:has(>.duel-intro+h2:not([style]))>h2{--m-dur:var(--t-3);animation:mStamp var(--t-3) var(--e-stamp) calc(var(--t-3) + var(--t-1)) backwards}
+.stack:has(>.duel-intro+h2:not([style]))>.card{--m-dur:var(--t-3);animation:mRise var(--t-3) var(--e-out) calc(var(--t-4) + var(--t-1)) backwards}
+.stack:has(>.duel-intro:not(.dead)+h2:not([style]))>.card{--m-dur:var(--t-4);animation:mFade var(--t-4) var(--e-lin) calc(var(--t-4) + var(--t-3)) backwards}
+/* press feedback, toast and snack on tokens */
+button{transition:background-color var(--t-1) linear,border-color var(--t-1) linear,transform var(--t-1) var(--e-out);--m-dur:var(--t-1)}
+button:active{transform:scale(var(--s-press))}
+.toast,.snack{transition:opacity var(--t-2) var(--e-lin),transform var(--t-2) var(--e-out);--m-dur:var(--t-2)}
+
+/* ---------------------------------------------------------------- title sequences (#ts, z 90; layers animated by WAAPI from c_a7.js) */
+#ts{position:fixed;inset:0;z-index:90;overflow:hidden;background:var(--ts-top,#020403);color:#EADFC8;contain:strict;isolation:isolate;font-family:var(--f-read,var(--body))}
+#ts .ly,#ts .scn{position:absolute;inset:0;pointer-events:none}
+#ts .ly{backface-visibility:hidden}
+#ts .scn svg,#ts .ly>svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+#ts .sky{background:linear-gradient(var(--ts-top),var(--ts-low))}
+#ts .moon{background:radial-gradient(18vmin 18vmin at 68% 24%,rgba(214,226,200,.2),rgba(214,226,200,.05) 55%,transparent 72%)}
+#ts .s-far,#ts .s-mid,#ts .s-near{transform-origin:50% 70%}
+#ts .plate{display:grid;place-items:center;mix-blend-mode:screen}
+#ts .plate .fr{position:relative;width:min(46vmin,420px);aspect-ratio:4/5;margin-top:10vh}
+#ts .plate i{position:absolute;inset:0;background:var(--plate,none) center/contain no-repeat;filter:sepia(.55) contrast(1.15) brightness(.62);opacity:0}
+#ts[data-ink="1"] .plate i{filter:invert(1) sepia(.7) contrast(1.05) brightness(.7)}
+#ts .plate i:nth-child(1){-webkit-mask-image:radial-gradient(38% 30% at 47% 55%,#000 55%,transparent 100%);mask-image:radial-gradient(38% 30% at 47% 55%,#000 55%,transparent 100%)}
+#ts .plate i:nth-child(2){-webkit-mask-image:radial-gradient(56% 46% at 56% 46%,#000 50%,transparent 100%);mask-image:radial-gradient(56% 46% at 56% 46%,#000 50%,transparent 100%)}
+#ts .plate i:nth-child(3){-webkit-mask-image:radial-gradient(74% 66% at 44% 50%,#000 55%,transparent 100%);mask-image:radial-gradient(74% 66% at 44% 50%,#000 55%,transparent 100%)}
+#ts .plate i:nth-child(4){-webkit-mask-image:radial-gradient(70% 66% at 50% 48%,#000 40%,transparent 100%);mask-image:radial-gradient(70% 66% at 50% 48%,#000 40%,transparent 100%)}
+#ts .halo{background:radial-gradient(34vmin 34vmin at 50% 72%,color-mix(in srgb,var(--ts-halo) 38%,transparent),transparent 70%);opacity:0;transform-origin:50% 72%}
+#ts.ts-I .halo,#ts.ts-II .halo,#ts.ts-IV .halo,#ts.ts-V .halo,#ts.ts-finale .halo{display:none}
+#ts .fog{left:-50%;right:auto;width:200%;top:auto;bottom:6vh;height:34vh;opacity:0;background:radial-gradient(30% 50% at 22% 55%,rgba(200,210,200,.10),transparent 70%),radial-gradient(34% 50% at 62% 50%,rgba(200,210,200,.08),transparent 70%)}
+#ts .f2{bottom:0;height:24vh}
+#ts .pup{position:absolute;left:0;bottom:11vh;width:min(20vmin,170px);transform:translateX(110vw);pointer-events:none;color:#000}
+#ts .pup svg{display:block;width:100%;overflow:visible;fill:#000}
+#ts .pup g{transform-box:view-box}
+#ts .pup.me{width:min(13vmin,112px);bottom:10.6vh}
+#ts .pup.poodle{width:min(16vmin,140px);bottom:12vh}
+#ts:not(.ts-I):not(.ts-finale) .mp,#ts:not(.ts-I):not(.ts-IV):not(.ts-finale) .me{display:none}
+#ts .eyes{position:absolute;display:flex;gap:9px;opacity:0}
+#ts .eyes b{width:6px;height:3px;border-radius:50%;background:#E8C547}
+#ts .vig{background:radial-gradient(120% 95% at 50% 42%,transparent 38%,rgba(0,0,0,.82) 100%)}
+#ts .sweep{left:-30%;width:30%;right:auto;background:linear-gradient(100deg,transparent,rgba(255,226,170,.16),transparent);opacity:0}
+#ts .cards{position:absolute;inset:0;pointer-events:none}
+#ts .tcard{position:absolute;left:50%;top:max(10%,calc(env(safe-area-inset-top,0px) + 3.5rem));width:min(86vw,640px);transform:translateX(-50%);opacity:0;text-align:center;
+  padding:var(--sp-4) var(--sp-5);border:1px solid rgba(234,223,200,.35);outline:1px solid rgba(234,223,200,.18);outline-offset:4px;background:rgba(2,4,3,.78);box-sizing:border-box}
+#ts .tcard p{margin:0;font-size:clamp(1.15rem,3.4vmin,1.6rem);line-height:var(--lh-read,1.5)}
+#ts .tcard small{display:block;margin-top:var(--sp-2);font-family:var(--f-ui,var(--ui));font-style:italic;opacity:.78;font-size:var(--fs-sm)}
+:root.nohints #ts .tcard small{display:none}
+#ts .tcard cite{display:block;margin-top:var(--sp-2);font-family:var(--f-sc,var(--sc));font-style:normal;letter-spacing:var(--ls-caps,.08em);font-size:var(--fs-cap);color:var(--accent)}
+#ts .tcard.ti{top:9%;width:min(92vw,1200px);border:0;outline:0;background:radial-gradient(closest-side,rgba(2,4,3,.85),rgba(2,4,3,.55) 70%,transparent)}
+#ts .ti .num{font-family:var(--f-sc,var(--sc));letter-spacing:.42em;font-size:var(--fs-sm);color:var(--accent);opacity:0}
+#ts .ti h1{margin:var(--sp-1) 0;font-family:var(--f-display,var(--display));font-weight:400;font-size:clamp(2.2rem,8.5vmin,5rem);line-height:1.04;text-wrap:balance}
+#ts .wipe{display:inline-block;overflow:hidden;vertical-align:bottom;padding:.1em .12em}#ts .wipe>span{display:inline-block}
+#ts .rule{display:block;height:1px;width:min(60vw,320px);margin:var(--sp-2) auto;background:linear-gradient(90deg,transparent,#EADFC8,transparent);transform:scaleX(0)}
+#ts .ti .en{opacity:0;font-style:italic;font-family:var(--f-ui,var(--ui))}
+#ts .boss{opacity:0;color:#E07070;margin-top:var(--sp-2)}
+#ts .ts-go{position:absolute;left:50%;bottom:calc(6vh + env(safe-area-inset-bottom,0px));transform:translateX(-50%);min-height:var(--tap-1,48px);min-width:160px;padding:var(--sp-2) var(--sp-5);
+  border:1px solid rgba(234,223,200,.5);background:rgba(2,4,3,.55);color:#EADFC8;opacity:.6;font:inherit;font-family:var(--f-ui,var(--ui));pointer-events:auto;cursor:pointer;z-index:5}
+#ts .ts-go:active{transform:translateX(-50%) scale(var(--s-press))}
+#ts .ts-go.end{background:var(--accent);color:var(--btn-ink,#1A0B03);border-color:#FFB566;opacity:1}
+#ts .ts-go:focus-visible{outline:var(--focus-ring,3px solid var(--accent));outline-offset:3px}
+#ts .ts-clk{position:absolute;width:1px;height:1px;opacity:0}
+/* II · lamps, window, cups, the shape on the roof */
+#ts .lamps{position:absolute;inset:0;pointer-events:none}
+#ts .lamps i{position:absolute;width:16vmin;height:16vmin;margin:-8vmin 0 0 -8vmin;border-radius:50%;background:radial-gradient(closest-side,rgba(255,226,150,.85),rgba(242,210,122,.25) 40%,transparent);opacity:0}
+#ts .win{transform-origin:50% 50%}
+#ts .cups{position:absolute;left:50%;bottom:calc(14vh + env(safe-area-inset-bottom,0px));width:min(60vmin,420px);transform:translateX(-50%);opacity:0}
+#ts .cups svg{width:100%;display:block}
+#ts .golem{position:absolute;right:14%;top:24%;width:9vmin;height:12vmin;background:#030409;border-radius:45% 45% 8% 8%/60% 60% 8% 8%;opacity:0}
+/* III · candle, poodle, the shadow on the wall */
+#ts .candle{position:absolute;left:30%;bottom:20vh;width:4vmin;min-width:22px}
+#ts .candle svg{width:100%;display:block;overflow:visible}
+#ts.ts-III .halo{background:radial-gradient(60vmin 60vmin at 31% 70%,rgba(255,181,102,.42),transparent 70%);transform-origin:31% 70%}
+#ts .pshadow,#ts .mshadow{position:absolute;left:44%;bottom:26vh;width:min(24vmin,200px);opacity:0;transform-origin:50% 100%}
+#ts .pshadow svg,#ts .mshadow svg{width:100%;display:block;fill:#000}
+#ts .mshadow{width:min(42vmin,340px);left:38%;bottom:22vh}
+/* IV · iris (a ring with a very wide black border, scaled: nothing is repainted), tram light, the hat at the end of the street */
+#ts .iris{position:absolute;left:50%;top:46%;width:100vmax;height:100vmax;margin:-50vmax 0 0 -50vmax;border-radius:50%;box-shadow:0 0 0 200vmax #000;transform:scale(0);pointer-events:none}
+#ts .flash{position:absolute;inset:0;background:#E8EEFF;opacity:0;pointer-events:none}
+#ts .tram{position:absolute;left:0;top:34%;width:30vw;height:10vh;background:linear-gradient(90deg,transparent,rgba(232,238,255,.22),transparent);opacity:0}
+#ts .hat{position:absolute;left:50%;top:44%;width:2.2vmin;min-width:12px;transform:translateX(-50%);opacity:0;fill:#000}
+#ts .tcard{--jag:0}
+#ts.ts-IV .tcard:not(.ti){clip-path:polygon(0 4%,8% 0,30% 3%,62% 0,100% 5%,98% 60%,100% 100%,70% 96%,36% 100%,0 97%,2% 40%);rotate:-2deg}
+/* V · sky, witch, ring of fires, the grey gentleman with his pen, seven glints */
+#ts .sky2{transform-origin:50% 0}
+#ts .clouds{position:absolute;left:-10%;top:18%;width:140%;height:16vh;background:radial-gradient(30% 40% at 30% 50%,rgba(80,40,70,.55),transparent 70%),radial-gradient(26% 36% at 70% 60%,rgba(70,30,60,.5),transparent 70%)}
+#ts .witch{position:absolute;left:0;top:22%;width:12vmin;opacity:0;fill:#000}
+#ts .fires{position:absolute;left:25%;top:30%;width:50%;height:30%;transform-origin:50% 50%}
+#ts .fires i{position:absolute;width:3vmin;height:5vmin;margin:-4vmin 0 0 -1.5vmin;border-radius:50% 50% 45% 45%;background:radial-gradient(circle at 50% 70%,#FFF4C2,#FF7A2E 45%,rgba(240,138,63,0) 70%);opacity:0}
+#ts .revisor{position:absolute;right:22%;top:30%;width:5vmin;min-width:28px;opacity:0}
+#ts .revisor .pen{position:absolute;right:-4px;top:55%;width:6px;height:6px;border-radius:50%;background:#FFF;opacity:0}
+#ts .glints{position:absolute;inset:0;pointer-events:none}
+#ts .glints i{position:absolute;width:5px;height:3px;border-radius:50%;background:#FFF6D8;opacity:0}
+/* finale · dawn, the ledger, the ward: the full cup, the poodle at the sliding door, 03:07 */
+#ts .dawn{background:linear-gradient(rgba(58,53,80,.55),rgba(200,104,58,.32) 62%,rgba(246,168,96,.18));mix-blend-mode:screen;opacity:0}
+#ts .ledger{position:absolute;left:8vw;right:8vw;bottom:calc(16vh + env(safe-area-inset-bottom,0px));opacity:0}
+#ts .ledger b{display:block;height:3px;background:linear-gradient(90deg,#B3261E,#FFB566);transform-origin:0 50%;transform:scaleX(0)}
+#ts .seals{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin-top:var(--sp-3)}
+#ts .seals i{width:10px;height:10px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#E0544A,#7A1210);opacity:0}
+#ts .ward{position:absolute;inset:0;opacity:0;pointer-events:none}
+#ts .cup{position:absolute;left:6vw;bottom:calc(15vh + env(safe-area-inset-bottom,0px));width:min(14vmin,110px)}
+#ts .cup svg{width:100%;display:block;overflow:visible}
+#ts .cup .steam{opacity:.7}
+#ts .poodle2{position:absolute;right:5vw;bottom:calc(15vh + env(safe-area-inset-bottom,0px));width:min(18vmin,150px);background:radial-gradient(60% 30% at 50% 96%,rgba(246,168,96,.35),transparent 70%)}
+#ts .poodle2 svg{width:100%;display:block;fill:#050608}
+#ts .clock{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(15vh + env(safe-area-inset-bottom,0px));font-family:var(--f-mono,monospace);font-variant-numeric:tabular-nums;font-size:var(--fs-lead);color:#7FE0A0;letter-spacing:.08em;opacity:.85}
+#ts.ts-V .moon{background:radial-gradient(7vmin 7vmin at 68% 24%,#EADCC8 0 92%,transparent 100%),radial-gradient(22vmin 22vmin at 68% 24%,rgba(234,220,200,.22),transparent 70%)}
+@media (max-width:600px){#ts .tcard{width:calc(100vw - 32px)}#ts .ti h1{font-size:clamp(1.9rem,9vw,2.6rem)}}
+/* while a sequence plays, nothing behind it animates */
+:root.ts-on #pakt-scene *,:root.ts-on #fx-back *{animation-play-state:paused!important}
+
+/* integrator 13.7: the tab-change slide (translateX of #main) must not create sideways scroll for its 300 ms (t_i8 measured 393 px at 390) */
+#app{overflow-x:clip}
+
+/* ===== a8 — Home, navigation, Werkstatt, settings, Der Handel, session shell, wide layouts. Consumes a1 tokens only; private props --a8-*. */
+:root{--a8-stage:1400px;--a8-home:1500px}
+/* ---------- navigation: phone bottom bar 56 px, 13 px labels (ux P3, D23) */
+nav.bar button{min-height:56px}
+nav.bar button span{font-size:var(--fs-cap,.8125rem);overflow:hidden;text-overflow:ellipsis;max-width:100%}
+aside.side .a8-search{position:relative}
+aside.side .a8-search label{display:flex;align-items:center;gap:var(--sp-2,8px);border:1px solid var(--field-line,var(--line2));border-radius:var(--r-s,8px);padding:0 var(--sp-3,12px);background:var(--sunk);min-height:var(--tap,44px)}
+aside.side .a8-search input{border:0;background:transparent;padding:0;min-height:42px;width:100%;font:inherit;font-size:var(--fs-ui,.9375rem);color:var(--fg);outline-offset:4px}
+aside.side .a8-search svg.i{width:18px;height:18px;flex:none;color:var(--muted)}
+.a8-qr{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:20;background:var(--raise);border:1px solid var(--line2);border-radius:var(--r-s,8px);padding:var(--sp-1,4px);display:grid;gap:2px;max-height:60vh;overflow:auto;box-shadow:0 12px 32px rgba(0,0,0,.45)}
+.a8-qr button{display:grid;justify-items:start;text-align:left;gap:0;border:0;background:transparent;min-height:var(--tap,44px);padding:var(--sp-2,8px) var(--sp-3,12px);color:var(--fg);font-size:var(--fs-ui,.9375rem)}
+.a8-qr button:hover,.a8-qr button:focus-visible{background:var(--accent-tint)}
+.a8-qr .eyebrow{font-size:var(--fs-cap,.8125rem)}
+.a8-qr p{margin:var(--sp-2,8px)}
+.a8-syncline{display:flex;align-items:center;gap:var(--sp-2,8px);border:0;background:transparent;color:var(--muted);min-height:var(--tap,44px);padding:0 var(--sp-2,8px);font-size:var(--fs-sm,.875rem);justify-content:flex-start}
+.a8-syncline .chip.ok,.a8-syncchip.ok{color:var(--good)}
+/* ---------- Home */
+.a8-home{grid-template-columns:minmax(0,1fr)}
+.a8-col1,.a8-col2{display:grid;gap:var(--sp-4,16px);align-content:start;min-width:0}
+.a8-home .a8-greet{margin:0;color:var(--muted);font-size:var(--fs-sm,.875rem)}
+.a8-home > .a8-col1 > .head{gap:0}
+.a8-home .head .eyebrow{margin:0}
+.a8-mins{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-2,8px);margin-top:var(--sp-3,12px)}
+.a8-mins .pill-btn,.a8-mins button{min-height:var(--tap,44px);min-width:var(--tap,44px);border-radius:999px;padding:0 var(--sp-3,12px);border:1px solid color-mix(in srgb,currentColor 40%,transparent);background:transparent;color:inherit;font-weight:600}
+.a8-mins .on{background:var(--accent)!important;color:var(--btn-ink,#1A0B03)!important;border-color:var(--accent)!important}
+.a8-mins .a8-minlbl{font-size:var(--fs-sm,.875rem);margin-right:auto;color:inherit;opacity:.8}
+.a8-mins .a8-shift svg.i{width:18px;height:18px}
+.hero .a8-today-min{display:block;margin-top:var(--sp-2,8px);font-size:var(--fs-sm,.875rem);opacity:.85}
+.a8-resume{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3,12px);text-align:left;width:100%;min-height:72px}
+.a8-resume .t{display:grid;gap:2px;min-width:0}
+.a8-resume b{font-size:var(--fs-body,1.0625rem);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.a8-trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-2,8px);align-items:stretch}
+.a8-trio > *{margin:0!important;min-width:0;min-height:72px}
+.a8-trio .omen{padding:var(--sp-3,12px)!important;min-height:72px!important;height:auto!important}
+.a8-trio .omen{font-size:var(--fs-sm,.875rem)!important}
+.a8-trio .omen *{font-size:inherit!important;margin:0!important}
+.a8-trio .omen > :first-child{font-size:1.6rem!important;line-height:1}
+.a8-trio .lore-new{padding:var(--sp-3,12px)!important;display:grid!important;grid-template-columns:minmax(0,1fr)!important}
+.a8-trio .lore-new img{display:none}
+.a8-trio .a8-wdt[open]{grid-column:1/-1}
+.a8-trio > *,.a8-trio summary{font-size:var(--fs-sm,.875rem)}
+.a8-trio .lore-new *{overflow-wrap:anywhere}
+@media (max-width:599px){.a8-trio{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.a8-trio .a8-wdt{grid-column:1/-1}.a8-trio > button{max-height:112px;overflow:hidden}.hero .a8-today-min{display:none}}
+.a8-home details > summary,.a8-more > summary{cursor:pointer;min-height:var(--tap,44px);display:flex;align-items:center;flex-wrap:wrap;gap:var(--sp-2,8px);list-style:none}
+.a8-home details > summary::-webkit-details-marker{display:none}
+.a8-home details > summary::after{content:"›";margin-left:auto;transition:transform var(--t-2) var(--e-out);font-size:1.3em;color:var(--muted)}
+.a8-home details[open] > summary::after{transform:rotate(90deg)}
+.a8-home details > summary .eyebrow{margin:0}
+.a8-wdt summary b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}
+.a8-more{display:grid;gap:var(--sp-4,16px)}
+.a8-morebox{display:grid;gap:var(--sp-4,16px);margin-top:var(--sp-4,16px)}
+.a8-steps .card{border:0;padding:0;background:transparent}
+.a8-strip{margin:0}
+/* deck & desk: two content columns (+ the left nav and the right rail = the 27" three-column Home) */
+html[data-layout="deck"] .a8-home,html[data-layout="desk"] .a8-home{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);column-gap:var(--sp-6,32px);align-items:start;max-width:var(--a8-home);margin-inline:auto}
+html[data-layout="desk"] .a8-home .a8-col2{position:sticky;top:var(--sp-5,24px)}
+:root[data-layout="desk"][data-tab="home"] main,:root[data-layout="desk"][data-tab="practice"] main,:root[data-layout="deck"][data-tab="home"] main{padding-left:48px!important;padding-right:48px!important}
+html[data-layout="desk"][data-tab="home"] #pakt-rail > .card.orn,html[data-layout="desk"][data-tab="home"] #pakt-rail > button.card[data-go="pakt"]{display:none}
+/* ---------- Werkstatt */
+.a8-werk{gap:var(--sp-5,24px)}
+.a8-wsearch{display:flex;align-items:center;gap:var(--sp-2,8px);border:1px solid var(--field-line,var(--line2));border-radius:var(--r,10px);background:var(--surface);padding:0 var(--sp-4,16px);min-height:var(--tap-1,48px)}
+.a8-wsearch input{border:0;background:transparent;padding:0;min-height:46px;width:100%;font:inherit;color:var(--fg)}
+.a8-wsearch svg.i{width:20px;height:20px;color:var(--muted);flex:none}
+.a8-jump{display:flex;flex-wrap:wrap;gap:var(--sp-2,8px)}
+.a8-jump .pill-btn{display:inline-flex;align-items:center;min-height:var(--tap,44px);padding:0 var(--sp-4,16px);border:1px solid var(--line2);border-radius:999px;color:var(--fg2);text-decoration:none;font-size:var(--fs-sm,.875rem);font-weight:600}
+.a8-wg{display:grid;gap:var(--sp-3,12px);scroll-margin-top:72px}
+.a8-wg h2{margin:0;font-size:var(--fs-h2,1.5rem)}
+.a8-wg h2 .a8-n{font-size:var(--fs-sm,.875rem)}
+.a8-tool{min-height:96px}
+.a8-tool .a8-badge{position:absolute;top:var(--sp-2,8px);right:var(--sp-2,8px);font-style:normal;font-size:var(--fs-cap,.8125rem);color:var(--accent-text,var(--accent))}
+html[data-layout="desk"] .a8-werk{max-width:var(--a8-stage);margin-inline:auto}
+html[data-layout="desk"] .a8-werk .tiles{grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
+.a8-towerk,.a8-toset{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3,12px);text-align:left;width:100%;min-height:var(--tap-1,48px)}
+/* ---------- settings: one page, six groups */
+.a8-setnav{position:sticky;top:0;z-index:2;background:var(--bg);padding-block:var(--sp-2,8px)}
+.a8-set{scroll-margin-top:72px;border-top:1px solid var(--line);padding-top:var(--sp-4,16px)}
+.a8-set > h2{margin:0;font-size:var(--fs-h2,1.5rem)}
+.a8-check{display:flex;align-items:center;gap:var(--sp-3,12px);min-height:var(--tap,44px);cursor:pointer}
+.a8-check input{width:24px;height:24px;flex:none}
+.a8-check span{display:grid}
+.a8-fonts ul{margin:var(--sp-2,8px) 0 0;padding-left:1.2em}
+/* ---------- Der Handel (onboarding layer; z = sheet level 60) */
+.a8-handel{position:fixed;inset:0;z-index:60;overflow:auto;background:var(--bg);color:var(--fg);display:grid;grid-template-rows:auto 1fr auto;padding:max(var(--sp-4,16px),env(safe-area-inset-top)) var(--sp-4,16px) max(var(--sp-4,16px),env(safe-area-inset-bottom))}
+.a8-hhead{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3,12px);max-width:1100px;width:100%;margin:0 auto}
+.a8-dots{display:flex;gap:6px}
+.a8-dots i{width:10px;height:10px;border-radius:50%;border:1.5px solid var(--muted)}
+.a8-dots i.done{background:var(--muted)}
+.a8-dots i.cur{background:var(--accent);border-color:var(--accent)}
+.a8-hcount{color:var(--muted);font-size:var(--fs-sm,.875rem)}
+.a8-hbody{display:grid;gap:var(--sp-4,16px);align-content:center;max-width:640px;width:100%;margin:0 auto;padding-block:var(--sp-5,24px)}
+.a8-hbody h2{text-align:center;margin:0;font-size:var(--fs-h1,1.875rem)}
+.a8-hbody > .en{text-align:center;margin:0;color:var(--muted)}
+.a8-hbody .pk-faust{margin:0 auto;white-space:normal;text-align:center}
+.a8-hbody .a8-fig{max-width:min(100%,300px);margin:0 auto}
+.a8-hbody .a8-fig img{max-height:34vh;width:auto;max-width:100%}
+.a8-hbtns{display:flex;flex-wrap:wrap;gap:var(--sp-3,12px);justify-content:center}
+.a8-hbtns > button{min-height:var(--tap-1,48px);padding-inline:var(--sp-5,24px)}
+.a8-later{justify-self:center}
+.a8-levels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-3,12px)}
+.a8-levels .tile{min-height:88px}
+.a8-levels .tile:last-child{grid-column:1/-1}
+.a8-levels .num{font-size:var(--fs-h2,1.5rem);color:var(--accent-text,var(--accent))}
+.a8-levels .on{border-color:var(--accent);background:var(--accent-tint)}
+.a8-mins-big{justify-content:center}
+.a8-mins-big .pill-btn{min-height:var(--tap-1,48px);padding:0 var(--sp-5,24px);font-size:var(--fs-body,1.0625rem)}
+.a8-clauses p{margin:0 0 var(--sp-2,8px);font-family:var(--f-learn,var(--body));font-size:var(--fs-body,1.0625rem);line-height:var(--lh-body,1.55)}
+.a8-sign .pk-sign canvas{width:100%;height:auto;aspect-ratio:3/1;touch-action:none}
+.a8-sealed{text-align:center;font-size:5rem;line-height:1;color:#B3261E}
+.a8-hfoot{display:flex;justify-content:space-between;align-items:center;max-width:1100px;width:100%;margin:0 auto}
+.a8-hfoot .btn-quiet{min-height:var(--tap,44px)}
+.a8-legend{font-size:var(--fs-sm,.875rem)}
+html:not([data-input="pad"]) .a8-legend{visibility:hidden}
+@media (min-width:1100px){
+  .a8-hbody{max-width:1000px}
+  .a8-levels{grid-template-columns:repeat(5,minmax(0,1fr))}.a8-levels .tile:last-child{grid-column:auto}
+  .a8-sigwrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--sp-5,24px);align-items:start}
+}
+@media (max-height:820px) and (min-width:1100px){.a8-hbody .a8-fig img{max-height:26vh}}
+/* ---------- session shell */
+#focus[data-shell] .fhead > button.icon[data-a8x]{color:var(--accent-text,var(--accent))}
+#fProg{position:relative}
+#fProg .a8-ptx{position:absolute;right:var(--sp-3,12px);top:50%;transform:translateY(-50%);font-size:var(--fs-sm,.875rem);color:var(--fg2);background:var(--surface);padding:0 var(--sp-1,4px);border-radius:4px}
+#focus[data-shell] #fProg{padding-right:52px}
+.a8-slot:empty{display:none}
+#a8-band,#a8-step{max-width:720px;margin:0 auto;padding-inline:var(--sp-4,16px)}
+#a8-exit{padding:var(--sp-2,8px) var(--sp-4,16px) 0;max-width:720px;margin:0 auto}
+.a8-pause{position:absolute;inset:0;z-index:5;display:grid;place-items:center;background:color-mix(in srgb,var(--bg) 82%,transparent);padding:var(--sp-4,16px)}
+.a8-pause .card{width:min(100%,420px);gap:var(--sp-3,12px)}
+.a8-pause button{min-height:var(--tap-1,48px);width:100%}
+.a8-pause h2{margin:0}
+@media (max-width:599px){#focus[data-shell] .rate{position:sticky;bottom:0;background:var(--bg);padding-block:var(--sp-2,8px);z-index:1}}
+/* deck/desk: wider stage, card + context two-pane */
+html[data-layout="deck"] #focus[data-shell] .fbody .in,html[data-layout="desk"] #focus[data-shell] .fbody .in{max-width:min(var(--a8-stage),100%)}
+#fIn.a8-two{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);column-gap:var(--sp-6,32px);align-items:start}
+#fIn.a8-two > *{grid-column:1}
+#fIn.a8-two > .a8-ctx{grid-column:2;grid-row:1 / span 6;font-size:var(--fs-read,1.125rem)}
+#fIn.a8-two > .a8-ctx .tr{font-size:var(--fs-lead,1.25rem)}
+html[data-layout="desk"] #focus .fc .w{font-size:calc(var(--fs-word,2.125rem) * 1.25)}
+/* reader: plate | text ≤ 66ch at 20–22 px (ux P7, A7 §9) */
+@media (min-width:1100px){
+  #fIn .st-read:has(> figure.pk-art){max-width:min(1500px,100%)!important;display:grid;grid-template-columns:38% minmax(0,1fr);column-gap:var(--sp-7,48px);align-items:start}
+  #fIn .st-read:has(> figure.pk-art) > *{grid-column:2;max-width:66ch}
+  #fIn .st-read:has(> figure.pk-art) > figure.pk-art{grid-column:1;grid-row:1 / span 200;position:sticky;top:0;max-width:none}
+  #fIn .st-read:has(> figure.pk-art) > figure.pk-art img{max-width:100%!important;width:100%;height:auto;max-height:82vh;object-fit:contain}
+  #fIn .st-read .pk-nar,#fIn .st-read p{font-size:var(--fs-read,1.125rem);line-height:var(--lh-read,1.62)}
+  html[data-layout="deck"] #focus .fbody .in:has(> .st-read){max-width:min(1240px,100%)}
+  html[data-layout="desk"] #focus .fbody .in:has(> .st-read){max-width:min(1600px,100%)}
+}
+@media (min-width:1600px){#fIn .st-read:has(> figure.pk-art){grid-template-columns:44% minmax(0,1fr)}}
+/* toasts: second line in English */
+.toast .a8-ten{display:block;font-size:var(--fs-sm,.875rem);opacity:.85;margin-top:2px}
+
+/* integrator 13.7: the 13.0 .seg row has margin:0 -.15rem (head.html), which pushed 2-3 px past the screen edge on Lernen/Ich (sideways scroll, t_a8) */
+.view .seg{margin-left:0;margin-right:0}
+
+/* ===== a10 · controller legend, pad focus ring, guarded-exit dialog, skip link, accessibility fixes (PLAN-A D12, ux D9–D27, P8).
+   Consumes a1's tokens only (fallbacks given). Layers (PLAN-A §2.5): #a10-confirm at 70 (kit scrim/sheet level), #a10-legend at 79
+   (NEW row requested: under toast 80, above every sheet, so it always describes the top layer). No animation in this file. */
+
+/* --- focus: pad mode shows a ring that reads at arm's length on the Deck (ux P8); keyboard keeps a1's :focus-visible ring */
+:root[data-input="pad"] :focus{outline:var(--focus-ring,3px solid #F08A3F)!important;outline-offset:2px;box-shadow:var(--focus-halo,0 0 0 5px #000)}
+:root[data-input="pad"] :focus:not(:focus-visible){outline:var(--focus-ring,3px solid #F08A3F)!important}
+:root[data-input="pad"] :is(button,a,summary,input,select,textarea,[tabindex]){scroll-margin:96px 16px 112px}
+:root[data-input="pad"] :is(.kit-swipe-tip,.kbd-hint,.kbd){display:none}   /* swipe and key hints are for fingers and keys; the legend shows the pad map (ux D15) */
+
+/* --- legend bar (only while the pad is the last input) */
+.a10-legend{position:fixed;left:50%;bottom:calc(var(--sp-3,12px) + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:var(--z-legend,79);
+  display:flex;flex-wrap:wrap;justify-content:center;gap:var(--sp-2,8px) var(--sp-4,16px);max-width:calc(100vw - 32px);
+  padding:var(--sp-2,8px) var(--sp-4,16px);border-radius:999px;background:var(--raise,#1E0B14);color:var(--fg,#EEE);border:1px solid var(--line2,#555);
+  font-family:var(--f-ui,system-ui,sans-serif);font-size:var(--fs-sm,.875rem);line-height:1.3;pointer-events:none;box-shadow:0 6px 18px -8px rgba(0,0,0,.6)}
+.a10-legend[hidden]{display:none}
+.a10-legend .a10-k{display:inline-flex;align-items:center;gap:.4em;white-space:nowrap}
+.a10-legend b{font-family:var(--f-num,var(--f-ui,system-ui));font-weight:700;color:var(--accent-text,var(--accent,#F08A3F));min-width:1.4em;text-align:center}
+/* keep content clear of the legend */
+:root.a10-lg body{padding-bottom:var(--a10-lg-h,64px)}
+:root.a10-lg #focus{padding-bottom:var(--a10-lg-h,64px)}
+:root.a10-lg #sheet .in,:root.a10-lg .kit-sheet{padding-bottom:calc(var(--a10-lg-h,64px) + env(safe-area-inset-bottom,0px))}
+:root.a10-lg #a8-handel{padding-bottom:var(--a10-lg-h,64px)}
+:root.a10-lg[data-layout="phone"] .a10-legend,:root.a10-lg[data-layout="tablet"] .a10-legend{bottom:calc(64px + env(safe-area-inset-bottom,0px))}
+:root.a10-lg[data-layout="phone"] body,:root.a10-lg[data-layout="tablet"] body{padding-bottom:128px}
+:root.a10-lg #focus:not([hidden]) ~ .a10-legend,:root.a10-lg #a8-handel ~ .a10-legend{bottom:calc(var(--sp-3,12px) + env(safe-area-inset-bottom,0px))}
+
+/* --- guarded exit (duel, timed exam, FSP): "Kampf abbrechen? · Weiterkämpfen / Aufgeben" */
+.a10-confirm{position:fixed;inset:0;z-index:70;display:grid;place-items:center;padding:var(--sp-4,16px);background:color-mix(in srgb,var(--bg,#000) 72%,transparent)}
+.a10-cbox{width:min(30rem,100%);background:var(--surface,#170810);border:1px solid var(--line2,#555);border-radius:var(--r-l,14px);padding:var(--sp-5,24px)}
+.a10-cbox h2{margin:0;font-family:var(--f-ui,system-ui);font-size:var(--fs-h2,1.5rem)}
+.a10-crow{display:flex;flex-wrap:wrap;gap:var(--sp-3,12px);margin-top:var(--sp-3,12px)}
+.a10-crow button{flex:1 1 10rem;min-height:var(--tap-1,48px)}
+
+/* --- skip link (first in tab order, visible only when focused) */
+.a10-skip{position:fixed;left:var(--sp-4,16px);top:var(--sp-2,8px);z-index:var(--z-legend,79);transform:translateY(-200%);padding:var(--sp-2,8px) var(--sp-4,16px);
+  background:var(--accent,#F08A3F);color:var(--btn-ink,#2A1607);border-radius:var(--r-s,8px);font-family:var(--f-ui,system-ui);font-weight:700;text-decoration:none}
+.a10-skip:focus{transform:none}
+#main:focus{outline:none}
+
+/* --- targets ≥ 44 px that a1's pass does not reach (ux D24; measured by tests/t_a10_a11y.js) */
+:root[data-ui] input[type=checkbox],:root[data-ui] input[type=radio]{width:24px;height:24px;min-height:24px}
+:root[data-ui] .kit-sheet .it,:root[data-ui] .kit-sheet .cancel{min-height:var(--tap,44px)}
+:root[data-ui] .sheet .row button,:root[data-ui] #fTools button{min-height:var(--tap,44px)}
+
+/* a8 drew a provisional legend inside Der Handel; the a10 bar replaces it while it is shown */
+:root.a10-lg .a8-legend{visibility:hidden}
+
+/* --- contrast (ux D19): orange used as TEXT goes through a1's --accent-text (Paper #A8430A = 5.3:1); measured by t_a10_a11y.js */
+:root[data-ui] #sideNav button.on span,:root[data-ui] nav.bar button.on span,:root[data-ui] .prog-strip b,:root[data-ui] .stats .stat.o b{color:var(--accent-text,var(--accent))}
+
+/* --- 200 % text on a phone (ux D22): four rating buttons one per row cover the card under a8's sticky row; two per row keep it visible */
+html.ts-big #fIn .rate{grid-template-columns:repeat(2,minmax(0,1fr))}
+html.ts-big #fIn .rate button{min-height:var(--tap-1,48px);padding-inline:var(--sp-1,4px)}
 </style>
 <script src="js/data-base.js" charset="utf-8"></script>
 <script src="js/data-b2.js" charset="utf-8"></script>
 <script src="js/data-fix.js" charset="utf-8"></script>
 <script src="js/data-media.js" charset="utf-8"></script>
+<script src="js/data-music.js" charset="utf-8"></script>
+<script src="js/data-scenes.js" charset="utf-8"></script>
 <script src="js/data-story.js" charset="utf-8"></script>
 <script src="js/data-bib.js" charset="utf-8"></script>
 <script src="js/data-more.js" charset="utf-8"></script>
@@ -987,14 +1634,14 @@ img[src^="media/art/"],image[href^="media/art/"]{filter:var(--duo,var(--a4-duo))
 @keyframes kitUp{from{transform:translateY(100%)}to{transform:none}}
 @keyframes kitIn{from{opacity:0}to{opacity:1}}
 /* sliders */
-.kit-range{-webkit-appearance:none;appearance:none;width:100%;height:36px;background:transparent;padding:0!important;border:0!important;min-height:36px!important;--pct:50%}
+.kit-range{-webkit-appearance:none;appearance:none;width:100%;height:44px;background:transparent;padding:0!important;border:0!important;min-height:44px!important;--pct:50%}
 .kit-range::-webkit-slider-runnable-track{height:8px;border-radius:9px;background:linear-gradient(90deg,var(--accent) var(--pct),var(--sunk) var(--pct))}
 .kit-range::-moz-range-track{height:8px;border-radius:9px;background:linear-gradient(90deg,var(--accent) var(--pct),var(--sunk) var(--pct))}
 .kit-range::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;margin-top:-9px;border-radius:50%;background:var(--raise);border:3px solid var(--accent);box-shadow:0 2px 6px rgba(0,0,0,.25)}
 .kit-range::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--raise);border:3px solid var(--accent)}
 .kit-slide{display:grid;gap:.15rem;margin-top:.35rem}
 .kit-slide .ticks{display:flex;justify-content:space-between;font-family:var(--ui);font-size:.75rem;color:var(--muted);padding:0 4px}
-.kit-slide .ticks span.on{color:var(--accent);font-weight:700}
+.kit-slide .ticks span.on{color:var(--accent-text,var(--accent));font-weight:700}
 .kit-hidden-select{position:absolute!important;opacity:0!important;pointer-events:none!important;height:0!important;min-height:0!important;padding:0!important;border:0!important}
 /* swipe on flashcards */
 .fc-wrap.kit-drag{transition:none}
@@ -1013,7 +1660,7 @@ const H=(t,s)=>`<b>${esc(t)}</b>${s?`<small>${esc(s)}</small>`:""}`;
 
 /* ---------- what each thing means (German, with an English line) ---------- */
 const NAV={home:["Heute","Die eine Sitzung des Tages, Schritt für Schritt. · Today's guided session"],learn:["Lernen","Bibliothek: Lektionen, Texte, Literatur, Kino. · The library"],practice:["Üben","Werkzeugkasten für Extra-Zeit: Karten, Prüfungen, Drills. · Extra practice"],me:["Ich","Fortschritt, Plan, Einstellungen, Backup. · Progress & settings"]};
-const STATS={"Tage Kerze":["Kerze","Tage in Folge mit Lernen. Ein Tag Pause löscht sie. · Your streak"],"Karten fällig":["Fällig","Karten, deren Abstand heute abgelaufen ist. · Cards due today"],"Behalten (30 T)":["Behalten","Anteil der Wiederholungen der letzten 30 Tage, die du gewusst hast. 85–90 % ist ideal. · Retention"],"Behalten":["Behalten","Anteil gewusster Wiederholungen, letzte 30 Tage. · Retention"],"Wörter gelernt":["Wörter gelernt","Karten, die du mindestens einmal gelernt hast. · Words started"],"gefestigt (≥21 T)":["Gefestigt","Karten mit einem Abstand von 21 Tagen oder mehr: die sitzen. · Mature cards"],"aktiv (tippen)":["Aktiv","Karten, die du auf Deutsch tippst statt nur erkennst. · Production cards"],"Karten":["Karten","Antworten in dieser Sitzung. · Answers this session"],"Minuten":["Minuten","Zeit von Start bis Ende. · Minutes"],"Wörter im Deck":["Deck","Alle Wörter, die du angefangen hast. · Words in your deck"],"Antworten":["Antworten","Wie oft du bewertet hast. · Ratings given"],"gewusst":["Gewusst","Gut oder Leicht. · Rated good or easy"],"Bücher gelesen":["Bücher","Auf der Leseleiter als gelesen markiert."],"Gedichte":["Gedichte","Gelesene Gedichte."],"Filme gesehen":["Filme","Als gesehen markiert."]};
+const STATS={"Tage Kerze":["Kerze","Tage in Folge mit Lernen. Ein Tag Pause löscht sie. · Your streak"],"Karten fällig":["Fällig","Karten, deren Abstand heute abgelaufen ist. · Cards due today"],"Behalten (30 T)":["Behalten","Anteil der Wiederholungen der letzten 30 Tage, die Sie gewusst haben. 85–90 % ist ideal. · Retention"],"Behalten":["Behalten","Anteil gewusster Wiederholungen, letzte 30 Tage. · Retention"],"Wörter gelernt":["Wörter gelernt","Karten, die Sie mindestens einmal gelernt haben. · Words started"],"gefestigt (≥21 T)":["Gefestigt","Karten mit einem Abstand von 21 Tagen oder mehr: die sitzen. · Mature cards"],"aktiv (tippen)":["Aktiv","Karten, die Sie auf Deutsch tippen statt nur erkennen. · Production cards"],"Karten":["Karten","Antworten in dieser Sitzung. · Answers this session"],"Minuten":["Minuten","Zeit von Start bis Ende. · Minutes"],"Wörter im Deck":["Deck","Alle Wörter, die Sie angefangen haben. · Words in your deck"],"Antworten":["Antworten","Wie oft Sie bewertet haben. · Ratings given"],"gewusst":["Gewusst","Gut oder Leicht. · Rated good or easy"],"Bücher gelesen":["Bücher","Auf der Leseleiter als gelesen markiert."],"Gedichte":["Gedichte","Gelesene Gedichte."],"Filme gesehen":["Filme","Als gesehen markiert."]};
 const RATE=[["Nochmal","Nicht gewusst. Kommt in dieser Runde gleich wieder. · Again"],["Schwer","Gewusst, aber mühsam. Kürzerer Abstand. · Hard"],["Gut","Gewusst. Normaler Abstand. · Good"],["Leicht","Sofort gewusst. Langer Abstand. · Easy"]];
 function hintFor(el){
   const own=el.closest("[data-hint]");if(own){const p=own.dataset.hint.split("|");return H(p[0],p[1])}
@@ -1032,9 +1679,9 @@ function hintFor(el){
   return null}
 
 /* ---------- hold menus ---------- */
-let sheetEl=null;
-function closeKit(){if(sheetEl){sheetEl.remove();sheetEl=null}}
-function sheet(title,sub,items,extra){closeKit();const w=document.createElement("div");w.innerHTML=`<div class="kit-scrim"></div><div class="kit-sheet" role="dialog" aria-label="${esc(title)}"><div class="in"><div class="grab"></div><h4>${esc(title)}</h4>${sub?`<div class="sub">${esc(sub)}</div>`:""}${extra||""}${items.map((x,i)=>`<button class="it ${x.danger?"danger":""}" data-kit="${i}" ${x.disabled?"disabled":""}>${x.icon?ic(x.icon):""}<span>${esc(x.label)}${x.hint?`<small>${esc(x.hint)}</small>`:""}</span></button>`).join("")}<button class="cancel ghost" data-kit="x">Abbrechen</button></div></div>`;
+let sheetEl=null,kitOpener=null;
+function closeKit(){if(sheetEl){sheetEl.remove();sheetEl=null;const o=kitOpener;kitOpener=null;if(o&&o.isConnected)try{o.focus({preventScroll:true})}catch(e){}}}
+function sheet(title,sub,items,extra){closeKit();const ae=document.activeElement;kitOpener=ae&&ae!==document.body?ae:null;const w=document.createElement("div");w.innerHTML=`<div class="kit-scrim"></div><div class="kit-sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="in"><div class="grab"></div><h4>${esc(title)}</h4>${sub?`<div class="sub">${esc(sub)}</div>`:""}${extra||""}${items.map((x,i)=>`<button class="it ${x.danger?"danger":""}" data-kit="${i}" ${x.disabled?"disabled":""}>${x.icon?ic(x.icon):""}<span>${esc(x.label)}${x.hint?`<small>${esc(x.hint)}</small>`:""}</span></button>`).join("")}<button class="cancel ghost" data-kit="x">Abbrechen</button></div></div>`;
   document.body.appendChild(w);sheetEl=w;w.querySelector(".kit-scrim").onclick=closeKit;
   w.querySelectorAll("[data-kit]").forEach(b=>b.onclick=()=>{const k=b.dataset.kit;closeKit();if(k!=="x")items[+k].run()});
   const first=w.querySelector(".it:not([disabled])")||w.querySelector(".cancel");if(first)first.focus({preventScroll:true});
@@ -1042,15 +1689,19 @@ function sheet(title,sub,items,extra){closeKit();const w=document.createElement(
   const sh=w.querySelector(".kit-sheet");let y0=null;sh.addEventListener("pointerdown",e=>{if(e.target.closest("button,input"))return;y0=e.clientY;sh.setPointerCapture(e.pointerId)});sh.addEventListener("pointermove",e=>{if(y0==null)return;const d=Math.max(0,e.clientY-y0);sh.style.transform=`translateY(${d}px)`});sh.addEventListener("pointerup",e=>{if(y0==null)return;const d=e.clientY-y0;y0=null;if(d>70)closeKit();else sh.style.transform=""});
   return w}
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&sheetEl){e.stopImmediatePropagation();closeKit()}},true);
+// a10: what a long press does, without touch — keyboard ContextMenu / Shift+F10, pad View button (c_a10.js) — ux D13/D15, "every screen without touch"
+function kitHold(el){if(!el||el===document.body)return false;const act=holdAction(el);if(act){act();return true}const html=hintFor(el);if(html){showTip(el,html);setTimeout(hideTip,3500);return true}return false}
+window.kitHold=kitHold;window.kitHasHold=el=>!!(el&&el!==document.body&&(holdAction(el)||hintFor(el)));
+document.addEventListener("keydown",e=>{if((e.key==="ContextMenu"||(e.shiftKey&&e.key==="F10"))&&kitHold(document.activeElement))e.preventDefault()});
 
 function stepMenu(btn){const T=S.today;if(!T)return;const i=+btn.dataset.i;const s=T.steps[i];if(!s)return;const inf=stepInfo(s);
   sheet(inf.name,inf.sub,[
     {label:s.done?"Nochmal öffnen":"Jetzt öffnen",icon:"play",run:()=>openSession(i)},
     s.done?{label:"Als offen markieren",hint:"Schritt erscheint wieder als „jetzt“",icon:"back",run:()=>{s.done=false;s.skipped=false;saveSoon();rerender();toast("Wieder offen")}}
-          :{label:"Als erledigt markieren",hint:"Z. B. wenn du es offline gemacht hast",icon:"check",run:()=>{s.done=true;saveSoon();rerender();toast("Erledigt")}},
+          :{label:"Als erledigt markieren",hint:"Z. B. wenn Sie es offline erledigt haben",icon:"check",run:()=>{s.done=true;saveSoon();rerender();toast("Erledigt")}},
     {label:"Heute überspringen",icon:"x",disabled:s.done,run:()=>{s.done=true;s.skipped=true;saveSoon();rerender();toast("Übersprungen")}}])}
 function minutesSheet(){const opts=[30,45,60,90,120];let v=Math.max(0,opts.indexOf(S.minutes));
-  const w=sheet("Sitzungslänge","Wie viel Zeit hast du heute? Ändert die Schritte, solange noch keiner erledigt ist.",[{label:"Übernehmen und starten",icon:"play",run:()=>{apply();openSession()}},{label:"Nur übernehmen",icon:"check",run:()=>apply()}],
+  const w=sheet("Sitzungslänge","Wie viel Zeit haben Sie heute? Ändert die Schritte, solange noch keiner erledigt ist.",[{label:"Übernehmen und starten",icon:"play",run:()=>{apply();openSession()}},{label:"Nur übernehmen",icon:"check",run:()=>apply()}],
    `<div class="kit-slide"><b class="ui kit-min" style="font-size:1.6rem;text-align:center">${opts[v]} Min.</b><input type="range" class="kit-range" min="0" max="${opts.length-1}" step="1" value="${v}" aria-label="Minuten pro Tag"><div class="ticks">${opts.map((o,i)=>`<span class="${i===v?"on":""}">${o}</span>`).join("")}</div><small class="muted ui kit-min-sub" style="text-align:center"></small></div>`);
   const r=w.querySelector(".kit-range"),lab=w.querySelector(".kit-min"),sub=w.querySelector(".kit-min-sub");
   const desc=m=>m<45?"Kern: Wiederholen, Neu, Output, Kultur":m<60?"+ Lesen & Hören":"Alle sechs Schritte";

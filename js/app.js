@@ -1134,7 +1134,7 @@ ACT.copyYuzu=()=>{const p=yuzuPack();copyText(JSON.stringify(p),$(".bk-txt"));to
 ACT.reset=()=>{const v=($(".rs-in")||{}).value;if(v!=="LÖSCHEN")return toast("Tippe LÖSCHEN zur Bestätigung");lsSet("mephisto_before_reset",JSON.stringify(S));S=fresh();saveNow();buildDict();applyPrefs();R.tab="home";toast("Zurückgesetzt. Eine Kopie liegt unter „mephisto_before_reset“.");rerender()};
 
 // ================= PHONE FEATURES (v10): speech check, Artikel-Blitz, numbers, terms, undo, haptics, coach, PWA =================
-const APP_VERSION="13.6.0";
+const APP_VERSION="13.7.0";
 const IS_PWA=!!window.MEPHISTO_PWA;
 const IS_STANDALONE=(()=>{try{return matchMedia("(display-mode: standalone)").matches||navigator.standalone===true}catch(e){return false}})();
 const IS_IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
@@ -3162,89 +3162,627 @@ const LEMMA_TRIES=w=>{const x=String(w||"").toLowerCase();const tries=[];const S
   return tries};
 (function(){const _lu=lookup;lookup=function(word,map){const r=_lu(word,map);if(r.src!=="none")return r;for(const t of LEMMA_TRIES(word)){const h=_lu(t,map);if(h.src!=="none")return Object.assign({},h,{lemmaOf:word})}return r}})();
 
-// ===== Mephisto 12 · Soundscape: generated ambience per realm + public-domain music (PAKT_MUSIC) + effect sounds. WebAudio only, no files.
+// ===== Mephisto 13.1 · SND — procedural audio engine (a2: A4's engine "snd13" + A3's score features). WebAudio only, no files, no dependencies.
+// Public API is a superset of 13.0: start stop setRealm fx toggle vol next play now hush hushed motif bell sting state
+// A4: score (looping, layered, tempo-mapped sequences), note, duck, saver, selfTest, insts, DSP.
+// a2: A3 score form (tracks/layers/marks/tempo map/key), .section/.sectionNow, stinger (quantised + transposed), velocity 1–127,
+//     glock/bass/sine/brush + aliases clar/timp, 14 new effects, doze/wake (ui:idle), speaker mode, measure(), fader law. See AUDIO.md.
 const SND=(function(){
-  let ctx=null,master,busMusic,busAmb,busFx,rev,revWet,noiseBuf,ambNodes=[],ambTimers=[],realm=null,started=false,unlocked=false;
-  let playing=null,queue=[],schedTimer=null,gapTimer=null,lastErr="",hushed=false;
-  const cfg=()=>{S.sound=Object.assign({on:true,music:.55,amb:.45,fx:.6},S.sound||{});return S.sound};
-  function make(){if(ctx)return true;const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return false;try{ctx=new AC()}catch(e){lastErr=String(e);return false}
-    const comp=ctx.createDynamicsCompressor();comp.threshold.value=-18;comp.ratio.value=3;comp.connect(ctx.destination);
-    master=ctx.createGain();master.connect(comp);busMusic=ctx.createGain();busAmb=ctx.createGain();busFx=ctx.createGain();[busMusic,busAmb,busFx].forEach(b=>b.connect(master));
-    rev=ctx.createConvolver();revWet=ctx.createGain();revWet.gain.value=.5;rev.connect(revWet);revWet.connect(master);setReverb(2.4);
-    const len=ctx.sampleRate*2;noiseBuf=ctx.createBuffer(1,len,ctx.sampleRate);const d=noiseBuf.getChannelData(0);for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
-    applyVol();return true}
-  function setReverb(sec){const n=Math.floor(ctx.sampleRate*sec),b=ctx.createBuffer(2,n,ctx.sampleRate);for(let c=0;c<2;c++){const d=b.getChannelData(c);for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,2.6)}rev.buffer=b}
-  function applyVol(){if(!ctx)return;const c=cfg();const t=ctx.currentTime;master.gain.setTargetAtTime(c.on?1:0,t,.3);busMusic.gain.setTargetAtTime(c.music*.6,t,.3);busAmb.gain.setTargetAtTime(c.amb*.55,t,.3);busFx.gain.setTargetAtTime(c.fx*.8,t,.05)}
-  function noise(){const s=ctx.createBufferSource();s.buffer=noiseBuf;s.loop=true;s.start();return s}
-  function lfo(freq,depth,target,base){const o=ctx.createOscillator(),g=ctx.createGain();o.frequency.value=freq;g.gain.value=depth;o.connect(g);g.connect(target);if(base!=null)target.value=base;o.start();return o}
-  function bed(type,f1,f2,gain,lfoF,lfoD){const n=noise();const bp=ctx.createBiquadFilter();bp.type=type;bp.frequency.value=f1;if(f2)bp.Q.value=f2;const g=ctx.createGain();g.gain.value=gain;n.connect(bp);bp.connect(g);g.connect(busAmb);const nodes=[n,bp,g];if(lfoF)nodes.push(lfo(lfoF,lfoD,g.gain,gain));return nodes}
-  function every(minS,maxS,fn){let alive=true;const tick=()=>{if(!alive)return;try{fn()}catch(e){}const id=setTimeout(tick,(minS+Math.random()*(maxS-minS))*1000);ambTimers.push(id)};const id=setTimeout(tick,(minS+Math.random()*(maxS-minS))*500);ambTimers.push(id);return()=>alive=false}
-  // little synthesized events
-  function tone(f,t,dur,type,gain,bus,glideTo){const o=ctx.createOscillator(),g=ctx.createGain();o.type=type||"sine";o.frequency.setValueAtTime(f,t);if(glideTo)o.frequency.exponentialRampToValueAtTime(glideTo,t+dur);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(gain,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g);g.connect(bus||busFx);o.start(t);o.stop(t+dur+.05);return g}
-  function burst(t,dur,freq,gain,type,bus){const s=ctx.createBufferSource();s.buffer=noiseBuf;const f=ctx.createBiquadFilter();f.type=type||"bandpass";f.frequency.value=freq;f.Q.value=1.2;const g=ctx.createGain();g.gain.setValueAtTime(gain,t);g.gain.exponentialRampToValueAtTime(.0001,t+dur);s.connect(f);f.connect(g);g.connect(bus||busAmb);s.start(t,Math.random()*1.5);s.stop(t+dur+.02)}
-  const owl=()=>{const t=ctx.currentTime;tone(390,t,.35,"sine",.08,busAmb,350);tone(370,t+.55,.6,"sine",.07,busAmb,330)};
-  const twig=()=>burst(ctx.currentTime,.05,2400,.25,"highpass");
-  const clink=()=>{const t=ctx.currentTime;tone(2400+Math.random()*600,t,.5,"sine",.035,busAmb);tone(3300+Math.random()*500,t+.01,.35,"sine",.02,busAmb)};
-  const crackle=()=>{const t=ctx.currentTime;for(let i=0;i<1+Math.random()*4;i++)burst(t+i*Math.random()*.08,.02+Math.random()*.03,1200+Math.random()*3000,.18+Math.random()*.2)};
-  const tick=()=>{const t=ctx.currentTime;burst(t,.015,3800,.12,"highpass")};
-  const tram=()=>{const t=ctx.currentTime;tone(55,t,6,"sawtooth",.02,busAmb,48);burst(t+.5,4,300,.05,"lowpass")};
-  const thunder=()=>{const t=ctx.currentTime;burst(t,3.5,90,.5,"lowpass");burst(t+.2,2.2,160,.25,"lowpass")};
-  const heart=()=>{const t=ctx.currentTime;tone(55,t,.18,"sine",.22,busAmb,40);tone(50,t+.28,.22,"sine",.18,busAmb,38)};
-  const raven=()=>{const t=ctx.currentTime;for(let i=0;i<2;i++){const o=ctx.createOscillator(),m=ctx.createOscillator(),mg=ctx.createGain(),g=ctx.createGain();o.type="sawtooth";o.frequency.value=520;m.frequency.value=70;mg.gain.value=180;m.connect(mg);mg.connect(o.frequency);const f=ctx.createBiquadFilter();f.type="bandpass";f.frequency.value=1200;g.gain.setValueAtTime(0,t+i*.45);g.gain.linearRampToValueAtTime(.05,t+i*.45+.03);g.gain.exponentialRampToValueAtTime(.0001,t+i*.45+.32);o.connect(f);f.connect(g);g.connect(busAmb);o.start(t+i*.45);m.start(t+i*.45);o.stop(t+i*.45+.4);m.stop(t+i*.45+.4)}};
-  const AMB={
-    I:()=>{ambNodes.push(...bed("bandpass",380,.7,.35,.06,.18),...bed("lowpass",180,0,.25));ambTimers.push(every(18,40,owl),every(5,14,twig),every(25,60,raven))},
-    II:()=>{ambNodes.push(...bed("bandpass",520,.9,.22,.15,.08),...bed("bandpass",1100,1.4,.06,.21,.03));ambTimers.push(every(4,11,clink),every(14,30,()=>burst(ctx.currentTime,.9,700,.08)))},
-    III:()=>{ambNodes.push(...bed("lowpass",140,0,.32,.03,.06));ambTimers.push(every(.25,1.6,crackle),every(1,1,tick))},
-    IV:()=>{ambNodes.push(...bed("highpass",1400,0,.16,.07,.05),...bed("bandpass",5200,.6,.05));ambTimers.push(every(30,70,tram),every(60,140,thunder))},
-    V:()=>{ambNodes.push(...bed("lowpass",520,0,.3,.1,.12));const o1=ctx.createOscillator(),o2=ctx.createOscillator(),lp=ctx.createBiquadFilter(),g=ctx.createGain();o1.type=o2.type="sawtooth";o1.frequency.value=55;o2.frequency.value=55.6;lp.type="lowpass";lp.frequency.value=180;g.gain.value=.07;o1.connect(lp);o2.connect(lp);lp.connect(g);g.connect(busAmb);o1.start();o2.start();ambNodes.push(o1,o2,lp,g);ambTimers.push(every(.3,1.3,crackle),every(9,20,heart),every(20,45,()=>burst(ctx.currentTime,3,300,.12)))}};
-  function stopAmb(){ambTimers.forEach(x=>typeof x==="function"?x():clearTimeout(x));ambTimers=[];ambNodes.forEach(n=>{try{n.stop&&n.stop()}catch(e){}try{n.disconnect()}catch(e){}});ambNodes=[]}
-  // ---- music
-  const INST={
-    musicbox:(f,t,d,v)=>{tone(f*2,t,Math.min(2.2,d+1.2),"sine",.11*v,busMusic);tone(f*4.01,t,.6,"sine",.03*v,busMusic)},
-    zither:(f,t,d,v)=>{const o=ctx.createOscillator(),o2=ctx.createOscillator(),lp=ctx.createBiquadFilter(),g=ctx.createGain();o.type="triangle";o2.type="sawtooth";o.frequency.value=f;o2.frequency.value=f*1.003;lp.type="lowpass";lp.frequency.setValueAtTime(3200,t);lp.frequency.exponentialRampToValueAtTime(600,t+1.2);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.09*v,t+.005);g.gain.exponentialRampToValueAtTime(.0001,t+Math.min(2.4,d+1));o.connect(lp);o2.connect(lp);lp.connect(g);g.connect(busMusic);g.connect(rev);o.start(t);o2.start(t);o.stop(t+2.5);o2.stop(t+2.5)},
-    harpsichord:(f,t,d,v)=>{[1,2].forEach((m,i)=>{const o=ctx.createOscillator(),hp=ctx.createBiquadFilter(),g=ctx.createGain();o.type="sawtooth";o.frequency.value=f*m;hp.type="bandpass";hp.frequency.value=2200;hp.Q.value=.4;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime((i?.025:.07)*v,t+.003);g.gain.exponentialRampToValueAtTime(.0001,t+Math.min(1.6,d+.6));o.connect(hp);hp.connect(g);g.connect(busMusic);g.connect(rev);o.start(t);o.stop(t+1.7)})},
-    organ:(f,t,d,v)=>{const g=ctx.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.05*v,t+.07);g.gain.setValueAtTime(.05*v,t+Math.max(.08,d-.05));g.gain.linearRampToValueAtTime(0,t+d+.25);g.connect(busMusic);g.connect(rev);[[1,.6,"sine"],[2,.3,"sine"],[3,.12,"sine"],[.5,.2,"triangle"]].forEach(([m,a,ty])=>{const o=ctx.createOscillator(),og=ctx.createGain();o.type=ty;o.frequency.value=f*m;og.gain.value=a;o.connect(og);og.connect(g);o.start(t);o.stop(t+d+.3)})},
-    piano:(f,t,d,v)=>{const o=ctx.createOscillator(),o2=ctx.createOscillator(),lp=ctx.createBiquadFilter(),g=ctx.createGain();o.type="triangle";o2.type="sine";o.frequency.value=f;o2.frequency.value=f*2;lp.type="lowpass";lp.frequency.setValueAtTime(Math.min(6000,f*8),t);lp.frequency.exponentialRampToValueAtTime(Math.max(300,f*1.5),t+1.5);const L=Math.min(3.5,d+1.2);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.08*v,t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+L);o.connect(lp);o2.connect(lp);lp.connect(g);g.connect(busMusic);g.connect(rev);o.start(t);o2.start(t);o.stop(t+L+.05);o2.stop(t+L+.05)}};
-  const hz=m=>440*Math.pow(2,(m-69)/12);
-  function pool(r){const P=(typeof PAKT_MUSIC!=="undefined"?PAKT_MUSIC:[]);const own=P.filter(p=>p.realm===r);const near={I:["II"],II:["I","III"],III:["V"],IV:["II","III"],V:["III"]}[r]||[];return own.length?own.concat(P.filter(p=>near.includes(p.realm)).slice(0,4)):P}
-  function nextPiece(){if(!queue.length){queue=pool(realm||"I").slice().sort(()=>Math.random()-.5)}return queue.shift()}
-  function playPiece(p){stopPiece();if(!p||!ctx)return;const spt=60/p.bpm/4;const t0=ctx.currentTime+.4;const ev=p.ev;let i=0;const inst=INST[p.inst]||INST.piano;const chord=p.inst==="organ";
-    playing={p,t0,end:t0+(ev.length?(Math.max(...ev.map(e=>e[0]+e[1])))*spt:0)};
-    const sched=()=>{if(!ctx||!playing||playing.p!==p)return;const horizon=ctx.currentTime+1.6;while(i<ev.length){const [s,d,m]=ev[i];const t=t0+s*spt;if(t>horizon)break;if(t>=ctx.currentTime-.05)inst(hz(m),t,d*spt,chord?.8:1);i++}
-      if(i>=ev.length){clearInterval(schedTimer);schedTimer=null;gapTimer=setTimeout(()=>{if(cfg().on)playPiece(nextPiece())},Math.max(0,(playing.end-ctx.currentTime))*1000+4000+Math.random()*5000)}};
-    sched();schedTimer=setInterval(sched,250);document.dispatchEvent(new CustomEvent("snd:now",{detail:p}))}
-  function stopPiece(){clearInterval(schedTimer);schedTimer=null;clearTimeout(gapTimer);gapTimer=null;playing=null}
-  function setRealm(r){if(!r||r===realm&&ambNodes.length)return;realm=r;if(!ctx||!started)return;stopAmb();try{AMB[r]&&AMB[r]()}catch(e){lastErr=String(e)}setReverb(r==="III"||r==="V"?3.4:r==="IV"?1.2:2);queue=[];playPiece(nextPiece())}
-  function start(){const c=cfg();if(!c.on||started)return;if(!make())return;ctx.resume&&ctx.resume();started=true;const r=realm||"I";realm=null;setRealm(r)}
-  function stop(){stopPiece();stopAmb();started=false;if(ctx&&ctx.suspend)ctx.suspend()}
-  // unlock on the first gesture (browsers block audio before it)
-  const unlock=()=>{if(unlocked)return;unlocked=true;if(cfg().on)start()};
-  ["pointerdown","keydown","touchend"].forEach(e=>document.addEventListener(e,unlock,{capture:true,passive:true}));
-  document.addEventListener("visibilitychange",()=>{if(!ctx)return;if(document.hidden){ctx.suspend&&ctx.suspend()}else if(cfg().on&&started){ctx.resume&&ctx.resume()}});
-  const FX={
-    ok:()=>{const t=ctx.currentTime;tone(880,t,1.4,"sine",.08);tone(1320,t+.005,1,"sine",.04);tone(2640,t,.4,"sine",.015)},
-    no:()=>{const t=ctx.currentTime;tone(110,t,1.8,"sine",.14,busFx,104);tone(156,t,1.4,"sine",.06);tone(233,t+.01,1,"triangle",.03)},
-    seal:()=>{const t=ctx.currentTime;[48,55,60,64,67].forEach((m,i)=>INST.organ(hz(m),t+i*.02,2.6,1.3));tone(880,t+.4,2.4,"sine",.06);tone(1760,t+.4,1.6,"sine",.03);burst(t,.12,400,.4,"lowpass",busFx)},
-    page:()=>burst(ctx.currentTime,.35,2500,.12,"bandpass",busFx),
-    quill:()=>{const t=ctx.currentTime;for(let i=0;i<5;i++)burst(t+i*.06,.04,6000,.06,"highpass",busFx)},
-    bell:()=>{const t=ctx.currentTime;[1,2.76,5.4].forEach((m,i)=>tone(392*m,t,3-i*.8,"sine",.07/(i+1)))},
-    thunder:()=>thunder()};
-  return {
-    start,stop,setRealm,
-    fx(n){if(!cfg().on||!ctx||!started)return;try{FX[n]&&FX[n]()}catch(e){}},
-    toggle(){const c=cfg();c.on=!c.on;saveSoon();if(c.on){unlocked=true;started=false;start()}else stop();applyVol();return c.on},
-    vol(k,v){cfg()[k]=v;applyVol();saveSoon()},
-    next(){if(!ctx||!started){start();return}playPiece(nextPiece())},
-    play(id){const p=(PAKT_MUSIC||[]).find(x=>x.id===id);if(!p)return;if(!ctx||!started){S.sound.on=true;unlocked=true;start()}playPiece(p)},
-    now(){return playing&&playing.p},
-    // 13.0: boss music needs the realm score out of the way; ambience stays
-    hush(on){if(!ctx||!started){hushed=false;return}if(on){stopPiece();hushed=true}else if(hushed){hushed=false;if(!playing)try{playPiece(nextPiece())}catch(e){}}},
-    hushed(){return hushed},
-    // 12.7: leitmotifs and bells. ev: [[midi, startStep, durSteps], …] in 16ths at bpm
-    motif(ev,inst,bpm){if(!cfg().on)return;if(!ctx||!started){unlocked=true;start()}if(!ctx)return;try{const spt=60/(bpm||84)/4,t0=ctx.currentTime+.08,I=INST[inst]||INST.musicbox;ev.forEach(([m,s0,d])=>I(hz(m),t0+s0*spt,d*spt,inst==="organ"?.8:1))}catch(e){}},
-    bell(n,low){if(!cfg().on)return;if(!ctx||!started){unlocked=true;start()}if(!ctx)return;try{const f=low?98:146.8;for(let k=0;k<(n||1);k++){const t=ctx.currentTime+.1+k*2.4;[[.56,.2],[.92,.14],[1.19,.1],[1.71,.08],[2,.07],[2.74,.05],[3,.04],[3.76,.03],[4.07,.03]].forEach(([r,g])=>tone(f*r*2,t,7*(1.2-r/5),"sine",g*.5,busMusic))}}catch(e){}},
-    sting(kind){if(!cfg().on||!ctx||!started)return;try{const t=ctx.currentTime;if(kind==="egg"){[72,76,79,84,88].forEach((m,i)=>INST.musicbox(hz(m),t+i*.09,.6,1));tone(hz(48),t,2.4,"sine",.12,busFx)}else if(kind==="lore"){[57,60,64].forEach((m,i)=>INST.harpsichord(hz(m),t+i*.12,1.2,1))}}catch(e){}},
-    state(){return {on:cfg().on,ctx:!!ctx,started,realm,now:playing&&playing.p&&playing.p.t,err:lastErr}}};
+"use strict";
+const W=typeof window!=="undefined"?window:{},D=typeof document!=="undefined"?document:null;
+const TAU=Math.PI*2,clamp=(x,a,b)=>x<a?a:x>b?b:x,db=d=>Math.pow(10,d/20),toDb=x=>20*Math.log10(Math.max(x,1e-9)),rnd=(a,b)=>a+Math.random()*(b-a),hz=m=>440*Math.pow(2,(m-69)/12);
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+
+// =====================================================================================================================
+// 1. PURE DSP (no WebAudio): tables, textures, impulse responses, loudness meter. Deterministic (seeded).
+// =====================================================================================================================
+function rng(seed){let a=seed>>>0;return()=>{a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296}}
+function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+function fft(re,im){const n=re.length;for(let i=1,j=0;i<n;i++){let b=n>>1;for(;j&b;b>>=1)j^=b;j^=b;if(i<j){let t=re[i];re[i]=re[j];re[j]=t;t=im[i];im[i]=im[j];im[j]=t}}
+  for(let len=2;len<=n;len<<=1){const a=-TAU/len,wr=Math.cos(a),wi=Math.sin(a),h=len>>1;for(let i=0;i<n;i+=len){let cr=1,ci=0;for(let k=0;k<h;k++){const p=i+k,q=p+h,xr=re[q]*cr-im[q]*ci,xi=re[q]*ci+im[q]*cr;re[q]=re[p]-xr;im[q]=im[p]-xi;re[p]+=xr;im[p]+=xi;const t=cr*wr-ci*wi;ci=cr*wi+ci*wr;cr=t}}}}
+// RBJ biquad, linear Q everywhere. Returns [b0,b1,b2,a1,a2].
+function biq(type,f,Q,g,sr){const w=TAU*clamp(f,5,sr*.49)/sr,c=Math.cos(w),s=Math.sin(w),al=s/(2*(Q||.707)),A=Math.pow(10,(g||0)/40);let b0,b1,b2,a0,a1,a2;
+  if(type==="lowpass"){b0=(1-c)/2;b1=1-c;b2=b0;a0=1+al;a1=-2*c;a2=1-al}
+  else if(type==="highpass"){b0=(1+c)/2;b1=-(1+c);b2=b0;a0=1+al;a1=-2*c;a2=1-al}
+  else if(type==="bandpass"){b0=al;b1=0;b2=-al;a0=1+al;a1=-2*c;a2=1-al}
+  else if(type==="peaking"){b0=1+al*A;b1=-2*c;b2=1-al*A;a0=1+al/A;a1=-2*c;a2=1-al/A}
+  else{const q=2*Math.sqrt(A)*s/2*Math.SQRT2,hi=type==="highshelf"?1:-1;b0=A*((A+1)+hi*(A-1)*c+q);b1=-hi*2*A*((A-1)+hi*(A+1)*c);b2=A*((A+1)+hi*(A-1)*c-q);a0=(A+1)-hi*(A-1)*c+q;a1=hi*2*((A-1)-hi*(A+1)*c);a2=(A+1)-hi*(A-1)*c-q}
+  return [b0/a0,b1/a0,b2/a0,a1/a0,a2/a0]}
+function filt(x,k){let z1=0,z2=0;const b0=k[0],b1=k[1],b2=k[2],a1=k[3],a2=k[4];for(let i=0;i<x.length;i++){const v=x[i],y=b0*v+z1;z1=b1*v-a1*y+z2;z2=b2*v-a2*y;x[i]=y}return x}
+function rmsOf(x,a,b){a=a||0;b=Math.min(b||x.length,x.length);let s=0;for(let i=a;i<b;i++)s+=x[i]*x[i];return Math.sqrt(s/Math.max(1,b-a))}
+function peakOf(x){let p=0;for(let i=0;i<x.length;i++){const v=x[i]<0?-x[i]:x[i];if(v>p)p=v}return p}
+function scale(x,g){for(let i=0;i<x.length;i++)x[i]*=g;return x}
+function fadeEnd(x,n){n=Math.min(n,x.length);for(let i=0;i<n;i++)x[x.length-1-i]*=i/n;return x}
+// soft knee: linear below `knee`, tanh above, never beyond `ceil` (tames the first milliseconds of plucks and the pops of textures)
+function soft(x,knee,ceil){const w=ceil-knee;for(let i=0;i<x.length;i++){const v=x[i],a=v<0?-v:v;if(a>knee)x[i]=(knee+w*Math.tanh((a-knee)/w))*(v<0?-1:1)}return x}
+// level a one-shot: RMS of the first `win` seconds -> target, crest limited to ceil/target
+function level(x,sr,target,win){const r=rmsOf(x,0,Math.floor(sr*(win||.25)))||1e-9;scale(x,target/r);return soft(x,target*1.5,target*2.8)}
+// equal-power seam: x has n+xf samples, returns n samples that loop without a click
+function seam(x,n,xf){const o=new Float32Array(n);for(let i=0;i<n;i++)o[i]=x[i];for(let i=0;i<xf;i++){const a=i/xf;o[i]=x[i]*Math.sqrt(a)+x[n+i]*Math.sqrt(1-a)}return o}
+function noiseArr(kind,n,R){const x=new Float32Array(n);if(kind==="white"){for(let i=0;i<n;i++)x[i]=R()*2-1}
+  else if(kind==="pink"){let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;for(let i=0;i<n;i++){const w=R()*2-1;b0=.99886*b0+w*.0555179;b1=.99332*b1+w*.0750759;b2=.969*b2+w*.153852;b3=.8665*b3+w*.3104856;b4=.55*b4+w*.5329522;b5=-.7616*b5-w*.016898;x[i]=(b0+b1+b2+b3+b4+b5+b6+w*.5362)*.11;b6=w*.115926}}
+  else{let y=0;for(let i=0;i<n;i++){y=(y+.02*(R()*2-1))/1.02;x[i]=y*3.5}}
+  return x}
+// damped sine bank (modal synthesis): parts [[freq, amp, t60], …]; two multiplies per partial per sample
+function modal(sr,dur,parts){const N=Math.floor(sr*dur),o=new Float32Array(N);for(let p=0;p<parts.length;p++){const f=parts[p][0],a=parts[p][1],t60=Math.max(.01,parts[p][2]);if(f<=0||f>=sr*.45||!a)continue;
+    const w=TAU*f/sr,r=Math.pow(10,-3/(t60*sr)),k=2*r*Math.cos(w),r2=r*r,n=Math.min(N,Math.ceil(t60*sr*1.35));let y0=0,y1=a*r*Math.sin(w);for(let i=1;i<n;i++){o[i]+=y1;const y=k*y1-r2*y0;y0=y1;y1=y}}return o}
+// Karplus–Strong with tuned loop (one-pole loss filter + first-order allpass for the fractional delay), pick-position comb on the excitation
+function ks(sr,f,dur,o,R){const N=Math.floor(sr*dur),out=new Float32Array(N),c=o.damp,w=TAU*f/sr,pd=Math.atan2(c*Math.sin(w),1-c*Math.cos(w))/w;let tot=sr/f-pd;if(tot<3)tot=3;
+  const Li=Math.floor(tot-.1),fr=tot-Li,ap=(1-fr)/(1+fr),buf=new Float32Array(Li),e=new Float32Array(Li),P=Math.max(1,Math.round(Li*o.pick)),rho=Math.pow(10,-3/(f*o.t60));
+  let lp=0,m=0;for(let i=0;i<Li;i++){lp=o.ex*lp+(1-o.ex)*(R()*2-1);e[i]=lp;m+=lp}m/=Li;for(let i=0;i<Li;i++)buf[i]=(e[i]-m)-.9*(e[(i-P+Li)%Li]-m);
+  let z=0,ax=0,ay=0,idx=0;for(let n=0;n<N;n++){const x=buf[idx];z=(1-c)*x+c*z;const y=ap*z+ax-ap*ay;ax=z;ay=y;buf[idx]=y*rho;out[n]=x;if(++idx>=Li)idx=0}return out}
+function formant(list,floor,lp){return f=>{let g=floor||0;for(let i=0;i<list.length;i++){const d=(f-list[i][0])/list[i][1];g+=list[i][2]*Math.exp(-.5*d*d)}return lp?g/(1+Math.pow(f/lp,3)):g}}
+// PADsynth (Nasca): put every partial on FFT bins with a Gaussian spread and random phase; one FFT gives a perfectly looping table.
+// spec:{N, parts(f)->[[ratio,amp,bwCents?]], bw, det:[[cents,amp]], form(f), st(stereo), max}
+function pad(spec,f,sr,seed){const N=spec.N||32768,binF=sr/N,P=spec.parts(f),base=P.reduce((a,p)=>Math.min(a,p[0]),1),kb=Math.max(1,Math.round(f*base/binF)),f0=kb*binF/base,det=spec.det||[[0,1]],ch=[],top=Math.min(sr*.45,spec.max||11000);
+  for(let c=0;c<(spec.st?2:1);c++){const R=rng(seed+c*7919),re=new Float64Array(N),im=new Float64Array(N);
+    for(let j=0;j<P.length;j++)for(let d=0;d<det.length;d++){const fc=f0*P[j][0]*Math.pow(2,det[d][0]/1200);if(fc>top||fc<18)continue;const A=P[j][1]*det[d][1]*(spec.form?spec.form(fc):1);if(A<1e-5)continue;
+      const sig=(Math.pow(2,(P[j][2]||spec.bw||1)/1200)-1)*fc/binF/2,cb=fc/binF;
+      if(sig<.6){const k=Math.round(cb),ph=R()*TAU;re[k]+=A*Math.cos(ph);im[k]+=A*Math.sin(ph)}
+      else{const lo=Math.max(1,Math.floor(cb-3*sig)),hi=Math.min(N/2-1,Math.ceil(cb+3*sig));let s2=0;for(let k=lo;k<=hi;k++){const x=(k-cb)/sig;s2+=Math.exp(-x*x)}const nrm=A/Math.sqrt(s2||1);for(let k=lo;k<=hi;k++){const x=(k-cb)/sig,a=nrm*Math.exp(-.5*x*x),ph=R()*TAU;re[k]+=a*Math.cos(ph);im[k]+=a*Math.sin(ph)}}}
+    for(let k=1;k<N/2;k++){re[N-k]=re[k];im[N-k]=-im[k]}re[0]=im[0]=0;fft(re,im);const x=new Float32Array(N);for(let i=0;i<N;i++)x[i]=re[i];const r=rmsOf(x)||1e-9;scale(x,.2/r);ch.push(x)}
+  return {ch,sr,f0,loop:true}}
+
+// ---- one-shot instrument models. Each returns {ch:[Float32Array], sr, f0}
+const SHOT={
+  piano(f,vel,sr,R,m){const s=m<62?Math.min(sr,24000):sr,T1=clamp(10*Math.pow(2,-(m-36)/14),.7,10),dur=Math.min(5.5,T1*.9+.4),B=clamp(4e-5*Math.pow(2,(m-45)/8.5),6e-5,.015),
+      nP=Math.min(m<48?26:m<60?20:m<72?14:m<84?9:6,Math.floor(.45*s/f)),p=1.05+(1-vel)*1.0,parts=[];
+    for(let n=1;n<=nP;n++){const fn=n*f*Math.sqrt(1+B*n*n),a=Math.pow(n,-p)*(.25+.75*Math.abs(Math.sin(Math.PI*n/7.3)))*(n===1&&m<40?.6:1),t=T1/(1+.22*Math.pow(n-1,1.15));
+      parts.push([fn*(1-2e-4),a*.7,t*.5],[fn*(1+2.5e-4+1e-4*R()),a*.3,t*1.5])}                                   // two strings: prompt sound + slow aftersound, beating
+    const x=modal(s,dur,parts),nh=Math.floor(s*.03),h=new Float32Array(nh);for(let i=0;i<nh;i++)h[i]=(R()*2-1)*Math.exp(-i/(s*.006));
+    filt(h,biq("lowpass",clamp(f*4,500,4000)*(.5+vel),.7,0,s));const hg=.35*vel*rmsOf(x,0,nh)/(rmsOf(h)||1);for(let i=0;i<nh;i++)x[i]+=h[i]*hg;   // hammer felt
+    return {ch:[fadeEnd(level(x,s,.2,.3),Math.floor(s*.03))],sr:s,f0:f}},
+  harpsichord(f,vel,sr,R,m){const dur=clamp(3.6*Math.pow(2,-(m-48)/22),1.1,3.6),o={damp:.12,pick:.11,t60:dur*1.1,ex:.25},x=ks(sr,f,dur,o,R);
+    if(f*2<sr*.2){const y=ks(sr,f*2,dur,{damp:.1,pick:.13,t60:dur*.8,ex:.2},R);for(let i=0;i<x.length;i++)x[i]+=.4*y[i]}                         // 8' + 4' choir
+    filt(x,biq("highpass",Math.max(60,f*.7),.7,0,sr));return {ch:[fadeEnd(level(x,sr,.2,.2),Math.floor(sr*.03))],sr,f0:f}},
+  zither(f,vel,sr,R,m){const x=ks(sr,f,3,{damp:.42,pick:.22,t60:clamp(3.4*Math.pow(2,-(m-55)/26),1.2,3.6),ex:.55},R);
+    [[180,3],[420,4],[900,3]].forEach(b=>filt(x,biq("peaking",b[0],1.4,b[1],sr)));return {ch:[fadeEnd(level(x,sr,.2,.25),Math.floor(sr*.03))],sr,f0:f}},
+  banjo(f,vel,sr,R,m){const x=ks(sr,f,1.5,{damp:.08,pick:.07,t60:clamp(1.3*Math.pow(2,-(m-55)/24),.5,1.4),ex:.1},R),y=Float32Array.from(x);
+    filt(y,biq("bandpass",330,1.5,0,sr));for(let i=0;i<x.length;i++)x[i]=.6*x[i]+1.3*y[i];filt(x,biq("highshelf",3000,.7,4,sr));return {ch:[fadeEnd(level(x,sr,.2,.12),Math.floor(sr*.02))],sr,f0:f}},
+  musicbox(f,vel,sr,R,m){const k=clamp(Math.pow(2,-(m-84)/22),.4,1.6),x=modal(sr,2.6*k+.2,[[f,1,2.4*k],[f+.35,.3,2.0*k],[f*2.76,.34,1.0*k],[f*5.4,.16,.4*k],[f*8.93,.07,.16*k]]),n=Math.floor(sr*.004);
+    for(let i=0;i<n;i++)x[i]+=(R()*2-1)*.25*(1-i/n);return {ch:[fadeEnd(level(x,sr,.2,.25),Math.floor(sr*.03))],sr,f0:f}},
+  celesta(f,vel,sr,R,m){const k=clamp(Math.pow(2,-(m-72)/24),.5,1.5),x=modal(sr,1.7*k+.2,[[f,1,1.5*k],[f*2,.1,.8*k],[f*2.76,.12,.3*k],[f*5.4,.05,.12*k]]),n=Math.floor(sr*.012),h=new Float32Array(n);
+    for(let i=0;i<n;i++)h[i]=(R()*2-1)*Math.exp(-i/(sr*.003));filt(h,biq("lowpass",1800,.7,0,sr));for(let i=0;i<n;i++)x[i]+=h[i]*.3;return {ch:[fadeEnd(level(x,sr,.2,.25),Math.floor(sr*.03))],sr,f0:f}},
+  bell(f,vel,sr,R,m){const s=f*7<10000?Math.min(sr,24000):sr,T=clamp(13*Math.sqrt(196/f),3,13),dur=Math.min(7,T*.75),parts=[];
+    [[.5,.2,1],[1,.16,.8],[1.19,.2,.7],[1.5,.06,.5],[2,.3,.6],[2.51,.07,.35],[3.01,.12,.3],[4.07,.08,.2],[5.4,.04,.12],[6.8,.03,.08]].forEach(p=>{const dz=(.12+.3*R())/2;parts.push([f*p[0]-dz,p[1]*.6,T*p[2]],[f*p[0]+dz,p[1]*.4,T*p[2]*.9])});
+    const x=modal(s,dur,parts),n=Math.floor(s*.02),h=new Float32Array(n);for(let i=0;i<n;i++)h[i]=(R()*2-1)*Math.exp(-i/(s*.004));filt(h,biq("bandpass",1800,.8,0,s));for(let i=0;i<n;i++)x[i]+=h[i]*.25;
+    return {ch:[fadeEnd(level(x,s,.2,.5),Math.floor(s*.1))],sr:s,f0:f}},
+  timpani(f,vel,sr,R,m){const s=Math.min(sr,24000),x=modal(s,2.4,[[f,1,2.1],[f*1.5,.55,1.3],[f*1.99,.3,.9],[f*2.44,.18,.6],[f*2.89,.1,.45],[f*.85,.5,.12],[f*3.4,.08,.3]]),n=Math.floor(s*.04),h=new Float32Array(n);
+    for(let i=0;i<n;i++)h[i]=(R()*2-1)*Math.exp(-i/(s*.008));filt(h,biq("lowpass",500,.7,0,s));for(let i=0;i<n;i++)x[i]+=h[i]*.6;return {ch:[fadeEnd(level(x,s,.2,.3),Math.floor(s*.05))],sr:s,f0:f}},
+  // a2 · A3's instruments on A4's table model. glock: tuned bar (1 : 2.76 : 5.4), sounds as written (musicbox still plays an octave up)
+  glock(f,vel,sr,R,m){const k=clamp(Math.pow(2,-(m-84)/24),.45,1.5),x=modal(sr,1.9*k+.2,[[f,1,1.8*k],[f+.4,.18,1.5*k],[f*2.76,.35,.7*k],[f*5.4,.12,.25*k],[f*8.93,.04,.1*k]]),n=Math.floor(sr*.003);
+    for(let i=0;i<n;i++)x[i]+=(R()*2-1)*.3*(1-i/n);return {ch:[fadeEnd(level(x,sr,.2,.25),Math.floor(sr*.03))],sr,f0:f}},
+  // bass: pizzicato double bass (plucked string with a dark loop filter, body at 110/260 Hz, its 2nd and 3rd harmonics lifted so phones hear the line)
+  bass(f,vel,sr,R,m){const s=Math.min(sr,24000),x=ks(s,f,1.6,{damp:.5,pick:.2,t60:clamp(1.1*Math.pow(2,-(m-40)/30),.6,1.3),ex:.55},R);
+    [[110,4,1.2],[260,3,1.4],[f*2,5,2],[f*3,3,2.5]].forEach(b=>filt(x,biq("peaking",b[0],b[2],b[1],s)));filt(x,biq("highpass",Math.max(35,f*.6),.7,0,s));
+    return {ch:[fadeEnd(level(x,s,.2,.2),Math.floor(s*.03))],sr:s,f0:f}},
+  // sine: monitor tone, pure sine, 4 ms edges, 90 ms (A3: like a pulse oximeter)
+  sine(f,vel,sr,R,m){const n=Math.floor(sr*.11),x=new Float32Array(n),a=Math.floor(sr*.004),hd=Math.floor(sr*.088);let ph=0;
+    for(let i=0;i<n;i++){ph+=TAU*f/sr;const e=i<a?i/a:i<hd?1:Math.max(0,1-(i-hd)/a);x[i]=Math.sin(ph)*e}return {ch:[level(x,sr,.2,.09)],sr,f0:f}},
+  // brush: note 60 = swish (band-passed noise around 3 kHz, 30 ms in, 200 ms), 61 and up = hit (high-passed noise, 70 ms)
+  brush(f,vel,sr,R,m){const hit=m>=61,n=Math.floor(sr*(hit?.09:.26)),x=new Float32Array(n);for(let i=0;i<n;i++){const t=i/sr,e=hit?Math.min(1,t/.0015)*Math.exp(-t/.016):Math.min(1,t/.03)*Math.exp(-Math.max(0,t-.03)/.06);x[i]=(R()*2-1)*e}
+    filt(x,biq(hit?"highpass":"bandpass",hit?5000:3000,hit?.7:.9,0,sr));if(!hit)filt(x,biq("highpass",900,.7,0,sr));return {ch:[fadeEnd(level(x,sr,.2,hit?.03:.12),Math.floor(sr*.01))],sr,f0:f}}};
+// auxiliary one-shots (not pitched instruments)
+const AUX={
+  chiff(sr,R){const n=Math.floor(sr*.07),x=new Float32Array(n);for(let i=0;i<n;i++){const t=i/sr;x[i]=(R()*2-1)*Math.min(1,t/.004)*Math.exp(-t/.016)}filt(x,biq("bandpass",1500,1.5,0,sr));return level(x,sr,.2,.03)},
+  jack(sr,R){const n=Math.floor(sr*.014),x=new Float32Array(n);for(let i=0;i<n;i++)x[i]=(R()*2-1)*Math.exp(-i/(sr*.0025));filt(x,biq("highpass",2500,.7,0,sr));return level(x,sr,.2,.01)},
+  cup(sr,R){return level(modal(sr,.4,[[2140,1,.16],[3320,.6,.1],[5230,.35,.07],[7100,.15,.04]]),sr,.2,.08)},
+  drip(sr,R){const n=Math.floor(sr*.22),x=new Float32Array(n);let ph=0;for(let i=0;i<n;i++){const t=i/sr,f=900+2600*Math.exp(-t/.012)+500*t/.2;ph+=TAU*f/sr;x[i]=Math.sin(ph)*Math.exp(-t/.035)*Math.min(1,t/.001)}return level(x,sr,.2,.06)},
+  step(sr,R){const n=Math.floor(sr*.18),x=new Float32Array(n);for(let i=0;i<n;i++){const t=i/sr;x[i]=(R()*2-1)*Math.exp(-t/.012)}filt(x,biq("bandpass",900,.8,0,sr));const th=modal(sr,.18,[[150,1,.07],[230,.6,.05]]);for(let i=0;i<n;i++)x[i]=x[i]*.7+th[i];return level(x,sr,.2,.06)},
+  tick(sr,R){const x=modal(sr,.06,[[2900,1,.02],[4300,.5,.012],[1200,.4,.03]]);return level(x,sr,.2,.02)},
+  tock(sr,R){const x=modal(sr,.07,[[2200,1,.025],[3400,.4,.014],[900,.5,.035]]);return level(x,sr,.2,.02)}};
+// ---- stereo textures for ambience (seamless loops of prime-ish lengths; two copies at different rates are layered at run time)
+const TEX={
+  babble(sr,R){const N=Math.floor(sr*11.3),L=new Float32Array(N),Rr=new Float32Array(N),V=[[730,1090],[270,2290],[300,870],[530,1840],[570,840],[390,1990],[440,1020],[360,1500]];
+    for(let sp=0;sp<7;sp++){const f0=95+R()*130,pn=R()*1.6-.8,gl=Math.cos((pn+1)*Math.PI/4),gr=Math.sin((pn+1)*Math.PI/4);let t=R()*2;
+      while(t<11.3){const syl=3+Math.floor(R()*9);for(let k=0;k<syl&&t<11.3;k++){const d=.09+R()*.17,n=Math.floor(sr*d),x=new Float32Array(n),v=V[Math.floor(R()*V.length)],ff=f0*(1.12-.2*k/syl+.06*(R()-.5));let ph=R();
+          for(let i=0;i<n;i++){ph+=ff/sr;if(ph>=1){ph-=1;x[i]=1}x[i]+=(R()-.5)*.04}
+          const a=Float32Array.from(x);filt(a,biq("bandpass",v[0],5,0,sr));filt(x,biq("bandpass",v[1],7,0,sr));const amp=.5+R();
+          for(let i=0;i<n;i++){const e=Math.sin(Math.PI*i/n),s=(a[i]+.5*x[i])*e*e*amp,j=(Math.floor(t*sr)+i)%N;L[j]+=s*gl;Rr[j]+=s*gr}
+          if(R()<.3){const cn=Math.floor(sr*(.03+R()*.04)),c=new Float32Array(cn);for(let i=0;i<cn;i++)c[i]=(R()*2-1)*Math.sin(Math.PI*i/cn);filt(c,biq("bandpass",2800+R()*2500,1.2,0,sr));for(let i=0;i<cn;i++){const j=(Math.floor((t+d)*sr)+i)%N;L[j]+=c[i]*.06*gl;Rr[j]+=c[i]*.06*gr}}
+          t+=d+.02+R()*.05}t+=.4+R()*2.4}}
+    const k=biq("lowpass",2400,.7,0,sr);[L,Rr].forEach(x=>{filt(x,k);filt(x,biq("highpass",140,.7,0,sr))});const r=(rmsOf(L)+rmsOf(Rr))/2||1;scale(L,.1/r);scale(Rr,.1/r);return [soft(L,.25,.5),soft(Rr,.25,.5)]},
+  rain(sr,R){const N=Math.floor(sr*9.7),xf=Math.floor(sr*.4),ch=[];for(let c=0;c<2;c++){const h=noiseArr("pink",N+xf,R);filt(h,biq("highpass",1200,.7,0,sr));filt(h,biq("lowpass",6500,.7,0,sr));ch.push(scale(seam(h,N,xf),.5))}
+    const drops=Math.floor(9.7*34);for(let d=0;d<drops;d++){const big=R()<.07,f=big?500+R()*900:1800+R()*4200,t60=big?.05:.006+R()*.02,a=(big?.9:.5)*Math.pow(R(),2.5),x=modal(sr,t60*1.5+.004,[[f,a,t60],[f*1.6,a*.4,t60*.6]]),at=Math.floor(R()*N),pn=R(),gl=Math.cos(pn*Math.PI/2),gr=Math.sin(pn*Math.PI/2);
+      for(let i=0;i<x.length;i++){const j=(at+i)%N;ch[0][j]+=x[i]*gl;ch[1][j]+=x[i]*gr}}
+    const r=(rmsOf(ch[0])+rmsOf(ch[1]))/2||1;scale(ch[0],.1/r);scale(ch[1],.1/r);return [soft(ch[0],.25,.5),soft(ch[1],.25,.5)]},
+  fire(sr,R){const N=Math.floor(sr*12.7),xf=Math.floor(sr*.4),ch=[];for(let c=0;c<2;c++){const h=noiseArr("pink",N+xf,R);filt(h,biq("bandpass",1400,.5,0,sr));ch.push(scale(seam(h,N,xf),.25))}
+    let t=0;while(t<12.7){const act=.35+.65*Math.pow(Math.sin(t*.9)*.5+.5,2);t+=-Math.log(1-R()*.999)/(26*act);if(t>=12.7)break;const pop=R()<.05,n=Math.floor(sr*(pop?.02:.001+R()*.006)),x=new Float32Array(n);for(let i=0;i<n;i++)x[i]=(R()*2-1)*Math.exp(-i/(n*.3));
+      filt(x,biq("bandpass",pop?700+R()*600:1500+R()*4500,1+R()*2,0,sr));const a=(pop?1.6:.9)*Math.pow(R(),3)+.03,at=Math.floor(t*sr),pn=R(),gl=Math.cos(pn*Math.PI/2),gr=Math.sin(pn*Math.PI/2);for(let i=0;i<n;i++){const j=(at+i)%N;ch[0][j]+=x[i]*a*gl*6;ch[1][j]+=x[i]*a*gr*6}}
+    const r=(rmsOf(ch[0])+rmsOf(ch[1]))/2||1;scale(ch[0],.1/r);scale(ch[1],.1/r);return [soft(ch[0],.25,.5),soft(ch[1],.25,.5)]}};
+const NOISE={white:5.3,pink:8.9,brown:12.7};
+function noiseTex(kind,sr,R){const N=Math.floor(sr*NOISE[kind]),xf=Math.floor(sr*.3),ch=[];for(let c=0;c<2;c++){const x=seam(noiseArr(kind,N+xf,R),N,xf);scale(x,.2/(rmsOf(x)||1));ch.push(x)}return ch}
+
+// ---- impulse responses: image-source early reflections of a shoebox + three-band exponentially decaying stereo noise tail; unit energy
+const ROOMS={
+  forest:{pre:.012,t60:[.7,.9,.5],box:null,echo:[.18,.32,9],late:.5,wet:.2},
+  cafe:{pre:.004,t60:[.7,.6,.4],box:[9,6,3.4],refl:.72,late:.8,wet:.16},
+  study:{pre:.003,t60:[.8,.7,.35],box:[5,4,3],refl:.6,late:.9,wet:.15},
+  street:{pre:.008,t60:[1.3,1.1,.7],box:[14,40,12],refl:.55,echo:[.105,.12,2],late:.7,wet:.2},
+  stone:{pre:.035,t60:[4.2,3.6,1.9],box:[18,22,14],refl:.88,late:1,wet:.38}};
+function makeIR(name,sr,maxLen){const o=ROOMS[name]||ROOMS.study,R=rng(hash("ir"+name)),len=Math.min(maxLen||9,Math.max.apply(null,o.t60)*1.15+o.pre+.1),N=Math.floor(sr*len),ch=[new Float32Array(N),new Float32Array(N)],p0=Math.floor(o.pre*sr);
+  const tap=(t,g,pn)=>{const i=p0+Math.floor(t*sr);if(i<N-1){ch[0][i]+=g*Math.cos((pn+1)*Math.PI/4);ch[1][i]+=g*Math.sin((pn+1)*Math.PI/4)}};
+  if(o.box){const Lx=o.box[0],Ly=o.box[1],Lz=o.box[2],s=[Lx*.3,Ly*.25,1.5],l=[Lx*.6,Ly*.62,1.6],d0=Math.hypot(s[0]-l[0],s[1]-l[1],s[2]-l[2]);
+    for(let nx=-1;nx<=1;nx++)for(let px=0;px<2;px++)for(let ny=-1;ny<=1;ny++)for(let py=0;py<2;py++)for(let nz=-1;nz<=1;nz++)for(let pz=0;pz<2;pz++){const ord=Math.abs(nx-px)+Math.abs(nx)+Math.abs(ny-py)+Math.abs(ny)+Math.abs(nz-pz)+Math.abs(nz);if(!ord||ord>3)continue;
+      const x=(1-2*px)*s[0]+2*nx*Lx-l[0],y=(1-2*py)*s[1]+2*ny*Ly-l[1],z=(1-2*pz)*s[2]+2*nz*Lz-l[2],d=Math.hypot(x,y,z);tap((d-d0)/343,Math.pow(o.refl,ord)*d0/d*(ord%2?1:-1),clamp(x/d,-1,1)*.8)}}
+  if(o.echo)for(let i=0;i<o.echo[2];i++)tap(o.echo[0]+R()*(o.echo[1]-o.echo[0])*(1+i*.4),(.5/(1+i*.7))*(R()<.5?-1:1),R()*1.6-.8);
+  const mix=o.box?Math.min(.08,Math.sqrt(o.box[0]*o.box[1]*o.box[2])*.0018):.03,m0=p0+Math.floor(mix*sr*.3),bands=[["lowpass",350],["bandpass",1200],["highpass",3500]];
+  for(let c=0;c<2;c++){for(let b=0;b<3;b++){const x=new Float32Array(N-m0);for(let i=0;i<x.length;i++)x[i]=R()*2-1;filt(x,biq(bands[b][0],bands[b][1],b===1?.5:.7,0,sr));const dk=Math.exp(-6.908/(o.t60[b]*sr)),up=mix*sr;let en=o.late*.05;for(let i=0;i<x.length;i++){ch[c][m0+i]+=x[i]*en*(i<up?i/up:1);en*=dk}}}
+  let e=0;for(let c=0;c<2;c++)for(let i=0;i<N;i++)e+=ch[c][i]*ch[c][i];const g=1/Math.sqrt(e/2||1);scale(ch[0],g);scale(ch[1],g);fadeEnd(ch[0],Math.floor(sr*.05));fadeEnd(ch[1],Math.floor(sr*.05));return ch}
+
+// ---- loudness: ITU-R BS.1770 K-weighting + gating (integrated LUFS); also momentary maximum
+function lufs(chs,sr){const K=Math.tan(Math.PI*1681.974450955533/sr),Vh=Math.pow(10,3.999843853973347/20),Vb=Math.pow(Vh,.4996667741545416),Q=.7071752369554196,a0=1+K/Q+K*K,
+    s1=[(Vh+Vb*K/Q+K*K)/a0,2*(K*K-Vh)/a0,(Vh-Vb*K/Q+K*K)/a0,2*(K*K-1)/a0,(1-K/Q+K*K)/a0],K2=Math.tan(Math.PI*38.13547087602444/sr),Q2=.5003270373238773,c0=1+K2/Q2+K2*K2,s2=[1,-2,1,2*(K2*K2-1)/c0,(1-K2/Q2+K2*K2)/c0];
+  const w=chs.map(x=>filt(filt(Float32Array.from(x),s1),s2)),bl=Math.floor(.4*sr),hop=Math.floor(.1*sr),z=[];
+  for(let a=0;a+bl<=w[0].length;a+=hop){let s=0;for(let c=0;c<w.length;c++){let q=0;const x=w[c];for(let i=a;i<a+bl;i++)q+=x[i]*x[i];s+=q/bl}z.push(s)}
+  if(!z.length)return {i:-99,m:-99};const L=v=>-.691+10*Math.log10(v||1e-12),g1=z.filter(v=>L(v)>-70);if(!g1.length)return {i:-99,m:-99};
+  const rel=L(g1.reduce((a,b)=>a+b,0)/g1.length)-10,g2=g1.filter(v=>L(v)>rel);return {i:L(g2.reduce((a,b)=>a+b,0)/Math.max(1,g2.length)),m:L(Math.max.apply(null,z))}}
+function stats(chs,sr){let p=0,s=0,n=0;chs.forEach(x=>{p=Math.max(p,peakOf(x));for(let i=0;i<x.length;i++)s+=x[i]*x[i];n+=x.length});const l=lufs(chs,sr);return {peak:+toDb(p).toFixed(1),rms:+toDb(Math.sqrt(s/n)).toFixed(1),lufs:+l.i.toFixed(1),mom:+l.m.toFixed(1)}}
+
+// =====================================================================================================================
+// 2. INSTRUMENTS. trim = dB, measured: the reference phrase (ref, 8 notes, velocity .75) = −18 LUFS integrated at the default fader.
+//    kind pad: looped PADsynth table + live envelope (a = attack, r = release, seconds). kind shot: rendered note + damper (rel).
+// =====================================================================================================================
+const saw=(n,p)=>f=>{const P=[];for(let k=1;k<=n;k++)P.push([k,Math.pow(k,-p)]);return P};
+const PADS={
+  organ:{st:1,bw:3,form:f=>1/(1+Math.pow(f/5200,3)),parts:f=>{const P=[],st=[[1,1],[2,.5],[3,.22],[4,.3],[6,.1],[8,.12]];if(f<131)st.push([.5,.7]);st.forEach(s=>{for(let k=1;k<=8;k++)P.push([s[0]*k,s[1]*Math.pow(k,-1.25)*(k%2?1:.7)])});return P}},
+  gedackt:{st:1,bw:2,form:f=>1/(1+Math.pow(f/3500,3)),parts:f=>{const P=[[7,.03,500]];[[1,1],[2,.28]].forEach(s=>{for(let k=1;k<=9;k++)P.push([s[0]*k,s[1]*Math.pow(k,-1.5)*(k%2?1:.12)])});return P}},
+  strings:{st:1,N:65536,bw:18,parts:saw(48,1),form:formant([[280,90,1],[450,90,.7],[700,150,.8],[1200,300,.5],[2600,600,.55],[3500,800,.25]],.12,6500)},
+  cello:{bw:4,parts:saw(40,1.05),form:formant([[175,40,.8],[250,60,1],[400,80,.9],[600,120,.6],[900,200,.5],[1500,300,.35],[2500,500,.3]],.1,5000)},
+  violin:{bw:4,parts:saw(30,1),form:formant([[280,40,.9],[460,70,1],[700,150,.5],[1000,250,.45],[2700,500,.8],[3400,600,.4]],.1,7000)},
+  clarinet:{bw:2,parts:f=>{const P=[];for(let k=1;k<=25;k++)P.push([k,Math.pow(k,-1.1)*(k%2?1:Math.min(.6,.04*k))]);return P},form:formant([[1700,700,.6]],.7,4500)},
+  horn:{bw:3,parts:saw(20,.8),form:formant([[340,180,1],[700,300,.5]],.04,1500)},
+  choir:{st:1,N:65536,bw:28,parts:saw(40,1.4),form:formant([[310,70,1],[760,90,.5],[2350,150,.06],[3200,200,.03]],.01)},
+  accordion:{bw:1,det:[[0,1],[13,.8],[-8,.6]],parts:f=>{const P=[];for(let k=1;k<=32;k++)P.push([k,Math.pow(k,-.85)*(k%2?1:.75)]);return P},form:formant([[1200,500,.5]],.6,3800)},
+  trumpet:{bw:2.5,parts:saw(30,.4),form:formant([[1250,350,.7],[2300,500,1],[3400,700,.7]],.03,6000)}};
+const REF=[60,64,67,72,67,64,60,55];
+const INST={
+  piano:      {kind:"shot",trim:  3.1, lo:21,hi:108,vl:1,vc:1.6,rel:.16,pan:.45,human:7,ref:REF},
+  harpsichord:{kind:"shot",trim: -0.5, lo:29,hi:96, vc:.5,rel:.07,pan:.3,human:5,roll:9,off:"jack",ref:REF},
+  zither:     {kind:"shot",trim:  2.2, lo:36,hi:96, vc:1.3,pan:.3,human:8,roll:14,ref:REF},
+  banjo:      {kind:"shot",trim:  3.6,   lo:36,hi:91, vc:1.2,pan:.2,human:6,roll:16,ref:REF},
+  musicbox:   {kind:"shot",trim:  0.8,   lo:60,hi:108,oct:12,vc:1,pan:.35,human:2,ref:REF},
+  celesta:    {kind:"shot",trim:  2.9,   lo:48,hi:108,vc:1.4,pan:.3,human:4,ref:[72,76,79,84,79,76,72,67]},
+  bell:       {kind:"shot",trim:  0.6,   lo:36,hi:96, vc:1.2,pan:0,human:0,bucket:1,ref:[55,62,55,62]},
+  timpani:    {kind:"shot",trim:  3.6,   lo:33,hi:64, vc:1.5,pan:0,human:4,bucket:2,ref:[41,48,43,41,48,43,41,36]},
+  organ:      {kind:"pad", trim: -5.2, lo:24,hi:96, vc:.4,a:.05,r:.22,chiff:.22,trem:[5.5,.05],human:0,ref:REF},
+  gedackt:    {kind:"pad", trim: -4.8,   lo:24,hi:96, vc:.4,a:.06,r:.2,chiff:.3,human:0,ref:REF},
+  strings:    {kind:"pad", trim: -2.7, lo:28,hi:96, vc:1,a:.32,r:.6,human:12,ref:REF},
+  cello:      {kind:"pad", trim:  0.6, lo:36,hi:76, vc:1.2,a:.09,r:.18,vib:[5.6,16,.25],pan:.15,human:10,ref:[48,52,55,60,55,52,48,43]},
+  violin:     {kind:"pad", trim: -0.9,  lo:55,hi:100,vc:1.2,a:.07,r:.15,vib:[5.9,18,.2],pan:-.15,human:10,ref:[72,76,79,84,79,76,72,67]},
+  clarinet:   {kind:"pad", trim:  0.0, lo:50,hi:91, vc:1.2,a:.05,r:.1,vib:[4.8,5,.4],pan:.1,human:8,ref:REF},
+  horn:       {kind:"pad", trim:  0.9,   lo:34,hi:96, vc:1.3,a:.09,r:.2,pan:-.2,human:10,ref:[48,52,55,60,55,52,48,43]},
+  choir:      {kind:"pad", trim: -3.0,   lo:40,hi:84, vc:.8,a:.4,r:.7,human:15,ref:REF},
+  accordion:  {kind:"pad", trim: -0.9,  lo:40,hi:93, vc:.9,a:.04,r:.09,pan:.1,human:8,ref:REF},
+  trumpet:    {kind:"pad", trim: -1.8,  lo:52,hi:84, vc:1.3,a:.03,r:.08,vib:[5.2,10,.3],pan:.2,human:9,ref:[65,69,72,77,72,69,65,60]},
+  // a2 · A3's four new voices (trims: reference phrase −18 LUFS, measured with selfTest)
+  glock:      {kind:"shot",trim: 1.6, lo:55,hi:110,vc:1.1,pan:.3,human:3,ref:[72,76,79,84,79,76,72,67]},
+  bass:       {kind:"shot",trim: 3.5, lo:28,hi:67, vc:1.2,rel:.1,pan:0,human:4,bucket:2,ref:[36,43,40,45,43,40,38,36]},
+  sine:       {kind:"shot",trim: 6.5, lo:48,hi:100,vc:1,pan:0,human:0,bucket:1,ref:[76,76,76,76,76,76,76,76]},
+  brush:      {kind:"shot",trim: 3.6, lo:55,hi:70, vc:1,pan:.2,human:5,bucket:1,ref:[60,62,60,62,60,62,60,62]}};
+// A3's names for A4's voices
+const ALIAS={clar:"clarinet",timp:"timpani",glockenspiel:"glock",spieldose:"musicbox",kontrabass:"bass",pauke:"timpani",orgel:"organ",cembalo:"harpsichord",klavier:"piano"};
+const iname=n=>INST[n]?n:INST[ALIAS[n]]?ALIAS[n]:"piano";
+const bank={},aux={},irs={},HOOK={};   // HOOK.v(name,midi,t,vel,seq,out): test probe for every voice (tests/snd_node.js)
+function mkBuf(ac,chs,sr){const b=ac.createBuffer(chs.length,chs[0].length,sr);for(let c=0;c<chs.length;c++)b.getChannelData(c).set(chs[c]);return b}
+function tsr(ac){return ac.sampleRate>48000?48000:ac.sampleRate}
+function foldM(I,m){m+=(I.oct||0);while(m<I.lo)m+=12;while(m>I.hi)m-=12;return m}
+function tkey(name,m,vel){const I=INST[name],b=I.bucket||3,mb=Math.round(m/b)*b,vl=I.vl&&vel>=.6?1:0;return [name,mb,vl]}
+let bankN=0,bankT=0;
+function getTable(ac,name,m,vel){const k=tkey(name,m,vel),id=k[0]+":"+k[1]+":"+k[2]+"@"+tsr(ac);let T=bank[id];if(T){T.u=++bankT;return T}const I=INST[name],f=hz(k[1]),sr=tsr(ac),
+    r=I.kind==="pad"?pad(PADS[name],f,sr,hash(id)):SHOT[name](f,I.vl?(k[2]?.85:.45):.75,sr,rng(hash(id)),k[1]);T=bank[id]={buf:mkBuf(ac,r.ch,r.sr),f0:r.f0,loop:!!r.loop,u:++bankT};
+  if(++bankN>96){Object.keys(bank).sort((a,b)=>bank[a].u-bank[b].u).slice(0,24).forEach(x=>{delete bank[x];bankN--})}return T}        // least recently used tables are dropped (about 0.4 MB each)
+function getAux(ac,name){const id=name+"@"+tsr(ac);if(aux[id])return aux[id];const sr=tsr(ac),R=rng(hash(id));let chs;if(AUX[name])chs=[AUX[name](sr,R)];else if(TEX[name])chs=TEX[name](sr,R);else chs=noiseTex(name,sr,R);return aux[id]=mkBuf(ac,chs,sr)}
+function getIR(ac,name,maxLen){const id=name+"@"+tsr(ac)+"/"+(maxLen||0);return irs[id]||(irs[id]=mkBuf(ac,makeIR(name,tsr(ac),maxLen),tsr(ac)))}
+// render tables in slices so the main thread never blocks for more than ~12 ms at a time
+function prewarm(ac,keys,cb){let i=0;const step=()=>{const t0=Date.now();while(i<keys.length&&Date.now()-t0<12){const k=keys[i++];try{typeof k==="string"?getAux(ac,k):getTable(ac,k[0],k[1],k[2])}catch(e){}}if(i<keys.length)setTimeout(step,0);else cb()};step()}
+
+// =====================================================================================================================
+// 3. RIG: buses, post-fader reverb sends, limiter. Used live and (bare) for offline rendering.
+// =====================================================================================================================
+const LIM={thr:-3,ratio:20,ceil:-1};LIM.full=LIM.thr-LIM.thr/LIM.ratio;LIM.makeup=-.6*LIM.full;LIM.post=LIM.ceil-(LIM.full+LIM.makeup);LIM.net=LIM.makeup+LIM.post;   // DynamicsCompressor adds make-up gain (1/fullRange)^0.6
+const DEF={music:.55,amb:.45,fx:.6},SEND={music:1,amb:.5,fx:.7};
+function bq(ac,type,f,Q){const n=ac.createBiquadFilter();n.type=type;n.frequency.value=f;n.Q.value=(type==="lowpass"||type==="highpass")?20*Math.log10(Q||.707):(Q||1);return n}   // WebAudio LP/HP take Q in dB
+function pn(ac,node,p,out){if(ac.createStereoPanner){const x=ac.createStereoPanner();x.pan.value=clamp(p||0,-1,1);node.connect(x);x.connect(out)}else{const g=ac.createGain();g.gain.value=.707;node.connect(g);g.connect(out)}}
+function mkBus(ac){const b={in:ac.createGain(),fader:ac.createGain(),dz:ac.createGain(),dFx:ac.createGain(),dV:ac.createGain(),send:ac.createGain()};b.in.connect(b.fader);b.fader.connect(b.dz);b.dz.connect(b.dFx);b.dFx.connect(b.dV);b.dV.connect(b.send);return b}   // in → fader → doze → fx duck → voice duck (→ dry mix, → post-fader reverb send)
+function mkRig(ac,full){const r={ac,full,seqs:[],voices:[],maxV:28,saver:false,trimAdj:0,music:mkBus(ac),amb:mkBus(ac),fx:mkBus(ac)};
+  r.mix=ac.createGain();["music","amb","fx"].forEach(k=>r[k].dV.connect(r.mix));
+  if(!full){["music","amb","fx"].forEach(k=>r[k].send.gain.value=0);r.mix.connect(ac.destination);return r}
+  r.hp=bq(ac,"highpass",30,.707);r.pre=ac.createGain();r.pre.gain.value=db(-LIM.net);r.lim=ac.createDynamicsCompressor();r.lim.threshold.value=LIM.thr;r.lim.knee.value=0;r.lim.ratio.value=LIM.ratio;r.lim.attack.value=.002;r.lim.release.value=.12;
+  r.post=ac.createGain();r.post.gain.value=db(LIM.post);r.out=ac.createGain();r.out.gain.value=0;
+  r.mix.connect(r.hp);r.hp.connect(r.pre);r.pre.connect(r.lim);r.lim.connect(r.post);
+  if(ac.createWaveShaper){const n=2049,c=new Float32Array(n);for(let i=0;i<n;i++){const x=i/(n-1)*2-1,a=Math.abs(x);c[i]=(a<=.75?a:.75+.141*Math.tanh((a-.75)/.141))*(x<0?-1:1)}r.clip=ac.createWaveShaper();r.clip.curve=c;r.post.connect(r.clip);r.clip.connect(r.out)}else r.post.connect(r.out);
+  r.out.connect(ac.destination);
+  r.revIn=ac.createGain();["music","amb","fx"].forEach(k=>r[k].send.connect(r.revIn));r.conv=[0,1].map(()=>{const c=ac.createConvolver(),w=ac.createGain();c.normalize=false;w.gain.value=0;r.revIn.connect(c);c.connect(w);w.connect(r.mix);return {c,w}});r.convI=0;return r}
+// the room is rendered off the gesture (setTimeout) and cross-faded in over ~1.5 s; the old room keeps sounding meanwhile
+function setIR(r,name){if(!r.full||r.room===name)return;r.room=name;setTimeout(()=>{if(r.room!==name)return;let buf;try{buf=getIR(r.ac,name,r.saver?1.2:0)}catch(e){return}
+    const t=r.ac.currentTime,nx=r.conv[r.convI^1],old=r.conv[r.convI],o=ROOMS[name]||ROOMS.study;nx.w.gain.cancelScheduledValues(t);nx.w.gain.setValueAtTime(0,t);try{nx.c.buffer=buf}catch(e){return}
+    r.convI^=1;nx.w.gain.setTargetAtTime(o.wet,t+.02,.5);old.w.gain.cancelScheduledValues(t);old.w.gain.setTargetAtTime(0,t,.5)},0)}
+
+// =====================================================================================================================
+// 4. VOICES
+// =====================================================================================================================
+function auxShot(r,name,rate,t,g,out,pan){const ac=r.ac,B=getAux(ac,name),s=ac.createBufferSource(),gn=ac.createGain();s.buffer=B;s.playbackRate.value=rate||1;gn.gain.value=g;s.connect(gn);pn(ac,gn,pan,out);s.start(t);s.stop(t+B.duration/(rate||1)+.02)}
+function voice(r,name,midi,t,dur,vel,out,q){const ac=r.ac;name=iname(name);const I=INST[name],m=foldM(I,midi),T=getTable(ac,name,m,vel),f=hz(m),src=ac.createBufferSource(),g=ac.createGain();
+  src.buffer=T.buf;const rate=f/T.f0;src.playbackRate.value=rate;const peak=db(I.trim+r.trimAdj)*Math.pow(clamp(vel,.05,1.25),I.vc||1);let end;
+  // steal the oldest voice when the polyphony limit is reached
+  let n=0,old=null;for(let i=0;i<r.voices.length;i++){const v=r.voices[i];if(v.end>t&&v.t<=t+.001){n++;if(!old||v.t<old.t)old=v}}
+  if(n>=r.maxV&&old){try{old.g.gain.cancelScheduledValues(t);old.g.gain.setTargetAtTime(0,t,.012);old.src.stop(t+.09)}catch(e){}old.end=t}
+  if(T.loop){src.loop=true;g.gain.setValueAtTime(0,t);g.gain.setTargetAtTime(peak,t,I.a/3);const tr=t+Math.max(dur,I.a*.5);g.gain.setTargetAtTime(0,tr,I.r/3);end=tr+I.r*2.4;src.start(t,Math.random()*T.buf.duration)}
+  else{const bd=T.buf.duration/rate;end=t+bd;g.gain.setValueAtTime(peak,t);if(I.rel!=null&&dur+I.rel*2.4<bd){const tr=t+Math.max(dur,.03);g.gain.setTargetAtTime(0,tr,I.rel/3);end=tr+I.rel*2.4;if(I.off&&!r.saver)auxShot(r,I.off,1,tr,peak*.12,out,0)}src.start(t)}
+  src.stop(end+.02);src.connect(g);
+  if(I.vib&&src.detune&&!r.saver&&dur>I.vib[2]+.12){const lf=ac.createOscillator(),lg=ac.createGain();lf.frequency.value=I.vib[0]*(.94+Math.random()*.12);lg.gain.setValueAtTime(0,t);lg.gain.setTargetAtTime(I.vib[1],t+I.vib[2],.18);lf.connect(lg);lg.connect(src.detune);lf.start(t);lf.stop(end+.02)}
+  if(T.buf.numberOfChannels>1)g.connect(out);else pn(ac,g,((m-60)/30)*(I.pan||0)+(Math.random()-.5)*.08,out);
+  if(I.chiff&&!r.saver)auxShot(r,"chiff",clamp(f/261.6,.4,3),t,peak*I.chiff*vel,out,0);
+  r.voices.push({t,end,g,src,q});if(HOOK.v)try{HOOK.v(name,m,t,vel,q,out)}catch(e){}return end}
+// short noise and tone events (ambience, effects). Noise comes from long looping buffers at a random offset: nothing is truncated.
+function nz(r,t,dur,o){const ac=r.ac,B=getAux(ac,o.src||"white"),s=ac.createBufferSource(),g=ac.createGain(),a=o.a==null?.004:o.a,h=o.h||0;s.buffer=B;s.loop=true;let n=s;
+  if(o.type){const f=bq(ac,o.type,o.f,o.Q);if(o.f2){f.frequency.setValueAtTime(o.f,t);f.frequency.exponentialRampToValueAtTime(o.f2,t+dur)}s.connect(f);n=f}
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(o.g,t+a);g.gain.setTargetAtTime(0,t+a+h,Math.max(.002,(dur-a-h)/6));n.connect(g);pn(ac,g,o.pan,o.out);s.start(t,Math.random()*B.duration);s.stop(t+dur+.05)}
+function tn(r,t,dur,o){const ac=r.ac,s=ac.createOscillator(),g=ac.createGain(),a=o.a==null?.01:o.a,h=o.h||0;s.type=o.type||"sine";s.frequency.setValueAtTime(o.f,t);if(o.f2)s.frequency.exponentialRampToValueAtTime(o.f2,t+dur);
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(o.g,t+a);g.gain.setTargetAtTime(0,t+a+h,Math.max(.002,(dur-a-h)/6));let n=s;if(o.lp){const f=bq(ac,"lowpass",o.lp,.707);s.connect(f);n=f}n.connect(g);pn(ac,g,o.pan,o.out);s.start(t);s.stop(t+dur+.05)}
+
+// a2 · key names as A3 writes them ("a-Moll", "g-Moll", "C", "d", "Fis-Dur", "Ganzton auf C", "a-Moll → C-Dur") → {pc, minor}
+function keyOf(k){if(k==null||k==="")return null;if(typeof k==="number")return {pc:((Math.round(k)%12)+12)%12,minor:false};let s=String(k).trim();const wt=/ganzton|whole/i.test(s);if(wt){const m=s.match(/auf\s+([A-Ha-h])/i);s=m?m[1].toUpperCase():"C"}
+  const m=s.match(/^([A-Ha-h])(is|es|s|#|b(?![a-z]))?(?:\s*[- ]?\s*(moll|dur|minor|major|m)\b)?/i);if(!m)return null;const L=m[1],pcs={c:0,d:2,e:4,f:5,g:7,a:9,h:11,b:10},acc=(m[2]||"").toLowerCase();
+  let pc=pcs[L.toLowerCase()]+(acc==="is"||acc==="#"?1:acc?-1:0);const q=(m[3]||"").toLowerCase(),minor=q?(q==="moll"||q==="minor"||q==="m"):(!wt&&L===L.toLowerCase());return {pc:((pc%12)+12)%12,minor,wt}}
+// semitones that move a cue written in C major / A minor onto that key, folded into −6…+5
+function keyShift(K){if(!K)return 0;let t=K.minor?K.pc-9:K.pc;t=((t%12)+12)%12;return t>5?t-12:t}
+const TERMINAL={victory:1,defeat:1,outro:1,end:1,coda:1,win:1,lose:1};
+// =====================================================================================================================
+// 5. SEQUENCER: sample-accurate, lookahead, loops, sections, layers, tempo maps, humanisation. Times are AudioContext times.
+//    def, A4 form: {id,bpm,steps,bar,loop:true,swing,human,inst,ev,ev2,fmt,gain,layers:[{name,inst,ev,on,gain}]}
+//    def, A3 form: {id,key,bpm,bar,steps,loop:[a,b],marks:{intro:[a,b],loop:[a,b],…},tempo:[[step,bpm],…],tracks:[{layer,name,inst,ev}]}
+//    a step is a 16th note. ev rows: [midi,start,dur,vel?] (fmt "msd", default) or [start,dur,midi,vel?] (fmt "sdm", PAKT_MUSIC); vel > 1.5 is MIDI (÷100).
+//    o: {dest, layers:[names on], section, gain (dB), human (scale), onloop, onsection, onend}
+// =====================================================================================================================
+function Seq(r,def,o){o=o||{};const ac=r.ac;this.r=r;this.def=def;this.bpm=def.bpm||84;this.bar=def.bar||16;this.swing=def.swing||0;this.human=(def.human==null?1:def.human)*(o.human==null?1:o.human);
+  this.beat=def.beat||(/\/8/.test(def.meter||"")&&this.bar%6===0?6:4);this.a3=!!def.tracks;this.key=keyOf(def.key);
+  this.out=ac.createGain();this.out.connect(o.dest||r.music.in);this.layers=[];this.lanes=[];this.ev=[];this.i=0;this.base=0;this.loopN=0;this.cs=0;this.ct=0;this.ramp=0;this.inc=0;this.stopStep=Infinity;this.done=false;this.started=false;this.endT=0;
+  this.onloop=o.onloop||null;this.onend=o.onend||null;this.onsection=o.onsection||null;this.queued=null;this.cut=null;
+  const sdm=def.fmt==="sdm",T=[];
+  if(def.tracks){const first=def.tracks.length?(def.tracks[0].layer||"main"):"main",want=o.layers||[first];def.tracks.forEach(t=>{const n=t.layer||"main";T.push({layer:n,inst:t.inst,ev:t.ev||[],gain:t.gain,on:want.indexOf(n)>=0})})}
+  else{const L=(def.layers||[]).slice();if(def.ev)L.unshift({name:"main",inst:def.inst,ev:def.ev,on:true});if(def.ev2)L.push({name:"danger",inst:def.inst2||def.inst,ev:def.ev2,on:false});
+    L.forEach((l,li)=>{const n=l.name||("L"+li);T.push({layer:n,inst:l.inst,ev:l.ev||[],lgain:l.gain,on:o.layers?o.layers.indexOf(n)>=0:l.on!==false})})}
+  const lay={};let maxEnd=0,dsum=0;
+  T.forEach((t,ti)=>{let L=lay[t.layer];if(!L){const g=ac.createGain();L=lay[t.layer]={name:t.layer,g,gain:t.lgain==null?1:t.lgain,on:t.on,from:t.on?0:Infinity,to:Infinity,idx:this.layers.length};g.gain.value=t.on?L.gain:0;g.connect(this.out);this.layers.push(L)}
+    const inst=iname(t.inst),I=INST[inst],lg=ac.createGain();lg.gain.value=t.gain==null?1:t.gain;lg.connect(L.g);const lane={inst,g:lg,L:L.idx};
+    if(I.trem&&!r.saver){const lf=ac.createOscillator(),q=ac.createGain();lf.frequency.value=I.trem[0];q.gain.value=I.trem[1]*lg.gain.value;lf.connect(q);q.connect(lg.gain);lf.start();lane.lfo=lf}
+    this.lanes.push(lane);const li=this.lanes.length-1,rows=t.ev.map(e=>{const x=sdm?{s:e[0],d:e[1],m:e[2],v:e[3]}:{s:e[1],d:e[2],m:e[0],v:e[3]};if(x.v!=null&&x.v>1.5)x.v/=100;x.ln=li;x.i=inst;x.L=L.idx;return x}),by={};
+    rows.forEach(e=>{(by[e.s]=by[e.s]||[]).push(e)});
+    Object.keys(by).forEach(k=>{const grp=by[k].sort((a,b)=>a.m-b.m);grp.forEach((e,j)=>{e.k=j;if(e.v==null){e.v=grp.length===1?.76:j===grp.length-1?.82:j===0?.68:.55;e.v+=e.s%16===0?.06:e.s%8===0?.03:0}})});
+    rows.forEach(e=>{this.ev.push(e);if(e.s+e.d>maxEnd)maxEnd=e.s+e.d;if(t.on)dsum+=e.d})});
+  this.ev.sort((a,b)=>a.s-b.s||a.m-b.m);this.steps=def.steps||Math.max(1,Math.ceil(maxEnd));
+  // sections: marks, or loop:[a,b] (with an optional lead-in), or the whole piece
+  const LR=Array.isArray(def.loop)?def.loop:null;this.loop=!!def.loop;this.marks=def.marks||null;this.flow=def.flow||null;this.segs={};
+  if(this.marks)Object.keys(this.marks).forEach(k=>{const m=this.marks[k];if(Array.isArray(m)&&m[1]>m[0])this.segs[k]=m});
+  else if(LR){if(LR[0]>0)this.segs.pre=[0,LR[0]];this.segs.loop=[LR[0],LR[1]>LR[0]?LR[1]:this.steps]}
+  else this.segs.main=[0,this.steps];
+  const ks=Object.keys(this.segs);this.first=o.section&&this.segs[o.section]?o.section:this.segs.intro?"intro":this.segs.pre?"pre":this.segs.loop&&!this.marks?"loop":this.segs.main?"main":ks[0];
+  this.tmap=null;if(Array.isArray(def.tempo)&&def.tempo.length){this.tmap=new Map();this.tlist=def.tempo.slice().sort((a,b)=>a[0]-b[0]);this.tlist.forEach(p=>this.tmap.set(p[0],p[1]))}
+  this.setSeg(this.first,0);
+  let poly=dsum/Math.max(1,this.steps);if(this.marks&&this.segs.loop){let ds=0;const a=this.segs.loop[0],b=this.segs.loop[1];this.ev.forEach(e=>{if(e.s>=a&&e.s<b&&this.layers[e.L].on)ds+=e.d});poly=ds/Math.max(1,b-a)}
+  this.out.gain.value=(def.gain==null?1:def.gain)*db((o.gain||0)+(def.gainDb||0))*(def.norm===false?1:db(-9*Math.log10(Math.max(1,poly))))}        // level by mean polyphony (dB extras on top)
+Seq.prototype={
+  spt(){return 60/this.bpm/4},
+  peek(A){return this.ct+(A-this.cs)*this.spt()},
+  tempoAt(ps){let b=null;if(this.tlist)for(const p of this.tlist){if(p[0]<=ps)b=p[1];else break}return b},
+  setSeg(name,base){const sg=this.segs[name]||[0,this.steps];this.sec=name;this.segA=sg[0];this.segB=sg[1];this.base=base;let lo=0,hi=this.ev.length;while(lo<hi){const m=(lo+hi)>>1;if(this.ev[m].s<sg[0])lo=m+1;else hi=m}this.i=lo;
+    if(this.tmap){const b=this.tempoAt(sg[0]);if(b){this.bpm=b;this.ramp=0}}},
+  next(name){if(this.queued&&this.segs[this.queued]){const n=this.queued;this.queued=null;return n}this.queued=null;if(this.flow&&Object.prototype.hasOwnProperty.call(this.flow,name))return this.flow[name];
+    if(name==="pre"||name==="intro")return this.segs.loop?"loop":null;if(TERMINAL[name])return null;if(name==="main")return this.loop?"main":null;return name},
+  adv(A){while(this.cs<A){const nx=Math.min(A,Math.floor(this.cs+1e-9)+1);this.ct+=(nx-this.cs)*this.spt();this.cs=nx;
+      if(nx===Math.floor(nx)){if(this.ramp>0){this.bpm+=this.inc;this.ramp--}if(this.tmap){const b=this.tmap.get(this.segA+(nx-this.base));if(b!=null){this.bpm=b;this.ramp=0}}}}return this.ct},
+  keys(){const seen={},out=[];this.ev.forEach(e=>{const I=INST[e.i],k=tkey(e.i,foldM(I,e.m),e.v),id=k.join(":");if(!seen[id]){seen[id]=1;out.push(k)}});return out},
+  start(t0){this.ct=t0;this.cs=0;this.started=true;this.t0=t0;this.setSeg(this.first,0);if(this.tmap){const b=this.tempoAt(this.segA);if(b)this.bpm=b}},
+  // the step that is sounding at audio time t (the cursor runs up to one lookahead ahead of the clock)
+  stepAt(t){return this.cs-(this.ct-t)/this.spt()},
+  timeOf(A){return this.ct-(this.cs-A)*this.spt()},
+  tick(H){if(this.done||!this.started)return;const ev=this.ev,r=this.r,now=r.ac.currentTime;
+    for(let guard=0;guard<4000;guard++){
+      const segEnd=this.base+(this.segB-this.segA);let e=this.i<ev.length?ev[this.i]:null;if(e&&e.s>=this.segB)e=null;const A=e?this.base+(e.s-this.segA):segEnd;
+      if(this.cut&&A>=this.cut.at&&this.cut.at<this.stopStep){const c=this.cut;if(this.peek(c.at)>H)return;this.cut=null;this.adv(c.at);this.setSeg(c.name,c.at);if(this.onsection)try{this.onsection(c.name,this)}catch(x){}continue}
+      if(A>=this.stopStep){this.fin(this.stopStep);return}
+      if(!e){if(this.peek(segEnd)>H)return;const nx=this.next(this.sec);if(nx==null||!this.segs[nx]||this.segB<=this.segA){this.fin(segEnd);return}
+        this.adv(segEnd);const rep=nx===this.sec;this.setSeg(nx,segEnd);if(rep){this.loopN++;if(this.onloop)try{this.onloop(this.loopN,this)}catch(x){}}else if(this.onsection)try{this.onsection(nx,this)}catch(x){}continue}
+      if(this.peek(A)>H)return;const sp=this.spt();let t=this.adv(A);this.i++;const L=this.layers[e.L];if(A<L.from||A>=L.to)continue;
+      const I=INST[e.i];if(this.swing&&Math.floor(e.s)%2===1)t+=this.swing*sp;if(I.roll)t+=e.k*I.roll/1000;
+      const hm=(I.human||0)*this.human;if(hm)t+=(Math.random()+Math.random()+Math.random()-1.5)*hm/1000;
+      if(t<now+.005){if(now-t>.3)continue;t=now+.005}
+      try{voice(r,e.i,e.m,t,Math.max(.03,e.d*sp),clamp(e.v+(hm?(Math.random()-.5)*.08:0),.05,1.27),this.lanes[e.ln].g,this)}catch(x){lastErr=String(x)}}},
+  fin(step){this.endT=this.adv(step);this.done=true;const tail=this.loop?6:9;const k=()=>{try{this.lanes.forEach(l=>{l.lfo&&l.lfo.stop();l.g.disconnect()});this.layers.forEach(l=>l.g.disconnect());this.out.disconnect()}catch(e){}};
+    if(this.r.ac.startRendering||!W.setTimeout)this.kill=k;else setTimeout(k,Math.max(0,(this.endT-this.r.ac.currentTime+tail))*1000);if(this.onend)try{this.onend(this)}catch(e){}},
+  boundary(at){const c=this.cs,rel=c-this.base;if(typeof at==="number")return c+at;if(at==="beat")return this.base+Math.ceil((rel+1e-6)/this.beat)*this.beat;if(at==="bar")return this.base+Math.ceil((rel+1e-6)/this.bar)*this.bar;if(at==="loop")return this.base+(this.segB-this.segA);return c},
+  // fade a layer in or out; o.at: "now" | "beat" | "bar" | "loop" | steps; o.fade seconds (A3 form: one bar by default). A layer going out keeps playing through its fade.
+  layer(name,on,o){o=o||{};const L=this.layers.find(l=>l.name===name);if(!L)return this;on=!!on;const ac=this.r.ac,fd=o.fade!=null?o.fade:this.a3?this.bar*this.spt():(on?.03:.25);
+    if(!this.started){L.on=on;L.from=on?0:Infinity;L.to=Infinity;L.g.gain.value=on?L.gain:0;return this}
+    if(L.on===on&&!o.force)return this;L.on=on;const B=this.boundary(o.at||"bar"),t=Math.max(ac.currentTime,this.peek(B));L.g.gain.cancelScheduledValues(ac.currentTime);
+    if(this.a3){const cur=L.g.gain.value;L.g.gain.setValueAtTime(cur,ac.currentTime);L.g.gain.setValueAtTime(cur,t);L.g.gain.linearRampToValueAtTime(on?L.gain:0,t+Math.max(.01,fd))}
+    else L.g.gain.setTargetAtTime(on?L.gain:0,t,Math.max(.005,fd/3));
+    if(on){if(!(L.to<Infinity&&L.to>B))L.from=B;L.to=Infinity}else L.to=B+Math.ceil(fd/this.spt());return this},
+  section(name){if(this.segs[name])this.queued=name;return this},
+  sectionNow(name,o){if(!this.segs[name]||this.done)return null;const B=this.boundary((o&&o.at)||"bar");this.cut={at:B,name};this.queued=null;return this.peek(B)},
+  tempo(bpm,rampSteps){if(rampSteps>0){this.inc=(bpm-this.bpm)/rampSteps;this.ramp=Math.round(rampSteps)}else{this.bpm=bpm;this.ramp=0}return this},
+  // stop on a musical boundary (notes ring out) or now with a fade (notes are cut)
+  stop(o){o=o||{};if(this.done&&!this.started)return;const ac=this.r.ac,t=ac.currentTime;if(!this.started){this.done=true;this.cancelled=true;return}
+    if(o.at&&o.at!=="now"&&!this.done){this.stopStep=this.boundary(o.at);return this.peek(this.stopStep)}
+    const fd=o.fade==null?.25:o.fade;this.out.gain.cancelScheduledValues(t);this.out.gain.setTargetAtTime(0,t,fd/3);this.r.voices.forEach(v=>{if(v.q===this&&v.end>t){try{v.src.stop(t+fd+.05)}catch(e){}v.end=Math.min(v.end,t+fd+.05)}});if(!this.done)this.fin(this.cs);return t+fd},
+  pos(){return {step:this.cs-this.base,abs:this.cs,loop:this.loopN,bpm:this.bpm,section:this.sec}},
+  on(){return this.layers.filter(l=>l.on).map(l=>l.name)}};
+function tickSeqs(r,H){for(let i=0;i<r.seqs.length;i++)r.seqs[i].tick(H);if(r.seqs.length>24||r.seqs.some(q=>q.done))r.seqs=r.seqs.filter(q=>!q.done)}
+
+// =====================================================================================================================
+// 6. AMBIENCE: per realm several long looping generators with independent random-walk modulation + sparse events.
+//    Everything is scheduled from the pump in audio time, so nothing is created while the context is suspended.
+// =====================================================================================================================
+const AMBTRIM={I:-.5,II:-7.4,III:-5.2,IV:-7,V:-.7};      // dB, measured: each realm (beds + events, 60 s) = −23 LUFS ±1.5 at the default fader
+function ambStart(r,realm,t){const ac=r.ac,A={realm,g:ac.createGain(),src:[],wan:[],evs:[],r,dead:false};t=t==null?ac.currentTime:t;A.g.gain.setValueAtTime(0,t);A.g.gain.setTargetAtTime(db(AMBTRIM[realm]||0),t,r.full?.7:.01);A.g.connect(r.amb.in);
+  const sv=r.saver,h={ac,out:A.g,
+    bed(src,chain,g,pan,rate){const s=ac.createBufferSource(),B=getAux(ac,src),gn=ac.createGain();s.buffer=B;s.loop=true;s.playbackRate.value=rate||rnd(.93,1.07);let n=s;const fl=(chain||[]).map(c=>{const f=bq(ac,c[0],c[1],c[2]);n.connect(f);n=f;return f});gn.gain.value=g;n.connect(gn);
+      if(pan==null)gn.connect(A.g);else pn(ac,gn,pan,A.g);s.start(t,Math.random()*B.duration);A.src.push(s);return {g:gn.gain,f:fl.map(f=>f.frequency)}},
+    wander(param,lo,hi,minS,maxS,geo){A.wan.push({param,lo,hi,minS,maxS,geo,next:t+rnd(0,minS)})},
+    ev(minS,maxS,fn,first){const k=sv?1.8:1;A.evs.push({minS:minS*k,maxS:maxS*k,fn,next:t+(first==null?rnd(minS,maxS)*.6:first),n:0})}};
+  AMB[realm]&&AMB[realm](r,A,h);return A}
+function ambPump(A,H){if(A.dead)return;for(let i=0;i<A.wan.length;i++){const w=A.wan[i];let g=0;while(w.next<H&&g++<64){const d=rnd(w.minS,w.maxS),v=w.geo?w.lo*Math.pow(w.hi/w.lo,Math.random()):rnd(w.lo,w.hi);w.param.setTargetAtTime(v,w.next,d/3);w.next+=d}}
+  for(let i=0;i<A.evs.length;i++){const e=A.evs[i];let g=0;while(e.next<H&&g++<64){try{e.fn(e.next,e.n++)}catch(x){lastErr=String(x)}e.next+=rnd(e.minS,e.maxS)}}}
+function ambStop(A,fade){if(!A||A.dead)return;A.dead=true;const ac=A.r.ac,t=ac.currentTime;fade=fade==null?1.2:fade;A.g.gain.cancelScheduledValues(t);A.g.gain.setTargetAtTime(0,t,fade/3);A.src.forEach(s=>{try{s.stop(t+fade+.1)}catch(e){}});
+  setTimeout(()=>{try{A.g.disconnect()}catch(e){}},(fade+.3)*1000)}
+const AMB={
+  // I Schwarzwald: wind in firs (two independent bands + needles), stream, owl, raven, twig, distant bell
+  I(r,A,h){const o=h.out;let b=h.bed("pink",[["bandpass",360,.6]],.55,-.35);h.wander(b.g,.18,.8,6,14);h.wander(b.f[0],250,520,7,15,1);
+    b=h.bed("pink",[["bandpass",850,.8]],.3,.4);h.wander(b.g,.08,.55,5,11);h.wander(b.f[0],600,1250,6,13,1);
+    b=h.bed("white",[["highpass",3500,.7]],.04,0);h.wander(b.g,.008,.07,4,9);
+    b=h.bed("white",[["bandpass",1900,1.2],["highpass",900,.7]],.11,.6);h.wander(b.f[0],1400,2700,.25,.9,1);h.wander(b.g,.07,.14,3,8);
+    h.bed("brown",[["lowpass",150,.7]],.12,0);
+    h.ev(20,45,t=>{const p=rnd(-.7,.7),f=rnd(330,400);[[0,.3],[.52,.16],[.74,.75]].forEach(x=>{tn(r,t+x[0],x[1]+.15,{f:f,f2:f*.9,g:.09,a:.05,h:x[1]*.5,pan:p,out:o});tn(r,t+x[0],x[1]+.1,{f:f*2,f2:f*1.8,g:.012,a:.05,pan:p,out:o})})},8);
+    h.ev(6,16,t=>nz(r,t,.06,{type:"highpass",f:2200,Q:.7,g:.4,a:.001,pan:rnd(-.8,.8),out:o}));
+    h.ev(30,70,t=>{const p=rnd(-.8,.8);for(let i=0;i<2+Math.floor(Math.random()*2);i++){tn(r,t+i*.42,.3,{type:"sawtooth",f:rnd(480,560),f2:420,g:.055,a:.02,h:.1,lp:1500,pan:p,out:o});nz(r,t+i*.42,.28,{type:"bandpass",f:1300,Q:2,g:.08,a:.02,h:.1,pan:p,out:o})}});
+    h.ev(90,200,t=>voice(r,"bell",62,t,6,.4,o));},
+  // II Prag, the café: murmur (two copies of the babble texture), room tone, cups, spoon, wall clock, tram outside
+  II(r,A,h){const o=h.out;let b=h.bed("babble",null,.8,-.25,.94);h.wander(b.g,.5,1,5,12);if(!r.saver){b=h.bed("babble",null,.6,.3,1.09);h.wander(b.g,.3,.8,4,10)}
+    h.bed("pink",[["bandpass",260,.5]],.1,0);
+    h.ev(3,9,t=>{const p=rnd(-.8,.8),n=Math.random()<.25?3:1;for(let i=0;i<n;i++)auxShot(r,"cup",rnd(.8,1.3),t+i*rnd(.09,.16),rnd(.3,.75),o,p)});
+    h.ev(1,1,(t,n)=>auxShot(r,n%2?"tock":"tick",.8,t,.45,o,.5),1);
+    h.ev(45,95,t=>{const p=rnd(-.6,.6);[0,.34].forEach(d=>voice(r,"bell",86,t+d,.4,.3,o));nz(r,t+.8,7,{src:"brown",type:"bandpass",f:190,Q:.8,f2:140,g:.35,a:2.5,h:1,pan:p,out:o});nz(r,t+.8,7,{src:"pink",type:"bandpass",f:480,Q:1,g:.05,a:2.5,h:1,pan:p,out:o})});
+    h.ev(25,60,t=>nz(r,t,.5,{src:"pink",type:"bandpass",f:rnd(500,900),Q:3,f2:300,g:.9,a:.05,pan:rnd(-.7,.7),out:o}));},
+  // III Fausts Studierzimmer: fire (texture twice at different rates + roar), pendulum clock on the audio clock, quill, pages, wind in the chimney
+  III(r,A,h){const o=h.out;let b=h.bed("fire",null,.75,-.2,.9);h.wander(b.g,.45,.9,3,8);if(!r.saver){b=h.bed("fire",null,.5,.3,1.13);h.wander(b.g,.25,.7,2,7)}
+    b=h.bed("brown",[["lowpass",330,.7]],.3,0);h.wander(b.g,.18,.42,2,6);b=h.bed("pink",[["bandpass",620,.5]],.12,0);h.wander(b.g,.07,.18,2,6);
+    b=h.bed("pink",[["bandpass",300,2.5]],.05,0);h.wander(b.f[0],220,430,8,20,1);h.wander(b.g,0,.14,8,20);
+    h.ev(1,1,(t,n)=>auxShot(r,n%2?"tock":"tick",1,t,.6,o,-.55),1);
+    h.ev(25,60,t=>{let x=t;for(let i=0;i<6+Math.random()*8;i++){const d=rnd(.07,.2);nz(r,x,d,{type:"bandpass",f:rnd(2600,4200),Q:2,g:rnd(.12,.27),a:.01,h:d*.5,pan:.35,out:o});x+=d+rnd(.02,.12)}});
+    h.ev(40,100,t=>{nz(r,t,.3,{type:"bandpass",f:900,f2:3000,Q:.9,g:.4,a:.03,pan:.3,out:o});nz(r,t+.26,.14,{type:"bandpass",f:2400,Q:.8,g:.32,a:.005,pan:.3,out:o})});},
+  // IV Berlin: rain on glass, city rumble with a mid band that survives a phone speaker, elevated train, distant cabaret through the wall
+  IV(r,A,h){const o=h.out;let b=h.bed("rain",null,.7,-.15,.92);h.wander(b.g,.5,.9,6,15);if(!r.saver){b=h.bed("rain",null,.45,.25,1.11);h.wander(b.g,.25,.6,5,12)}
+    b=h.bed("brown",[["lowpass",200,.7]],.3,0);h.wander(b.g,.18,.4,5,12);b=h.bed("pink",[["bandpass",330,.5]],.12,0);h.wander(b.g,.06,.18,5,12);
+    h.ev(70,150,t=>{const dir=Math.random()<.5?1:-1,T=11;const ac=r.ac,g=ac.createGain(),p=ac.createStereoPanner?ac.createStereoPanner():null;g.gain.value=1;if(p){p.pan.setValueAtTime(-.9*dir,t);p.pan.linearRampToValueAtTime(.9*dir,t+T);g.connect(p);p.connect(o)}else g.connect(o);
+      nz(r,t,T,{src:"brown",type:"bandpass",f:210,Q:.7,g:.65,a:4.5,h:1.5,out:g});nz(r,t,T,{src:"pink",type:"bandpass",f:650,Q:.8,g:.11,a:4.5,h:1.5,out:g});
+      for(let k=0;k<14;k++){const x=t+2.2+k*.52,a=.16*Math.sin(Math.PI*(k+.5)/14);[0,.11].forEach(d=>nz(r,x+d,.07,{type:"bandpass",f:1100,Q:1.5,g:a,a:.002,out:g}))}});
+    h.ev(35,80,t=>{const lp=bq(r.ac,"lowpass",700,.707),g=r.ac.createGain();g.gain.value=1.2;lp.connect(g);g.connect(o);const sc=[58,61,63,64,65,68,70,73,75],ev=[],comp=[];let s=0,i=4;
+      while(s<56){const d=pick([2,2,2,4,4,6]);if(Math.random()<.8){i=clamp(i+pick([-2,-1,-1,1,1,2]),0,sc.length-1);ev.push([sc[i],s,d,rnd(.5,.85)])}s+=d}
+      for(let k=0;k<56;k+=8)[46,53,56,61].forEach(m=>comp.push([m+(k%16?5:0),k+2,2,.5]));
+      const q=new Seq(r,{bpm:rnd(96,128),swing:.33,layers:[{name:"lead",inst:"trumpet",ev},{name:"comp",inst:"piano",ev:comp,gain:.6}]},{dest:lp});q.start(t);r.seqs.push(q)},12);},
+  // V Walpurgisnacht / Anatomisches Theater: stone air, torches, drip with echo, far choir, footsteps, heartbeat
+  V(r,A,h){const o=h.out;let b=h.bed("brown",[["lowpass",420,.7]],.28,0);h.wander(b.g,.16,.38,6,14);b=h.bed("pink",[["bandpass",520,1.5]],.22,0);h.wander(b.f[0],380,700,9,20,1);h.wander(b.g,.1,.3,7,16);b=h.bed("pink",[["bandpass",1100,.8]],.05,0);h.wander(b.g,.02,.08,6,13);
+    b=h.bed("fire",null,.16,.5,.85);h.wander(b.g,.08,.22,3,8);
+    h.ev(4,12,t=>{const p=rnd(-.8,.8),rt=rnd(.75,1.3),g=rnd(.2,.45);[0,.19,.41].forEach((d,i)=>auxShot(r,"drip",rt,t+d,g*Math.pow(.35,i),o,p*(1-i*.4)))});
+    h.ev(25,55,t=>{const ch=pick([[50,57],[50,57,62],[45,52,57],[48,55,60],[50,53,57]]);ch.forEach(m=>voice(r,"choir",m,t+rnd(0,.5),rnd(5,8),.22,o))},10);
+    h.ev(45,110,t=>{const dir=Math.random()<.5?1:-1,n=6+Math.floor(Math.random()*5),gap=rnd(.5,.62);for(let i=0;i<n;i++)auxShot(r,"step",i%2?.92:1,t+i*gap,.75*Math.sin(Math.PI*(i+.6)/(n+.2)),o,dir*(-.8+1.6*i/n))});
+    h.ev(18,40,t=>{for(let i=0;i<5;i++){const x=t+i*1.11,g=.5*(1-i*.08);[[0,1],[.3,.7]].forEach(d=>{tn(r,x+d[0],.2,{f:62,f2:44,g:g*d[1]*.5,a:.012,out:o});nz(r,x+d[0],.12,{src:"brown",type:"bandpass",f:210,Q:1.2,g:g*d[1]*1.6,a:.008,out:o})})}});}};
+const ROOM_OF={I:"forest",II:"cafe",III:"study",IV:"street",V:"stone"};
+
+// =====================================================================================================================
+// 7. EFFECTS (fx bus). duck = dB the music steps back for the effect.
+// =====================================================================================================================
+const FXT={ok:-2.9,no:-4.5,seal:-6.6,page:17.1,quill:11.6,bell:2.3,thunder:-2.2,whisper:10.7,candle:5.1,combo:-3.2,idle:2.1,tick:14.5,breath:8.8,knock:8.5,cap:7.5,chair:8.2,bell13:2.1,drop:3.9,tab:13.6,button:6.2,flip:8.1,streak:-3.5,soul:6.2,page2:10.6,sealbreak:8.8,lorefound:-4.8};  // per-effect trim, dB: momentary maximum −17 LUFS, peak ≤ −6 dBFS
+const FXDUCK={ok:3,no:4,seal:7,bell:5,thunder:5,whisper:5,candle:3,idle:4,breath:4,knock:4,cap:3,chair:3,bell13:5,drop:2,soul:3,page2:2,sealbreak:5,lorefound:4,streak:3};
+const FX={
+  ok(r,t,o){voice(r,"celesta",76,t,.5,.7,o);voice(r,"celesta",83,t+.07,.8,.75,o)},
+  no(r,t,o){voice(r,"harpsichord",50,t,.5,.9,o);voice(r,"harpsichord",51,t+.012,.5,.9,o);nz(r,t,.25,{src:"pink",type:"lowpass",f:420,Q:.7,g:.5,a:.004,out:o})},
+  seal(r,t,o){[48,55,60,64,67].forEach((m,i)=>voice(r,"organ",m,t+i*.02,2.2,.45,o));voice(r,"bell",67,t+.35,4,.45,o);nz(r,t,.16,{src:"pink",type:"lowpass",f:500,Q:.7,g:.8,a:.003,out:o})},
+  page(r,t,o){nz(r,t,.3,{type:"bandpass",f:900,f2:3200,Q:.9,g:.5,a:.03,out:o});nz(r,t+.26,.14,{type:"bandpass",f:2400,Q:.8,g:.4,a:.004,out:o})},
+  quill(r,t,o){let x=t;for(let i=0;i<5;i++){const d=rnd(.05,.11);nz(r,x,d,{type:"bandpass",f:rnd(2600,4200),Q:2,g:rnd(.35,.6),a:.008,h:d*.5,out:o});x+=d+rnd(.01,.05)}},
+  bell(r,t,o){voice(r,"bell",67,t,5,.6,o)},
+  thunder(r,t,o){nz(r,t,.09,{type:"highpass",f:1500,Q:.7,g:.5,a:.002,out:o});nz(r,t+.03,3.8,{src:"brown",type:"lowpass",f:260,Q:.7,g:1.0,a:.05,h:.4,out:o});nz(r,t+.05,2.8,{src:"pink",type:"bandpass",f:330,Q:.6,f2:160,g:.5,a:.04,h:.2,out:o});nz(r,t+.02,1.6,{src:"pink",type:"bandpass",f:800,Q:.6,f2:400,g:.7,a:.01,h:.1,out:o});nz(r,t+.9,2.4,{src:"brown",type:"lowpass",f:180,Q:.7,g:.9,a:.5,out:o})},
+  whisper(r,t,o){const p=rnd(-.9,.9);nz(r,t,.9,{src:"pink",type:"bandpass",f:2600,f2:1300,Q:2.5,g:.5,a:.18,h:.25,pan:p,out:o});nz(r,t+.1,.7,{type:"bandpass",f:5200,f2:3800,Q:3,g:.12,a:.1,h:.2,pan:-p,out:o})},
+  candle(r,t,o){nz(r,t,.35,{src:"pink",type:"lowpass",f:900,f2:200,Q:.7,g:.7,a:.01,out:o});tn(r,t,.3,{f:520,f2:180,g:.1,a:.01,out:o})},
+  combo(r,t,o){[72,76,79,84].forEach((m,i)=>voice(r,"celesta",m,t+i*.055,.4,.6,o))},
+  idle(r,t,o){voice(r,"cello",38,t,1.6,.5,o);voice(r,"cello",44,t+.05,1.6,.45,o)},
+  tick(r,t,o){auxShot(r,"tick",1,t,.3,o,0)},
+  // a2 · S6 P9, the half-seen (redesigned so a phone hears them: nothing relies on energy below 150 Hz)
+  breath(r,t,o){const p=rnd(-.9,.9);nz(r,t,.55,{src:"pink",type:"bandpass",f:1500,f2:2300,Q:1.2,g:.45,a:.22,h:.12,pan:p,out:o});nz(r,t+.62,.8,{src:"pink",type:"bandpass",f:1100,f2:650,Q:1,g:.55,a:.08,h:.2,pan:p*.8,out:o})},
+  knock(r,t,o){[0,.34,.68].forEach((d,i)=>{const g=1-i*.12;nz(r,t+d,.07,{src:"pink",type:"bandpass",f:420,Q:1.6,g:.9*g,a:.001,out:o});tn(r,t+d,.09,{f:240,f2:205,g:.22*g,a:.002,out:o});nz(r,t+d,.03,{type:"bandpass",f:1700,Q:1.2,g:.3*g,a:.001,out:o})})},
+  cap(r,t,o){for(let i=0;i<4;i++)nz(r,t+i*.085,.025,{type:"highpass",f:4800,Q:.7,g:.35,a:.001,out:o});auxShot(r,"tick",.75,t+.4,.6,o,0);nz(r,t+.4,.05,{src:"pink",type:"bandpass",f:1400,Q:2,g:.4,a:.001,out:o})},
+  chair(r,t,o){const p=rnd(-.5,.5);tn(r,t,.62,{type:"sawtooth",f:230,f2:182,g:.1,a:.05,h:.3,lp:1400,pan:p,out:o});nz(r,t+.04,.5,{src:"pink",type:"bandpass",f:640,f2:520,Q:3,g:.5,a:.06,h:.25,pan:p,out:o});nz(r,t+.55,.12,{src:"pink",type:"bandpass",f:380,Q:1.4,g:.5,a:.002,pan:p,out:o})},
+  bell13(r,t,o){voice(r,"bell",61,t,6,.6,o)},
+  drop(r,t,o){auxShot(r,"drip",.72,t,.8,o,rnd(-.3,.3));tn(r,t+.05,.16,{f:520,f2:300,g:.16,a:.003,out:o})},
+  // a2 · interaction sounds (artsound P8)
+  tab(r,t,o){nz(r,t,.2,{src:"pink",type:"bandpass",f:1300,f2:2400,Q:1,g:.5,a:.03,h:.04,pan:rnd(-.3,.3),out:o})},
+  button(r,t,o){auxShot(r,"tock",.42,t,.7,o,0);auxShot(r,"tick",.8,t+.004,.18,o,0)},
+  flip(r,t,o){nz(r,t,.05,{type:"highpass",f:1800,Q:.7,g:.55,a:.001,out:o});nz(r,t+.012,.09,{src:"pink",type:"bandpass",f:3100,Q:1.2,g:.35,a:.004,out:o})},
+  streak(r,t,o){[79,84,88].forEach((m,i)=>voice(r,"glock",m,t+i*.075,.5,.62,o))},
+  soul(r,t,o){auxShot(r,"cup",1.35,t,.55,o,.2);auxShot(r,"cup",1.6,t+.09,.3,o,.25);tn(r,t+.12,1.1,{f:880,f2:1320,g:.09,a:.35,h:.3,out:o});tn(r,t+.12,1.1,{f:1760,f2:2640,g:.025,a:.4,h:.3,out:o})},
+  page2(r,t,o){nz(r,t,.5,{src:"pink",type:"bandpass",f:700,f2:2600,Q:.8,g:.6,a:.06,h:.08,out:o});nz(r,t+.42,.18,{type:"bandpass",f:2200,Q:.8,g:.45,a:.004,out:o});nz(r,t+.44,.12,{src:"pink",type:"bandpass",f:420,Q:1.2,g:.6,a:.002,out:o})},
+  sealbreak(r,t,o){let x=t;for(let i=0;i<7;i++){nz(r,x,.018,{type:"bandpass",f:rnd(1800,4200),Q:1.5,g:rnd(.35,.7),a:.0008,pan:rnd(-.3,.3),out:o});x+=rnd(.015,.05)}nz(r,t,.12,{src:"pink",type:"bandpass",f:520,Q:1.4,g:.7,a:.002,out:o});tn(r,t,.16,{f:205,f2:175,g:.18,a:.002,out:o})},
+  lorefound(r,t,o){nz(r,t,.1,{src:"pink",type:"bandpass",f:480,Q:1.2,g:.8,a:.002,out:o});tn(r,t,.14,{f:210,f2:180,g:.16,a:.002,out:o});nz(r,t+.05,.7,{type:"highpass",f:5200,Q:.7,g:.06,a:.1,h:.2,out:o});[69,72,76].forEach((m,i)=>voice(r,"harpsichord",m,t+.18+i*.13,.9,.7,o))}};
+const FXWARM=[["glock",79,.7],["glock",84,.7],["glock",88,.7],["glock",72,.7],["glock",76,.7],["bell",61,.6],["harpsichord",69,.75],["harpsichord",72,.75],["harpsichord",76,.75],"drip","cup",["celesta",76,.7],["celesta",83,.7],["celesta",72,.7],["celesta",79,.7],["harpsichord",50,.9],["bell",67,.6],["organ",48,.5],["organ",54,.5],["organ",60,.5],["organ",66,.5],"white","pink","brown","chiff","jack","tick","tock"];
+
+// =====================================================================================================================
+// 8. ENGINE STATE (the live rig)
+// =====================================================================================================================
+let ctx=null,rig=null,amb=null,realm=null,started=false,gestured=false,paused=false,lastErr="",hushed=false,pumpT=null,autoSaver=false;
+let playing=null,queue=[],nextAt=Infinity,scoreSeq=null,vDuck=false,vDuckAt=0,limCal=null;
+let dozing=false,slept=false,lastInput=Date.now(),uiIdleSeen=false,preBase=null,lastFx={};
+// a2 · output trim (dB) after the limiter's make-up: puts the full mix at the default faders on −18 LUFS (Kopfhörer); Telefon adds SPK.phone.boost
+const MIXTRIM=0,SPK={phone:{hp:110,boost:2,amb:2},head:{hp:30,boost:0,amb:0}};
+// S.sound is device-local (DEVICE_KEYS). A bare boolean is not a choice: c_core's default is sound:false and the old "Töne" checkbox wrote
+// true/false. 13.0 read both as "on" (the soundscape plays by default, Albtraum on); a deliberate "Ton aus" is stored as {on:false}.
+const cfg=()=>{if(typeof S==="undefined")return cfg.l||(cfg.l={on:true,music:.55,amb:.45,fx:.6});if(!S.sound||typeof S.sound!=="object")S.sound={on:true,music:.55,amb:.45,fx:.6};else{const c=S.sound;if(c.on==null)c.on=true;["music","amb","fx"].forEach(k=>{if(typeof c[k]!=="number"||!isFinite(c[k]))c[k]=DEF[k]})}return S.sound};
+const save=()=>{try{saveSoon()}catch(e){}};
+const small=()=>{try{return Math.min(W.screen.width,W.screen.height)<900}catch(e){return false}};
+const isSaver=()=>{const s=cfg().saver;return s===true||(s!==false&&autoSaver)};
+const LOOK=()=>rig&&rig.saver?.9:.45,PUMP=()=>rig&&rig.saver?300:100;
+const live=()=>!!(ctx&&started&&ctx.state==="running"&&!paused&&!slept);
+const spkMode=()=>{const m=cfg().spk;return m==="phone"||m==="head"?m:(small()?"phone":"head")};
+function make(){if(ctx)return true;const AC=W.AudioContext||W.webkitAudioContext;if(!AC)return false;try{ctx=new AC({latencyHint:"interactive"})}catch(e){try{ctx=new AC()}catch(e2){lastErr=String(e2);return false}}
+  try{if(navigator.audioSession)navigator.audioSession.type="ambient"}catch(e){}                                    // iOS 17+: mix with the user's own audio, obey the mute switch
+  rig=mkRig(ctx,true);applySaver();applyVol(true);ctx.onstatechange=()=>{if(started&&!paused&&ctx.state==="running")pumpOn()};
+  try{navigator.getBattery&&navigator.getBattery().then(b=>{const u=()=>{autoSaver=!b.charging&&b.level<=.2;applySaver()};b.addEventListener("levelchange",u);b.addEventListener("chargingchange",u);u()}).catch(()=>{})}catch(e){}
+  calLimiter();return true}
+function applySpk(){if(!rig||!rig.pre)return;const k=SPK[spkMode()];rig.hp.frequency.value=k.hp;rig.pre.gain.value=db((preBase==null?-LIM.net:preBase)+MIXTRIM+k.boost)}
+function applySaver(){if(!rig)return;const s=isSaver();rig.maxV=s?12:small()?20:28;applySpk();if(rig.clip)rig.clip.oversample=s||small()?"none":"2x";if(rig.saver!==s){rig.saver=s;if(started&&realm){const rm=rig.room;rig.room=null;setIR(rig,rm);if(amb){ambStop(amb,.6);amb=ambStart(rig,realm)}}}}
+// fader law: 0 = digital silence; below the default a squared law (−6 dB at 71 %, −20 dB at 32 % of the default); above it linear in dB up to +6 dB
+function faderGain(k,v){v=clamp(+v||0,0,1);const d=DEF[k];if(v<=.001)return 0;if(v<=d)return Math.pow(v/d,2);return db(6*(v-d)/(1-d))}
+function applyVol(now){if(!rig)return;const c=cfg(),t=ctx.currentTime,tc=now?.01:.08,sp=SPK[spkMode()];["music","amb","fx"].forEach(k=>{const g=faderGain(k,c[k])*(k==="amb"?db(sp.amb):1);rig[k].fader.gain.cancelScheduledValues(t);rig[k].fader.gain.setTargetAtTime(g,t,tc);rig[k].send.gain.value=SEND[k]})}
+// measure what the browser's compressor really does below threshold and correct the pre-gain (the make-up law is not in the spec)
+function calLimiter(){const O=W.OfflineAudioContext||W.webkitOfflineAudioContext;if(!O||limCal)return;try{const sr=ctx.sampleRate,oc=new O(1,Math.floor(sr*.4),sr),o=oc.createOscillator(),g=oc.createGain(),c=oc.createDynamicsCompressor();o.frequency.value=440;g.gain.value=db(-30);c.threshold.value=LIM.thr;c.knee.value=0;c.ratio.value=LIM.ratio;o.connect(g);g.connect(c);c.connect(oc.destination);o.start();
+    limCal=render(oc).then(b=>{const x=b.getChannelData(0),mk=toDb(rmsOf(x,Math.floor(sr*.2))*Math.SQRT2)+30;if(isFinite(mk)&&Math.abs(mk)<12&&rig){LIM.makeupMeasured=+mk.toFixed(2);preBase=-(mk+LIM.post);applySpk()}return mk}).catch(()=>0)}catch(e){}}
+function render(oc){return new Promise((res,rej)=>{oc.oncomplete=e=>res(e.renderedBuffer);try{const p=oc.startRendering();if(p&&p.then)p.then(res,rej)}catch(e){rej(e)}})}
+function gate(on,tc){if(!rig)return;const t=ctx.currentTime;rig.out.gain.cancelScheduledValues(t);rig.out.gain.setTargetAtTime(on?1:0,t,tc||.05)}
+function pumpOn(){if(pumpT||!started||paused)return;pumpT=setInterval(pump,PUMP())}
+function pumpOff(){clearInterval(pumpT);pumpT=null}
+function pump(){if(!live())return;const now=ctx.currentTime,H=now+LOOK();
+  if(!uiIdleSeen){const q=(Date.now()-lastInput)/1000;if(q>60){sleep();return}if(q>20&&!dozing)doze()}
+  tickSeqs(rig,H);if(amb)ambPump(amb,H);if(rig.voices.length>8)rig.voices=rig.voices.filter(v=>v.end>now);
+  if(scoreSeq&&scoreSeq.done)scoreSeq=null;
+  if(!playing&&!hushed&&!scoreSeq&&nextAt===Infinity)nextAt=now+1.2;
+  if(!hushed&&!scoreSeq&&now>=nextAt&&(!playing||playing.seq.done)){nextAt=Infinity;playPiece(nextPiece())}
+  if(vDuck){let sp=false;try{sp=W.speechSynthesis.speaking||W.speechSynthesis.pending}catch(e){}if(sp)vDuckAt=now;else if(now-vDuckAt>.35||now-vDuck>40)duckVoice(false)}}
+function fxOut(r,n,k){const g=r.ac.createGain();g.gain.value=db(FXT[n]||0)*(k||1);g.connect(r.fx.in);return g}
+function duckVoice(on){if(!rig)return;const t=ctx.currentTime;vDuck=on?t||1e-6:false;vDuckAt=t;[["music",-9],["amb",-6],["fx",-3]].forEach(x=>{const p=rig[x[0]].dV.gain;p.cancelScheduledValues(t);p.setTargetAtTime(on?db(x[1]):1,t,on?.03:.2)})}
+function duckFx(dB,hold){if(!rig||!dB)return;const t=ctx.currentTime,p=rig.music.dFx.gain;p.cancelScheduledValues(t);p.setTargetAtTime(db(-dB),t,.015);p.setTargetAtTime(1,t+(hold||.25),.25);const a=rig.amb.dFx.gain;a.cancelScheduledValues(t);a.setTargetAtTime(db(-dB/2),t,.015);a.setTargetAtTime(1,t+(hold||.25),.25)}
+// ---- realm playlist
+function pool(r){const P=(typeof PAKT_MUSIC!=="undefined"?PAKT_MUSIC:[]),own=P.filter(p=>p.realm===r),near={I:["II"],II:["I","III"],III:["V"],IV:["II","III"],V:["III"]}[r]||[];return own.length?own.concat(P.filter(p=>near.includes(p.realm)).slice(0,4)):P}
+function nextPiece(){if(!queue.length){queue=pool(realm||"I").slice();for(let i=queue.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)),t=queue[i];queue[i]=queue[j];queue[j]=t}if(playing&&queue.length>1&&queue[0]===playing.p)queue.push(queue.shift())}return queue.shift()}
+function playPiece(p){stopPiece(.3);if(!p||!ctx)return;const q=new Seq(rig,{id:p.id,bpm:p.bpm,fmt:"sdm",inst:p.inst,ev:p.ev,gain:db((p.gain||0)-.8)},{onend:s=>{if(playing&&playing.seq===s)nextAt=s.endT+rnd(3,6)}});
+  playing={p,seq:q};nextAt=Infinity;prewarm(ctx,q.keys(),()=>{if(!playing||playing.seq!==q||q.cancelled)return;q.start(ctx.currentTime+.25);rig.seqs.push(q);q.tick(ctx.currentTime+LOOK())});
+  if(D)try{D.dispatchEvent(new CustomEvent("snd:now",{detail:p}))}catch(e){}}
+function stopPiece(fade){nextAt=Infinity;if(playing){try{playing.seq.onend=null;playing.seq.stop({fade:fade==null?.3:fade})}catch(e){}}playing=null}
+function setRealm(r){if(!r||(r===realm&&amb&&!amb.dead))return;realm=r;if(!ctx||!started)return;try{if(amb)ambStop(amb,1.5);setIR(rig,ROOM_OF[r]||"study");amb=ambStart(rig,r)}catch(e){lastErr=String(e)}
+  queue=[];if(hushed||scoreSeq){stopPiece(.5)}else playPiece(nextPiece())}
+function start(){const c=cfg();if(!c.on||started)return;if(!make())return;started=true;paused=!!(D&&D.hidden);
+  try{const p=ctx.resume&&ctx.resume();if(p&&p.catch)p.catch(()=>{})}catch(e){}
+  try{const s=ctx.createBufferSource();s.buffer=ctx.createBuffer(1,1,ctx.sampleRate);s.connect(ctx.destination);s.start(0)}catch(e){}       // old iOS unlock
+  gate(!paused,.25);prewarm(ctx,FXWARM,()=>{});const r=realm||"I";realm=null;setRealm(r);if(!paused)pumpOn()}
+function stop(){stopPiece(.05);if(scoreSeq){try{scoreSeq.stop({fade:.05})}catch(e){}scoreSeq=null}hushed=false;if(rig){rig.seqs.forEach(q=>{try{q.stop({fade:.05})}catch(e){}});rig.seqs=[];const t=ctx.currentTime;rig.voices.forEach(v=>{try{v.src.stop(t+.1)}catch(e){}});rig.voices=[]}
+  if(amb){ambStop(amb,.05);amb=null}pumpOff();started=false;gate(false,.02);const c=ctx;if(c&&c.suspend)setTimeout(()=>{if(!started)try{c.suspend()}catch(e){}},150)}
+// ---- page lifecycle: full pause when hidden; resume on return or on the next gesture (iOS interruptions)
+function pause(){if(!ctx||paused)return;paused=true;pumpOff();gate(false,.02);const c=ctx;setTimeout(()=>{if(paused)try{c.suspend()}catch(e){}},90)}
+function unpause(){if(!ctx||!paused)return;paused=false;if(!started||!cfg().on)return;const go=()=>{gate(true,.25);pumpOn()};try{const p=ctx.resume();if(p&&p.then)p.then(go,()=>{});else go()}catch(e){}}
+// ---- idle: ambience to 30 % after 20 s without input, the whole context suspended after 60 s; the next gesture (or ui:idle false) wakes it
+function doze(){if(!rig||dozing)return;dozing=true;const t=ctx.currentTime;const p=rig.amb.dz.gain;p.cancelScheduledValues(t);p.setTargetAtTime(.3,t,1.2)}
+function sleep(){if(!ctx||slept||!started)return;if(scoreSeq&&!scoreSeq.done&&scoreSeq.awake)return;   // a score started with {awake:true} (duel, cinematic, finale) is never put to sleep
+  doze();slept=true;pumpOff();gate(false,.4);const c=ctx;setTimeout(()=>{if(slept)try{c.suspend()}catch(e){}},1500)}
+function wake(){lastInput=Date.now();if(!rig)return;const was=slept;slept=false;if(dozing){dozing=false;const t=ctx.currentTime,p=rig.amb.dz.gain;p.cancelScheduledValues(t);p.setTargetAtTime(1,t,.4)}
+  if(was&&started&&!paused&&cfg().on){const go=()=>{gate(true,.3);pumpOn()};try{const p=ctx.resume();if(p&&p.then)p.then(go,()=>{});else go()}catch(e){}}}
+function kick(){gestured=true;lastInput=Date.now();if(slept||dozing)wake();if(!cfg().on)return;if(!started){start();return}if(!paused&&ctx&&ctx.state!=="running"){try{const p=ctx.resume();if(p&&p.then)p.then(()=>{gate(true,.25);pumpOn()},()=>{})}catch(e){}}}
+if(D){["pointerdown","keydown","touchend"].forEach(e=>D.addEventListener(e,kick,{capture:true,passive:true}));
+  ["wheel","scroll","pointermove"].forEach(e=>D.addEventListener(e,()=>{lastInput=Date.now();if((dozing||slept)&&!uiIdleSeen)wake()},{capture:true,passive:true}));
+  const onIdle=e=>{uiIdleSeen=true;const i=e&&e.detail&&e.detail.idle;if(i){doze();clearTimeout(onIdle.t);onIdle.t=setTimeout(()=>{if(dozing)sleep()},40000)}else{clearTimeout(onIdle.t);wake()}};
+  D.addEventListener("ui:idle",onIdle);W.addEventListener&&W.addEventListener("ui:idle",e=>{if(e.target===W)onIdle(e)});
+  D.addEventListener("visibilitychange",()=>D.hidden?pause():unpause());W.addEventListener&&W.addEventListener("pagehide",pause);W.addEventListener&&W.addEventListener("pageshow",()=>{if(!D.hidden)unpause()});
+  D.addEventListener("freeze",pause);D.addEventListener("resume",()=>{if(!D.hidden)unpause()});
+  // duck under speech synthesis: every utterance spoken through speechSynthesis.speak() pulls music and ambience down
+  try{const ss=W.speechSynthesis;if(ss&&!ss.__snd){const sp=ss.speak;ss.speak=function(u){try{if(live()){duckVoice(true);if(u&&u.addEventListener){const off=()=>{try{if(!ss.speaking&&!ss.pending)duckVoice(false)}catch(e){}};u.addEventListener("end",()=>setTimeout(off,120));u.addEventListener("error",()=>setTimeout(off,120))}}}catch(e){}return sp.apply(ss,arguments)};ss.__snd=1}}catch(e){}}
+const ready=()=>{if(!cfg().on)return false;if(!started&&gestured)start();return live()};
+function mkScore(def,o){o=o||{};if(!ready())return null;const ue=o.onend;let h;o=Object.assign({},o,{onend:s=>{if(s.unhush&&!s.cancelled&&(scoreSeq===s||!scoreSeq)&&!s.byStop){hushed=false;nextAt=s.endT+(o.gap==null?1.5:o.gap)}if(scoreSeq===s)scoreSeq=null;if(ue)try{ue(h)}catch(e){}}});
+  if(o.onloop){const ul=o.onloop;o.onloop=(n)=>{try{ul(n,h)}catch(e){}}}if(o.onsection){const us=o.onsection;o.onsection=(n)=>{try{us(n,h)}catch(e){}}}
+  const q=new Seq(rig,def,o),prev=scoreSeq;scoreSeq=q;q.awake=!!o.awake;
+  prewarm(ctx,q.keys(),()=>{if(q.cancelled||scoreSeq!==q)return;let t0=ctx.currentTime+.06;if(prev&&!prev.done){if(o.at&&o.at!=="now"){const t=prev.stop({at:o.at});if(t)t0=Math.max(t0,t)}else prev.stop({fade:.3})}
+    if(o.hush!==false&&!hushed){stopPiece(.4);hushed=true;q.unhush=true}else if(prev&&prev.unhush)q.unhush=true;q.start(t0);rig.seqs.push(q);q.tick(ctx.currentTime+LOOK())});   // first notes now, not at the next pump
+  h={seq:q,key:q.key?q.key.pc:null,layer(n,on,x){q.layer(n,on,x);return h},tempo(b,rs){q.tempo(b,rs);return h},pos(){return q.pos()},active(){return !q.done&&!q.cancelled},
+    section(n){q.section(n);return h},sectionNow(n,x){q.sectionNow(n,x);return h},layers(){return q.on()},state(){return {id:def.id||null,section:q.sec,layers:q.on(),bpm:+q.bpm.toFixed(2),key:def.key||null,loop:q.loopN,active:h.active()}},
+    stop(x){x=x||{};const was=scoreSeq===q;q.byStop=true;q.stop(x.at?x:{fade:x.fade==null?.4:x.fade});if(was&&(q.done||q.cancelled))scoreSeq=null;if(q.unhush&&x.resume!==false){hushed=false;nextAt=(ctx?ctx.currentTime:0)+(x.gap==null?1.5:x.gap)}return h}};return h}
+// ---- a2 · stingers: on the next eighth (or beat/bar) of the running music, transposed to its key, music ducked for their length
+function runningSeq(){if(scoreSeq&&!scoreSeq.done&&scoreSeq.started)return scoreSeq;if(playing&&playing.seq&&playing.seq.started&&!playing.seq.done)return playing.seq;return null}
+function stingDef(def){if(def.tr)return {bpm:def.bpm||96,steps:def.steps,layers:def.tr.map((t,i)=>({name:"t"+i,inst:t.inst,ev:t.ev}))};if(def.tracks||def.layers||def.ev)return def;return null}
+function quantAt(q,mode,now){if(!q||mode==="now")return now+.03;const s=q.stepAt(now+.02),g=mode==="bar"?q.bar:mode==="4"||mode==="beat"?q.beat:2,rel=s-q.base,E=q.base+Math.ceil((rel+1e-6)/g)*g;return Math.max(now+.01,q.timeOf(E))}
+function mkStinger(def,o){o=o||{};if(!ready()||!def)return null;const d=stingDef(def);if(!d)return null;const q=runningSeq(),K=o.key!=null?keyOf(o.key):q?q.key:null;
+  const tr=o.transpose===false?0:keyShift(K)+(o.shift||0),dd=Object.assign({},d,{human:0,norm:false});
+  const sq=new Seq(rig,dd,{dest:rig.fx.in,gain:(o.gain||0)+(def.gainDb||0)});if(tr)sq.ev.forEach(e=>{e.m+=tr});const len=(sq.steps||4)*sq.spt(),h={at:null,tr,len,stop(x){sq.stop(x||{fade:.15})}};
+  // tables first (synchronous when cached, which FXWARM makes the normal case); the grid is taken when the notes can really be scheduled
+  prewarm(ctx,sq.keys(),()=>{if(sq.cancelled||!live())return;const n2=ctx.currentTime,at=quantAt(runningSeq(),String(o.quant||"8"),n2);h.at=at;sq.start(at);rig.seqs.push(sq);sq.tick(at+LOOK());
+    if(o.duck!==0)duckFx(o.duck==null?6:o.duck,Math.max(.25,at-n2+len))});return h}
+
+// =====================================================================================================================
+// 9. OFFLINE SELF-TEST: renders every instrument, effect and realm ambience through the real voice code and reports
+//    peak / RMS (dBFS) and integrated LUFS, plus the trim that would hit the target. SND.selfTest().then(console.table)
+// =====================================================================================================================
+function selfTest(o){o=o||{};const O=W.OfflineAudioContext||W.webkitOfflineAudioContext;if(!O)return Promise.resolve([{err:"no OfflineAudioContext"}]);const sr=o.sr||(ctx?ctx.sampleRate:44100),rows=[],jobs=[];
+  const run=(kind,name,dur,target,build)=>()=>{const oc=new O(2,Math.floor(sr*dur),sr),r=mkRig(oc,false);r.saver=!!o.saver;build(r,oc);return render(oc).then(b=>{const s=stats([b.getChannelData(0),b.getChannelData(1)],sr),row={kind,name,peak:s.peak,rms:s.rms,lufs:s.lufs,mom:s.mom,target,adjust:+(target-(kind==="fx"?s.mom:s.lufs)).toFixed(1)};rows.push(row);r.seqs.forEach(q=>q.kill&&q.kill());
+    if(o.apply){if(kind==="inst")INST[name].trim+=row.adjust;if(kind==="amb")AMBTRIM[name]+=row.adjust;if(kind==="fx")FXT[name]=(FXT[name]||0)+row.adjust}})};
+  (o.inst||Object.keys(INST)).forEach(n=>jobs.push(run("inst",n,5.2,-18,r=>{const I=INST[n];(I.ref||REF).forEach((m,i)=>voice(r,n,m-(I.oct||0),.05+i*.5,.45,.75,r.music.in))})));
+  if(!o.inst){Object.keys(FX).forEach(n=>jobs.push(run("fx",n,5,-17,r=>FX[n](r,.05,fxOut(r,n)))));
+    Object.keys(AMB).forEach(n=>jobs.push(run("amb",n,o.ambDur||24,-23,r=>{const A=ambStart(r,n,0);ambPump(A,o.ambDur||24);tickSeqs(r,o.ambDur||24)})))}
+  return jobs.reduce((p,j)=>p.then(j),Promise.resolve()).then(()=>{rows.limiter={assumedMakeupDb:+LIM.makeup.toFixed(2),measuredMakeupDb:LIM.makeupMeasured,postDb:+LIM.post.toFixed(2)};try{console.table&&console.table(rows)}catch(e){}return rows})}
+
+// a2 · render one score offline (dry, default fader, bare rig) and measure it. o:{layers, section, secs, sr, loops}
+function measure(def,o){o=o||{};const O=W.OfflineAudioContext||W.webkitOfflineAudioContext;if(!O)return Promise.resolve({err:"no OfflineAudioContext"});const sr=o.sr||44100;
+  const probe=new Seq(mkRig(new O(2,128,sr),false),def,o);let secs=o.secs;if(!secs){let st=0;const sg=probe.segs[probe.first]||[0,probe.steps];st=sg[1]-sg[0];if(probe.segs.loop&&probe.first!=="loop")st+=probe.segs.loop[1]-probe.segs.loop[0];secs=Math.min(120,st*probe.spt()+2)}
+  const oc=new O(2,Math.floor(sr*secs),sr),r=mkRig(oc,false),q=new Seq(r,def,o);q.start(.05);r.seqs.push(q);for(let k=0;k<200&&!q.done;k++){const c=q.cs;tickSeqs(r,secs);if(q.cs===c)break}
+  return render(oc).then(b=>{const st=stats([b.getChannelData(0),b.getChannelData(1)],sr);r.seqs.forEach(x=>x.kill&&x.kill());st.secs=+secs.toFixed(1);st.section=q.sec;return st})}
+
+// =====================================================================================================================
+// 10. PUBLIC API
+// =====================================================================================================================
+return {
+  // ---- unchanged signatures
+  start,stop,setRealm,
+  fx(n,o){if(!live()||!cfg().on||!FX[n])return;const w=Date.now();if((n==="ok"||n==="no")&&w-(lastFx[n]||0)<150)return;lastFx[n]=w;try{const t=ctx.currentTime+.005;FX[n](rig,t,fxOut(rig,n,o&&o.gain));duckFx(FXDUCK[n],n==="seal"||n==="thunder"?.9:.25)}catch(e){lastErr=String(e)}},
+  toggle(){const c=cfg();c.on=!c.on;save();if(c.on){gestured=true;start();if(started&&ctx.state!=="running")kick()}else stop();return c.on},
+  vol(k,v){cfg()[k]=v;applyVol();save()},
+  next(){gestured=true;if(!ctx||!started){start();return}if(hushed||scoreSeq)return;playPiece(nextPiece())},
+  play(id){const p=(typeof PAKT_MUSIC!=="undefined"?PAKT_MUSIC:[]).find(x=>x.id===id);if(!p)return;gestured=true;if(!ctx||!started){cfg().on=true;start()}if(!started)return;hushed=false;playPiece(p)},
+  now(){return playing&&playing.p},
+  hush(on){if(!ctx||!started){hushed=false;return}if(on){stopPiece(.35);hushed=true}else if(hushed){hushed=false;if(!scoreSeq)try{playPiece(nextPiece())}catch(e){}}},
+  hushed(){return hushed},
+  // ev: [[midi,startStep,durSteps,vel?],…] in 16ths at bpm. Returns a handle {stop()}; o:{bus:"music"|"fx"|"amb",loop,gain,swing}
+  motif(ev,inst,bpm,o){if(!ready())return null;o=o||{};try{const q=new Seq(rig,{bpm:bpm||84,inst:(INST[inst]||INST[ALIAS[inst]])?inst:"musicbox",ev,loop:!!o.loop,gain:o.gain,swing:o.swing},{dest:rig[o.bus||"music"].in});prewarm(ctx,q.keys(),()=>{if(q.cancelled)return;q.start(ctx.currentTime+.06);rig.seqs.push(q);q.tick(ctx.currentTime+LOOK())});return {seq:q,stop(x){q.stop(x)}}}catch(e){lastErr=String(e);return null}},
+  bell(n,low){if(!ready())return;try{const m=low?55:62;getTable(ctx,"bell",m,.7);const t=ctx.currentTime+.1;for(let k=0;k<(n||1);k++)voice(rig,"bell",m,t+k*2.4,6,.62,rig.fx.in);duckFx(4,Math.min(6,(n||1)*2.4))}catch(e){}},
+  sting(kind){if(!ready())return;try{const t=ctx.currentTime+.02,o=rig.fx.in;if(kind==="egg"){[72,76,79,84,88].forEach((m,i)=>voice(rig,"musicbox",m,t+i*.09,.6,.7,o));voice(rig,"cello",48,t,2,.5,o)}else if(kind==="lore"){[57,60,64].forEach((m,i)=>voice(rig,"harpsichord",m,t+i*.12,1.2,.75,o))}else if(kind==="win"){[60,64,67,72].forEach((m,i)=>voice(rig,"organ",m,t+i*.1,1.6,.5,o));voice(rig,"timpani",48,t,1,.8,o)}duckFx(5,.6)}catch(e){}},
+  state(){const q=runningSeq();return {on:cfg().on,ctx:!!ctx,started,realm,now:playing&&playing.p&&playing.p.t,err:lastErr,ac:ctx?ctx.state:"none",sr:ctx?ctx.sampleRate:0,paused,hushed,score:!!scoreSeq,voices:rig?rig.voices.length:0,seqs:rig?rig.seqs.length:0,saver:!!(rig&&rig.saver),room:rig&&rig.room,
+    key:q&&q.def&&q.def.key||null,section:scoreSeq?scoreSeq.sec:null,layers:scoreSeq?scoreSeq.on():[],dozing,slept,spk:spkMode(),ver:"13.1-a2"}},
+  levels(){const c=cfg();return {on:c.on!==false,music:c.music,amb:c.amb,fx:c.fx,saver:c.saver,spk:c.spk||"auto"}},
+  setOn(on){const c=cfg();if(!!on===(c.on!==false))return c.on!==false;return this.toggle()},
+  // ---- new
+  // adaptive / boss music. def as in section 5; o:{at:"now"|"beat"|"bar"|"loop" (transition from the running score), hush:true, onloop(n,seq)}
+  // returns {layer(name,on,{at,fade}), tempo(bpm,rampSteps), stop({at,fade,resume,gap}), pos(), active()}
+  score:mkScore,
+  stinger:mkStinger,
+  doze(){doze()},wake(){wake()},
+  speaker(mode){if(mode!==undefined){cfg().spk=mode==="phone"||mode==="head"?mode:"auto";save();applySaver();applyVol()}return spkMode()},
+  measure,
+  note(inst,midi,dur,vel,when,bus){if(!ready())return;if(vel!=null&&vel>1.5)vel/=100;try{voice(rig,inst,midi,Math.max(ctx.currentTime+.005,when||0),dur||.5,vel==null?.75:vel,rig[bus||"fx"].in)}catch(e){}},
+  duck(on){if(live())duckVoice(!!on)},
+  saver(mode){if(mode!==undefined){cfg().saver=mode;save();applySaver()}return isSaver()},
+  time(){return ctx?ctx.currentTime:0},
+  insts(){return Object.keys(INST)},
+  selfTest,
+  DSP:{fxOut,lufs,stats,makeIR,pad,SHOT,PADS,INST,AMBTRIM,FXT,FXDUCK,LIM,ROOMS,mkRig,voice,Seq,tickSeqs,ambStart,ambPump,FX,hz,db,keyOf,keyShift,iname,ALIAS,faderGain,DEF,SPK,render,HOOK,
+    full:()=>({ctx,rig,amb,playing,scoreSeq,started,paused,slept,dozing})}};
+})();
+
+// ===== a2 · settings and small repairs around the engine (MOD sections only; nothing here runs before a screen renders)
+(function(){if(typeof MOD==="undefined"||typeof window==="undefined")return;
+  const A2SPK=[["auto","Automatisch"],["phone","Telefon"],["head","Kopfhörer"]];
+  function card(){const L=SND.levels();return `<div class="card stack s a2-snd"><h3>Klang</h3>
+    <label class="li" style="cursor:pointer"><span class="t"><b style="font-family:var(--ui);font-size:.98rem">Akku sparen</b><small>Weniger Stimmen, kürzerer Hall. „Automatisch“ schaltet bei 20 % Akku ein.</small></span><input type="checkbox" class="a2-saver" ${L.saver===true?"checked":""} style="width:24px;min-height:24px;flex-shrink:0"></label>
+    <div class="stack s"><b class="ui" style="font-size:.98rem">Lautsprecher</b><div class="seg a2-spk">${A2SPK.map(([k,n])=>`<button class="${L.spk===k?"on":""}" data-k="${k}">${n}</button>`).join("")}</div>
+    <small class="muted ui">Telefon: ohne die tiefsten Bässe, die ein Handy nicht wiedergibt, und etwas lauter. Kopfhörer: voller Klang. Automatisch: Telefon auf kleinen Bildschirmen.</small></div>
+    <small class="muted ui">Musik, Atmosphäre und Effekte regelst du im Pakt unter „Klanglandschaft“. Musik auf 0 ist völlige Stille.</small></div>`}
+  MOD.after("meSettings","a2",function(el){
+    // the old "Töne" checkbox wrote S.sound=true/false over the soundscape settings; it now switches the soundscape on or off
+    const cb=el.querySelector('input[data-pref="sound"]');if(cb){cb.checked=SND.levels().on;const lb=cb.closest("label"),sm=lb&&lb.querySelector("small");if(sm)sm.textContent="Musik, Atmosphäre und Effekte der Klanglandschaft";
+      cb.onchange=()=>{SND.setOn(cb.checked);try{chromeExtras()}catch(e){}}}
+    if(el.querySelector(".a2-snd"))return;const host=el.querySelector('[data-set-group="grauen-ton"]'),d=document.createElement("div");d.innerHTML=card();const c=d.firstElementChild;
+    if(host)host.appendChild(c);else{const near=cb&&cb.closest(".card");if(near)near.after(c);else el.appendChild(c)}
+    const sv=c.querySelector(".a2-saver");sv.onchange=()=>SND.saver(sv.checked?true:"auto");
+    c.querySelectorAll(".a2-spk button").forEach(b=>b.onclick=()=>{SND.speaker(b.dataset.k);c.querySelectorAll(".a2-spk button").forEach(x=>x.classList.toggle("on",x===b))})});
+  // the Klanglandschaft sliders showed .5 for a value that was never saved; show what the engine plays
+  MOD.after("viewPakt","a2",function(m){const L=SND.levels();m.querySelectorAll(".pk-vol").forEach(r=>{const v=L[r.dataset.k];if(typeof v==="number")r.value=v})});
+  // c_phone's chime() opened a second AudioContext and ignored "Ton aus" (S.sound is an object, always truthy). It now plays the engine's answer
+  // sound, which is silent when sound is off and plays once even where the caller also calls SND.fx("ok"|"no") (150 ms de-duplication).
+  try{if(typeof window.chime==="function")MOD.around("chime","a2",function(orig,ok){try{SND.fx(ok?"ok":"no")}catch(e){}})}catch(e){}
 })();
 
 // ===== Mephisto 12 · "Der Pakt" — story frame, soul ledger, realm map, Mephisto's voice, Gothic interface, desktop rail, keys & gamepad.
@@ -3462,7 +4000,7 @@ document.addEventListener("keydown",e=>{if(e.ctrlKey||e.metaKey||e.altKey)return
   const tabs=TABS.map(x=>x[0]);if(/^[1-5]$/.test(e.key)&&tabs[+e.key-1]){go(tabs[+e.key-1]);e.preventDefault()}else if(/^m$/i.test(e.key)){ACT.pkMute()}else if(/^n$/i.test(e.key)){ACT.pkNextTrack()}});
 (function(){let raf=null,prev={};const focusables=()=>[...document.querySelectorAll(Focus.isOpen()?"#focus button:not([disabled]),#focus input,#focus textarea,#focus a[href],#focus summary,#focus .pk-say .en[tabindex]":"#pakt-pro button,.sheet:not([hidden]) button,#main button:not([disabled]),#main input,#main a[href],#main summary,#main .pk-say .en[tabindex],#pakt-rail button,nav.bar button,aside.side nav button")].filter(el=>el.offsetParent!==null);
   const move=d=>{const L=focusables();if(!L.length)return;let i=L.indexOf(document.activeElement);i=i<0?0:(i+d+L.length)%L.length;L[i].focus();L[i].scrollIntoView({block:"nearest",behavior:"smooth"})};
-  const poll=()=>{const gp=[...(navigator.getGamepads?navigator.getGamepads():[])].find(Boolean);if(!gp){raf=null;return}const b=gp.buttons.map(x=>x.pressed);const ax=gp.axes||[];
+  const poll=()=>{if(window.PAD&&PAD.owns){raf=null;return}const gp=[...(navigator.getGamepads?navigator.getGamepads():[])].find(Boolean);if(!gp){raf=null;return}const b=gp.buttons.map(x=>x.pressed);const ax=gp.axes||[];
     const press=(i,fn)=>{if(b[i]&&!prev[i])fn();};
     press(0,()=>{const a=document.activeElement;if(a&&a!==document.body)a.click();else move(0)});press(1,()=>{if(Focus.isOpen())Focus.close();else if(!$("#sheet").hidden)closeSheet();else history.back()});
     const inBook=()=>Focus.isOpen()&&$(".book");if(inBook()){press(14,()=>ACT.bkPrev&&ACT.bkPrev());press(15,()=>ACT.bkNext&&ACT.bkNext());press(4,()=>ACT.bkPrev&&ACT.bkPrev());press(5,()=>ACT.bkNext&&ACT.bkNext());b.forEach((v,i)=>prev[i]=v);raf=requestAnimationFrame(poll);return}press(12,()=>move(-1));press(13,()=>move(1));press(14,()=>move(-1));press(15,()=>move(1));press(9,()=>go("home"));press(8,()=>ACT.pkMute());press(4,()=>{const t=TABS.map(x=>x[0]);go(t[(t.indexOf(R.tab)-1+t.length)%t.length])});press(5,()=>{const t=TABS.map(x=>x[0]);go(t[(t.indexOf(R.tab)+1)%t.length])});
@@ -3511,8 +4049,8 @@ ACT.palace=()=>{const items=palNouns(16);if(!items.length)return toast("Keine No
      <div class="pal-doors">${door("der")}${door("die")}${door("das")}</div><div id="palOut"></div></div>`;Focus.foot(null);
     box.querySelectorAll(".pal-door").forEach(b=>b.onclick=()=>answer(b.dataset.g))};
   const answer=pick=>{const c=items[i];const [g,noun]=c.de.split(" ");const right=pick===g;S.palace=S.palace||{};const st=S.palace[noun]=S.palace[noun]||{g,ok:0,miss:0};right?st.ok++:(st.miss++,st.wrong=pick);st.d=todayKey();if(right)ok++;saveSoon();
-    SND.fx(right?"ok":"no");fb&&fb(right);const P=PALACE[g];const put=P.put[Math.floor(Math.random()*P.put.length)].replace("{X}",`<b class="g-${g} no-sig"><i class="sig ${g}"></i>${g} ${esc(noun)}</b>`);const r0=palRule(noun);const r=r0&&r0.g===g?r0:null;const mn=mnemoFor(c.de);
-    box.querySelectorAll(".pal-door").forEach(b=>{b.disabled=true;if(b.dataset.g===g)b.classList.add("right");else if(b.dataset.g===pick)b.classList.add("wrong")});
+    SND.fx(right?"ok":"no");fb&&fb(right);const P=PALACE[g];/* s6: the generator rules G1–G7 — hxPut holds back every noun of the forbidden classes (stem + English gloss) and never makes {X} a victim */const S6h=S.hx=S.hx||{};const pr=typeof hxPut==="function"?hxPut(P.put,noun,c.en,g,S6h.put):{s:String((P.put[0]&&P.put[0].s)||P.put[0]),en:""};S6h.put=pr.s;const put=esc(pr.s).replace("{X}",`<b class="g-${g} no-sig"><i class="sig ${g}"></i>${g} ${esc(noun)}</b>`)+(pr.en&&(typeof learnerLv!=="function"||learnerLv()<2)?`<br><small class="muted ui">${esc(pr.en)}</small>`:"");const r0=palRule(noun);const r=r0&&r0.g===g?r0:null;const mn=mnemoFor(c.de);
+    box.querySelectorAll(".pal-door").forEach(b=>{b.disabled=true;if(b.dataset.g===g)b.classList.add("right");else if(b.dataset.g===pick)b.classList.add("wrong")});try{if(typeof HX!=="undefined")HX.onAnswer(right,box.querySelector(".pal-door.wrong")||box,{type:"palace",word:c.de})}catch(e){}
     $("#palOut").innerHTML=`<div class="card stack s pk-fade no-sig" style="text-align:left;margin-top:1rem">${right?"":pkSay(pkMephLine("wrong"))}<div class="eyebrow">${esc(P.room)}</div><p class="pk-nar" style="color:var(--fg)">${put}</p>
       ${r?`<p class="ui" style="font-size:.9rem"><b>Regel:</b> ${esc(r.r)}${r.weak?" <span class='muted'>(nicht immer!)</span>":""}</p>`:""}${r0&&!r?`<p class="ui" style="font-size:.9rem"><b>Ausnahme!</b> ${esc(g+" "+noun)} folgt nicht der Regel „${esc(r0.r)}“.</p>`:""}${mn?`<p class="ui" style="font-size:.9rem"><b>Merkmärchen:</b> ${esc(mn.t)}</p>`:""}</div>`;
     Focus.foot(`<button class="go" data-act="palNext">${i<items.length-1?"Weiter":"Auswertung"}</button>`)};
@@ -3638,17 +4176,35 @@ MOD.after("viewPakt","meth",function(m){const v=m.querySelector(".view");if(!v||
 .bib-p{display:grid;grid-template-columns:1fr auto;gap:.3rem;align-items:start}.bib-p .bib-say{min-height:32px;min-width:32px;padding:.2rem;opacity:.55}
 .rz-h{cursor:pointer;letter-spacing:.06em}.rz-gap{min-height:26px;padding:0 .3rem;font-family:var(--body);font-size:1rem;border-style:dashed;vertical-align:baseline}.rz-gap.on{border-style:solid;color:var(--accent-2)}`;document.head.appendChild(s)})();
 
-// ===== Mephisto 12.5 · Das Grauen: horror that is present everywhere. S.horror: 0 aus · 1 schaurig · 2 Albtraum (default). Respects "Bewegung reduzieren".
+// ===== Mephisto 12.5 → 13.2 (s6) · Das Grauen: the effect layer. S.horror: 0 aus · 1 schaurig · 2 Albtraum (default). Respects "Bewegung reduzieren".
+// s6: this file no longer decides WHEN horror happens. That is HX (v2/c_s6.js, the dread meter): one entry point for every graded answer,
+// tiers −1…4, a budget per effect, and the stand-downs (sober chapters, Bett vier, finale, grave pages, bad news, consent, speech, three failures).
+// HOR only DRAWS, through small named functions, so that a6's effects kit FX (v2/c_a6.js) can take them over:
+//   HOR.ink(el,kind,tier)  → FX.wrong(card,…) + our ink blot on the wrong word      HOR.veil()   → FX.bloom
+//   HOR.shake()            → FX.bossHit(.duel-boss) (never the text)               HOR.gutter() → FX.drip in the free gutter
+//   HOR.shutEye(ms)/openEye() → our eye (+ FX.eyes close)                           HOR.standDown() → FX.standDown + removes our transient nodes
+//   HOR.whisper(de,en,voice) → placed inside FX.band() (null = not now)             HOR.pause(on)  → P2's grave pages: everything off until off
+// Without FX (13.0 builds) each function falls back to the 13.0 drawing. Without HX the legacy behaviour is kept but every effect stands down in sober contexts.
 const HOR=(function(){
   const lvl=()=>{const v=S.horror;return v==null?2:+v};const calm=()=>document.documentElement.classList.contains("nomotion")||matchMedia("(prefers-reduced-motion: reduce)").matches;
-  let eye=null,lastIdle=Date.now(),shadowOut=false;
-  // --- CSS
+  const fx=()=>typeof window.FX==="object"&&window.FX?window.FX:null;
+  const H=()=>document.documentElement;
+  let eye=null,lastIdle=Date.now(),shadowOut=false,paused=false,shutT=null,shutHold=false;
+  // sober question asked by every drawing function (HX decides first; this is the last guard, so no .hor-*/.hx-* node is ever added in a sober place)
+  function quiet(el){if(!lvl()||paused)return true;const h=H();if(h.dataset.sober==="1"||h.classList.contains("p2-grave"))return true;
+    try{if(typeof HX!=="undefined"&&HX.ctx){const c=HX.ctx(el);return c==="sober"||c==="speech"}}catch(e){}
+    try{const f=fx();if(f&&f.sober&&f.sober(el))return true}catch(e){}
+    try{const box=el&&el.closest?(el.closest("#fIn")||el.closest(".view")):document.querySelector("#focus:not([hidden]) #fIn");if(box&&typeof HX_SOBER_RE!=="undefined"&&HX_SOBER_RE.test((box.textContent||"").slice(0,6000)))return true}catch(e){}
+    return false}
+  // --- CSS (13.0 rules kept for the fallback; the RGB glitch is gone; the realm-V pulse only at tier ≥ 3 and never sober)
   const css=document.createElement("style");css.textContent=`
 #hor-eye{position:fixed;z-index:31;width:34px;height:20px;left:50%;margin-left:-17px;top:calc(env(safe-area-inset-top,0px) + 18px);pointer-events:none;opacity:.85;filter:drop-shadow(0 0 6px rgba(179,38,30,.55))}
 @media(min-width:900px){#hor-eye{top:auto;bottom:22px;left:107px}}
 body:has(#focus:not([hidden])) #hor-eye,body:has(#sheet:not([hidden])) #hor-eye,body:has(#pakt-pro) #hor-eye{display:none}
-#hor-eye .lid{transform-origin:50% 50%;transition:transform .12s}#hor-eye.blink .lid{transform:scaleY(.05)}
+#hor-eye .lid{transform-origin:50% 50%;transition:transform .12s}#hor-eye.blink .lid,#hor-eye.shut .lid{transform:scaleY(.05)}#hor-eye.shut .lid{transition:transform 1.5s}
+#hor-eye.gone{display:none}#hor-eye.lantern .iris{fill:#E8862B}
 #hor-eye.angry .iris{fill:#E0302A}#hor-eye.angry{filter:drop-shadow(0 0 12px #E0302A)}
+:root[data-sober="1"] #hor-eye,:root.p2-grave #hor-eye,:root.hx-paused #hor-eye,:root[data-sober="1"] .hor-whisper,:root.p2-grave .hor-whisper,:root[data-sober="1"] #hx-gutter,:root.p2-grave #hx-gutter{display:none!important}
 #hor-veil{position:fixed;inset:0;z-index:58;pointer-events:none;opacity:0;background:radial-gradient(120% 90% at 50% 50%,transparent 35%,rgba(140,0,0,.55) 100%);transition:opacity .5s}
 #hor-veil.on{opacity:1;transition:opacity .05s}
 .hor-shake{animation:horShake .38s cubic-bezier(.36,.07,.19,.97) both}
@@ -3659,7 +4215,7 @@ body:has(#focus:not([hidden])) #hor-eye,body:has(#sheet:not([hidden])) #hor-eye,
 @keyframes horDrip{0%{height:0}60%{height:var(--h)}100%{height:calc(var(--h) + 6px);opacity:.85}}
 .verdict.no{position:relative;overflow:visible;text-shadow:0 0 12px rgba(179,38,30,.45)}
 #hor-shadow{position:fixed;z-index:57;bottom:0;left:-260px;width:260px;height:70vh;pointer-events:none;opacity:0;transition:left 3.5s cubic-bezier(.4,0,.2,1),opacity 2s}
-#hor-shadow.out{left:-40px;opacity:.85}
+#hor-shadow.out{left:-40px;opacity:.85}#hor-shadow.back{transition:left .25s,opacity .25s}
 #hor-embers{position:fixed;inset:0;z-index:2;pointer-events:none;overflow:hidden}
 #hor-embers i{position:absolute;bottom:-10px;width:3px;height:3px;border-radius:50%;background:#FFB566;box-shadow:0 0 6px #F08A3F;animation:horRise linear infinite;opacity:.0}
 @keyframes horRise{0%{transform:translate(0,0);opacity:0}10%{opacity:.9}100%{transform:translate(var(--dx),-105vh);opacity:0}}
@@ -3670,58 +4226,594 @@ body:has(#focus:not([hidden])) #hor-eye,body:has(#sheet:not([hidden])) #hor-eye,
 #hor-flash{position:fixed;inset:0;z-index:2;pointer-events:none;background:#E8EEFF;opacity:0}
 #hor-flash.on{animation:horFlash 1.2s ease-out}
 @keyframes horFlash{0%{opacity:0}8%{opacity:.16}14%{opacity:.02}20%{opacity:.12}100%{opacity:0}}
-:root:not([data-ui="pixel"])[data-realm="V"] body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(60% 40% at 0% 100%,rgba(139,0,0,.22),transparent 70%),radial-gradient(60% 40% at 100% 100%,rgba(139,0,0,.22),transparent 70%);animation:horPulse 1.1s ease-in-out infinite}
+:root:not([data-ui="pixel"]):not([data-sober="1"]):not(.p2-grave)[data-realm="V"][data-hxt="3"] body::after,:root:not([data-ui="pixel"]):not([data-sober="1"]):not(.p2-grave)[data-realm="V"][data-hxt="4"] body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(60% 40% at 0% 100%,rgba(139,0,0,.22),transparent 70%),radial-gradient(60% 40% at 100% 100%,rgba(139,0,0,.22),transparent 70%);animation:horPulse calc(1.5s - var(--hxd,40) * .006s) ease-in-out infinite}
 @keyframes horPulse{0%,100%{opacity:.55}15%{opacity:1}30%{opacity:.6}45%{opacity:.9}}
-.hor-whisper{font-family:var(--display);color:rgba(179,38,30,.0);position:fixed;z-index:56;pointer-events:none;font-size:clamp(1.4rem,6vw,2.6rem);letter-spacing:.06em;animation:horWh 4.2s ease-in-out forwards;text-shadow:0 0 18px rgba(179,38,30,.6)}
+.hor-whisper{font-family:var(--display);color:rgba(179,38,30,.0);position:fixed;z-index:56;pointer-events:none;font-size:clamp(1.4rem,6vw,2.6rem);letter-spacing:.06em;animation:horWh 4.2s ease-in-out forwards;text-shadow:0 0 18px rgba(179,38,30,.6);max-width:84vw;line-height:1.15}
+.hor-whisper small{display:block;font-family:var(--ui,system-ui);font-size:45%;letter-spacing:0;opacity:.6;margin-top:.2em}
+.hor-whisper.v-A{font-family:var(--ui,system-ui);font-variant:small-caps;font-size:clamp(1rem,4vw,1.5rem);color:#9fb5a0;text-shadow:none;animation-name:horWhA}
+.hor-whisper.v-K{font-family:var(--body,serif);font-style:italic;font-size:clamp(.95rem,3.6vw,1.45rem);color:#e8dcc0;text-shadow:none;animation-name:horWhA}
+.hor-whisper.v-P{text-shadow:0 0 18px rgba(232,134,43,.6);animation-name:horWhP}
+.hor-whisper.static{animation:none;color:rgba(224,100,90,.75)}
 @keyframes horWh{0%{color:rgba(179,38,30,0);filter:blur(6px)}30%{color:rgba(224,100,90,.75);filter:blur(0)}70%{color:rgba(224,100,90,.55)}100%{color:rgba(179,38,30,0);filter:blur(8px);transform:translateY(-20px)}}
-.hor-glitch{animation:horGl .5s steps(2) 2}
-@keyframes horGl{0%{text-shadow:2px 0 #B3261E,-2px 0 #3BA7E0;transform:translateX(1px)}50%{text-shadow:-2px 0 #B3261E,2px 0 #3BA7E0;transform:translateX(-1px)}100%{text-shadow:none;transform:none}}
+@keyframes horWhA{0%,100%{opacity:0}15%,80%{opacity:.85}}
+@keyframes horWhP{0%{color:rgba(232,134,43,0);filter:blur(6px)}30%{color:rgba(240,160,80,.8);filter:blur(0)}100%{color:rgba(232,134,43,0);filter:blur(8px)}}
 :root[data-ui="gothic"] .card.orn{box-shadow:var(--shadow),inset 0 0 40px -18px rgba(139,0,0,.35)}
 :root:not([data-ui="pixel"]) .pk-say .who{animation:horBreath 5s ease-in-out infinite}
 @keyframes horBreath{0%,100%{box-shadow:0 0 16px -4px var(--accent)}50%{box-shadow:0 0 26px 0 rgba(179,38,30,.8)}}
 @media (pointer:fine){:root[data-ui="gothic"][data-hor="2"] body{cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cpath d='M3 2l7 18 2-7 7-2z' fill='%23140808' stroke='%23F08A3F' stroke-width='1.3'/%3E%3C/svg%3E") 3 2,auto}}
-:root.nomotion #hor-embers,:root[data-hor="0"] #hor-embers,:root[data-hor="0"] #hor-eye{display:none}`;document.head.appendChild(css);
+:root.nomotion #hor-embers,:root[data-hor="0"] #hor-embers,:root[data-hor="0"] #hor-eye{display:none}
+/* s6 · the three fluids (S6 §8): ink = a mistake in the language; blood = his own lapse (a word he owned), on paper only; the ledger gutter = debt */
+.hx-ink{position:absolute;left:var(--x,50%);top:var(--y,100%);width:2px;height:0;border-radius:0 0 2px 2px;pointer-events:none;z-index:2;background:linear-gradient(#1a0f0c,#3a1410 80%,#6a1a12);animation:hxInk 3.2s cubic-bezier(.3,0,.2,1) forwards}
+.hx-ink::after{content:"";position:absolute;left:-2px;bottom:-3px;width:6px;height:6px;border-radius:50%;background:#3a1410}
+.hx-ink.blood{width:3px;background:linear-gradient(#5a0000,#B3261E);box-shadow:0 0 4px rgba(179,38,30,.5)}.hx-ink.blood::after{background:#B3261E}
+.hx-blot{position:absolute;left:var(--x);top:var(--y);width:.9em;height:.7em;margin-left:-.45em;border-radius:50% 45% 55% 40%;background:radial-gradient(#1a0f0c 40%,rgba(58,20,16,.6) 70%,transparent);pointer-events:none;animation:hxBlot .6s ease-out both;mix-blend-mode:multiply}
+:root[data-theme="dark"] .hx-blot,:root[data-ui="gothic"] .hx-blot{background:radial-gradient(#5a1a12 40%,rgba(120,30,20,.55) 70%,transparent);mix-blend-mode:normal;opacity:.85}
+.hx-blot.blood{background:radial-gradient(#8a0d0d 40%,rgba(179,38,30,.6) 70%,transparent)}
+@keyframes hxInk{to{height:var(--h,2.2em)}}@keyframes hxBlot{from{transform:scale(.2);opacity:0}to{transform:scale(1);opacity:.9}}
+:root.nomotion .hx-ink,:root.nomotion .hx-blot{animation:none;height:var(--h,2.2em)}
+#hx-gutter{position:fixed;left:0;bottom:0;width:6px;height:calc(var(--debt,0) * 5.5vh);z-index:14;pointer-events:none;background:linear-gradient(transparent,#3a0000 30%,#5a0000);opacity:.9;transition:height 2s}
+#hx-gutter::after{content:"";position:absolute;left:0;right:0;top:0;height:14px;background:linear-gradient(transparent,rgba(255,120,110,.35),transparent);animation:hxWet 60s linear infinite;opacity:0}
+:root[data-hxt="3"] #hx-gutter::after,:root[data-hxt="4"] #hx-gutter::after{opacity:1}@keyframes hxWet{0%{top:0}8%{top:100%}100%{top:100%}}
+:root[data-ui="pixel"] #hx-gutter{width:4px;background:repeating-linear-gradient(#5a0000 0 4px,transparent 4px 6px)}
+:root[data-ui="paper"] #hx-gutter,:root[data-ui="clean"] #hx-gutter{opacity:.7}
+#hx-gutter.dry{background:linear-gradient(transparent,#4a2a1a)}`;document.head.appendChild(css);
   // --- the eye that watches
   function mkEye(){if(eye)return;eye=document.createElement("div");eye.id="hor-eye";eye.innerHTML=`<svg viewBox="0 0 34 20"><path class="lid" d="M1 10Q17 -4 33 10Q17 24 1 10Z" fill="#EDE3CF" stroke="#3a0b0b" stroke-width="1.2"/><g class="lid"><circle class="iris" cx="17" cy="10" r="5.2" fill="#7A1A12"/><circle class="pupil" cx="17" cy="10" r="2.2" fill="#000"/></g><path d="M3 8Q8 6 9 9M25 9Q27 6 31 8" stroke="#8B1A14" stroke-width=".6" fill="none" opacity=".7"/></svg>`;document.body.appendChild(eye);
-    const blink=()=>{if(!eye)return;eye.classList.add("blink");setTimeout(()=>eye.classList.remove("blink"),140);setTimeout(blink,2500+Math.random()*6000)};setTimeout(blink,3000)}
-  document.addEventListener("pointermove",e=>{lastIdle=Date.now();if(!eye)return;const r=eye.getBoundingClientRect();const dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);const a=Math.atan2(dy,dx),d=Math.min(3.2,Math.hypot(dx,dy)/60);
-    const x=17+Math.cos(a)*d,y=10+Math.sin(a)*d*.7;eye.querySelectorAll(".iris,.pupil").forEach(c=>{c.setAttribute("cx",x);c.setAttribute("cy",y)})},{passive:true});
-  ["keydown","pointerdown","touchstart"].forEach(t=>document.addEventListener(t,()=>{lastIdle=Date.now()},{passive:true}));
-  // --- ambient per realm: embers (V), fireflies + eyes in the trees (I), dust (II), smoke sparks (III), rain + lightning (IV)
-  let amb=null,ambR=null,flashT=null;
-  function ambient(){const L=lvl();const r=document.documentElement.dataset.realm||"I";const goth=document.documentElement.dataset.ui!=="pixel";
+    const blink=()=>{if(!eye)return;if(!eye.classList.contains("shut")){eye.classList.add("blink");setTimeout(()=>eye&&eye.classList.remove("blink"),140)}setTimeout(blink,2500+Math.random()*6000)};setTimeout(blink,3000)}
+  let gazeOff=0;  // W06: while > now the eye does not follow the pointer
+  document.addEventListener("pointermove",e=>{lastIdle=Date.now();if(!eye||Date.now()<gazeOff)return;const r=eye.getBoundingClientRect();const dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);const a=Math.atan2(dy,dx),d=Math.min(3.2,Math.hypot(dx,dy)/60);
+    gaze(17+Math.cos(a)*d,10+Math.sin(a)*d*.7)},{passive:true});
+  function gaze(x,y){if(!eye)return;eye.querySelectorAll(".iris,.pupil").forEach(c=>{c.setAttribute("cx",x);c.setAttribute("cy",y)})}
+  function lookAway(ms){if(!eye)return false;gazeOff=Date.now()+(ms||12000);gaze(17,6);return true}
+  function pupil(t){if(!eye)return;const p=eye.querySelector(".pupil");if(p)p.setAttribute("r",(2.2+.35*Math.max(0,t||0)).toFixed(2))}   // the meter's only visible trace in the eye
+  function shutEye(ms){try{const f=fx();if(f&&f.eyes)f.eyes({close:true})}catch(e){}if(!eye)return;clearTimeout(shutT);eye.classList.add("shut");shutHold=!ms;if(ms)shutT=setTimeout(()=>{if(eye&&!shutHold)eye.classList.remove("shut")},ms)}
+  function openEye(){shutHold=false;clearTimeout(shutT);if(eye)eye.classList.remove("shut")}
+  ["keydown","pointerdown","touchstart"].forEach(t=>document.addEventListener(t,()=>{lastIdle=Date.now();if(shadowOut){const s=document.getElementById("hor-shadow");if(s){s.classList.add("back");s.classList.remove("out")}}},{passive:true}));
+  // --- ambient per realm: only when a6's kit is absent (FX is the only particle system; S6/a6 D8)
+  let amb=null,ambR=null,flashT=null,lastThunder=0;
+  function ambient(){const L=lvl();const r=H().dataset.realm||"I";const goth=H().dataset.ui!=="pixel";
+    if(fx()){if(amb){amb.remove();amb=null;const f=document.getElementById("hor-flash");if(f)f.remove()}clearInterval(flashT);ambR=null;return}
     if(!amb){amb=document.createElement("div");amb.id="hor-embers";document.body.prepend(amb);const f=document.createElement("div");f.id="hor-flash";document.body.prepend(f)}
     if(!goth||!L||calm()){amb.innerHTML="";ambR=null;clearInterval(flashT);return}if(ambR===r+L)return;ambR=r+L;clearInterval(flashT);
     const n=L===2?26:14;let h="";const rnd=(a,b)=>a+Math.random()*(b-a);
-    if(r==="IV"){for(let i=0;i<n*2;i++)h+=`<i class="rain" style="left:${rnd(0,105)}%;animation-duration:${rnd(.7,1.3)}s;animation-delay:${rnd(0,2)}s"></i>`;flashT=setInterval(()=>{if(Math.random()<.35&&!document.hidden){const f=$("#hor-flash");f.classList.remove("on");void f.offsetWidth;f.classList.add("on");setTimeout(()=>SND.fx("thunder"),700)}},22000)}
+    if(r==="IV"){for(let i=0;i<n*2;i++)h+=`<i class="rain" style="left:${rnd(0,105)}%;animation-duration:${rnd(.7,1.3)}s;animation-delay:${rnd(0,2)}s"></i>`;
+      flashT=setInterval(()=>{if(document.hidden||quiet(null)||Date.now()-lastThunder<240000)return;if(document.querySelector("audio:not([paused])")||(typeof speechSynthesis!=="undefined"&&speechSynthesis.speaking))return;   // S6 H12: thunder at most every 4 minutes, never during audio
+        if(Math.random()<.35){lastThunder=Date.now();const f=$("#hor-flash");f.classList.remove("on");void f.offsetWidth;f.classList.add("on");setTimeout(()=>SND.fx("thunder"),700)}},22000)}
     else for(let i=0;i<n;i++){const col=r==="I"?"#C9F28A":r==="II"?"#E8D8A0":r==="III"?"#FFB566":"#FF8A4A";h+=`<i style="left:${rnd(0,100)}%;--dx:${rnd(-80,80)}px;animation-duration:${rnd(9,22)}s;animation-delay:${rnd(0,14)}s;background:${col};box-shadow:0 0 6px ${col}"></i>`}
     if(r==="I"||r==="V")for(let i=0;i<(L===2?5:2);i++)h+=`<i class="eye" style="left:${rnd(4,92)}%;top:${rnd(55,88)}%;animation-delay:${rnd(0,7)}s;animation-duration:${rnd(6,11)}s${r==="V"?";background:#E0302A;box-shadow:0 0 8px #E0302A":""}"></i>`;
     amb.innerHTML=h}
-  // --- events: wrong answers bleed, shake and whisper
-  let veil=null;function hurt(target){const L=lvl();if(!L)return;if(!veil){veil=document.createElement("div");veil.id="hor-veil";document.body.appendChild(veil)}
-    veil.classList.add("on");setTimeout(()=>veil.classList.remove("on"),L===2?420:220);if(eye){eye.classList.add("angry");setTimeout(()=>eye.classList.remove("angry"),1600)}
-    if(calm())return;if(L===2){const app=Focus.isOpen()?$("#fIn"):$("#main");if(app){app.classList.remove("hor-shake");void app.offsetWidth;app.classList.add("hor-shake")}}
-    if(target)bleed(target,L===2?5:3);edge(L)}
-  // more blood: drips run down from the top edge of the screen on every mistake (never over the lower half)
-  let edgeEl=null,edgeT=null;function edge(L){if(calm()||!L)return;if(!edgeEl){edgeEl=document.createElement("div");edgeEl.id="hor-edge";document.body.appendChild(edgeEl)}
-    const n=L===2?14:6;let h="";for(let i=0;i<n;i++)h+=`<i style="left:${(Math.random()*100).toFixed(1)}%;--h:${(30+Math.random()*(L===2?120:50)).toFixed(0)}px;--w:${(3+Math.random()*7).toFixed(0)}px;animation-delay:${(Math.random()*.4).toFixed(2)}s"></i>`;
-    edgeEl.innerHTML=h;edgeEl.classList.remove("on");void edgeEl.offsetWidth;edgeEl.classList.add("on");clearTimeout(edgeT);edgeT=setTimeout(()=>edgeEl.classList.remove("on"),3200)}
-  function bleed(el,n){if(!el||calm()||!lvl())return;const d=document.createElement("div");d.className="hor-drip";for(let i=0;i<n;i++){const x=document.createElement("i");x.style.left=(6+Math.random()*88)+"%";x.style.setProperty("--h",(14+Math.random()*46)+"px");x.style.animationDelay=(Math.random()*.6)+"s";x.style.width=(3+Math.random()*5)+"px";d.appendChild(x)}
+  // --- drawing primitives (each one is a seam for FX)
+  function cardOf(el){return el&&el.closest?(el.closest(".card,.fc,.q,.duel-q,.omen,.pal-doors,.gruft-o")||el):el}
+  function wrongWord(card){if(!card||!card.querySelector)return null;return card.querySelector(".d-del,.opts button.wrong,button.wrong,.wrong,.gr-in,.cr-in,.duel-in,[aria-invalid=true]")||card.querySelector(".verdict.no,.verdict.bad")}
+  // ink from the wrong word: a blot at tier 0, plus a run at tier ≥ 1; blood (his own) only when a word he owned is lost (lapse)
+  function ink(el,kind,tier){if(quiet(el))return false;const card=cardOf(el);if(!card||!card.isConnected)return false;
+    try{const f=fx();if(f&&f.wrong)f.wrong(card,{tier:Math.max(0,tier|0),kind:kind||"ink",input:wrongWord(card)})}catch(e){}
+    const w=wrongWord(card);const host=card;try{if(getComputedStyle(host).position==="static")host.style.position="relative"}catch(e){}
+    const hr=host.getBoundingClientRect(),wr=(w||host).getBoundingClientRect();const x=Math.max(8,Math.min(hr.width-8,wr.right-hr.left-6)),y=Math.max(4,wr.bottom-hr.top-4);
+    const b=document.createElement("i");b.className="hx-blot"+(kind==="blood"?" blood":"");b.style.setProperty("--x",x.toFixed(0)+"px");b.style.setProperty("--y",y.toFixed(0)+"px");host.appendChild(b);
+    if((tier|0)>=1&&!calm()){const r=document.createElement("i");r.className="hx-ink"+(kind==="blood"?" blood":"");r.style.setProperty("--x",(x-1).toFixed(0)+"px");r.style.setProperty("--y",(y+4).toFixed(0)+"px");r.style.setProperty("--h",(1+Math.random()*2*(1+(tier|0)/4)).toFixed(1)+"em");host.appendChild(r)}
+    if(!fx()&&kind==="blood")bleed(host,3);
+    if(eye&&!eye.classList.contains("shut")){eye.classList.add("angry");setTimeout(()=>eye&&eye.classList.remove("angry"),1600)}
+    return true}
+  let veilEl=null;function veil(tier){if(quiet(null))return false;const f=fx();if(f&&f.bloom){try{f.bloom({tier:tier==null?2:tier})}catch(e){}return true}
+    if(!veilEl){veilEl=document.createElement("div");veilEl.id="hor-veil";document.body.appendChild(veilEl)}veilEl.classList.add("on");setTimeout(()=>veilEl.classList.remove("on"),lvl()===2?420:220);return true}
+  function shake(){const p=document.querySelector("#fIn .duel-boss");if(!p||quiet(p))return false;const f=fx();if(f&&f.bossHit){try{f.bossHit(p)}catch(e){}return true}
+    if(calm())return false;p.classList.remove("hor-shake");void p.offsetWidth;p.classList.add("hor-shake");return true}   // only the monster's plate moves, never the correction
+  function gutter(n){if(quiet(null))return false;const f=fx();const k=Math.max(1,Math.min(4,n||1));if(f&&f.drip){try{for(let i=0;i<k;i++)setTimeout(()=>f.drip({edge:"l"}),i*260)}catch(e){}}
+    const g=document.getElementById("hx-gutter");if(g&&!calm()){g.animate&&g.animate([{filter:"brightness(1)"},{filter:"brightness(1.8)"},{filter:"brightness(1)"}],{duration:900})}return true}
+  // the ledger gutter: a stain at the left screen edge whose height is the open debt (S6 §8). Persistent, every look; hidden in sober places.
+  function gutterSync(debt){let g=document.getElementById("hx-gutter");if(!lvl()){if(g)g.remove();return}
+    if(!g){g=document.createElement("div");g.id="hx-gutter";g.setAttribute("aria-hidden","true");document.body.appendChild(g)}
+    const old=+g.dataset.d||0;g.style.setProperty("--debt",String(debt|0));g.dataset.d=String(debt|0);if(debt<old){g.classList.add("dry");setTimeout(()=>g.classList.remove("dry"),2600)}}
+  function bleed(el,n){if(!el||calm()||!lvl())return;if(!(el.closest&&el.closest(".duel-boss"))&&quiet(el))return;   // the monster bleeds when he is right
+    const d=document.createElement("div");d.className="hor-drip";for(let i=0;i<n;i++){const x=document.createElement("i");x.style.left=(6+Math.random()*88)+"%";x.style.setProperty("--h",(14+Math.random()*46)+"px");x.style.animationDelay=(Math.random()*.6)+"s";x.style.width=(3+Math.random()*5)+"px";d.appendChild(x)}
     if(getComputedStyle(el).position==="static")el.style.position="relative";el.appendChild(d);setTimeout(()=>d.remove(),9000)}
-  const WH=["Falsch …","Ich sehe dich.","Noch einmal.","Deine Seele zittert.","Der Artikel ist tot.","Hörst du mich?","Tiefer.","Ich warte.","Blut ist ein ganz besondrer Saft."];
-  function whisper(t){if(lvl()<2||calm())return;const w=document.createElement("div");w.className="hor-whisper";w.textContent=t||WH[Math.floor(Math.random()*WH.length)];w.style.left=(8+Math.random()*50)+"%";w.style.top=(18+Math.random()*50)+"%";document.body.appendChild(w);setTimeout(()=>w.remove(),4300)}
-  let wrongs=0;new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes){if(n.nodeType!==1)continue;const v=n.matches&&n.matches(".verdict.no,.verdict.bad")?n:(n.querySelector&&n.querySelector(".verdict.no,.verdict.bad"));if(!v)continue;wrongs++;hurt(v.closest(".card")||v);if(wrongs%3===0)whisper()}}).observe(document.body,{childList:true,subtree:true});
-  // --- the shadow hand when you idle
-  function shadowHand(){if(lvl()<1||calm()||shadowOut||document.hidden)return;let s=$("#hor-shadow");if(!s){s=document.createElement("div");s.id="hor-shadow";s.innerHTML=`<svg viewBox="0 0 260 600" preserveAspectRatio="xMinYMax meet" style="width:100%;height:100%"><defs><filter id="hb"><feGaussianBlur stdDeviation="3"/></filter></defs><path filter="url(#hb)" fill="#050202" d="M0 600 L0 260 C30 250 60 270 80 240 L118 120 C122 104 136 106 134 122 L118 220 L160 70 C165 52 182 56 178 74 L150 210 L196 92 C202 76 220 82 214 98 L176 228 L222 150 C230 136 246 146 238 160 L190 270 C176 330 150 380 110 420 L90 600Z"/></svg>`;document.body.appendChild(s)}
-    shadowOut=true;s.classList.add("out");SND.fx("no");try{const l=pkLine("idle");toast("Mephisto: "+l[0],4000)}catch(e){}setTimeout(()=>{s.classList.remove("out");setTimeout(()=>shadowOut=false,4000)},5200)}
-  setInterval(()=>{if(Date.now()-lastIdle>75000&&!Focus.isOpen()){lastIdle=Date.now();shadowHand()}},5000);
-  // --- glitch Mephisto's lines now and then
-  setInterval(()=>{if(lvl()<2||calm()||document.hidden)return;const L=$$(".pk-say .de");if(!L.length)return;const el=L[Math.floor(Math.random()*L.length)];el.classList.remove("hor-glitch");void el.offsetWidth;el.classList.add("hor-glitch")},14000);
-  function apply(){const h=document.documentElement;h.dataset.hor=String(lvl());if(lvl()&&h.dataset.ui!=="pixel")mkEye();else if(eye){eye.remove();eye=null}ambient()}
-  return {apply,hurt,bleed,whisper,lvl,shadowHand}})();
+  function standDown(){try{const f=fx();if(f&&f.standDown)f.standDown()}catch(e){}document.querySelectorAll(".hor-whisper,#hor-edge i").forEach(n=>n.remove());document.querySelectorAll(".hor-drip").forEach(n=>{if(!n.closest(".duel-boss"))n.remove()});if(veilEl)veilEl.classList.remove("on");shutEye(2000)}
+  function pause(on){paused=!!on;H().classList.toggle("hx-paused",paused);if(paused){standDown();shutEye(0)}else{openEye();try{const f=fx();if(f&&f.resume)f.resume()}catch(e){}}}
+  // whispers: the fallback bank (13.0's, without „Tiefer.") is used only when HX_WH is missing
+  const WH=["Falsch …","Noch einmal.","Der Artikel ist tot.","Ich warte."];
+  function whisper(t,en,voice){if(lvl()<1||quiet(null)||document.hidden)return false;if(voice==="-"){shutEye(3000);return true}
+    let top=null;const f=fx();if(f&&f.band){try{const b=f.band({min:48});if(!b)return false;top=b.top+Math.max(0,(b.height-48)/2)}catch(e){}}
+    const w=document.createElement("div");w.className="hor-whisper"+(voice&&voice!=="S"?" v-"+voice:"")+(calm()?" static":"");w.setAttribute("aria-hidden","true");
+    w.textContent=t||WH[Math.floor(Math.random()*WH.length)];if(en){const s=document.createElement("small");s.textContent=en;w.appendChild(s)}
+    w.style.left=(voice==="A"?50+Math.random()*20:voice==="K"?25+Math.random()*20:voice==="P"?30+Math.random()*10:8+Math.random()*40)+"%";w.style.top=top!=null?top+"px":(18+Math.random()*50)+"%";
+    document.body.appendChild(w);setTimeout(()=>w.remove(),calm()?3000:4300);return true}
+  // 13.0 entry point, kept for callers that are not ours (c_boss duels, c_v126 Gruft, c_omen): with HX every call is one graded wrong answer
+  function hurt(target){if(typeof HX!=="undefined"&&HX.onAnswer){HX.onAnswer(false,target||null,{src:"hurt"});return}
+    if(quiet(target))return;ink(target,"ink",2);veil(2);gutter(1)}
+  // the 13.0 verdict watcher: every .verdict.ok/.no/.bad is one graded answer for HX (which merges it with EV reports of the same answer)
+  let wrongs=0;new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes){if(n.nodeType!==1)continue;
+    const v=n.matches&&n.matches(".verdict.no,.verdict.bad,.verdict.ok")?n:(n.querySelector&&n.querySelector(".verdict.no,.verdict.bad,.verdict.ok"));if(!v)continue;const ok=v.classList.contains("ok");
+    if(typeof HX!=="undefined"&&HX.onAnswer){HX.onAnswer(ok,v,{src:"verdict"});continue}
+    if(ok)continue;if(quiet(v))continue;wrongs++;hurt(v.closest(".card")||v);if(wrongs%3===0)whisper()}}).observe(document.body,{childList:true,subtree:true});
+  // --- the shadow hand (S6 H7): 150 s idle on Heute/Pakt, at most once a day at tier ≥ 3, no sound, no joke; it withdraws at the first touch
+  function shadowHand(force){if(lvl()<1||calm()||shadowOut||document.hidden||quiet(null))return false;
+    if(!force){if(typeof HX==="undefined"||HX.tier(null)<3||!HX.can("hand",3))return false}
+    let s=document.getElementById("hor-shadow");if(!s){s=document.createElement("div");s.id="hor-shadow";s.innerHTML=`<svg viewBox="0 0 260 600" preserveAspectRatio="xMinYMax meet" style="width:100%;height:100%"><defs><filter id="hb"><feGaussianBlur stdDeviation="3"/></filter></defs><path filter="url(#hb)" fill="#050202" d="M0 600 L0 260 C30 250 60 270 80 240 L118 120 C122 104 136 106 134 122 L118 220 L160 70 C165 52 182 56 178 74 L150 210 L196 92 C202 76 220 82 214 98 L176 228 L222 150 C230 136 246 146 238 160 L190 270 C176 330 150 380 110 420 L90 600Z"/></svg>`;document.body.appendChild(s)}
+    shadowOut=true;s.classList.remove("back");s.classList.add("out");setTimeout(()=>{s.classList.remove("out");setTimeout(()=>{shadowOut=false;s.classList.remove("back")},4000)},5200);return true}
+  setInterval(()=>{if(Date.now()-lastIdle>150000&&!Focus.isOpen()&&typeof R!=="undefined"&&/^(home|pakt)$/.test(R.tab)){lastIdle=Date.now();shadowHand()}},5000);
+  // (the 13.0 RGB glitch on a 14-second metronome is removed: wrong genre, metronomic, and it hit sober lines — S6 H6, S10 D11, artsound V11)
+  function apply(){const h=H();h.dataset.hor=String(lvl());if(lvl()&&h.dataset.ui!=="pixel")mkEye();else if(eye){eye.remove();eye=null}ambient();try{gutterSync((typeof P==="function"&&P().signed)?(P().debt||0):0)}catch(e){}}
+  return {apply,hurt,bleed,whisper,lvl,calm,shadowHand,ink,veil,shake,gutter,gutterSync,shutEye,openEye,lookAway,pupil,standDown,pause,quiet,eye:()=>eye}})();
 const _applyHor=applyPrefs;applyPrefs=function(){_applyHor.apply(this,arguments);try{HOR.apply()}catch(e){}};
 setTimeout(()=>{try{HOR.apply()}catch(e){}},300);
 ACT.setHorror=el=>{S.horror=+el.dataset.k;saveSoon();HOR.apply();rerender();toast(["Grauen aus","Schaurig","Albtraum"][S.horror])};
+
+// ===== Mephisto 13.1 · a6 · FX — the one effects kit: horror effects, the reading-safe zone, answer feedback, the only particle system, idle.
+// Built from A9's c_fx.js (beta r8) after a line-by-line review; changes are marked "a6:". Loads right after c_horror.js (module media). Needs s_a6.css.
+// Contract: every effect is FX.name(opts) → {stop(), done}. Motion only on transform/opacity (WAAPI) or on ONE shared canvas (#fx-cv).
+// Nothing is ever drawn over a protected box: FX.protect() and the auto list cut those rectangles out of the front layer (clip-path)
+// and out of the canvas (ctx.clip). Stand-downs (sober, speech, Bett vier, Frau Brandt, clinical bad news) turn every reactive effect into a no-op.
+// Intensity 0–3 from S.horror (0→0, 1→1, 2/unset→3 "Albtraum, more blood", 3→3); no state key of its own. Reduced motion → static end states.
+const FX=(function(){
+"use strict";
+const D=document,HT=D.documentElement;
+const st={I:3,battery:false,layer:"back",realm:"I",look:"gothic",debt:0,streak:0,idle:false,quiet:false,down:false,scene:"home",cap:3,capStory:3,nobud:false};
+// a6: one calm test for the whole app — PLAN-A §2.4 helper + the OS setting (A9 read only .nomotion and the media query)
+const mq=window.matchMedia?matchMedia("(prefers-reduced-motion: reduce)"):{matches:false};
+const calm=()=>HT.classList.contains("calm")||HT.classList.contains("nomotion")||!!mq.matches;
+const rnd=(a,b)=>a+Math.random()*(b-a),pick=a=>a[(Math.random()*a.length)|0],clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const rgb=h=>{h=String(h).replace("#","");return [0,2,4].map(i=>parseInt(h.substr(i,2),16)).join(",")};
+const mkNoop=()=>({stop(){},done:Promise.resolve(),set(){},cold(){},warm(){},dip(){},swell(){}});
+const NOOP=mkNoop();
+// --- palettes: reds that read on each realm ground and on paper (A9)
+const PAL={
+  I:  {blood:"#B01A20",hi:"#E2433C",deep:"#4A0609",ember:"#C9F28A",fog:"190,205,190",kind:"lantern"},
+  II: {blood:"#B81C30",hi:"#EC4A58",deep:"#50061A",ember:"#E8D8A0",fog:"170,180,215",kind:"gas"},
+  III:{blood:"#C2241A",hi:"#F05A3A",deep:"#560A06",ember:"#FFB566",fog:"205,190,170",kind:"candle"},
+  IV: {blood:"#C8181E",hi:"#F4443C",deep:"#5C0408",ember:"#D9D2B0",fog:"200,200,200",kind:"projector"},
+  V:  {blood:"#D6222A",hi:"#FF6456",deep:"#6A080C",ember:"#FF8A4A",fog:"215,170,160",kind:"lamp"},
+  paper:{blood:"#8A1014",hi:"#B5261F",deep:"#4A0507",ember:"#B86A1E",fog:"120,100,80",kind:"candle",blend:"multiply"},
+  clean:{blood:"#BC1E28",hi:"#EE4A4A",deep:"#54060C",ember:"#F08A3F",fog:"180,190,205",kind:"candle"}};
+const pal=()=>PAL[st.look==="paper"||st.look==="clean"?st.look:st.realm]||PAL.I;
+const LCOL={candle:"240,138,63",lantern:"240,138,63",gas:"226,214,140",projector:"236,232,220",lamp:"206,226,255",cold:"128,150,190",gold:"255,200,112"};
+// --- budgets (per minute, by intensity 0..3) and the cap on simultaneous transient effects
+const BUD={blood:[0,3,6,10],uncanny:[0,0,1,2],flash:[0,1,2,3]},MAXLIVE=[0,2,3,4],hist={};let live=0;
+const eff=()=>Math.min(st.I,st.cap,st.capStory||3);
+// a6: every reactive effect passes the stand-down test first (sober/speech/Bett vier/Brandt/clinical bad news, FX.standDown())
+function gate(cat,min,el){if(!booted)boot();if(st.down||sober(el))return false;const I=eff();if(cat==="feedback")return !!st.I&&!st.quiet;if(!I||st.quiet||I<(min||1)||D.hidden)return false;if(st.nobud)return true;if(live>=MAXLIVE[I])return false;
+  const b=BUD[cat];if(b){const now=performance.now(),q=hist[cat]=(hist[cat]||[]).filter(t=>now-t<60000);if(q.length>=b[I])return false;q.push(now)}return true}
+const hs=new Set();
+function handle(stop,ms,amb){let dead=false,res,t=0;const h={stop(){if(dead)return;dead=true;hs.delete(h);clearTimeout(t);if(!amb)live--;try{stop&&stop()}catch(e){}res()}};h.done=new Promise(r=>res=r);if(!amb){live++;hs.add(h)}if(ms)t=setTimeout(h.stop,ms);return h}
+// --- layers
+let back,front,over,clipBox,cv,ctx,glow,glowI,vig,grainEl,flashEl,coneEl,clipP=null,booted=false;const CS=.5;
+const mk=(tag,cls,par)=>{const e=D.createElement(tag);if(cls)e.className=cls;if(par)par.appendChild(e);return e};
+const loops=new Set();
+function A(el,kf,o){if(calm()){const l=kf[kf.length-1];for(const k in l)if(k!=="offset"&&k!=="easing"&&k!=="composite")try{el.style[k]=l[k]}catch(e){}return {finished:Promise.resolve(),cancel(){},pause(){},play(){}}}
+  const a=el.animate(kf,o);if(o.iterations===Infinity){loops.add(a);if(st.idle)a.pause()}return a}
+// a6: no data: URIs anywhere (PLAN-A §2.9) — generated textures become blob: URLs
+function blobURL(parts,type){try{return URL.createObjectURL(new Blob(parts,{type}))}catch(e){return ""}}
+function boot(){if(booted||!D.body)return;booted=true;
+  const defs=mk("div");defs.innerHTML=`<svg id="fx-defs" aria-hidden="true" focusable="false"><defs>
+<filter id="fx-ink" x="-45%" y="-45%" width="190%" height="190%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency=".016 .024" numOctaves="3" seed="7" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="52" xChannelSelector="R" yChannelSelector="G"/><feGaussianBlur stdDeviation="1.1"/></filter>
+<filter id="fx-ink2" x="-55%" y="-55%" width="210%" height="210%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency=".034 .012" numOctaves="2" seed="23" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="74" xChannelSelector="G" yChannelSelector="R"/><feGaussianBlur stdDeviation="2.6"/></filter>
+<filter id="fx-wet" x="-5%" y="-30%" width="110%" height="190%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency=".02 .09" numOctaves="2" seed="5" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="9" xChannelSelector="R" yChannelSelector="G"/></filter>
+<filter id="fx-wax" x="-12%" y="-12%" width="124%" height="124%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency=".05" numOctaves="2" seed="4" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="9" xChannelSelector="R" yChannelSelector="G"/></filter>
+<filter id="fx-print" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency=".55 .09" numOctaves="2" seed="11" result="n"/><feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -5.5 0 0 0 3.25" result="m"/><feComposite in="SourceGraphic" in2="m" operator="in" result="p"/><feTurbulence type="fractalNoise" baseFrequency=".03" numOctaves="2" seed="3" result="w"/><feDisplacementMap in="p" in2="w" scale="5"/><feGaussianBlur stdDeviation=".35"/></filter>
+<filter id="fx-soft" x="-40%" y="-20%" width="180%" height="140%"><feGaussianBlur stdDeviation="11"/></filter>
+</defs></svg>`;D.body.appendChild(defs.firstChild);
+  back=mk("div");back.id="fx-back";back.setAttribute("aria-hidden","true");D.body.prepend(back);
+  glow=mk("div",0,back);glow.id="fx-glow";glowI=mk("i",0,glow);glow.style.display="none";
+  grainEl=mk("div",0,back);grainEl.id="fx-grain";grainEl.style.display="none";
+  cv=mk("canvas");cv.id="fx-cv";cv.setAttribute("aria-hidden","true");back.after(cv);ctx=cv.getContext("2d");
+  front=mk("div",0,D.body);front.id="fx-front";front.setAttribute("aria-hidden","true");clipBox=mk("div",0,front);clipBox.id="fx-clip";
+  // a6: the vignette is static (its flicker was a second endless animation for the same light; the glow carries the flicker alone)
+  vig=mk("div",0,clipBox);vig.id="fx-vig";mk("i",0,vig);vig.style.display="none";
+  coneEl=mk("div",0,clipBox);coneEl.id="fx-cone";flashEl=mk("div",0,clipBox);flashEl.id="fx-flash";
+  over=mk("div",0,D.body);over.id="fx-over";over.setAttribute("aria-hidden","true");
+  try{CSS.registerProperty({name:"--fx-r",syntax:"<length>",inherits:false,initialValue:"0px"})}catch(e){}
+  const rs=()=>{cv.width=Math.ceil(innerWidth*CS);cv.height=Math.ceil(innerHeight*CS);refresh();kick()};addEventListener("resize",rs,{passive:true});rs();
+  addEventListener("scroll",refresh,{passive:true,capture:true});
+  D.addEventListener("visibilitychange",()=>{if(!D.hidden){poke();kick()}});
+  // a6: idle is event-driven (one timeout re-armed lazily), not a 1 s interval; input of every kind counts, pads report through FX.poke() or "ui:input"
+  ["pointerdown","keydown","wheel","touchstart","scroll","gamepadconnected"].forEach(t=>addEventListener(t,poke,{passive:true,capture:true}));
+  D.addEventListener("ui:input",poke);
+  addEventListener("pointermove",e=>{ptr.x=e.clientX;ptr.y=e.clientY;poke();if(ptrSubs.size&&!ptrQ)ptrQ=requestAnimationFrame(()=>{ptrQ=0;ptrSubs.forEach(f=>f(ptr.x,ptr.y))})},{passive:true});
+  poke();HT.dataset.fxKit="1";applyVars()}
+const ptr={x:-999,y:-999},ptrSubs=new Set();let ptrQ=0;
+// ================= IDLE (PLAN-A §2.4: html.idle after 20 s without input, event ui:idle {detail:{idle}}) =================
+const IDLE_MS=20000;const idlePaused=new Set();let lastIn=performance.now(),idleT=0;
+function setIdle(v){if(st.idle===v)return;st.idle=v;HT.classList.toggle("idle",v);
+  loops.forEach(a=>{try{if(v){if(a.playState==="running")a.pause()}else a.play()}catch(e){loops.delete(a)}});
+  // a6: every other endless animation on the page (CSS keyframes of scene, lore sprites, glows) pauses too; finite ones run to their end
+  try{if(v){D.getAnimations().forEach(a=>{try{if(!loops.has(a)&&a.playState==="running"&&a.effect&&a.effect.getTiming().iterations===Infinity){a.pause();idlePaused.add(a)}}catch(e){}})}
+    else{idlePaused.forEach(a=>{try{a.play()}catch(e){}});idlePaused.clear()}}catch(e){}
+  if(!v)kick();
+  try{D.dispatchEvent(new CustomEvent("ui:idle",{bubbles:true,detail:{idle:v}}))}catch(e){}}
+function idleCheck(){idleT=0;const d=performance.now()-lastIn;if(d>=IDLE_MS-30)setIdle(true);else idleT=setTimeout(idleCheck,IDLE_MS-d)}
+function poke(){lastIn=performance.now();if(st.idle)setIdle(false);if(!idleT)idleT=setTimeout(idleCheck,IDLE_MS)}
+function applyVars(){const p=pal(),s=HT.style;s.setProperty("--fx-blood",p.blood);s.setProperty("--fx-hi",p.hi);s.setProperty("--fx-deep",p.deep);s.setProperty("--fx-rimglow",`rgba(${rgb(p.hi)},.5)`);s.setProperty("--fx-blend",p.blend||"normal");HT.dataset.fx=String(st.I)}
+// ================= STAND-DOWNS (PLAN-A §2.8, S6 §6.3, S10 P3) =================
+// S10's HOR_SOBER, used only when s6's HX / HX_SOBER_RE are absent
+const SOBER_FB=/verstorben|\btot\b|Todes(nachricht|zeichen|art|ursache|bescheinigung)|Leichenschau|\bsterben\b|im Sterben|Sterbe|wiederbeleb|Reanimationsverzicht|Palliativ|Hirntod|Organspende|Suizid|Selbstmord|sich das Leben|Lebensmüd|Fehlgeburt|Totgeburt|Kindstod|\bAbort\b|Krebs|Metasta|bösartig|unheilbar|keine guten? Nachricht|Angehörige|Patientenverfügung|Beileid|Trauer|Blutung|\bblutet|Bluterbrechen|Misshandlung|Vergewaltigung|häusliche Gewalt/i;
+const SOBER_NAMES=/Bett vier|Frau Brandt/i;
+const soberRE=()=>(typeof HX_SOBER_RE!=="undefined"&&HX_SOBER_RE instanceof RegExp)?HX_SOBER_RE:SOBER_FB;
+const focusOpen=()=>{const f=D.getElementById("focus");return !!f&&!f.hidden};
+function activeBox(){return focusOpen()?(D.getElementById("fIn")||D.getElementById("focus")):(D.querySelector("#main .view")||D.getElementById("main"))}
+function sober(el){try{if(HT.dataset.sober==="1")return true;
+  if(el&&!(el instanceof Element))el=null;
+  const box=(el&&(el.closest("[data-hx]")||el.closest("#fIn")||el.closest(".view")))||activeBox();if(!box)return false;
+  const mark=box.closest&&box.closest("[data-hx]"),m=mark&&mark.dataset.hx;if(m)return m==="sober"||m==="speech";
+  if(box.querySelector&&box.querySelector('[data-hx="sober"],[data-hx="speech"],.mic,[data-act="micGo"],.speech-out'))return true;
+  const inF=focusOpen()&&(!el||!!el.closest("#focus"));
+  if(inF&&SOBER_NAMES.test((D.getElementById("fTitle")||{}).textContent||""))return true;
+  if(typeof HX!=="undefined"&&HX&&typeof HX.ctx==="function"){const c=HX.ctx(el||box);return c==="sober"||c==="speech"}
+  if(!inF)return false;                                   // a6: the text net runs only inside Focus (Home text is too broad for a regex)
+  const tx=(box.textContent||"").slice(0,6000);return SOBER_NAMES.test(tx)||soberRE().test(tx)}catch(e){return false}}
+// ================= THE READING-SAFE ZONE =================
+const AUTO_PROTECT='[data-fx-protect],.verdict,.fc,.xp,.exam-passage,.pk-nar,#fIn .q,#fIn .card,main .card,.reader,.duel-q,.duel-why,.duel-say,.spell-note,#fTitle,#fTools';
+const prot=new Set([AUTO_PROTECT]),PAD=1;let rects=[],rq=0;
+function protect(x){boot();const items=(typeof x==="string"||x instanceof Element)?[x]:Array.from(x||[]);items.forEach(i=>prot.add(i));measure();return {stop(){items.forEach(i=>{if(i!==AUTO_PROTECT)prot.delete(i)});measure()}}}
+function refresh(){if(!booted||rq)return;rq=requestAnimationFrame(()=>{rq=0;measure()})}
+function measure(){if(!booted)return;const vw=innerWidth,vh=innerHeight,fo=focusOpen();let rs=[];
+  prot.forEach(i=>{let els;try{els=typeof i==="string"?D.querySelectorAll(i):[i]}catch(e){return}els.forEach(e=>{if(!e.isConnected||e.closest("#fx-front,#fx-over,#fx-back"))return;const r=e.getBoundingClientRect();if(r.width<2||r.height<2||r.bottom<0||r.top>vh||r.right<0||r.left>vw)return;
+    if(e.closest("[hidden]"))return;if(fo&&e.closest("#main"))return;   // a6: boxes under the opaque Focus overlay need no hole
+    rs.push({l:Math.max(0,Math.floor(r.left-PAD)),t:Math.max(0,Math.floor(r.top-PAD)),r:Math.min(vw,Math.ceil(r.right+PAD)),b:Math.min(vh,Math.ceil(r.bottom+PAD))})})});
+  // union: overlapping rectangles are merged into their bounding box (even-odd clipping needs disjoint holes)
+  for(let ch=true;ch;){ch=false;outer:for(let i=0;i<rs.length;i++)for(let j=i+1;j<rs.length;j++){const a=rs[i],b=rs[j];if(a.l<b.r&&b.l<a.r&&a.t<b.b&&b.t<a.b){rs[i]={l:Math.min(a.l,b.l),t:Math.min(a.t,b.t),r:Math.max(a.r,b.r),b:Math.max(a.b,b.b)};rs.splice(j,1);ch=true;break outer}}}
+  rects=rs;let d=`M0 0H${vw}V${vh}H0Z`;rs.forEach(q=>{d+=`M${q.l} ${q.t}V${q.b}H${q.r}V${q.t}Z`});
+  if(d!==measure.d){measure.d=d;clipBox.style.clipPath=`path(evenodd,"${d}")`;clipBox.style.webkitClipPath=clipBox.style.clipPath;try{clipP=new Path2D(d)}catch(e){clipP=null}}}
+// free vertical strips (gutters): where drips, embers and rain may run. Never the text column.
+function strips(min){const iv=rects.map(r=>[r.l,r.r]).sort((a,b)=>a[0]-b[0]),out=[];let x=0;for(const [a,b] of iv){if(a-x>=(min||8))out.push([x,a]);x=Math.max(x,b)}if(innerWidth-x>=(min||8))out.push([x,innerWidth]);return out}
+function gutterX(w,side){let g=strips(w+4);if(side==="l")g=g.filter(s=>s[0]<innerWidth/2);if(side==="r")g=g.filter(s=>s[1]>innerWidth/2);if(!g.length)return null;const s=pick(g);const hiX=Math.min(s[1],s[0]+260)-w-2;return hiX<s[0]+2?s[0]+1:rnd(s[0]+2,hiX)}
+const hit=(x,y)=>rects.some(r=>x>=r.l&&x<=r.r&&y>=r.t&&y<=r.b);
+const hitRect=(l,t,r,b)=>rects.some(q=>l<q.r&&q.l<r&&t<q.b&&q.t<b);
+// a6: the free band for a whisper (ux D40): top or bottom 12 % of the viewport, not over a protected box, never while a verdict is visible in it
+function band(o){o=o||{};boot();measure();const vh=innerHeight,vw=innerWidth,H=Math.max(o.min||40,Math.round(vh*.12));
+  const verd=Array.from(D.querySelectorAll(".verdict")).some(v=>{const r=v.getBoundingClientRect();return r.width>1&&r.bottom>0&&r.top<vh});
+  const cands=[{top:Math.round(vh*.02),edge:"top"},{top:Math.round(vh*.86)-Math.max(0,H-Math.round(vh*.12)),edge:"bottom"}].filter(c=>!hitRect(0,c.top,vw,c.top+H));
+  if(verd&&o.verdict!==true)return null;return cands.length?Object.assign(pick(cands),{height:H}):null}
+// ================= THE ONE CANVAS =================
+const sys=new Set();let tm=0,lastT=0;
+function kick(){if(tm||!sys.size||st.idle||D.hidden||!booted)return;tm=setTimeout(()=>requestAnimationFrame(frame),1000/(st.battery?10:20))}
+function frame(t){tm=0;if(st.idle||D.hidden)return;if(calm()){ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);return}           // a6: the loop ends on idle/hidden (the last frame stays, like an engraving); kick() restarts it
+  const dt=Math.min(.12,(t-lastT)/1000||.04);lastT=t;const w=innerWidth,h=innerHeight;ctx.setTransform(CS,0,0,CS,0,0);ctx.clearRect(0,0,w,h);
+  const cl=st.layer==="front"&&clipP;if(cl){ctx.save();ctx.clip(clipP,"evenodd")}sys.forEach(s=>{let r;try{r=s.step(dt,t/1000,w,h)}catch(e){r=false}if(r===false)sys.delete(s)});if(cl)ctx.restore();stats.frames++;if(sys.size)kick();else ctx.clearRect(0,0,w,h)}
+const spr={};function dot(col,r){const k=col+"/"+r;if(spr[k])return spr[k];const c=D.createElement("canvas");c.width=c.height=r*2;const g=c.getContext("2d"),gr=g.createRadialGradient(r,r,0,r,r,r);gr.addColorStop(0,`rgba(${col},1)`);gr.addColorStop(.3,`rgba(${col},.6)`);gr.addColorStop(1,`rgba(${col},0)`);g.fillStyle=gr;g.fillRect(0,0,r*2,r*2);return spr[k]=c}
+function addSys(s,ms,amb){sys.add(s);kick();return handle(()=>{sys.delete(s)},ms,amb!==false)}
+const dens=()=>[0,.5,1,1.5][Math.max(1,eff())]*(st.battery?.4:1);
+const stats={frames:0};
+// ================= ATMOSPHERE =================
+function grain(){boot();if(!st.I)return NOOP;if(!grain.url){const c=D.createElement("canvas");c.width=c.height=128;const g=c.getContext("2d"),im=g.createImageData(128,128),d=im.data;for(let i=0;i<d.length;i+=4){const n=(Math.random()+Math.random()+Math.random()-1.5)/1.5,v=n>0?255:0;d[i]=d[i+1]=d[i+2]=v;d[i+3]=Math.abs(n)*150}g.putImageData(im,0,0);
+    grain.url="pending";try{c.toBlob(b=>{grain.url=b?URL.createObjectURL(b):"";if(grain.url&&grainEl)grainEl.style.backgroundImage=`url(${grain.url})`},"image/png")}catch(e){grain.url=""}}
+  if(grain.url&&grain.url!=="pending")grainEl.style.backgroundImage=`url(${grain.url})`;grainEl.style.display="";let a=null;if(!st.battery){const kf=[];for(let i=0;i<8;i++)kf.push({transform:`translate3d(${rnd(-60,60)|0}px,${rnd(-60,60)|0}px,0)`,easing:"steps(1,end)"});a=A(grainEl,kf,{duration:1000,iterations:Infinity})}
+  return handle(()=>{grainEl.style.display="none";if(a){a.cancel();loops.delete(a)}},0,true)}
+// a6: ambient particles run on the ONE shared canvas (PLAN-A D8, §2.9): A9's DOM particles were one endless animation per ember
+// (15 on Home I, 58 in realm IV), far over the budget of 8 per screen. On the canvas they cost one 20 fps loop that stops on idle, hidden and calm.
+function freeX(front,w){return front?gutterX(w||6):rnd(0,innerWidth)}
+// embers rise (in the gutters when the canvas is in front of the content) and die before the header
+function embers(o){o=o||{};boot();if(!st.I||calm())return NOOP;const col=rgb(o.color||pal().ember),sp=dot(col,8),N=Math.max(2,Math.round((o.n||10)*dens())),P=[];
+  const spawn=(p,first)=>{const fr=st.layer==="front",x=freeX(fr,8);p.dead=x==null;p.x0=x==null?-99:x;p.y=first?rnd(0,innerHeight):innerHeight+rnd(4,40);p.vy=rnd(12,34);p.amp=rnd(4,fr?6:22);p.k=rnd(.4,1.1);p.ph=rnd(0,6.28);p.s=rnd(3.5,7);p.a=rnd(.5,1)};
+  for(let i=0;i<N;i++){const p={};spawn(p,true);P.push(p)}
+  return addSys({step(dt,t,w,h){for(const p of P){p.y-=p.vy*dt;if(p.y<h*.08||p.dead){spawn(p,false);if(p.dead)continue}const x=p.x0+Math.sin(t*p.k+p.ph)*p.amp,u=1-p.y/h,al=p.a*Math.min(1,u*8)*(u>.72?Math.max(0,(1-u)/.28):1);
+    if(st.layer==="front"&&hit(x,p.y))continue;ctx.globalAlpha=al;ctx.drawImage(sp,x-p.s,p.y-p.s,p.s*2,p.s*2)}ctx.globalAlpha=1}},0)}
+// dust motes in the light cone
+function dust(o){o=o||{};boot();if(!st.I||calm())return NOOP;const sp=dot("255,236,200",6),N=Math.max(3,Math.round((o.n||14)*dens())),P=[];
+  const cx=()=>o.x!=null?o.x:innerWidth*.5,cy=()=>o.y!=null?o.y:innerHeight*.3,R=()=>o.r||Math.min(innerWidth,innerHeight)*.45;
+  for(let i=0;i<N;i++){const a=rnd(0,6.28),d=Math.sqrt(Math.random());P.push({a,d,k1:rnd(.05,.16),k2:rnd(.05,.16),k3:rnd(.15,.5),ph:rnd(0,6.28),s:rnd(2,4)})}
+  return addSys({step(dt,t){const X=cx(),Y=cy(),RR=R();for(const p of P){const x=X+Math.cos(p.a)*p.d*RR+Math.sin(t*p.k1+p.ph)*26,y=Y+Math.sin(p.a)*p.d*RR*.8+Math.cos(t*p.k2+p.ph)*20;if(st.layer==="front"&&hit(x,y))continue;
+    ctx.globalAlpha=(1-p.d)*.6*(.35+.65*(.5+.5*Math.sin(t*p.k3+p.ph)));ctx.drawImage(sp,x-p.s,y-p.s,p.s*2,p.s*2)}ctx.globalAlpha=1}},0)}
+// a6: fog = one element, one endless drift (A9: up to three)
+function fog(o){boot();if(!st.I)return NOOP;const e=mk("div","fx-fog",back);e.style.cssText=`--fx-fogc:${pal().fog};opacity:${st.look==="paper"?.5:1}`;let a=null;
+  if(!calm()&&!st.battery)a=A(e,[{transform:"translate3d(-6%,0,0)"},{transform:"translate3d(6%,-2%,0)"}],{duration:rnd(36000,52000),direction:"alternate",iterations:Infinity,easing:"ease-in-out",delay:-rnd(0,20000)});
+  return handle(()=>{e.remove();if(a){a.cancel();loops.delete(a)}},0,true)}
+function smoke(o){o=o||{};boot();if(!st.I||calm())return NOOP;const x=o.x,y=o.y,sp=dot(o.color||"205,200,190",16),P=[];let born=0,age=0;const N=o.n||16;
+  return addSys({step(dt,t){age+=dt;while(born<N&&age>born*.045){P.push({x:x+rnd(-1.5,1.5),y,vy:rnd(22,44),r:rnd(3,5),a:rnd(.22,.34),l:0,ph:rnd(0,6.28),k:rnd(1.6,3)});born++}let aliveN=0;for(const p of P){p.l+=dt;const u=p.l/2.8;if(u>=1)continue;aliveN++;p.y-=p.vy*dt*(1-u*.5);p.x+=Math.sin(p.l*p.k+p.ph)*14*dt+6*dt*u;p.r+=9*dt;ctx.globalAlpha=p.a*(1-u)*(1-u);ctx.drawImage(sp,p.x-p.r,p.y-p.r,p.r*2,p.r*2)}ctx.globalAlpha=1;return born<N||aliveN>0}},6000,false)}
+// rain on glass (Berlin): beads that sit, slip and stop, leaving a faint trail. Whole pane on the back layer, gutters only on the front layer.
+function rain(o){o=o||{};boot();if(!st.I||calm())return NOOP;const sp=dot("225,234,248",6),N=Math.max(4,Math.round((o.n||16)*dens())),P=[];
+  const spawn=(p,first)=>{const fr=st.layer==="front",x=freeX(fr,6);p.dead=x==null;p.x=x==null?-99:x;p.y0=rnd(-20,innerHeight*.6);p.y=p.y0;p.L=rnd(.25,.9)*innerHeight;p.r=rnd(2.6,5.4);p.sit=first?rnd(0,4):rnd(.3,1.6);p.v=0;p.fade=1};
+  for(let i=0;i<N;i++){const p={};spawn(p,true);P.push(p)}
+  return addSys({step(dt){ctx.lineWidth=1.6;ctx.strokeStyle="rgba(205,218,238,.16)";for(const p of P){if(p.dead){spawn(p,false);continue}
+    if(p.sit>0){p.sit-=dt;if(p.sit<=0)p.v=rnd(60,260)}else{p.y+=p.v*dt;p.v*=Math.pow(.25,dt);if(p.v<18)p.sit=rnd(.3,1.4)}
+    if(p.y-p.y0>p.L){p.fade-=dt*1.5;if(p.fade<=0){spawn(p,false);continue}}
+    if(st.layer==="front"&&hit(p.x,p.y))continue;ctx.globalAlpha=p.fade;ctx.beginPath();ctx.moveTo(p.x,p.y0);ctx.lineTo(p.x,p.y);ctx.stroke();ctx.drawImage(sp,p.x-p.r/2,p.y-p.r*.6,p.r,p.r*1.25)}ctx.globalAlpha=1}},0)}
+function breath(o){o=o||{};if(!gate("uncanny"))return NOOP;const s=o.size||clamp(innerWidth*.34,120,300),g=strips(30),x=o.x!=null?o.x:(g.length?(pick(g)[0]+pick(g)[1])/2:innerWidth*.5),y=o.y!=null?o.y:innerHeight*rnd(.55,.8);
+  const e=mk("div","fx-breath",clipBox);e.style.cssText=`left:${x}px;top:${y}px;--s:${s}px`;A(e,[{opacity:0,transform:"scale(.55)"},{opacity:1,transform:"scale(1)",offset:.28},{opacity:.8,transform:"scale(1.08)",offset:.6},{opacity:0,transform:"scale(1.16)"}],{duration:5200,easing:"ease-out"});return handle(()=>e.remove(),5300)}
+// ================= LIGHT =================
+function vnoise(n){const k=9,g=[];for(let i=0;i<k;i++)g.push(Math.random()*2-1);const out=[];for(let i=0;i<n;i++){const x=i/n*k,i0=x|0,f=x-i0,s=f*f*(3-2*f);out.push(g[i0%k]*(1-s)+g[(i0+1)%k]*s)}return out}
+function lightKF(kind){const n=36,a=vnoise(n),b=vnoise(n),g=[];for(let i=0;i<=n;i++){const j=i%n;let o=1,s=1;
+    if(kind==="gas"){o=.97+a[j]*.02;if(j===9||j===10||j===27)o=.8+Math.random()*.06}
+    else if(kind==="projector"){o=.95+(i%2?-.04:.04)+a[j]*.015}
+    else if(kind==="lamp"){o=j===20?.9:.985}
+    else{o=.92+a[j]*.07+b[(j*5)%n]*.025;s=1+b[j]*.022}
+    g.push({opacity:clamp(o,0,1),transform:`scale(${s.toFixed(4)})`})}return {g,dur:kind==="projector"?2100:kind==="gas"?9000:kind==="lamp"?8000:kind==="lantern"?7400:5600}}
+let LT=null;
+function light(o){o=o||{};boot();if(!st.I)return NOOP;if(LT)LT.stop();const kind=o.kind||pal().kind;let cold=false,ga=null;
+  glow.style.display="";vig.style.display="";glow.style.setProperty("--fx-lx",o.x||"50%");glow.style.setProperty("--fx-ly",o.y||(kind==="lamp"?"4%":"24%"));
+  const paint=()=>{const warm=clamp(st.streak/14,0,1),base=cold?LCOL.cold:(kind==="candle"||kind==="lantern")&&warm>.05?LCOL.gold:LCOL[kind]||LCOL.candle,lev=cold?.22:clamp(1-st.debt*.11+warm*.12,.28,1.12),pp=st.look==="paper";
+    glow.style.setProperty("--fx-lc",`rgba(${base},${(pp?.20:.30)*([0,.7,1,1.15][st.I])})`);glow.style.setProperty("--fx-lc2",`rgba(${base},${pp?.06:.09})`);glow.style.opacity=lev.toFixed(3);vig.style.opacity=clamp([0,.55,.8,.95][st.I]+st.debt*.035+(cold?.15:0),0,1).toFixed(3);coneEl.style.opacity=kind==="lamp"&&!cold?"1":"0"};
+  const run=()=>{if(ga){ga.cancel();loops.delete(ga)}if(st.battery||calm())return;const k=lightKF(cold?"gas":kind);ga=A(glowI,k.g,{duration:k.dur,iterations:Infinity,direction:"alternate"})};
+  paint();run();
+  const h=handle(()=>{glow.style.display="none";vig.style.display="none";coneEl.style.opacity="0";if(ga){ga.cancel();loops.delete(ga)}LT=null},0,true);
+  h.set=p=>{if(p){if(p.debt!=null)st.debt=p.debt;if(p.streak!=null)st.streak=p.streak}paint()};
+  h.cold=()=>{if(cold)return;cold=true;paint();run();const r=glow.getBoundingClientRect();smoke({x:r.left+r.width*parseFloat(o.x||"50")/100,y:r.top+r.height*parseFloat(o.y||"24")/100})};
+  h.warm=()=>{cold=false;st.streak=Math.max(st.streak,14);paint();run()};
+  h.dip=(f,ms)=>{if(calm())return;const b=+glow.style.opacity||1;glow.animate([{opacity:b},{opacity:b*f,offset:.18},{opacity:b}],{duration:ms||600,easing:"ease-out"})};
+  h.swell=(f,ms)=>{if(calm())return;const b=+glow.style.opacity||1;glow.animate([{opacity:b},{opacity:Math.min(1.25,b*f),offset:.3},{opacity:b}],{duration:ms||900,easing:"ease-out"})};
+  h.kind=kind;return LT=h}
+function lightning(o){o=o||{};if(!gate("flash"))return NOOP;let bolt=null;const g=strips(26);
+  if(g.length&&!calm()){const s=pick(g),x0=rnd(s[0]+8,s[1]-8);let d=`M${x0} 0`,x=x0,y=0;const H=innerHeight*rnd(.3,.55);while(y<H){y+=rnd(14,40);x=clamp(x+rnd(-16,16),s[0]+3,s[1]-3);d+=`L${x.toFixed(0)} ${y.toFixed(0)}`}
+    bolt=mk("div",0,clipBox);bolt.style.cssText="inset:0";bolt.innerHTML=`<svg width="100%" height="100%" style="position:absolute;inset:0;overflow:visible"><path d="${d}" fill="none" stroke="rgba(190,205,255,.5)" stroke-width="5" stroke-linejoin="round"/><path d="${d}" fill="none" stroke="#F4F7FF" stroke-width="1.3" stroke-linejoin="round"/></svg>`;A(bolt,[{opacity:0},{opacity:1,offset:.06},{opacity:.15,offset:.22},{opacity:.9,offset:.3},{opacity:0}],{duration:520})}
+  if(calm()){flashEl.style.opacity=".06";return handle(()=>{flashEl.style.opacity="0";bolt&&bolt.remove()},900)}
+  const a=flashEl.animate([{opacity:0},{opacity:.14,offset:.08},{opacity:0}],{duration:900,easing:"ease-out"});   // a6: one pulse (ux D41), clipped by the safe zone
+  try{if(typeof SND!=="undefined"&&SND.fx&&!(window.speechSynthesis&&speechSynthesis.speaking))setTimeout(()=>{try{SND.fx("thunder")}catch(e){}},700)}catch(e){}
+  return handle(()=>{a.cancel();bolt&&bolt.remove()},1000)}
+// a6: projector scratches on the canvas (A9: two endless DOM animations)
+function projector(o){boot();if(!st.I||calm())return NOOP;const L=strips(10).slice(0,2).map(s=>({s,x:rnd(s[0]+3,s[1]-3),on:0,t:0}));if(!L.length)return NOOP;
+  return addSys({step(dt){ctx.lineWidth=1;for(const q of L){q.t-=dt;if(q.t<=0){q.t=.17;q.on=Math.random()<.45?rnd(.25,.6):0;q.x=clamp(q.x+rnd(-6,6),q.s[0]+2,q.s[1]-2)}if(!q.on)continue;
+    const g=ctx.createLinearGradient(0,0,0,innerHeight);g.addColorStop(0,"rgba(240,237,230,0)");g.addColorStop(.2,`rgba(240,237,230,${q.on*.4})`);g.addColorStop(1,"rgba(240,237,230,0)");ctx.strokeStyle=g;ctx.beginPath();ctx.moveTo(q.x,0);ctx.lineTo(q.x,innerHeight);ctx.stroke()}}},0)}
+// ================= BLOOD =================
+let uid=0;
+function bloomSVG(p,f,wisp){const id="fxg"+(++uid);let t="";const n=wisp?7:5;for(let i=0;i<n;i++){const a=rnd(0,6.283),d=wisp?rnd(34,62):rnd(16,44),cx=(Math.cos(a)*d).toFixed(1),cy=(Math.sin(a)*d).toFixed(1);t+=`<ellipse cx="${cx}" cy="${cy}" rx="${rnd(wisp?16:10,wisp?34:24).toFixed(1)}" ry="${rnd(4,wisp?9:13).toFixed(1)}" transform="rotate(${(a*57.3+rnd(-25,25)).toFixed(0)} ${cx} ${cy})" fill="${wisp?p.hi:p.blood}" opacity="${wisp?.38:.8}"/>`}
+  return `<svg viewBox="-100 -100 200 200"><defs><radialGradient id="${id}"><stop offset="0" stop-color="${p.deep}"/><stop offset=".34" stop-color="${p.blood}"/><stop offset=".72" stop-color="${p.hi}" stop-opacity=".8"/><stop offset="1" stop-color="${p.hi}" stop-opacity="0"/></radialGradient></defs><g filter="url(#${f})">${wisp?"":`<circle r="${rnd(40,50).toFixed(0)}" fill="url(#${id})"/>`}${t}</g></svg>`}
+// a6: S6 half-seen rule — no horror element larger than a quarter of the screen: size capped at sqrt(area/4)
+const quarter=()=>Math.sqrt(innerWidth*innerHeight/4);
+function bloom(o){o=o||{};if(!o.force&&!gate("blood",1,o.el))return NOOP;boot();const p=pal(),w=innerWidth,h=innerHeight,side=o.side||pick(["l","r","t","b"]),s=Math.min(quarter(),(o.size||clamp(Math.min(w,h)*.5,150,420))*(st.I===3?1.2:1));
+  const x=o.x!=null?o.x:side==="l"?0:side==="r"?w:rnd(.12,.88)*w,y=o.y!=null?o.y:side==="t"?0:side==="b"?h:rnd(.14,.8)*h,hold=o.hold||[0,7000,8000,8600][st.I]||8000;   // a6: ≤ 9 s on screen (S6 §5.2)
+  const el=mk("div","fx-bloom",o.parent||clipBox);el.style.cssText=`left:${x}px;top:${y}px;--s:${s}px`;const a1=mk("div",0,el),a2=mk("div",0,el);a1.style.cssText=a2.style.cssText="position:absolute;inset:0";a2.innerHTML=bloomSVG(p,"fx-ink2",true);a1.innerHTML=bloomSVG(p,"fx-ink",false);
+  const r=rnd(-20,20);A(a1,[{transform:"scale(.1) rotate(0deg)",opacity:0},{opacity:.96,offset:.1},{transform:`scale(1) rotate(${r}deg)`,opacity:.9}],{duration:4200,easing:"cubic-bezier(.1,.72,.18,1)",fill:"forwards"});
+  A(a2,[{transform:"scale(.14) rotate(0deg)",opacity:0},{opacity:.7,offset:.2},{transform:`scale(1.32) rotate(${-r*1.6}deg)`,opacity:.55}],{duration:6800,delay:260,easing:"cubic-bezier(.1,.7,.2,1)",fill:"both"});
+  let t2=setTimeout(()=>{A(el,[{opacity:1},{opacity:0}],{duration:2800,fill:"forwards",easing:"ease-in"})},Math.max(0,hold-2800));
+  return handle(()=>{clearTimeout(t2);el.remove()},hold+100)}
+function seepPath(){const n=28,pts=[];for(let i=n;i>=0;i--){const x=i/n*1000,e=Math.min(x,1000-x)/1000;pts.push([x,9+Math.random()*9+(e<.09?Math.pow(1-e/.09,1.6)*40:0)+(Math.random()<.2?rnd(7,19):0)])}
+  let d=`M0 0H1000V${pts[0][1].toFixed(1)}`;for(let i=1;i<pts.length;i++){const a=pts[i-1],b=pts[i];d+=`Q${a[0].toFixed(0)} ${a[1].toFixed(1)} ${((a[0]+b[0])/2).toFixed(0)} ${((a[1]+b[1])/2).toFixed(1)}`}return d+`L0 ${pts[n][1].toFixed(1)}Z`}
+function seep(o){o=o||{};if(!gate("blood",1,o.el))return NOOP;boot();const p=pal(),id="fxs"+(++uid),hold=o.hold||[0,6000,7500,8500][st.I],el=mk("div","fx-seep",clipBox);el.style.top=(o.top||0)+"px";
+  el.innerHTML=`<svg viewBox="0 0 1000 64" preserveAspectRatio="none"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${p.deep}"/><stop offset=".45" stop-color="${p.blood}"/><stop offset="1" stop-color="${p.hi}"/></linearGradient></defs><g filter="url(#fx-wet)"><path d="${seepPath()}" fill="url(#${id})"/></g></svg>`;
+  A(el,[{transform:"scaleY(.02)",opacity:.0},{opacity:.95,offset:.08},{transform:"scaleY(.55)",offset:.5},{transform:"scaleY(1)",opacity:.95}],{duration:6200,easing:"cubic-bezier(.3,.1,.3,1)",fill:"forwards"});
+  const kids=[],T=[];if(st.I>=2&&!o.nodrip){T.push(setTimeout(()=>{kids.push(drip({top:(o.top||0)+8,force:1}))},2600));if(st.I>=3)T.push(setTimeout(()=>{kids.push(drip({top:(o.top||0)+8,force:1}))},4300))}
+  if(st.I>=2&&!o.nopool){[0,innerWidth].forEach((x,i)=>T.push(setTimeout(()=>kids.push(bloom({x,y:(o.top||0)+4,size:clamp(innerWidth*.22,90,200),hold,force:1})),1400+i*900)))}
+  const tf=setTimeout(()=>A(el,[{opacity:.95},{opacity:0}],{duration:2400,fill:"forwards"}),Math.max(0,hold-2400));
+  return handle(()=>{clearTimeout(tf);T.forEach(clearTimeout);kids.forEach(k=>k.stop());el.remove()},hold+100)}
+// a6: o.edge "l"|"r" (s6's HOR.gutter mapping) keeps the drip in the gutter of that side
+function drip(o){o=o||{};if(!o.force&&!gate("blood",1,o.el))return NOOP;boot();measure();const wd=o.w||rnd(3,5.5),x=o.x!=null?o.x:gutterX(wd+4,o.edge);if(x==null)return NOOP;
+  const top=o.top||0,len=Math.round(o.len||rnd(.2,.6)*innerHeight*(st.I===3?1.15:1)),el=mk("div","fx-drip",clipBox);el.style.cssText=`left:${x}px;top:${top}px;--w:${wd.toFixed(1)}px;--l:${len}px`;el.innerHTML="<b></b><i></i>";
+  const q=slip(6),kb=q.map(v=>({transform:`scaleY(${v[1].toFixed(3)})`,offset:v[0],easing:"cubic-bezier(.5,0,.8,.5)"})),kh=q.map(v=>({transform:`translate3d(0,${(v[1]*len).toFixed(1)}px,0)`,offset:v[0],easing:"cubic-bezier(.5,0,.8,.5)"})),dur=o.dur||rnd(3200,5200),hold=o.hold||[0,1800,2600,3400][st.I]||2600;
+  A(el.firstChild,kb,{duration:dur,fill:"forwards"});A(el.lastChild,kh,{duration:dur,fill:"forwards"});const tf=setTimeout(()=>A(el,[{opacity:1},{opacity:0}],{duration:1800,fill:"forwards"}),dur+hold);
+  return handle(()=>{clearTimeout(tf);el.remove()},dur+hold+1900)}
+function slip(n){const q=[[0,.004]];let t=0,f=0;for(let i=0;i<n;i++){t+=rnd(.3,1.2);f=Math.min(1,f+rnd(.1,.3));q.push([t,f]);t+=rnd(.2,1.1);q.push([t,f])}q[q.length-1][1]=1;q[q.length-2][1]=Math.max(q[q.length-2][1],.86);return q.map(v=>[v[0]/t,v[1]])}
+function scribble(w,h){const base=h*.62,u=h*.24,U=h*.5,f=v=>v.toFixed(1);let d=`M8 ${f(base)}`,x=8,since=0;const end=w-14;
+  while(x<end-18){const s=rnd(13,19),k=Math.random();since++;
+    if(since>4&&k<.22&&x<end-60){x+=s*.9;d+=` M${f(x)} ${f(base)}`;since=0;continue}
+    if(k<.45){const a=k<.2?U:u*1.15;d+=` c${f(s*.5)} ${f(-a*.15)},${f(s*.95)} ${f(-a)},${f(s*.5)} ${f(-a)} s${f(-s*.3)} ${f(a*.9)},${f(s*.15)} ${f(a)}`;x+=s*.65}
+    else if(k<.8){d+=` c${f(s*.05)} ${f(-u*1.25)},${f(s*.5)} ${f(-u*1.25)},${f(s*.55)} 0`;x+=s*.55}
+    else{d+=` c${f(-s*.45)} ${f(-u*1.3)},${f(s*.55)} ${f(-u*1.3)},${f(s*.4)} ${f(-u*.1)} s${f(s*.05)} ${f(u*.12)},${f(s*.3)} ${f(u*.1)}`;x+=s*.7}
+    d+=` q${f(s*.12)} ${f(u*.14)},${f(s*.3)} 0`;x+=s*.3}
+  return d+` M${f(w*.08)} ${f(h*.86)} q${f(w*.42)} ${f(h*.12)},${f(w*.8)} ${f(-h*.03)}`}
+// blood writes a line in the pact ledger (an empty ledger row, never over text). Small local repaint (stroke-dashoffset) for 1.4–4 s: the one declared exception.
+function bloodLine(el,o){o=o||{};boot();if(!st.I||!el||st.down||sober(el))return NOOP;const r=el.getBoundingClientRect(),w=Math.max(60,r.width),h=o.h||Math.max(36,r.height),p=pal(),d=o.d||scribble(w,h);if(getComputedStyle(el).position==="static")el.style.position="relative";
+  const b=mk("div");b.innerHTML=`<svg class="fx-line" viewBox="0 0 ${w.toFixed(0)} ${h.toFixed(0)}" preserveAspectRatio="xMinYMid meet" aria-hidden="true"><path d="${d}" pathLength="1" fill="none" stroke="${p.deep}" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1" stroke-dashoffset="1" opacity=".5"/><path d="${d}" pathLength="1" fill="none" stroke="${p.blood}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1" stroke-dashoffset="1"/><path d="${d}" pathLength="1" fill="none" stroke="${p.hi}" stroke-width=".7" stroke-linecap="round" stroke-dasharray="1" stroke-dashoffset="1" opacity=".7" transform="translate(-.5 -.6)"/><circle r="2.8" fill="${p.blood}" opacity="0"/></svg>`;
+  const s=b.firstChild;el.appendChild(s);const ps=s.querySelectorAll("path"),dur=o.dur||clamp(w*9,1400,4200);ps.forEach((q,i)=>A(q,[{strokeDashoffset:1},{strokeDashoffset:0}],{duration:dur,delay:i*40,easing:"cubic-bezier(.45,.05,.55,.95)",fill:"forwards"}));
+  try{const L=ps[1].getTotalLength(),pt=ps[1].getPointAtLength(L),c=s.querySelector("circle");c.setAttribute("cx",pt.x);c.setAttribute("cy",pt.y);A(c,[{opacity:0},{opacity:.95}],{duration:400,delay:dur,fill:"forwards"})}catch(e){}
+  return handle(()=>s.remove(),0,true)}
+function handSVG(p,flip){const F=[[27,62,-15,45,6.3],[42,55,-5,53,6.7],[58,56,5,50,6.5],[73,64,16,39,5.7]];let t=`<ellipse cx="50" cy="88" rx="27" ry="22"/><ellipse cx="50" cy="106" rx="21" ry="11"/>`;
+  F.forEach(f=>{const a=f[2]*Math.PI/180,dx=Math.sin(a),dy=-Math.cos(a);for(let k=0;k<3;k++){const u=(k+.5)/3*f[3],cx=f[0]+dx*u,cy=f[1]+dy*u;t+=`<ellipse cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" rx="${(f[4]-(k*.5)).toFixed(1)}" ry="${(f[3]/6.9).toFixed(1)}" transform="rotate(${f[2]} ${cx.toFixed(1)} ${cy.toFixed(1)})"/>`}});
+  t+=`<ellipse cx="17" cy="84" rx="7.6" ry="10" transform="rotate(-52 17 84)"/><ellipse cx="6" cy="72" rx="6.6" ry="9" transform="rotate(-40 6 72)"/>`;const id="fxh"+(++uid);
+  return `<svg viewBox="-8 -4 116 130"><defs><radialGradient id="${id}" cx=".5" cy=".7" r=".8"><stop offset="0" stop-color="${p.blood}"/><stop offset=".7" stop-color="${p.hi}"/><stop offset="1" stop-color="${p.deep}"/></radialGradient></defs><g filter="url(#fx-print)" fill="url(#${id})" ${flip?'transform="translate(100 0) scale(-1 1)"':""}>${t}</g></svg>`}
+// a handprint on the vignette after a boss loss; stays until stop() (the host stops it at the next win or after `hold`)
+function handprint(o){o=o||{};boot();if(!st.I||st.quiet||st.down||sober())return NOOP;const p=pal(),s=o.size||clamp(innerWidth*.2,96,190),W=innerWidth,Hh=innerHeight;let best=null;measure();
+  [["l",.98],["r",.98],["l",.6],["r",.6],["l",.3],["r",.3]].forEach(c=>{if(o.side&&o.side!==c[0])return;const cx=c[0]==="r"?W-s*1.02:s*.02,cy=Math.max(0,Hh*c[1]-s*1.3);let n=0;for(let i=0;i<3;i++)for(let j=0;j<3;j++)if(hit(cx+s*(.2+i*.3),cy+s*1.25*(.2+j*.3)))n++;if(!best||n<best.n)best={n,x:cx,y:cy,r:c[0]==="r"}});
+  if(!best)return NOOP;const right=best.r,x=o.x!=null?o.x:best.x,y=o.y!=null?o.y:best.y,rot=right?13:-13;
+  const el=mk("div","fx-hand",clipBox);el.style.cssText=`left:${x}px;top:${y}px;--s:${s}px`;el.innerHTML=handSVG(p,right);
+  A(el,[{opacity:0,transform:`rotate(${rot}deg) scale(1.08)`},{opacity:.92,transform:`rotate(${rot}deg) scale(1)`,offset:.03},{opacity:.74,transform:`rotate(${rot}deg) translate3d(0,${(s*.16).toFixed(0)}px,0) scale(1,1.05)`}],{duration:9000,easing:"cubic-bezier(.2,.6,.3,1)",fill:"forwards"});
+  const kids=[],T=[];if(st.I>=2&&!calm())[.36,.62].forEach((f,i)=>T.push(setTimeout(()=>{if(el.isConnected)kids.push(drip({x:x+s*f,top:y+s*1.12,len:rnd(.06,.14)*innerHeight,w:3,force:1,hold:o.hold||20000}))},700+i*900)));
+  return handle(()=>{T.forEach(clearTimeout);kids.forEach(k=>k.stop());el.remove()},o.hold||0,true)}
+// wax-and-blood seal, pressed onto `target` (centre, or o.x/o.y in px inside the target). For a7's chapter seal.
+function seal(target,o){o=o||{};boot();if(!st.I||!target)return NOOP;const p=pal(),s=o.size||84,id="fxw"+(++uid);if(getComputedStyle(target).position==="static")target.style.position="relative";
+  const el=mk("div","fx-seal",target);el.setAttribute("aria-hidden","true");el.style.cssText=`left:${o.x!=null?o.x+"px":"50%"};top:${o.y!=null?o.y+"px":"50%"};--s:${s}px`;
+  const font=String(o.font||"'Unifraktur Maguntia','UnifrakturMaguntia',Georgia,serif").replace(/"/g,"'"),glyph=String(o.glyph||"M").replace(/[<>&]/g,"").slice(0,2);
+  el.innerHTML=`<svg viewBox="-50 -50 100 100"><defs><radialGradient id="${id}" cx=".36" cy=".3" r=".8"><stop offset="0" stop-color="${p.hi}"/><stop offset=".45" stop-color="${p.blood}"/><stop offset="1" stop-color="${p.deep}"/></radialGradient></defs>
+<g filter="url(#fx-wax)"><circle r="40" fill="url(#${id})"/><ellipse cx="30" cy="26" rx="14" ry="10" fill="url(#${id})"/><ellipse cx="-33" cy="18" rx="10" ry="12" fill="url(#${id})"/><ellipse cx="6" cy="-37" rx="13" ry="8" fill="url(#${id})"/></g>
+<circle r="27" fill="none" stroke="${p.deep}" stroke-width="2.4" opacity=".75"/><circle r="26" fill="none" stroke="${p.hi}" stroke-width=".8" opacity=".6" transform="translate(-.8 -.9)"/>
+<text y="13" text-anchor="middle" font-family="${font}" font-size="36" fill="${p.deep}" opacity=".85" transform="translate(1 1.2)">${glyph}</text><text y="13" text-anchor="middle" font-family="${font}" font-size="36" fill="${p.hi}" opacity=".55" transform="translate(-.7 -.8)">${glyph}</text>
+<path d="M-30 -18A35 35 0 0 1 -6 -33" fill="none" stroke="#FFE9DC" stroke-width="2.2" stroke-linecap="round" opacity=".5"/><g class="bd" opacity="0"><ellipse cx="17" cy="44" rx="4.6" ry="6.4" fill="${p.blood}"/><ellipse cx="-24" cy="38" rx="3" ry="4" fill="${p.blood}"/><circle cx="15.6" cy="41.6" r="1.2" fill="#fff" opacity=".65"/></g></svg>`;
+  A(el,[{transform:"scale(1.9) rotate(-9deg)",opacity:0},{transform:"scale(1.25) rotate(-6deg)",opacity:1,offset:.45,easing:"cubic-bezier(.7,0,1,.6)"},{transform:"scale(.93) rotate(-4deg)",offset:.62},{transform:"scale(1.03) rotate(-4deg)",offset:.8},{transform:"scale(1) rotate(-4deg)",opacity:1}],{duration:560,fill:"forwards"});
+  if(o.blood!==false&&!sober(target))A(el.querySelector(".bd"),[{opacity:0,transform:"translate(0,-4px)"},{opacity:1,transform:"translate(0,0)"}],{duration:900,delay:520,easing:"ease-in",fill:"forwards"});
+  if(LT)LT.swell(1.2,900);return handle(()=>{el.remove()},o.hold||0,true)}
+// ================= THE UNCANNY =================
+const MIS={s:"ſ",e:"ɘ",o:"ø",a:"ɒ",n:"u",u:"n",i:"ı",r:"ɿ",m:"w",d:"b",b:"d",t:"ƚ"};
+// one glyph misprints and corrects. Only inside elements that opt in with data-fx-misprint; never German learning text, verdicts, inputs, protected boxes.
+function misprint(root){if(!gate("uncanny",2)||calm())return NOOP;const c=Array.from((root||D).querySelectorAll("[data-fx-misprint]")).filter(e=>!e.closest('[lang="de"],.de,.verdict,input,textarea,.duel-q,[data-fx-nomis],[data-fx-protect],.card,.reader')&&e.offsetParent);if(!c.length)return NOOP;
+  const e=pick(c),tw=D.createTreeWalker(e,NodeFilter.SHOW_TEXT),ns=[];while(tw.nextNode())if(/[a-z]/.test(tw.currentNode.nodeValue))ns.push(tw.currentNode);if(!ns.length)return NOOP;const n=pick(ns),s=n.nodeValue,ix=[];for(let i=0;i<s.length;i++)if(MIS[s[i]])ix.push(i);if(!ix.length)return NOOP;
+  const i=pick(ix),sp=D.createElement("span");sp.className="fx-mis";sp.textContent=MIS[s[i]];sp.setAttribute("aria-hidden","true");const tail=n.splitText(i);tail.nodeValue=tail.nodeValue.slice(1);n.parentNode.insertBefore(sp,tail);
+  const undo=()=>{if(!sp.isConnected)return;const par=sp.parentNode;sp.replaceWith(D.createTextNode(s[i]));par.normalize()};return handle(undo,rnd(400,600))}   // a6: ≥ 400 ms (S6 half-seen rule)
+const SIL=`<path d="M100 28c-6-14-20-22-22-26 0 12 4 22 12 30-10 8-16 20-16 34 0 18 10 32 22 38-34 10-52 40-56 86L28 600h148l-10-410c-4-46-22-76-56-86 12-6 22-20 22-38 0-14-6-26-16-34 8-8 12-18 12-30-2 4-16 12-22 26z"/>`;
+function shadow(o){o=o||{};boot();measure();if(calm()||!strips(40).length||!gate("uncanny",1))return NOOP;const right=o.side==="r",el=mk("div","fx-shadow",clipBox);if(right){el.style.left="auto";el.style.right="0"}
+  el.innerHTML=`<svg viewBox="0 0 200 600" preserveAspectRatio="xMidYMax meet" style="width:100%;height:100%;overflow:visible"><g filter="url(#fx-soft)" fill="#020101" opacity=".88">${SIL}</g></svg>`;const sx=right?-1:1;
+  A(el,[{opacity:0,transform:`translate3d(${-78*sx}%,3%,0)`},{opacity:.8,transform:`translate3d(${-46*sx}%,1%,0)`,offset:.3},{opacity:.8,transform:`translate3d(${-42*sx}%,0,0)`,offset:.62},{opacity:0,transform:`translate3d(${-84*sx}%,2%,0)`}],{duration:Math.min(9000,o.dur||6400),easing:"ease-in-out"});return handle(()=>el.remove(),Math.min(9000,o.dur||6400)+60)}
+// eyes open in the vignette corners and close when the pointer comes near. FX.eyes({close:true}) closes every open pair (s6's shutEye).
+const eyeSets=new Set();
+function eyes(o){o=o||{};if(o.close){eyeSets.forEach(f=>f());return NOOP}if(!gate("uncanny",2))return NOOP;measure();const w=innerWidth,h=innerHeight,C=[[.07,.1],[.93,.1],[.06,.9],[.94,.9],[.05,.5],[.95,.5]].filter(c=>!hit(c[0]*w,c[1]*h)),n=Math.min(C.length,o.n||(st.I>=3?2:1)),els=[],col=o.color||(st.realm==="V"?"224,48,42":"232,197,71");
+  for(let i=0;i<n;i++){const c=C.splice((Math.random()*C.length)|0,1)[0],e=mk("div","fx-eyes",clipBox),id="fxe"+(++uid);c[0]=clamp(c[0]*w,36,w-36)/w;e.style.cssText=`left:${c[0]*w}px;top:${c[1]*h}px;--fx-eye:rgba(${col},.6)`;
+    e.innerHTML=`<svg viewBox="0 0 58 18" style="display:block;width:100%;height:100%;overflow:visible"><defs><radialGradient id="${id}"><stop offset="0" stop-color="rgb(${col})"/><stop offset="1" stop-color="rgba(${col},.55)"/></radialGradient></defs>${[14,44].map(x=>`<path d="M${x-12} 9Q${x} -2 ${x+12} 9Q${x} 18 ${x-12} 9Z" fill="url(#${id})"/><ellipse cx="${x}" cy="9" rx="1.7" ry="6.2" fill="#060302"/>`).join("")}</svg>`;
+    e.style.transform="scaleY(0)";e._x=c[0]*w;e._y=c[1]*h;e._open=false;els.push(e)}
+  let shut=false;
+  const set=(e,op)=>{if(shut&&op)return;if(e._open===op)return;e._open=op;if(calm()){e.style.transform=op?"scaleY(1)":"scaleY(0)";return}e.animate([{transform:op?"scaleY(0)":"scaleY(1)"},{transform:op?"scaleY(1)":"scaleY(0)"}],{duration:op?900:150,easing:op?"cubic-bezier(.2,.7,.2,1)":"ease-in",fill:"forwards"})};
+  const near=(x,y)=>els.forEach(e=>{const d=Math.hypot(x-e._x,y-e._y);if(d<170)set(e,false);else if(d>230&&!e._open){clearTimeout(e._t);e._t=setTimeout(()=>set(e,true),1800)}});
+  const t0=setTimeout(()=>els.forEach((e,i)=>setTimeout(()=>{if(Math.hypot(ptr.x-e._x,ptr.y-e._y)>=170)set(e,true)},i*700)),400);ptrSubs.add(near);
+  const bl=setInterval(()=>{if(calm()||st.idle||D.hidden)return;els.forEach(e=>{if(e._open&&Math.random()<.5)e.animate([{transform:"scaleY(1)"},{transform:"scaleY(.06)",offset:.5},{transform:"scaleY(1)"}],{duration:210})})},3400);
+  const closeAll=()=>{shut=true;els.forEach(e=>set(e,false))};eyeSets.add(closeAll);
+  return handle(()=>{clearTimeout(t0);clearInterval(bl);ptrSubs.delete(near);eyeSets.delete(closeAll);els.forEach(e=>{clearTimeout(e._t);e.remove()})},Math.min(9000,o.dur||9000))}
+// a reflection in a dark panel (art frame, boss plate, empty rail panel — never a text panel)
+function reflection(panel,o){o=o||{};if(!panel||!gate("uncanny",2,panel))return NOOP;if(panel.matches&&panel.matches(AUTO_PROTECT))return NOOP;const el=mk("div","fx-refl",panel),id="fxr"+(++uid);if(getComputedStyle(panel).position==="static")panel.style.position="relative";
+  el.innerHTML=`<svg viewBox="0 0 200 600" preserveAspectRatio="xMidYMax slice" style="width:100%;height:100%"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".16"/><stop offset=".5" stop-color="#fff" stop-opacity=".07"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs><g fill="url(#${id})" filter="url(#fx-soft)">${SIL}</g></svg>`;
+  A(el,[{opacity:0,transform:"translate3d(-10px,0,0)"},{opacity:1,transform:"translate3d(0,0,0)",offset:.4},{opacity:1,transform:"translate3d(4px,0,0)",offset:.7},{opacity:0,transform:"translate3d(10px,0,0)"}],{duration:o.dur||3800,easing:"ease-in-out"});return handle(()=>el.remove(),(o.dur||3800)+60)}
+// the portrait whose gaze follows: pupils laid over the plate at fractional positions, eyes:[[fx,fy],[fx,fy]]
+function gaze(el,o){o=o||{};boot();if(!el||!st.I)return NOOP;if(getComputedStyle(el).position==="static")el.style.position="relative";const d=o.d||7,r=o.r||3,ps=(o.eyes||[[.42,.3],[.58,.3]]).map(q=>{const p=mk("i","fx-pupil",el);p.style.cssText=`left:${q[0]*100}%;top:${q[1]*100}%;--d:${d}px`;return p});
+  let box=null;const remeasure=()=>{box=el.getBoundingClientRect()};remeasure();addEventListener("resize",remeasure,{passive:true});addEventListener("scroll",remeasure,{passive:true,capture:true});   // a6: rect read once, not per move (platform D12)
+  const mv=(x,y)=>{const b=box;ps.forEach(p=>{const cx=b.left+parseFloat(p.style.left)/100*b.width,cy=b.top+parseFloat(p.style.top)/100*b.height,a=Math.atan2(y-cy,x-cx),m=Math.min(r,Math.hypot(x-cx,y-cy)/70);p.style.transform=`translate3d(${(Math.cos(a)*m).toFixed(1)}px,${(Math.sin(a)*m*.75).toFixed(1)}px,0)`})};
+  ptrSubs.add(mv);return handle(()=>{ptrSubs.delete(mv);removeEventListener("resize",remeasure);removeEventListener("scroll",remeasure,{capture:true});ps.forEach(p=>p.remove())},0,true)}
+// the cursor leaves an ink trail (pact screen only). Own small canvas inside `el`, alive only while ink is wet.
+function inkTrail(el,o){o=o||{};boot();if(!el||!st.I||calm())return NOOP;if(getComputedStyle(el).position==="static")el.style.position="relative";const c=mk("canvas","fx-trail",el),g=c.getContext("2d"),p=pal();let pts=[],raf=0,lx=null,ly=null;
+  const fit=()=>{const b=el.getBoundingClientRect();c.width=Math.ceil(b.width);c.height=Math.ceil(b.height)};fit();
+  const step=()=>{raf=0;g.globalCompositeOperation="destination-out";g.fillStyle="rgba(0,0,0,.035)";g.fillRect(0,0,c.width,c.height);g.globalCompositeOperation="source-over";for(const q of pts){g.fillStyle=`rgba(${rgb(p.blood)},${q.a})`;g.beginPath();g.arc(q.x,q.y,q.r,0,6.283);g.fill()}pts=[];if(performance.now()-step.last<2600&&!st.idle&&!D.hidden)raf=requestAnimationFrame(step);else g.clearRect(0,0,c.width,c.height)};
+  const mv=e=>{const b=c.getBoundingClientRect(),x=e.clientX-b.left,y=e.clientY-b.top;if(x<0||y<0||x>b.width||y>b.height){lx=null;return}if(lx!=null){const d=Math.hypot(x-lx,y-ly),n=Math.min(24,Math.ceil(d/3)),wd=clamp(5-d*.09,1.2,4.6);for(let i=1;i<=n;i++)pts.push({x:lx+(x-lx)*i/n,y:ly+(y-ly)*i/n,r:wd*rnd(.8,1.1),a:.55});if(Math.random()<.06)pts.push({x:x+rnd(-9,9),y:y+rnd(-9,9),r:rnd(.8,2),a:.5})}lx=x;ly=y;step.last=performance.now();if(!raf)raf=requestAnimationFrame(step)};
+  el.addEventListener("pointermove",mv,{passive:true});return handle(()=>{el.removeEventListener("pointermove",mv);cancelAnimationFrame(raf);c.remove()},0,true)}
+// a page that curls at the corner (bottom right of `el`)
+function curl(el,o){o=o||{};boot();if(!el||!st.I)return NOOP;if(getComputedStyle(el).position==="static")el.style.position="relative";const c=mk("i","fx-curl",el);
+  A(c,[{transform:"scale(0)"},{transform:"scale(1.06)",offset:.55},{transform:"scale(.82)",offset:.8},{transform:"scale(.9)"}],{duration:o.dur||2600,easing:"cubic-bezier(.3,.6,.3,1)",fill:"forwards"});return handle(()=>c.remove(),o.hold||0,true)}
+// ================= FEEDBACK (A6 §5.3 items 5, 6, 23–26; ux P9) =================
+// a6: rim light is drawn in the front layer AROUND the card (outer glow only); the safe-zone hole hides everything inside the card,
+// so nothing is laid over the text and nothing is appended into the reading box.
+const recent=new WeakMap();
+function dup(card,kind){const t=performance.now(),k=recent.get(card);if(k&&k[kind]&&t-k[kind]<600)return true;const n=k||{};n[kind]=t;recent.set(card,n);return false}
+function rimAround(card,cls){const r=card.getBoundingClientRect();if(r.width<2)return null;const e=mk("i","fx-rim "+cls,clipBox);e.style.cssText=`left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;border-radius:${getComputedStyle(card).borderRadius||"0"}`;return e}
+const WRONG_IN='input.wrong,input[aria-invalid="true"],textarea[aria-invalid="true"],.opts .wrong,.opts .no,.opts .bad,button.wrong,button.no,.opt.no,.opt.bad,.wrong-in';
+function frameOf(card){return (card.closest&&card.closest("#focus"))?D.querySelector("#focus .fhead"):null}
+function wrong(card,o){o=o||{};boot();if(card&&!(card instanceof Element))card=null;if(!card||!gate("feedback",1,card)||dup(card,"w"))return NOOP;measure();const tier=o.tier;
+  const rim=rimAround(card,"bad");if(calm()){if(rim)rim.style.opacity=".7";return handle(()=>rim&&rim.remove(),1400)}
+  if(rim)rim.animate([{opacity:1},{opacity:1,offset:.14},{opacity:0}],{duration:560,easing:"ease-out"});
+  // only the wrong input nudges (±4 px once); the frame (Focus header) shakes; the text never moves
+  const inp=o.input||card.querySelector(WRONG_IN);if(inp&&!inp.closest(".verdict"))inp.animate([{transform:"translate3d(0,0,0)"},{transform:"translate3d(-4px,0,0)",offset:.25},{transform:"translate3d(4px,0,0)",offset:.6},{transform:"translate3d(0,0,0)"}],{duration:180,easing:"cubic-bezier(.3,.6,.3,1)",composite:"add"});
+  const fr=frameOf(card);if(fr)fr.animate([{transform:"translate3d(0,0,0)"},{transform:"translate3d(-5px,0,0)",offset:.2},{transform:"translate3d(4px,1px,0)",offset:.45},{transform:"translate3d(-2px,0,0)",offset:.7},{transform:"translate3d(0,0,0)"}],{duration:320,easing:"ease-out"});
+  if(LT)LT.dip(.72,700);
+  // more blood (Albtraum default): drips start at 120 ms in the gutters beside the card; at full intensity an edge bloom on the card's side
+  const kids=[],T=[],tierOK=tier==null||tier>=1;
+  if(o.blood!==false&&st.I>=2&&tierOK){const b=card.getBoundingClientRect(),side=b.left+b.width/2<innerWidth/2?"l":"r";
+    T.push(setTimeout(()=>{kids.push(drip({top:Math.max(0,b.top-4),edge:side,el:card}));if(st.I>=3)kids.push(drip({top:Math.max(0,b.top+b.height*.2),edge:side==="l"?"r":"l",el:card}))},120));
+    if(st.I>=3&&(tier==null||tier>=2))kids.push(bloom({side,y:clamp(b.top+b.height*.4,60,innerHeight-60),el:card}))}
+  return handle(()=>{T.forEach(clearTimeout);rim&&rim.remove()},600)}
+function right(card,o){boot();if(card&&!(card instanceof Element))card=null;if(!card||!gate("feedback",1,card)||dup(card,"r"))return NOOP;measure();const rim=rimAround(card,"good");if(calm()){if(rim)rim.style.opacity=".6";return handle(()=>rim&&rim.remove(),1200)}
+  if(rim)rim.animate([{opacity:0},{opacity:1,offset:.25},{opacity:0}],{duration:900,easing:"ease-out"});if(LT)LT.swell(1.22,1000);return handle(()=>rim&&rim.remove(),920)}
+// candle extinguishing with smoke. `flame` is the flame element (or a selector inside `candle`).
+function snuff(candle,o){o=o||{};boot();if(!candle)return NOOP;const fl=typeof o.flame==="string"?candle.querySelector(o.flame):(o.flame||candle);if(!fl)return NOOP;const r=fl.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height*.2;
+  if(calm()||!st.I){fl.classList.add("fx-out");return NOOP}
+  const a=fl.animate([{transform:"scale(1,1)",opacity:1},{transform:"scale(.8,1.35) translate3d(0,-2px,0)",opacity:1,offset:.3},{transform:"scale(.2,.1)",opacity:0}],{duration:180,easing:"ease-in"});a.finished.then(()=>{if(o.out!==false)fl.classList.add("fx-out")}).catch(()=>{});
+  const wk=mk("i","fx-wick",over);wk.style.cssText=`left:${x-2}px;top:${y-2}px`;wk.animate([{opacity:1},{opacity:0}],{duration:1200,easing:"ease-in",fill:"forwards"});setTimeout(()=>wk.remove(),1250);
+  const pf=[];for(let i=0;i<5;i++){const e=mk("i","fx-puff",over);e.style.cssText=`left:${x-7}px;top:${y-14}px`;pf.push(e);e.animate([{transform:"translate3d(0,0,0) scale(.4)",opacity:0},{opacity:.55,offset:.2},{transform:`translate3d(${rnd(-9,15)|0}px,${-rnd(16,34)|0}px,0) scale(${rnd(1.7,2.6).toFixed(2)})`,opacity:0}],{duration:1200,delay:120+i*110,easing:"ease-out",fill:"both"})}
+  if(LT)LT.dip(.6,900);return handle(()=>{pf.forEach(e=>e.remove());wk.remove()},1900,true)}
+// the player's hit on the boss plate: slash, white flash, recoil, spatter (the monster bleeds when he is right — S6 §8)
+function bossHit(el,o){o=o||{};boot();if(!el||!gate("feedback",1,el))return NOOP;rel(el);const b=el.getBoundingClientRect(),w=b.width,h=b.height;if(w<4||h<4)return NOOP;const x1=rnd(.12,.3)*w,y1=rnd(.15,.35)*h,x2=rnd(.7,.9)*w,y2=rnd(.6,.85)*h,mx=(x1+x2)/2,my=(y1+y2)/2,p=pal(),box=mk("div");
+  box.innerHTML=`<svg class="fx-slash" viewBox="0 0 ${w.toFixed(0)} ${h.toFixed(0)}" aria-hidden="true"><path d="M${x1.toFixed(0)} ${y1.toFixed(0)}Q${(mx+rnd(-14,14)).toFixed(0)} ${(my-rnd(4,18)).toFixed(0)} ${x2.toFixed(0)} ${y2.toFixed(0)}" pathLength="1" fill="none" stroke="${p.hi}" stroke-width="${o.crit?7:5}" stroke-linecap="round" opacity=".55" stroke-dasharray="1" stroke-dashoffset="1"/><path d="M${x1.toFixed(0)} ${y1.toFixed(0)}Q${mx.toFixed(0)} ${(my-10).toFixed(0)} ${x2.toFixed(0)} ${y2.toFixed(0)}" pathLength="1" fill="none" stroke="#FFF4E0" stroke-width="${o.crit?2.6:1.8}" stroke-linecap="round" stroke-dasharray="1" stroke-dashoffset="1"/></svg>`;
+  const s=box.firstChild;el.appendChild(s);const els=[s];
+  if(calm()){s.querySelectorAll("path").forEach(q=>q.style.strokeDashoffset=0);return handle(()=>s.remove(),700)}
+  s.querySelectorAll("path").forEach(q=>q.animate([{strokeDashoffset:1},{strokeDashoffset:0}],{duration:110,easing:"ease-out",fill:"forwards"}));s.animate([{opacity:1},{opacity:1,offset:.45},{opacity:0}],{duration:520,fill:"forwards"});
+  const fl=mk("i","fx-flashplate",el);els.push(fl);fl.animate([{opacity:.7},{opacity:0}],{duration:180,easing:"ease-out",fill:"forwards"});          // A6 item 23: white flash on the plate
+  const kid=el.querySelector("img")||el.firstElementChild;if(kid&&kid!==s)kid.animate([{transform:"translate3d(0,0,0)"},{transform:"translate3d(8px,-2px,0)",offset:.3},{transform:"translate3d(0,0,0)"}],{duration:320,easing:"cubic-bezier(.16,.84,.24,1)",composite:"add"});
+  const n=st.I>=1&&!sober(el)?Math.round((o.crit?12:7)*[0,.6,1,1.4][st.I]):0;for(let i=0;i<n;i++){const d=mk("i","fx-spat",el),sz=rnd(2.5,7),a=rnd(-.4,3.5),dist=rnd(20,Math.min(w,h)*.42);d.style.cssText=`left:${mx-sz/2}px;top:${my-sz/2}px;width:${sz}px;height:${sz*rnd(1,1.5)}px`;els.push(d);
+    d.animate([{transform:"translate3d(0,0,0) scale(.4)",opacity:1},{transform:`translate3d(${(Math.cos(a)*dist).toFixed(0)}px,${(Math.sin(a)*dist*.7-10).toFixed(0)}px,0) scale(1)`,opacity:1,offset:.5,easing:"ease-in"},{transform:`translate3d(${(Math.cos(a)*dist*1.1).toFixed(0)}px,${(Math.sin(a)*dist*.7+rnd(10,34)).toFixed(0)}px,0) scale(1,1.5)`,opacity:.0}],{duration:rnd(700,1500),easing:"cubic-bezier(.1,.7,.3,1)",fill:"forwards"})}
+  return handle(()=>els.forEach(e=>e.remove()),1600)}
+// phase change: the room closes in, the plate is lit from below. Returns a handle; stop() ends the underlight.
+function bossPhase(el,o){boot();if(!el||!st.I||st.down)return NOOP;rel(el);const u=mk("i","fx-under",el);A(u,[{opacity:0},{opacity:1,offset:.25},{opacity:.55}],{duration:1400,fill:"forwards"});
+  if(!calm()){vig.animate([{transform:"scale(1)"},{transform:"scale(.82)",offset:.35},{transform:"scale(1)"}],{duration:1500,easing:"ease-in-out"});const k=el.querySelector("img")||el.firstElementChild;if(k&&k!==u)k.animate([{transform:"scale(1)"},{transform:"scale(1.06)",offset:.4},{transform:"scale(1)"}],{duration:1500,easing:"ease-in-out",composite:"add"});if(LT)LT.dip(.45,1500)}
+  return handle(()=>u.remove(),0,true)}
+const rel=el=>{if(getComputedStyle(el).position==="static")el.style.position="relative"};
+function debt(n,o){o=o||{};st.debt=+n||0;if(LT)LT.set();if(n>0&&o.ledger)return bloodLine(o.ledger,o);return NOOP}
+function secret(o){o=o||{};boot();if(!gate("feedback",1,o.inside))return NOOP;const x=o.x!=null?o.x:innerWidth/2,y=o.y!=null?o.y:innerHeight*.3,g=mk("div","fx-glint",o.inside||over);g.style.cssText=`left:${x}px;top:${y}px`;
+  A(g,[{opacity:0,transform:"scale(.2) rotate(0deg)"},{opacity:1,transform:"scale(1.25) rotate(40deg)",offset:.4},{opacity:0,transform:"scale(.4) rotate(90deg)"}],{duration:900,easing:"ease-out"});if(LT)LT.swell(1.25,1200);const e=st.I>=2?eyes({n:1,dur:6000}):NOOP;return handle(()=>{g.remove();e.stop()},1000)}
+// ================= TRANSITIONS =================
+let trBusy=false;const wait=ms=>new Promise(r=>setTimeout(r,ms));
+let inkURL=null;function inkImg(){if(inkURL)return inkURL;const s=`<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="-128 -128 256 256"><defs><radialGradient id="g"><stop offset="0" stop-color="#050202"/><stop offset=".8" stop-color="#0c0303"/><stop offset="1" stop-color="#3a0507"/></radialGradient><filter id="f" x="-40%" y="-40%" width="180%" height="180%"><feTurbulence type="fractalNoise" baseFrequency=".02 .03" numOctaves="3" seed="9"/><feDisplacementMap in="SourceGraphic" scale="44" xChannelSelector="R" yChannelSelector="G"/><feGaussianBlur stdDeviation="1.4"/></filter></defs><circle r="84" fill="url(#g)" filter="url(#f)"/></svg>`;return inkURL=blobURL([s],"image/svg+xml")}
+const TR={
+  async ink(mid,o,els){const w=innerWidth,h=innerHeight,from=o.from||"t",n=7,S=Math.max(w,h)*1.25/512*1.5,sol=mk("div","fx-t solid",over);els.push(sol);const an=[];
+    for(let i=0;i<n;i++){const im=mk("img",0,over);im.alt="";im.decoding="async";im.width=512;im.height=512;im.src=inkImg();const u=(i+.5)/n+rnd(-.05,.05),x=from==="l"?0:from==="r"?w:u*w,y=from==="t"?0:from==="b"?h:u*h;im.style.cssText=`left:${x-256}px;top:${y-256}px;width:512px;height:512px;will-change:transform,opacity`;els.push(im);
+      an.push(im.animate([{transform:"scale(.05) rotate(0deg)",opacity:0},{opacity:1,offset:.15},{transform:`scale(${S.toFixed(2)}) rotate(${rnd(-30,30)|0}deg)`,opacity:1}],{duration:820,delay:i*55+rnd(0,60),easing:"cubic-bezier(.5,0,.75,.6)",fill:"forwards"}))}
+    await sol.animate([{opacity:0},{opacity:1}],{duration:300,delay:680,fill:"forwards"}).finished;await mid();await wait(90);
+    an.forEach((a,i)=>els[i+1].animate([{opacity:1},{opacity:0}],{duration:500,fill:"forwards"}));await sol.animate([{opacity:1},{opacity:0}],{duration:760,easing:"ease-in",fill:"forwards"}).finished},
+  async iris(mid,o,els){const ok=typeof CSS!=="undefined"&&CSS.registerProperty,R=Math.hypot(innerWidth,innerHeight)+30,e=mk("div",ok?"fx-t iris":"fx-t solid",over);els.push(e);
+    if(!ok){await e.animate([{opacity:0},{opacity:1}],{duration:400,fill:"forwards"}).finished;await mid();await e.animate([{opacity:1},{opacity:0}],{duration:500,fill:"forwards"}).finished;return}
+    e.style.setProperty("--fx-ix",o.x||"50%");e.style.setProperty("--fx-iy",o.y||"42%");
+    await e.animate([{"--fx-r":R+"px"},{"--fx-r":"0px"}],{duration:680,easing:"cubic-bezier(.5,0,.8,.5)",fill:"forwards"}).finished;await mid();await wait(160);
+    await e.animate([{"--fx-r":"0px"},{"--fx-r":R+"px"}],{duration:820,easing:"cubic-bezier(.2,.5,.3,1)",fill:"forwards"}).finished},
+  async page(mid,o,els){const e=mk("div","fx-t page",over);els.push(e);await e.animate([{transform:"translate3d(104%,0,0) skewY(-2.5deg)"},{transform:"translate3d(0,0,0) skewY(0deg)"}],{duration:460,easing:"cubic-bezier(.5,0,.2,1)",fill:"forwards"}).finished;await mid();await wait(60);
+    await e.animate([{transform:"translate3d(0,0,0)"},{transform:"translate3d(-106%,0,0) skewY(1.5deg)"}],{duration:520,easing:"cubic-bezier(.6,0,.4,1)",fill:"forwards"}).finished},
+  async door(mid,o,els){const l=mk("div","fx-t door",over),r=mk("div","fx-t door r",over);els.push(l,r);const a=l.animate([{transform:"translate3d(-101%,0,0)"},{transform:"translate3d(0,0,0)"}],{duration:500,easing:"cubic-bezier(.6,0,.9,.5)",fill:"forwards"});r.animate([{transform:"translate3d(101%,0,0)"},{transform:"translate3d(0,0,0)"}],{duration:500,easing:"cubic-bezier(.6,0,.9,.5)",fill:"forwards"});await a.finished;
+    [l,r].forEach(e=>e.animate([{transform:"translate3d(0,0,0)"},{transform:"translate3d(0,3px,0)",offset:.3},{transform:"translate3d(0,-1px,0)",offset:.6},{transform:"translate3d(0,0,0)"}],{duration:170}));await mid();await wait(260);
+    r.animate([{transform:"translate3d(0,0,0)"},{transform:"translate3d(101%,0,0)"}],{duration:760,easing:"cubic-bezier(.3,0,.2,1)",fill:"forwards"});await l.animate([{transform:"translate3d(0,0,0)"},{transform:"translate3d(-101%,0,0)"}],{duration:760,easing:"cubic-bezier(.3,0,.2,1)",fill:"forwards"}).finished},
+  async curtain(mid,o,els){const e=mk("div","fx-t curtain",over);els.push(e);await e.animate([{transform:"translate3d(0,-104%,0) scaleX(1.04)"},{transform:"translate3d(0,0,0) scaleX(1)"}],{duration:780,easing:"cubic-bezier(.6,0,.3,1)",fill:"forwards"}).finished;await mid();await wait(140);
+    await e.animate([{transform:"translate3d(0,0,0) scaleX(1)"},{transform:"translate3d(0,-104%,0) scaleX(1.03)"}],{duration:900,easing:"cubic-bezier(.5,0,.3,1)",fill:"forwards"}).finished}};
+function transition(name,o){o=typeof o==="function"?{mid:o}:(o||{});boot();const mid=async()=>{try{o.mid&&await o.mid()}catch(e){console.error(e)}};
+  if(trBusy){mid();return NOOP}const els=[];
+  if(calm()||!st.I){const s=mk("div","fx-t solid",over);s.style.opacity="1";mid();const h=handle(()=>s.remove(),150,true);return h}
+  trBusy=true;const h=handle(()=>{els.forEach(e=>e.remove());trBusy=false},0,true);(TR[name]||TR.ink)(mid,o,els).catch(()=>{}).then(()=>h.stop());return h}
+// ================= PLACEMENT (rules as code) =================
+// a6: endless animations per scene (PLAN-A §2.9: ≤ 8 per screen incl. a5's ≤ 5): glow flicker 1 + grain 1 + fog 1 = 3 at most; particles are canvas.
+const SCENES={
+  home:    {light:1,grain:1,fog:1,embers:1,weather:1,dust:0,cap:3,layer:"back"},
+  pakt:    {light:1,grain:1,fog:1,embers:1,weather:1,dust:0,cap:3,layer:"back"},
+  session: {light:1,grain:1,fog:0,embers:0,weather:0,dust:0,cap:2,layer:"front"},   // feedback + edge blood only
+  reader:  {light:1,grain:1,fog:0,embers:0,weather:1,dust:1,cap:2,layer:"front"},
+  duel:    {light:1,grain:1,fog:0,embers:1,weather:0,dust:0,cap:3,layer:"front"},
+  chronik: {light:1,grain:1,fog:0,embers:0,weather:0,dust:1,cap:1,layer:"back"},
+  clinical:{light:1,grain:0,fog:0,embers:0,weather:0,dust:0,cap:0,layer:"back",quiet:1}};  // FSP, Arztbrief, bad news, Bett vier, Frau Brandt: lantern only
+const amb={};let ltT=0;
+function scene(name){boot();if(!booted)return;const r=SCENES[name]||SCENES.home;st.scene=SCENES[name]?name:"home";st.quiet=!!r.quiet;st.cap=r.cap;st.layer=r.layer;cv.classList.toggle("front",r.layer==="front");Object.keys(amb).forEach(k=>{amb[k].stop();delete amb[k]});clearTimeout(ltT);if(!st.I){measure();return}
+  const px=st.look==="pixel";
+  if(r.light&&!px)amb.light=light();if(r.grain&&!px)amb.grain=grain();if(r.fog&&!px)amb.fog=fog();if(r.embers&&(st.realm!=="IV"))amb.embers=embers();if(r.dust&&!px)amb.dust=dust();
+  if(r.weather&&st.realm==="IV"&&st.look==="gothic")amb.rain=rain();if(st.realm==="IV"&&st.look==="gothic"&&!r.quiet&&!px)amb.proj=projector();
+  // a6: lightning in Berlin on Home/Pakt, at most once every 4–7 minutes (S6 §6.4 thunder budget), never while idle, hidden or sober
+  if(st.realm==="IV"&&r.weather&&r.layer==="back"&&!r.quiet){const sched=()=>{ltT=setTimeout(()=>{if(!st.idle&&!D.hidden&&!calm())lightning();sched()},rnd(240000,420000))};sched()}
+  measure()}
+// intensity by story position: the cap rises with the chapter (A9). Feedback ignores it.
+function story(ch){st.capStory=ch<=3?1:ch<=10?2:3;return st.capStory}
+function set(o){o=o||{};boot();let ch=false;if(o.intensity!=null){const v=clamp(o.intensity|0,0,3);ch=ch||v!==st.I;st.I=v}if(o.realm&&o.realm!==st.realm){st.realm=o.realm;ch=true}if(o.look&&o.look!==st.look){st.look=o.look;ch=true}if(o.battery!=null&&!!o.battery!==st.battery){st.battery=!!o.battery;ch=true}
+  if(o.debt!=null)st.debt=+o.debt||0;if(o.streak!=null)st.streak=+o.streak||0;applyVars();if(ch||o.force)scene(st.scene);else if(LT)LT.set()}
+function quiet(q){st.quiet=!!q}
+function budget(on){st.nobud=!on}
+function stopAll(){Array.from(hs).forEach(h=>h.stop());Object.keys(amb).forEach(k=>{amb[k].stop();delete amb[k]});clearTimeout(ltT);sys.clear();if(clipBox)Array.from(clipBox.children).forEach(e=>{if(e!==vig&&e!==coneEl&&e!==flashEl)e.remove()});if(over&&!trBusy)Array.from(over.children).forEach(e=>e.remove())}
+// a6: s6's HOR.standDown → stop every transient effect and all blood now; the lantern stays; quiet until the next view change (FX.resume)
+function standDown(){boot();st.down=true;Array.from(hs).forEach(h=>h.stop());eyeSets.forEach(f=>f());if(clipBox)Array.from(clipBox.children).forEach(e=>{if(e!==vig&&e!==coneEl&&e!==flashEl)e.remove()});
+  ["embers","dust","rain","proj","fog"].forEach(k=>{if(amb[k]){amb[k].stop();delete amb[k]}});clearTimeout(ltT);return NOOP}
+function resume(){if(!st.down)return;st.down=false;scene(st.scene)}
+try{if(navigator.getBattery)navigator.getBattery().then(b=>{const f=()=>{const low=!b.charging&&b.level<.3;if(low!==st.battery){st.battery=low;if(booted)scene(st.scene)}};b.addEventListener("levelchange",f);b.addEventListener("chargingchange",f);f()}).catch(()=>{})}catch(e){}
+return {set,scene,story,quiet,budget,protect,refresh:measure,strips,stopAll,standDown,resume,band,sober,poke,pal,calm,
+  state:()=>Object.assign({live,loops:loops.size,systems:sys.size,frames:stats.frames,rects:rects.length,sober:sober()},st),
+  rects:()=>rects.slice(),
+  light,lightning,projector,get lamp(){return LT},
+  grain,dust,fog,smoke,rain,breath,embers,
+  bloom,seep,drip,bloodLine,handprint,seal,
+  misprint,shadow,eyes,reflection,gaze,inkTrail,curl,
+  wrong,right,snuff,bossHit,bossPhase,debt,secret,
+  transition,layer(l){st.layer=l==="front"?"front":"back";if(cv)cv.classList.toggle("front",st.layer==="front")},
+  _boot:boot}})();
+
+// ===== a6 glue: intensity from S.horror, scene from the screen, the observer, answers, duel candles, the settings row.
+const FXA6=(function(){
+  const D=document,HT=D.documentElement;
+  // S.horror (s6's key): 0 aus · 1 schaurig · 2/unset Albtraum → FX 3 (the standing decision: Albtraum on by default, with more blood) · 3 → 3
+  const level=()=>{try{const v=(typeof S!=="undefined"&&S)?S.horror:null;if(v==null||v==="")return 3;const n=+v;return n<=0?0:n===1?1:3}catch(e){return 3}};
+  const look=()=>{const u=HT.dataset.ui;return u==="paper"?"paper":u==="gothic"?"gothic":u==="pixel"?"pixel":"clean"};
+  let lastScene="",lastKey="";
+  const key=()=>{let d=0;try{d=(typeof P==="function"&&P().debt)||0}catch(e){}return [level(),HT.dataset.realm||"I",look(),d,FX.calm()?1:0].join("|")};
+  try{const m=matchMedia("(prefers-reduced-motion: reduce)");const f=()=>sync(true);m.addEventListener?m.addEventListener("change",f):m.addListener&&m.addListener(f)}catch(e){}
+  function sceneName(){const f=D.getElementById("focus"),open=!!f&&!f.hidden,fin=D.getElementById("fIn");
+    if(FX.sober())return "clinical";
+    if(open&&fin){if(fin.querySelector(".duel,.duel-boss"))return "duel";if(fin.querySelector('[data-hx="exam"],[data-hx="clinic"]'))return "clinical";if(fin.querySelector(".reader,.pk-nar,.st-line,.lore-page"))return "reader";return "session"}
+    const tab=(typeof R!=="undefined"&&R&&R.tab)||"home";if(tab==="pakt")return "pakt";if(D.querySelector("#main .chronik,#main [data-chx]"))return "chronik";return "home"}
+  function sync(force){try{FX._boot();const k=key();
+    if(k!==lastKey||force){lastKey=k;let ch=1;try{ch=(typeof P==="function"&&P().ch)||1}catch(e){}FX.story(ch);
+      let sk=0;try{sk=typeof streak==="function"?streak():0}catch(e){}
+      FX.set({intensity:level(),realm:HT.dataset.realm||"I",look:look(),debt:(typeof P==="function"&&P().debt)||0,streak:sk,force:true})}
+    const sn=sceneName();if(sn!==lastScene){lastScene=sn;FX.resume();FX.scene(sn)}else FX.refresh()}catch(e){try{logError({message:"a6 sync: "+(e&&e.message||e)})}catch(x){}}}
+  // ---- the one observer (body subtree childList, coalesced to one frame): protected boxes, scene changes, 13.0 verdicts, duel candles and hits
+  let q=0,added=[];
+  const VERD=".verdict.no,.verdict.bad,.verdict.ok,.verdict.good";
+  function onFrame(){q=0;const list=added;added=[];sync(false);
+    for(const n of list){if(n.nodeType!==1||!n.isConnected)continue;if(n.closest("#fx-front,#fx-back,#fx-over"))continue;
+      // duel: the damage number appears → the player's hit; the lives row is rewritten → a candle went out
+      if(n.matches(".duel-dmg b")||(n.parentElement&&n.parentElement.matches(".duel-dmg")&&n.tagName==="B")){const boss=n.closest(".duel-boss");if(boss)FX.bossHit(boss,{crit:n.classList.contains("crit")});continue}
+      if(n.matches(".duel-lives i")){candles(n.parentElement);continue}
+      const lr=n.querySelector&&n.querySelector(".duel-lives");if(lr)candles(lr);
+      // answers: only when s6's HX is absent (13.0); with HX, wrong answers come through HOR.ink → FX.wrong and right ones through hx:answer
+      if(typeof HX==="undefined"){const v=n.matches(VERD)?n:n.querySelector&&n.querySelector(VERD);if(v){const card=v.closest(".card")||v;if(v.matches(".no,.bad"))FX.wrong(card);else FX.right(card)}}}}
+  const lives=new WeakMap();
+  function candles(row){if(!row)return;const on=row.querySelectorAll("i.on").length,prev=lives.get(row);lives.set(row,on);
+    // the row element is reused by c_boss hud(): compare with the count from the last render
+    if(prev!=null&&on<prev){const lost=row.querySelectorAll("i")[on];if(lost)FX.snuff(lost,{out:false})}
+    const boss=D.querySelector("#fIn .duel-boss"),hp=boss&&boss.querySelector(".duel-hp i");if(hp&&boss&&!boss._fxPhase&&parseFloat(hp.style.width)<=50){boss._fxPhase=1;FX.bossPhase(boss)}}
+  let mo=null;
+  function observe(){if(mo||!D.body)return;mo=new MutationObserver(ms=>{for(const m of ms){if(m.target&&m.target.closest&&m.target.closest("#fx-front,#fx-back,#fx-over"))continue;m.addedNodes.forEach(n=>{if(n.nodeType===1)added.push(n)});
+      if(m.target&&m.target.matches&&m.target.matches(".duel-lives"))added.push(m.target.firstElementChild||m.target)}
+    if(!q)q=requestAnimationFrame(onFrame)});mo.observe(D.body,{childList:true,subtree:true})}
+  // the Focus overlay opens/closes by its hidden attribute; the observer sees the content change in #fIn, and Focus.close() calls rerender() → chromeExtras
+  D.addEventListener("hx:answer",e=>{try{const d=e.detail||{};if(!d.ok)return;const v=Array.from(D.querySelectorAll(".verdict.ok,.verdict.good")).pop();const card=v?(v.closest(".card")||v):null;if(card)FX.right(card)}catch(x){}});
+  // ---- hooks
+  try{MOD.after("chromeExtras","a6",function(){sync(false)})}catch(e){}
+  try{MOD.after("saveSoon","a6",function(){if(key()!==lastKey)sync(false)})}catch(e){}
+  try{MOD.after("meSettings","a6",function(el){if(!el||el.querySelector(".a6-grauen"))return;const host=el.querySelector('[data-set-group="grauen-ton"]')||el.querySelector(".view")||el;const h=(()=>{const v=typeof S!=="undefined"?S.horror:null;return v==null?2:Math.min(2,+v)})();
+    host.insertAdjacentHTML("beforeend",`<div class="card stack s a6-grauen" data-fx-protect><div class="eyebrow">Grauen</div><div class="seg" role="group" aria-label="Grauen">${[[0,"Aus"],[1,"Schaurig"],[2,"Albtraum"]].map(([k,n])=>`<button class="${h===k?"on":""}" aria-pressed="${h===k}" data-act="setHorror" data-k="${k}">${n}</button>`).join("")}</div><small class="muted ui" lang="en">Albtraum (default): blood, the eye, whispers and weather, at full strength. Effects never cover the text you are reading, they stay silent in clinical bad-news, consent and pronunciation exercises, pause after 20 s without input, and stop moving under "reduce motion".</small></div>`)})}catch(e){}
+  function start(){FX._boot();observe();sync(true)}
+  if(D.readyState==="loading")D.addEventListener("DOMContentLoaded",start);else setTimeout(start,0);
+  return {sync,sceneName,level}})();
 
 // ===== Mephisto 12.5 · Bosskämpfe: five duels with HP, candles (your lives), timer, combos and taunts. Win = badge + chapter gate.
 const BOSSES={
@@ -5155,6 +6247,686 @@ function plateHTML(id,ctx,o){try{o=o||{};const a=plateMeta(id);if(!a)return "";c
 // "Bildnachweis" rows for a9 (one per plate, sorted by realm then title)
 function plateCredits(){try{const R={I:1,II:2,III:3,IV:4,V:5};return Object.keys(PAKT_ART).map(k=>{const a=PAKT_ART[k];return{id:k,u:a.u,t:a.t,a:a.a,y:a.y||"",src:a.src||"",scan:a.scan||"",lic:a.lic||"",r:a.r}})
   .sort((x,y)=>(R[x.r]||9)-(R[y.r]||9)||String(x.t).localeCompare(String(y.t),"de"))}catch(e){return []}}
+
+// ===== Mephisto 13.1 · a5 · Painted scenes (A8). Module "story", loaded after c_final (and after track S's c_s*).
+// 14 SVG files in media/scenes/ (built by assets/scenes/build.py, copied by the "media" key of modules.json), fetched on demand.
+// Each scene mounts as six sibling <svg> layers (compositor layers) + "small life" lifted into its own layer; 900 ms cross-fade.
+// Parallax from pointer (mouse/pen) and scroll, rAF only while moving; never in calm / reduced motion / html.idle / hidden tab.
+// Time of day (dawn/day/dusk/night) and winter for realm I; the learner's state: debt (red sky), streak (lit windows, max 7),
+// absence (fog, lantern down to 55 %), realm V galleries (one per two sealed chapters), the Shadow on a wall from chapter 3.
+// Boss variants when a duel opens, Bett vier when its reader opens, the finale scene on the ending card; scrims keep text readable.
+// API (PLAN-A §2.8): pkSceneMount(key) -> Promise<bool>, pkSceneKey(), pkSceneState(), PK_SCENES (raw SVG text by key), sceneShow(ms).
+// Hooks: MOD.after("chromeExtras","a5"), MOD.after("readerView","a5"). One MutationObserver, on #fIn, childList only. No saved state.
+(function(){"use strict";
+const H=document.documentElement,NS="http://www.w3.org/2000/svg",DIR="media/scenes/";
+const KEYS=["I-night","I-dusk","I-snow","I-boss","II","II-boss","III","III-boss","IV","IV-boss","V","V-boss","bett4","finale"];
+const BOSS={hexe:"I-boss",golem:"II-boss",pudel:"III-boss",caligari:"IV-boss",kommission:"V-boss"};
+const PORTRAIT={II:"500 0 600 900",III:"430 0 740 900",IV:"500 0 640 900"};   // A8 P9; shown width-fitted at the top ("meet"), see MANIFEST
+const DEPTH=[0,4,9,16,26,40];                                                   // px of travel per layer at full pointer deflection
+// small life (<= 5 endless animations per scene). sel is matched inside each layer; matches are lifted (with their ancestors' attributes)
+// into one extra <svg> right above that layer, which is what the CSS animates (opacity / translate: composited, no repaint of the picture).
+const LIFE={
+ I:[{sel:".lantern",a:"flick",lt:1},{sel:'[fill$="-winhalo)"][rx="70"]',a:"breathe"},{sel:".fog",a:"drift",last:1},{sel:'[fill$="-eyeh)"]',a:"blink",only:"I-boss"}],
+ II:[{sel:".lantern",a:"flickslow",lt:1},{sel:'[id$="-steam"]',a:"steam"},{sel:".fog",a:"drift",last:1},{sel:'[fill$="-golh)"]',a:"breathe",only:"II-boss"}],
+ III:[{sel:".lantern",a:"flickfast",lt:1},{sel:'[id$="-staub"]',a:"dust"},{sel:'[fill$="-penth)"]',a:"breathe",only:"III-boss"}],
+ IV:[{sel:'[id$="-rain1"]',a:"rain1"},{sel:'[id$="-rain2"]',a:"rain2"},{sel:".lantern",a:"flickslow",lt:1}],
+ V:[{sel:".feuer",a:"flickfast"},{sel:".lantern",a:"flickslow",lt:1},{sel:".fog",a:"drift",last:1}],
+ bett4:[{sel:".lantern",a:"blink",lt:1}],          // + the monitor's sweep in place (CSS). Frau Brandt's room: no horror, nothing restless.
+ finale:[{sel:".lantern",a:"flickslow",lt:1},{sel:".fog",a:"drift",last:1}]};
+// the Shadow (A8 P8): the figure of finale.svg, cast on a wall of each realm; parallax of the layer BEHIND the wall, so it slides wrongly.
+const FIG='<path d="M450 694L454 606C440 598 442 544 456 534L464 528C454 518 456 498 472 496C488 498 490 518 480 528L488 534C502 544 504 598 490 606L496 694H476L472 624L468 694Z"/><path d="M500 584l10 46h22l-4 -30l-18 -4Z"/><path d="M503 544L510 586" stroke="#000" stroke-width="6"/>';
+const SHADOW_AT={I:{L:3,k:2,t:"translate(884 774) skewX(-46) scale(1.1 .52)"},II:{L:3,k:2,t:"translate(700 842)"},III:{L:1,k:0,t:"translate(560 642) scale(1.5)"},
+ IV:{L:4,k:3,t:"translate(188 808) scale(1.75)"},V:{L:2,k:1,t:"translate(420 302) scale(.55)"}};
+window.PK_SCENES=window.PK_SCENES||{};
+const LOADING={};let CUR=null,WANT=null,N=0,CTX=null,CTXK="",showT=0,todT=0;
+const RM=window.matchMedia?matchMedia("(prefers-reduced-motion: reduce)"):{matches:false};
+const PM=window.matchMedia?matchMedia("(max-aspect-ratio: 3/4)"):{matches:false};
+function uiCalm(){const h=document.documentElement;return h.classList.contains("calm")||h.classList.contains("nomotion")}
+function gothic(){return H.dataset.ui==="gothic"}
+function log(e){try{logError({message:"a5: "+(e&&e.message||e)})}catch(x){}}
+function fam(key){return key==="bett4"||key==="finale"?key:String(key).split("-")[0]}
+function isBase(key){return !!key&&!/boss$/.test(key)&&key!=="bett4"&&key!=="finale"}
+function setVar(el,k,v){if(el.style.getPropertyValue(k)!==v)el.style.setProperty(k,v)}
+function setAttr(el,k,v){if(el.getAttribute(k)!==v)el.setAttribute(k,v)}
+function viewBoxFor(key){const p=PM.matches&&PORTRAIT[fam(key)];return p?[p,"xMidYMin meet"]:["0 0 1600 900","xMidYMid slice"]}
+function pkTod(d){const h=(d||new Date()).getHours();return h>=5&&h<8?"dawn":h>=8&&h<17?"day":h>=17&&h<21?"dusk":"night"}
+function baseKey(){const r=H.dataset.realm||"I";if(r==="II"||r==="III"||r==="IV"||r==="V")return r;
+  const m=new Date().getMonth();if(m===11||m<=1)return "I-snow";const t=pkTod();return t==="dusk"||t==="dawn"?"I-dusk":"I-night"}
+function pkSceneKey(){return CTX?CTX.key:baseKey()}
+// ---------------------------------------------------------------- loading and building
+function load(key){if(window.PK_SCENES[key])return Promise.resolve(window.PK_SCENES[key]);if(LOADING[key])return LOADING[key];
+  return LOADING[key]=fetch(DIR+key+".svg").then(r=>{if(!r.ok)throw new Error(key+" HTTP "+r.status);return r.text()})
+    .then(t=>{window.PK_SCENES[key]=t;delete LOADING[key];return t},e=>{delete LOADING[key];throw e})}
+function liftInto(doc,layer,els){const out=doc.createElementNS(NS,"g");out.setAttribute("class","a5-lfg");
+  for(const e of els){const chain=[];let p=e.parentNode;while(p&&p!==layer){chain.push(p);p=p.parentNode}
+    let top=null,inner=null;for(let i=chain.length-1;i>=0;i--){const c=chain[i].cloneNode(false);c.removeAttribute("id");if(inner)inner.appendChild(c);else top=c;inner=c}
+    e.parentNode.removeChild(e);if(inner){inner.appendChild(e);out.appendChild(top)}else out.appendChild(e)}
+  return out}
+function build(key,txt){const pre="a5s"+(++N)+"-";
+  const src=txt.replace(/<title>[\s\S]*?<\/title>/,"").replace(/\sid="/g,' id="'+pre).replace(/url\(#/g,"url(#"+pre).replace(/href="#/g,'href="#'+pre);
+  const doc=new DOMParser().parseFromString(src,"image/svg+xml");const root=doc.documentElement;
+  if(!root||root.localName!=="svg"||doc.getElementsByTagName("parsererror").length)throw new Error("bad scene "+key);
+  const byId=id=>doc.getElementById(id)||root.querySelector('[id="'+id+'"]');
+  const layers=[0,1,2,3,4,5].map(i=>byId(pre+"L"+i));if(layers.some(g=>!g))throw new Error("scene "+key+" lacks L0-L5");
+  const lifts=layers.map(()=>[]),used=new Set();
+  (LIFE[fam(key)]||[]).forEach(en=>{if(en.only&&en.only!==key)return;
+    let per=layers.map(g=>Array.from(g.querySelectorAll(en.sel)).filter(e=>!used.has(e)));
+    if(en.last){let li=-1;per.forEach((a,i)=>{if(a.length)li=i});per=per.map((a,i)=>i===li?a:[])}
+    per.forEach((els,i)=>{if(!els.length)return;els.forEach(e=>used.add(e));lifts[i].push({g:liftInto(doc,layers[i],els),a:en.a,lt:en.lt})})});
+  const vb=viewBoxFor(key);
+  const mk=(cls,k)=>{const s=document.createElementNS(NS,"svg");s.setAttribute("class",cls);s.setAttribute("viewBox",vb[0]);s.setAttribute("preserveAspectRatio",vb[1]);
+    s.setAttribute("aria-hidden","true");s.setAttribute("focusable","false");s.__k=k;return s};
+  const set=document.createElement("div");set.className="a5-set";set.dataset.key=key;
+  const d=document.createElementNS(NS,"svg");d.setAttribute("class","a5-defs");d.setAttribute("aria-hidden","true");
+  const defs=root.getElementsByTagName("defs")[0];if(defs)d.appendChild(document.importNode(defs,true));set.appendChild(d);
+  const sh=isBase(key)&&SHADOW_AT[fam(key)];const par=[];
+  layers.forEach((g,i)=>{const s=mk("pl pl"+i,DEPTH[i]);s.appendChild(document.importNode(g,true));set.appendChild(s);par.push(s);
+    lifts[i].forEach(l=>{const t=mk("pl pl"+i+" a5-lf a5-life-"+l.a+(l.lt?" a5-lt":""),DEPTH[i]);t.appendChild(document.importNode(l.g,true));set.appendChild(t);par.push(t)});
+    if(sh&&sh.L===i){const t=mk("pl pl"+i+" a5-shadow",DEPTH[sh.k]);
+      t.innerHTML='<defs><filter id="'+pre+'shb" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3"/></filter></defs>'+
+        '<g transform="'+sh.t+' translate(-470 -694)" fill="#000" opacity=".5" filter="url(#'+pre+'shb)">'+FIG+'</g>';set.appendChild(t);par.push(t)}});
+  set.__par=par;return set}
+function skeleton(){const sc=document.getElementById("pakt-scene");if(!sc)return null;
+  if(!sc.querySelector(".a5-stage")){const mkd=c=>{const e=document.createElement("div");e.className=c;e.setAttribute("aria-hidden","true");return e};
+    const st=mkd("a5-stage"),tod=mkd("a5-tod"),scr=mkd("a5-scrim");
+    // after P1's old <svg>: c_pakt.js still writes into sc.querySelector("svg"), which must stay that old one
+    const old=sc.querySelector(":scope>svg");if(old)old.after(st,tod,scr);else sc.prepend(st,tod,scr)}
+  return sc}
+function pkSceneMount(key){if(KEYS.indexOf(key)<0)return Promise.resolve(false);WANT=key;if(CUR===key)return Promise.resolve(true);
+  const sc=skeleton();if(!sc)return Promise.resolve(false);
+  return load(key).then(txt=>{if(WANT!==key)return false;const set=build(key,txt);const stage=sc.querySelector(".a5-stage");
+    const olds=Array.from(stage.children);stage.prepend(set);place(set);CUR=key;sc.dataset.key=key;sc.classList.add("a5-on");unit();pkSceneState();
+    olds.forEach(o=>{if(uiCalm()||RM.matches){o.remove();return}o.classList.add("a5-old");setTimeout(()=>o.remove(),950)});
+    prefetchSoon();return true}).catch(e=>{log(e);return false})}
+// ---------------------------------------------------------------- the learner's state
+function awayDays(){try{const L=S.log||{},has=k=>L[k]&&L[k].act;if(!Object.keys(L).some(has))return 0;let k=todayKey();if(has(k))return 0;
+  for(let i=1;i<=30;i++){k=addDays(k,-1);if(has(k))return i-1}return 30}catch(e){return 0}}
+function computeState(){const o={debt:0,streak:0,away:0,fogx:0,tod:pkTod(),gal:5,shadow:0,key:CUR,ctx:CTX&&CTX.kind||null};
+  try{const p=typeof P==="function"?P():{};o.debt=Math.max(0,Math.min(7,+p.debt||0));o.streak=Math.max(0,Math.min(7,typeof streak==="function"?streak():0));
+    o.away=awayDays();o.fogx=+Math.min(1,o.away/6).toFixed(2);
+    const nV=Object.keys(p.sealed||{}).filter(k=>+k>=33&&+k<=40).length;o.gal=Math.min(5,1+Math.floor(nV/2));
+    o.shadow=p.signed&&(+p.ch||1)>=3&&!p.done?1:0}catch(e){}
+  return o}
+function pkSceneState(){const o=computeState();const sc=document.getElementById("pakt-scene");if(!sc)return o;const key=CUR||"";
+  const calmRoom=key==="bett4"||key==="finale";        // Frau Brandt's room and the ending: no red sky, no fog of neglect
+  setVar(sc,"--a5-debt",calmRoom?"0":Math.min(.85,o.debt*.17).toFixed(2));setVar(sc,"--a5-fogx",calmRoom?"0":o.fogx.toFixed(2));
+  setAttr(sc,"data-streak",String(o.streak));setAttr(sc,"data-gal",/^V-boss$/.test(key)?"5":String(o.gal));
+  setAttr(sc,"data-shadow",isBase(key)&&o.shadow?"1":"0");
+  setAttr(sc,"data-tod",isBase(key)&&key!=="I-dusk"?o.tod:"night");return o}
+// ---------------------------------------------------------------- parallax (transform only; rAF only while moving)
+let tx=0,ty=0,px=0,py=0,raf=0;
+function off(){return uiCalm()||RM.matches||H.classList.contains("idle")||document.hidden||!gothic()}
+function place(set){const sc=document.getElementById("pakt-scene");const sets=set?[set]:(sc?Array.from(sc.querySelectorAll(".a5-set")):[]);
+  sets.forEach(s=>(s.__par||[]).forEach(el=>{const k=el.__k||0;el.style.transform=k&&(px||py)?"translate3d("+(px*k).toFixed(2)+"px,"+(py*k*.6).toFixed(2)+"px,0)":""}))}
+let last=0;   // time-based easing (tau 180 ms): settles in ~1 s whatever the frame rate, then the loop stops
+function tick(now){raf=0;const sc=document.getElementById("pakt-scene");if(!sc)return;if(off()){sc.classList.remove("a5-moving");return}
+  const f=1-Math.exp(-Math.min(100,Math.max(1,now-(last||now-16)))/180);last=now;px+=(tx-px)*f;py+=(ty-py)*f;
+  if(Math.abs(tx-px)<.004&&Math.abs(ty-py)<.004){px=tx;py=ty;place();last=0;sc.classList.remove("a5-moving");return}
+  place();raf=requestAnimationFrame(tick)}
+function kick(){if(raf||off())return;const sc=document.getElementById("pakt-scene");if(!sc||!sc.classList.contains("a5-on"))return;sc.classList.add("a5-moving");last=0;raf=requestAnimationFrame(tick)}
+addEventListener("pointermove",e=>{if(e.pointerType==="touch")return;tx=-Math.max(-1,Math.min(1,(e.clientX/innerWidth-.5)*2));ty=-Math.max(-1,Math.min(1,(e.clientY/innerHeight-.5)*2));kick()},{passive:true});
+addEventListener("scroll",()=>{ty=-Math.max(0,Math.min(1,(window.scrollY||0)/900));kick()},{passive:true});
+// px per viewBox unit (the rain loops by exactly one pattern period, so its keyframes need it)
+function unit(){const sc=document.getElementById("pakt-scene");if(!sc)return;const vb=viewBoxFor(CUR||"I-night"),w=+vb[0].split(" ")[2];
+  const W=innerWidth*1.08,Hh=innerHeight*1.08;setVar(sc,"--a5-u",(vb[1].indexOf("meet")>0?W/w:Math.max(W/1600,Hh/900)).toFixed(4))}
+let rz=0;addEventListener("resize",()=>{if(rz)return;rz=requestAnimationFrame(()=>{rz=0;unit()})},{passive:true});
+function onPortrait(){const sc=document.getElementById("pakt-scene");if(!sc)return;sc.querySelectorAll(".a5-set").forEach(s=>{const vb=viewBoxFor(s.dataset.key);
+  s.querySelectorAll(":scope>.pl").forEach(p=>{p.setAttribute("viewBox",vb[0]);p.setAttribute("preserveAspectRatio",vb[1])})});unit()}
+if(PM.addEventListener)PM.addEventListener("change",onPortrait);
+// ---------------------------------------------------------------- full strength for a moment (boss intro, Bett vier, the ending, a7's cinematics)
+function sceneShow(ms){ms=ms==null?1800:+ms;clearTimeout(showT);H.dataset.sceneMode="show";
+  const stop=()=>{clearTimeout(showT);if(H.dataset.sceneMode==="show")delete H.dataset.sceneMode};if(ms>0)showT=setTimeout(stop,ms);return {stop,done:new Promise(r=>setTimeout(r,Math.max(0,ms)))}}
+// ---------------------------------------------------------------- which scene: realm, hour, season, or the Focus screen in front
+function focusCtx(){try{if(typeof Focus==="undefined"||!Focus.isOpen())return null;const fin=document.getElementById("fIn");if(!fin)return null;
+  const d=fin.querySelector(":scope>.duel[data-boss]");if(d&&BOSS[d.dataset.boss])return {kind:"boss",key:BOSS[d.dataset.boss]};
+  if(fin.querySelector(":scope>.st-end"))return {kind:"finale",key:"finale"};
+  const t=(document.getElementById("fTitle")||{}).textContent||"";if(/^Bett vier/.test(t))return {kind:"bett4",key:"bett4"};
+  const m=/Bosskampf · Reich (I|II|III|IV|V)\b/.exec(t);if(m)return {kind:"boss",key:m[1]+"-boss"}}catch(e){}return null}   // the duel's intro screen (before .duel exists)
+function applyCtx(){const c=gothic()?focusCtx():null;const k=c?c.kind+":"+c.key:"";
+  if(k===CTXK){if(!c&&gothic())pkSceneMount(baseKey());return}
+  CTXK=k;CTX=c;
+  if(c){pkSceneMount(c.key).then(ok=>{if(!ok||CTXK!==k)return;H.dataset.sceneCtx=c.kind;sceneShow(c.kind==="bett4"?1200:1800);pkSceneState()})}
+  else{delete H.dataset.sceneCtx;if(H.dataset.sceneMode==="show")delete H.dataset.sceneMode;if(gothic())pkSceneMount(baseKey())}
+  pkSceneState()}
+// the next boundary of the day (05, 08, 17, 21 h) re-mounts realm I's file and the wash; one timer, no polling
+function scheduleTod(){clearTimeout(todT);const n=new Date(),h=n.getHours(),B=[5,8,17,21,29];const nb=B.find(b=>b>h);
+  const t=new Date(n);t.setHours(nb%24,0,5,0);if(nb>=24)t.setDate(t.getDate()+1);
+  todT=setTimeout(()=>{try{if(!CTX&&gothic())pkSceneMount(baseKey());pkSceneState()}catch(e){}scheduleTod()},Math.max(60000,t-n))}
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)try{if(gothic()){applyCtx();pkSceneState()}}catch(e){}});
+let pf=0;function prefetchSoon(){if(pf)return;pf=setTimeout(()=>{pf=0;try{const r=H.dataset.realm||"I";const b=r+"-boss";if(KEYS.indexOf(b)>=0)load(b).catch(()=>{})}catch(e){}},5000)}
+// ---------------------------------------------------------------- hooks
+try{MOD.after("chromeExtras","a5",function(){if(!gothic()){if(H.dataset.sceneCtx)delete H.dataset.sceneCtx;return}
+  skeleton();applyCtx();pkSceneState();scheduleTod()})}catch(e){log(e)}
+try{MOD.after("readerView","a5",function(){applyCtx()})}catch(e){log(e)}
+function observe(){const fin=document.getElementById("fIn");if(!fin)return false;new MutationObserver(()=>{try{applyCtx()}catch(e){}}).observe(fin,{childList:true});return true}
+if(!observe())document.addEventListener("DOMContentLoaded",observe,{once:true});
+Object.assign(window,{pkSceneMount,pkSceneKey,pkSceneState,sceneShow,PK_SCENE_KEYS:KEYS,PK_BOSS_SCENE:BOSS,
+  pkSceneInfo:()=>({cur:CUR,want:WANT,ctx:CTX&&CTX.kind||null,portrait:!!PM.matches,moving:!!raf,p:[+px.toFixed(3),+py.toFixed(3),+tx.toFixed(3),+ty.toFixed(3)],loaded:Object.keys(window.PK_SCENES)})});
+})();
+
+// ===== a7 · Motion system, reduced motion, title sequences, the finale (PLAN-A D9; A6-motion §5–6). Module "media", after c_a5.
+// API (PLAN-A §2.8): M.sync() M.calm() M.lite() M.ms(n) M.play(el,kf,o) M.sparks(n,x,y) M.seq(name,{cue,onEnd,auto}) M.debt() M.seal(el) M.audit()
+// Classes on <html>: calm (OS reduced motion or S.motion===false), spar (battery saver: S.power), ts-on (a sequence is playing).
+// State: S.power = "auto"|"voll"|"spar" (device-local; integrator: add "power" to DEVICE_KEYS in c_cloud.js). Nothing else.
+// Hooks: MOD.after chrome / saveSoon / viewPakt / meSettings; MOD.around confetti (embers instead of confetti) and st3End (the finale).
+// One MutationObserver: document.body, childList only (takes over #lore-cine). Delegated capture clicks on [data-act] (no ACT entry is reassigned).
+var M=window.M||{};
+(function(){
+const H=document.documentElement,D=document;
+function uiCalm(){const h=document.documentElement;return h.classList.contains("calm")||h.classList.contains("nomotion")}
+function log(e){try{logError({message:"a7: "+(e&&e.message||e)})}catch(x){}}
+const T=[0,90,180,320,560,1200],TC=[0,0,120,200,240,400];
+const E={out:"cubic-bezier(.16,.84,.24,1)",in:"cubic-bezier(.5,0,.9,.4)",inout:"cubic-bezier(.62,.04,.26,1)",stamp:"cubic-bezier(.3,1.32,.5,1)",lin:"linear",
+  steps3:"steps(3,end)",steps4:"steps(4,end)",walk:"cubic-bezier(.3,.1,.4,1)"};
+const mq=window.matchMedia?matchMedia("(prefers-reduced-motion: reduce)"):{matches:false};
+let lowBat=false;
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const q=(s,r)=>(r||D).querySelector(s),qq=(s,r)=>Array.from((r||D).querySelectorAll(s));
+
+// ---------------------------------------------------------------- 1 · modes
+M.calm=()=>uiCalm();
+M.lite=()=>uiCalm()||H.classList.contains("spar");
+M.ms=n=>(uiCalm()?TC:T)[n]||0;
+M.T=T;M.E=E;
+M.sync=function(){try{const off=typeof S!=="undefined"&&S&&S.motion===false;H.classList.toggle("calm",!!(mq.matches||off));
+  const p=(typeof S!=="undefined"&&S&&S.power)||"auto";const save=!!(navigator.connection&&navigator.connection.saveData);
+  H.classList.toggle("spar",p==="spar"||(p==="auto"&&(lowBat||save)))}catch(e){log(e)}};
+try{if(mq.addEventListener)mq.addEventListener("change",M.sync);else if(mq.addListener)mq.addListener(M.sync)}catch(e){}
+try{navigator.getBattery&&navigator.getBattery().then(b=>{const u=()=>{lowBat=!b.charging&&b.level<.35;M.sync()};b.addEventListener("levelchange",u);b.addEventListener("chargingchange",u);u()}).catch(()=>{})}catch(e){}
+// scripted animation with the CSS rules: in calm mode transforms are dropped and only opacity plays (max 200 ms)
+M.play=function(el,kf,o){if(!el||!el.animate)return null;o=Object.assign({duration:T[3],easing:E.out,fill:"both"},o||{});
+  if(uiCalm()){if(o.iterations===Infinity)return null;kf=kf.map(k=>{const c=Object.assign({},k);delete c.transform;return c});if(!kf.some(k=>k.opacity!=null))return null;
+    o.duration=Math.min(o.duration,200);o.delay=0;o.easing="linear"}
+  try{return el.animate(kf,o)}catch(e){return null}};
+// embers instead of confetti: finite, transform/opacity, nothing in calm or battery mode
+M.sparks=function(n,x,y){if(M.lite()||D.hidden)return;const f=D.createDocumentFragment(),L=[];for(let i=0;i<n;i++){const s=D.createElement("i");s.className="m-spark";s.setAttribute("aria-hidden","true");f.appendChild(s);L.push(s)}D.body.appendChild(f);
+  L.forEach((s,i)=>{const a=-Math.PI/2+(Math.random()-.5)*1.5,d=60+Math.random()*150,dx=Math.cos(a)*d,dy=Math.sin(a)*d;
+    const an=s.animate([{transform:`translate(${x}px,${y}px) scale(1)`,opacity:1},{transform:`translate(${x+dx*.7}px,${y+dy}px) scale(.9)`,opacity:.9,offset:.6},{transform:`translate(${x+dx}px,${y+dy+30}px) scale(.3)`,opacity:0}],
+      {duration:900+Math.random()*700,delay:i*14,easing:E.out,fill:"both"});an.onfinish=()=>s.remove()})};
+M.sparksAt=function(el,n){if(!el)return;const r=el.getBoundingClientRect();M.sparks(n,r.left+r.width/2,r.top+r.height/2)};
+M.flip=function(fc){/* CSS does it (.fc.flip enters with mFlipIn); kept for callers of A6's patch 1 */};
+
+// ---------------------------------------------------------------- 2 · the pact's rituals: debt written, debt burnt, seal pressed
+let debt0=null,debtAt=null;
+function ghost(x,y){const g=D.createElement("i");g.className="m-ghost";g.setAttribute("aria-hidden","true");g.style.left=x+"px";g.style.top=y+"px";D.body.appendChild(g);setTimeout(()=>g.remove(),1400);M.sparks(6,x+9,y+12)}
+M.debt=function(){try{if(typeof P!=="function")return;const p=P();if(!p.signed)return;const box=q("#main .pk-debt");
+  if(debt0!=null&&p.debt<debt0&&debtAt&&!Focus.isOpen())ghost(debtAt[0],debtAt[1]-window.scrollY);
+  debt0=p.debt;if(window.FX&&FX.debt)try{FX.debt(p.debt)}catch(e){}
+  if(!box){if(!p.debt)debtAt=null;return}
+  if(p.debtNew&&!q(".m-ledger")){const n=+p.debtNew||0;p.debtNew=0;try{saveSoon()}catch(e){}const t=box.children;for(let i=0;i<n&&i<t.length;i++)t[t.length-1-i].classList.add("m-new");
+    const d=typeof fmtDate==="function"?fmtDate(todayKey()):todayKey();
+    box.insertAdjacentHTML("beforebegin",`<div class="m-ledger" lang="de"><span><span>Schuldschein Nr. ${p.debt+(p.paid||0)} · ${esc(d)} · ${n===1?"ein versäumter Tag":n+" versäumte Tage"}<i></i></span></span></div>`);
+    try{SND.fx("quill")}catch(e){}}
+  const last=box.lastElementChild;if(last){const r=last.getBoundingClientRect();debtAt=[r.left,r.top+window.scrollY]}}catch(e){log(e)}};
+const SEAL_SVG=`<div class="m-seal" aria-hidden="true"><svg class="wax" viewBox="0 0 132 132"><path fill="#7A1210" d="M66 6c14-3 22 6 33 9 12 4 22 6 24 19 2 11 8 20 4 32-3 11 1 22-8 31-8 8-12 19-24 22-11 3-20 9-32 6-11-3-23-2-31-11-8-8-18-13-20-25-2-11-9-21-5-32 3-11 2-23 11-31 8-8 14-17 26-19 8-1 15 1 22-1z"/></svg>
+<svg class="sig" viewBox="0 0 132 132"><circle cx="66" cy="66" r="38" fill="#6A0E0C"/><circle cx="66" cy="66" r="38" fill="none" stroke="#C0302A" stroke-width="2"/><circle cx="66" cy="66" r="31" fill="none" stroke="#4A0806" stroke-width="1.5" stroke-dasharray="2 4"/><text x="66" y="80" text-anchor="middle" font-size="40" fill="#B3261E" font-family="var(--f-display),serif">M</text></svg><i class="ring"></i></div>`;
+// M.seal(el): the chapter seal is pressed into el (the seal screen's cross). With FX, FX.seal draws the wax; without it, the SVG above.
+M.seal=function(el){try{if(!el||el.dataset.a7seal)return;el.dataset.a7seal="1";const st=el.closest(".stack");
+  if(window.FX&&FX.seal&&!uiCalm()){el.textContent="";el.classList.remove("pk-flicker");el.classList.add("m-seal-slot");FX.seal(el,{size:96})}
+  else{el.outerHTML=SEAL_SVG}
+  if(st){st.classList.remove("pk-fade");st.classList.add("m-sealed")}
+  setTimeout(()=>{try{S.haptic&&navigator.vibrate&&navigator.vibrate(30)}catch(e){}M.sparksAt(q("#fIn .m-seal,#fIn .m-seal-slot"),14)},M.ms(3)+M.ms(2))}catch(e){log(e)}};
+
+// ---------------------------------------------------------------- 3 · title sequences (engine; shot lists in x_a7_seq.js)
+const SEED=1808;
+function rng(s){let r=s>>>0;return()=>(r=(r*1664525+1013904223)>>>0)/4294967296}
+function flickerKF(s,n,loopS){const kf=[];const rr=rng(s);const p1=rr()*6.28,p2=rr()*6.28,p3=rr()*6.28,g=Math.floor(rr()*(n-6))+2;
+  for(let i=0;i<=n;i++){const t=(i%n)/n*loopS;let v=.86+.07*Math.sin(6.2832*7.25*t+p1)+.04*Math.sin(6.2832*10.75*t+p2)+.03*Math.sin(6.2832*2.25*t+p3);
+    const d=(i%n)-g;if(d>=0&&d<3)v-=[.28,.16,.06][d];kf.push({opacity:+v.toFixed(3),transform:`scale(${(1+(v-.86)*.5).toFixed(3)})`})}return kf}
+// fallback scenery when the a5 scene file cannot be fetched (file://, offline before precache): generated firs, three depths
+function fir(rr,cx,base,h,w){const n=5+Math.floor(rr()*3);const R=[],L=[];const top=base-h;
+  for(let i=1;i<=n;i++){const y=top+h*.9*i/n,half=w/2*(i/n)*(.85+rr()*.3);R.push([cx+half,y],[cx+half*.42,y-h*.03]);L.push([cx-half,y],[cx-half*.42,y-h*.03])}
+  const pts=[[cx,top]].concat(R.slice(0,-1),[[cx+w*.05,base-h*.1],[cx+w*.05,base],[cx-w*.05,base],[cx-w*.05,base-h*.1]],L.slice(0,-1).reverse());
+  return "M"+pts.map(p=>p[0].toFixed(1)+" "+p[1].toFixed(1)).join("L")+"Z"}
+function wood(rr,n,x0,x1,base,h0,h1){let d="";for(let i=0;i<n;i++){const x=x0+(x1-x0)*(i+rr()*.6)/n;const h=h0+rr()*(h1-h0);d+=fir(rr,x,base+rr()*14,h,h*(.34+rr()*.1))}return d}
+function fallbackScene(){const rr=rng(SEED);const sv=inner=>`<svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice" aria-hidden="true">${inner}</svg>`;
+  return [sv(`<path fill="#0d1a12" d="M0 640 C200 570 420 610 640 560 C860 520 1100 600 1300 540 C1450 510 1530 540 1600 520 L1600 900 L0 900Z"/><path fill="#0d1a12" d="${wood(rr,30,0,1600,650,70,140)}"/>`),
+    sv(`<path fill="#040806" d="M0 790 C300 770 600 805 800 792 C1100 778 1300 800 1600 784 L1600 900 L0 900Z"/><path fill="#070d09" d="${wood(rr,4,-40,260,800,300,460)}"/><path fill="#070d09" d="${wood(rr,4,1340,1640,800,300,460)}"/>`),
+    sv(`<path fill="#010201" d="${wood(rr,2,-80,60,960,700,860)}"/><path fill="#010201" d="${wood(rr,2,1540,1700,960,700,860)}"/>`)]}
+let NS_N=0;
+function loadScene(key){if(window.PK_SCENES&&PK_SCENES[key])return Promise.resolve(PK_SCENES[key]);
+  return fetch("media/scenes/"+key+".svg").then(r=>{if(!r.ok)throw new Error("scene "+key+" "+r.status);return r.text()}).then(t=>{try{window.PK_SCENES=window.PK_SCENES||{};PK_SCENES[key]=t}catch(e){}return t})}
+// the a5 scene, split into three depths (L0–L1, L2–L3, L4–L5) so the camera can push through it
+function splitScene(txt){const pre="a7s"+(++NS_N)+"-";
+  const src=txt.replace(/<title>[\s\S]*?<\/title>/,"").replace(/\sid="/g,' id="'+pre).replace(/url\(#/g,"url(#"+pre).replace(/href="#/g,'href="#'+pre);
+  const doc=new DOMParser().parseFromString(src,"image/svg+xml");const root=doc.documentElement;if(!root||doc.getElementsByTagName("parsererror").length)throw new Error("bad scene");
+  const defs=root.getElementsByTagName("defs")[0];const vb=root.getAttribute("viewBox")||"0 0 1600 900";
+  return [[0,1],[2,3],[4,5]].map((ix,k)=>{const s=D.createElementNS("http://www.w3.org/2000/svg","svg");s.setAttribute("viewBox",vb);s.setAttribute("preserveAspectRatio","xMidYMid slice");s.setAttribute("aria-hidden","true");s.setAttribute("focusable","false");
+    if(defs&&k===0)s.appendChild(D.importNode(defs,true));ix.forEach(i=>{const g=doc.getElementById(pre+"L"+i)||root.querySelector('[id="'+pre+'L'+i+'"]');if(g)s.appendChild(D.importNode(g,true))});return s})}
+// cut-out puppets (jointed, moved on twos like silhouette film) — after A6's reference vorspann
+const PUP_MEPH=`<svg viewBox="0 0 200 360" aria-hidden="true"><defs><radialGradient id="a7Glow"><stop offset="0" stop-color="#FFD9A0" stop-opacity=".95"/><stop offset=".25" stop-color="#F08A3F" stop-opacity=".55"/><stop offset="1" stop-color="#F08A3F" stop-opacity="0"/></radialGradient></defs>
+<g class="body"><g class="legA" style="transform-origin:98px 286px"><path d="M92 286 L84 352 L70 356 L70 360 L96 360 L104 286Z"/></g><g class="legB" style="transform-origin:100px 286px"><path d="M104 286 L112 352 L126 356 L126 360 L100 360 L96 286Z"/></g>
+<path d="M100 66 C74 104 58 206 46 318 L154 318 C142 206 126 104 100 66Z"/>
+<g class="head" style="transform-origin:100px 72px"><path d="M83 46 C83 22 117 22 117 46 C117 60 110 68 108 70 L100 92 L92 70 C90 68 83 60 83 46Z"/><path class="cap" d="M80 34 Q100 8 122 34Z M114 28 C138 4 150 -8 164 -26 C152 2 138 20 120 34Z"/><g class="pe" opacity="0" fill="#F08A3F"><ellipse cx="92" cy="46" rx="3.2" ry="1.6"/><ellipse cx="104" cy="46" rx="3.2" ry="1.6"/></g></g></g>
+<g class="arm" style="transform-origin:92px 114px"><path class="body" d="M90 112 L44 168 L50 174 L98 122Z"/><path class="body lamp" d="M38 168 h18 v6 h-18z M36 176 h22 v30 h-22z"/><circle class="glow" cx="47" cy="190" r="86" fill="url(#a7Glow)" opacity="0"/><ellipse class="lamp" cx="47" cy="192" rx="5" ry="9" fill="#FFE2A6"/></g></svg>`;
+const PUP_ME=`<svg viewBox="0 0 120 240" aria-hidden="true" style="overflow:visible"><defs><radialGradient id="a7Warm"><stop offset="0" stop-color="#FFE7B0" stop-opacity=".95"/><stop offset=".3" stop-color="#FFB566" stop-opacity=".5"/><stop offset="1" stop-color="#FFB566" stop-opacity="0"/></radialGradient></defs>
+<g class="sh" opacity="0" style="transform-origin:60px 236px"><path d="M60 40 C40 70 34 150 30 236 L90 236 C86 150 80 70 60 40Z M60 8 a17 17 0 1 0 .1 0Z" fill="#000"/></g>
+<g class="legA" style="transform-origin:57px 176px"><path d="M52 176 L46 232 L36 236 L36 240 L58 240 L62 176Z"/></g><g class="legB" style="transform-origin:59px 176px"><path d="M62 176 L68 232 L78 236 L78 240 L58 240 L56 176Z"/></g>
+<path d="M60 42 C44 60 38 120 36 196 L86 196 C84 120 76 60 60 42Z"/><circle cx="60" cy="25" r="16"/><path d="M80 96 L98 140 L92 143 L74 104Z"/><path d="M84 142 h26 v22 h-26z M92 136 h10 v6 h-10z"/>
+<g class="lantern" opacity="0"><circle class="warm" cx="24" cy="150" r="70" fill="url(#a7Warm)" style="transform-origin:24px 150px"/><path d="M40 98 L26 132 L30 134 L44 100Z"/><path d="M17 132 h14 v4 h-14z M16 137 h16 v22 h-16z"/><ellipse cx="24" cy="148" rx="4" ry="7" fill="#FFE7B0"/></g></svg>`;
+const PUP_POODLE=`<svg viewBox="0 0 160 120" aria-hidden="true"><path d="M30 70 C20 60 22 44 36 42 C40 30 56 28 62 38 C72 34 100 36 110 44 C120 30 140 30 146 44 C152 56 142 66 132 64 L128 104 L118 104 L116 74 L72 76 L68 104 L58 104 L56 74 C44 78 34 78 30 70Z M146 44 C152 36 158 40 156 48Z"/><circle cx="20" cy="66" r="10"/></svg>`;
+// realm props (viewport-placed; the scene itself comes from a5)
+function props(name){
+  if(name==="II")return `<div class="lamps">${[14,30,46,62,78].map((x,i)=>`<i style="left:${x}%;top:${46+i%2*2}%"></i>`).join("")}</div>
+   <svg class="ly win" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><path fill="#06070C" fill-rule="evenodd" d="M-400 -300H2000V1200H-400Z M520 820 V300 C520 140 1080 140 1080 300 V820Z"/><path fill="none" stroke="#C9A24A" stroke-width="5" d="M520 820 V300 C520 140 1080 140 1080 300 V820Z M500 840 V296 C500 116 1100 116 1100 296 V840Z"/><path fill="none" stroke="#C9A24A" stroke-width="3" d="M520 300 C600 330 640 250 600 230 M1080 300 C1000 330 960 250 1000 230 M800 172 V820 M520 560 H1080"/></svg>
+   <div class="cups"><svg viewBox="0 0 240 90" aria-hidden="true"><rect x="0" y="70" width="240" height="20" fill="#120C08"/><path d="M40 44 h44 l-6 26 h-32z M84 50 c12 0 12 12 0 12" fill="#E8DDC8" stroke="#E8DDC8" stroke-width="3"/><path d="M150 44 h44 l-6 26 h-32z M194 50 c12 0 12 12 0 12" fill="#E8DDC8" stroke="#E8DDC8" stroke-width="3"/>
+   <path class="steam a" d="M56 40 c-6 -10 6 -14 0 -26 M66 40 c-6 -10 6 -14 0 -26" fill="none" stroke="#E8DDC8" stroke-width="2" opacity="0"/><path class="steam b" d="M166 40 c-6 -10 6 -14 0 -26 M176 40 c-6 -10 6 -14 0 -26" fill="none" stroke="#E8DDC8" stroke-width="2" opacity="0"/></svg></div>
+   <div class="golem" aria-hidden="true"></div>`;
+  if(name==="III")return `<div class="candle"><svg viewBox="0 0 40 120" aria-hidden="true"><rect x="12" y="40" width="16" height="70" fill="#D9C9A0"/><rect x="4" y="108" width="32" height="8" fill="#3A2A18"/><path class="fl" d="M20 6 C28 20 28 32 20 38 C12 32 12 20 20 6Z" fill="#FFD27A" style="transform-origin:20px 38px"/></svg></div>
+   <div class="pshadow">${PUP_POODLE}</div><div class="mshadow"><svg viewBox="40 -30 130 130" aria-hidden="true"><path d="M83 46 C83 22 117 22 117 46 C117 60 110 68 108 70 L100 92 L92 70 C90 68 83 60 83 46Z M80 34 Q100 8 122 34Z M114 28 C138 4 150 -8 164 -26 C152 2 138 20 120 34Z"/><g class="pe" opacity="0" fill="#C2261C"><ellipse cx="92" cy="46" rx="3.2" ry="1.6"/><ellipse cx="104" cy="46" rx="3.2" ry="1.6"/></g></svg></div>
+   <div class="pup poodle">${PUP_POODLE}</div>`;
+  if(name==="IV")return `<i class="tram"></i><div class="hat" aria-hidden="true"><svg viewBox="0 0 40 90"><path d="M10 4 h20 v18 h6 v4 h-32 v-4 h6z M12 28 h16 l4 60 h-24z"/></svg></div><div class="iris"></div><i class="flash"></i>`;
+  if(name==="V")return `<div class="ly sky2"><i class="clouds"></i><div class="witch" aria-hidden="true"><svg viewBox="0 0 120 50"><path d="M0 34 L84 28 L86 31 L2 37Z M88 22 L112 30 L88 38Z M40 30 C40 14 50 6 56 4 L62 0 L60 8 C66 12 64 26 60 30Z M58 26 L36 40 L44 30Z"/></svg></div>
+   <div class="fires">${Array.from({length:8},(_,i)=>{const a=i/8*6.2832;return `<i style="left:${50+34*Math.cos(a)}%;top:${50+22*Math.sin(a)}%"></i>`}).join("")}</div></div>
+   <div class="revisor" aria-hidden="true"><svg viewBox="0 0 60 80"><circle cx="30" cy="16" r="10" fill="#8A8A90"/><path d="M12 80 C12 40 20 30 30 30 C40 30 48 40 48 80Z" fill="#6E6E76"/><i></i></svg><b class="pen"></b></div>
+   <div class="glints">${Array.from({length:7},(_,i)=>`<i style="left:${22+i*9}%;top:${50+(i%2)*3}%"></i>`).join("")}</div>`;
+  if(name==="finale")return `<i class="ly dawn"></i><div class="ledger"><b></b><div class="seals">${"<i></i>".repeat(40)}</div></div>
+   <div class="ward"><div class="cup"><svg viewBox="0 0 90 80" aria-hidden="true"><path d="M20 30 h40 l-6 34 h-28z M60 38 c14 0 14 16 0 16" fill="#EDE6D6" stroke="#EDE6D6" stroke-width="3"/><ellipse cx="40" cy="31" rx="19" ry="4" fill="#3A2412"/><path class="steam" d="M34 24 c-6 -10 6 -14 0 -24 M46 24 c-6 -10 6 -14 0 -24" fill="none" stroke="#EDE6D6" stroke-width="2"/></svg></div>
+   <div class="poodle2">${PUP_POODLE.replace('viewBox="0 0 160 120"','viewBox="0 0 160 120" style="transform:scaleX(-1)"')}</div><div class="clock">03:07</div></div>`;
+  return ""}
+
+let CUR=null;
+M.seq=function(name,o){o=o||{};const def=(typeof A7_SEQ!=="undefined"&&A7_SEQ)?A7_SEQ[name]:null;
+  if(!def){if(o.onEnd)try{o.onEnd()}catch(e){}return null}
+  if(CUR)try{CUR.close(true)}catch(e){}
+  const lite=M.lite(),K=lite?.6:1,R0=(typeof REALMS!=="undefined"&&REALMS[name])||null;
+  const root=D.createElement("div");root.id="ts";root.className="ts-"+name+(lite?" ts-lite":"");root.setAttribute("role","dialog");root.setAttribute("aria-modal","true");
+  root.setAttribute("aria-label",def.title?def.title.num+": "+def.title.de:"Der Pakt ist erfüllt");root.style.setProperty("--ts-top",def.sky[0]);root.style.setProperty("--ts-low",def.sky[1]);root.style.setProperty("--ts-halo",def.halo||"#FFB566");
+  let plateU="";try{const a=def.plate&&typeof PAKT_ART!=="undefined"&&PAKT_ART[def.plate];if(a)plateU=typeof artURL==="function"?artURL(def.plate,720):a.u;if(a)root.dataset.ink=a.k==="ink"?"1":"0"}catch(e){}
+  const tt=def.title;const fin=name==="finale";
+  root.innerHTML=`<div class="ly sky"></div><div class="ly moon"></div><div class="scn"><div class="ly s-far"></div><div class="ly s-mid"></div><div class="ly s-near"></div></div>
+   <div class="ly plate">${plateU?`<div class="fr"><i></i><i></i><i></i><i></i></div>`:""}</div><div class="ly halo"></div><div class="ly fog f1"></div>
+   ${props(name)}<div class="pup me">${PUP_ME}</div><div class="pup mp">${PUP_MEPH}</div>
+   ${fin?"":`<div class="eyes" style="left:17%;top:58%"><b></b><b></b></div><div class="eyes" style="left:79%;top:52%"><b></b><b></b></div>`}
+   <div class="ly fog f2"></div><div class="ly vig"></div><div class="ly sweep"></div>
+   <div class="cards">${def.cards.map((c,i)=>`<div class="tcard c${i}"><p lang="de">${esc(c[2])}</p>${c[3]?`<small class="en" lang="en">${esc(c[3])}</small>`:""}${c[4]?`<cite>${esc(c[4])}</cite>`:""}</div>`).join("")}
+   ${tt?`<div class="tcard ti"><div class="num">${esc(tt.num)} · ${esc(tt.lv)}</div><h1 lang="de"><span class="wipe"><span>${esc(tt.de)}</span></span></h1><i class="rule"></i><div class="en" lang="en">${esc(tt.en)}</div><div class="boss" lang="de">Am Ende wartet: <b>${esc(tt.boss)}</b></div></div>`:""}</div>
+   <button class="ts-go" type="button" data-pad="a">Überspringen</button><i class="ts-clk"></i>`;
+  if(plateU)root.querySelector(".plate").style.setProperty("--plate",`url("${plateU}")`);
+  if(fin)qq(".mp .lamp,.mp .glow",root).forEach(e=>e.remove());if(fin)q(".me .lantern",root).setAttribute("opacity","1");
+  D.body.appendChild(root);H.classList.add("ts-on");
+  const $=s=>root.querySelector(s),$$=s=>Array.from(root.querySelectorAll(s));
+  const A=[],C=[];let ended=false,closed=false,resolve;const done=new Promise(r=>resolve=r);
+  const seen=new WeakSet();
+  function an(el,kf,op){if(!el)return null;op=Object.assign({fill:"both",easing:E.out,duration:600,delay:0},op);
+    if(seen.has(el)&&op.fill==="both")op.fill="forwards";seen.add(el);
+    if(lite){if(op.iterations===Infinity||(op.iterations||1)>1)return null;const last=kf[kf.length-1];if(last.transform!=null)el.style.transform=last.transform;
+      kf=kf.map(k=>{const c=Object.assign({},k);delete c.transform;return c});if(!kf.some(k=>k.opacity!=null))return null;
+      kf=[kf[0],kf[kf.length-1]];op.duration=Math.min(op.duration,400);op.delay*=K;op.easing="linear"}
+    try{const a=el.animate(kf,op);A.push(a);return a}catch(e){return null}}
+  const anAll=(sel,kf,op)=>$$(sel).forEach(el=>an(el,kf,op));
+  function at(ms,fn){const a=$(".ts-clk").animate([{opacity:0},{opacity:0}],{duration:1,delay:ms*K});a.onfinish=()=>{if(!closed)fn()};C.push(a)}
+  const cue=n=>{try{if(window.MUS&&MUS.cue){MUS.cue(name+":"+n);return}
+    if(n==="page")SND.fx("page");else if(fin&&n==="motif")SND.motif([[60,0,6],[64,3,6],[67,6,6],[72,9,14],[76,12,14]],"musicbox",72);
+    if(o.cue)o.cue(n)}catch(e){}};
+  // scene: fetch and split; the layers are animated before the picture arrives, the picture drops in when ready
+  function fillScene(scn,key){loadScene(key).then(txt=>{if(closed)return;const L=splitScene(txt);["s-far","s-mid","s-near"].forEach((c,i)=>{const h=scn.querySelector("."+c);if(h){h.textContent="";h.appendChild(L[i])}})})
+    .catch(e=>{if(closed)return;const L=fallbackScene();["s-far","s-mid","s-near"].forEach((c,i)=>{const h=scn.querySelector("."+c);if(h)h.innerHTML=L[i]})})}
+  fillScene($(".scn"),def.scene);
+  const shots=def.shots.slice().sort((a,b)=>(a[0]==="cue"?a[1]:a[2]||0)-(b[0]==="cue"?b[1]:b[2]||0));
+  // the first opacity of every faded element is 0 until its shot (fill:both shows keyframe 0 during the delay)
+  const ease=k=>E[k]||k||E.out;
+  an(root,[{opacity:0},{opacity:1}],{duration:400,easing:E.lin});
+  for(const s of shots){const op=s[0];try{
+    if(op==="cue")at(s[1],()=>cue(s[2]));
+    else if(op==="in")anAll(s[1],[{opacity:0},{opacity:s[4]==null?1:s[4]}],{delay:s[2],duration:s[3],easing:E.lin});
+    else if(op==="out")anAll(s[1],[{opacity:1},{opacity:0}],{delay:s[2],duration:s[3],easing:E.in,fill:"forwards"});
+    else if(op==="mv"){const kf=s[7]!=null?[{opacity:0,transform:s[4]},{opacity:s[7],transform:s[5],offset:s[3]>2000?.25:.6},{opacity:s[7],transform:s[5]}]:[{transform:s[4]},{transform:s[5]}];
+      if(s[7]!=null&&s[3]>2000)kf[1].transform=undefined,delete kf[1].transform;anAll(s[1],kf,{delay:s[2],duration:s[3],easing:ease(s[6])})}
+    else if(op==="kf"){const els=$$(s[1]);const st=s[8]||0;els.forEach((el,i)=>an(el,s[4],{delay:s[2]+i*st,duration:s[3],easing:ease(s[5]),iterations:s[6]==="inf"?Infinity:(s[6]||1),direction:s[7]||"normal"}))}
+    else if(op==="walk"){const sel=s[1],el=$(sel);if(!el)continue;an(el,[{transform:`translateX(${s[4]}vw) scale(${s[6]})`},{transform:`translateX(${s[5]}vw) scale(${s[7]})`}],{delay:s[2],duration:s[3],easing:E.walk});const n=Math.max(1,Math.round(s[3]/460));["legA","legB"].forEach((c,i)=>{const lg=el.querySelector("."+c);if(lg&&!lite){try{A.push(lg.animate([{transform:`rotate(${i?-15:15}deg)`},{transform:`rotate(${i?15:-15}deg)`}],{delay:s[2],duration:460,iterations:n,direction:"alternate",easing:"steps(4,end)"}))}catch(e){}}})}
+    else if(op==="flick"){const el=$(s[1]);if(el&&!lite){try{A.push(el.animate(flickerKF(s[3],96,4),{delay:s[2],duration:4000,iterations:Infinity,easing:E.lin}))}catch(e){}}}
+    else if(op==="bleed"){$$(".plate i").forEach((el,i)=>an(el,[{opacity:0,transform:"scale(1.07)"},{opacity:i<3?.5:1,transform:"scale(1)"}],{delay:s[1]+i*420,duration:1500,easing:E.out}));
+      an($(".plate"),[{transform:"scale(1)"},{transform:"scale(1.09) translateY(1%)"}],{delay:s[1],duration:10000,easing:E.inout})}
+    else if(op==="sweep")an($(".sweep"),[{opacity:0,transform:"translateX(0) skewX(-12deg)"},{opacity:1,offset:.2},{opacity:1,offset:.8},{opacity:0,transform:"translateX(540%) skewX(-12deg)"}],{delay:s[1],duration:1600,easing:E.inout});
+    else if(op==="eyes"){if(!(window.FX&&FX.sober&&FX.sober())&&!lite)$$(".eyes").forEach((e,i)=>{try{A.push(e.animate([{opacity:0},{opacity:.9,offset:.12},{opacity:.9,offset:.46},{opacity:.05,offset:.5},{opacity:.9,offset:.54},{opacity:.9,offset:.9},{opacity:0}],{delay:s[1]+i*900,duration:5200,iterations:Infinity,easing:E.lin}))}catch(e){}})}
+    else if(op==="scene"){const allS=$$(".scn"),old=allS[allS.length-1];const nw=D.createElement("div");nw.className="scn";nw.innerHTML='<div class="ly s-far"></div><div class="ly s-mid"></div><div class="ly s-near"></div>';
+      nw.querySelectorAll(".ly").forEach(e=>e.style.opacity="1");old.after(nw);fillScene(nw,s[1]);const a=an(nw,[{opacity:0},{opacity:1}],{delay:s[2],duration:s[3],easing:E.inout});
+      at(s[2]+s[3]+50,()=>{try{old.remove()}catch(e){}})}
+  }catch(e){log(e)}}
+  // cards and the title (written from left to right)
+  def.cards.forEach((c,i)=>{const el=$(".c"+i);an(el,[{opacity:0,transform:"translateX(-50%) translateY(10px)"},{opacity:1,transform:"translateX(-50%)"}],{delay:c[0],duration:700});
+    if(c[1]<def.end)an(el,[{opacity:1},{opacity:0}],{delay:c[1],duration:500,easing:E.in,fill:"forwards"})});
+  if(tt){const t0=tt.at;an($(".ti"),[{opacity:0},{opacity:1}],{delay:t0,duration:300,easing:E.lin});an($(".ti .num"),[{opacity:0,transform:"translateY(6px)"},{opacity:1,transform:"none"}],{delay:t0+100,duration:600});
+    an($(".wipe"),[{transform:"translateX(-101%)"},{transform:"none"}],{delay:t0+400,duration:1500,easing:E.inout});an($(".wipe>span"),[{transform:"translateX(101%)"},{transform:"none"}],{delay:t0+400,duration:1500,easing:E.inout});
+    if(lite)an($(".ti h1"),[{opacity:0},{opacity:1}],{delay:t0+400,duration:400});
+    an($(".rule"),[{transform:"scaleX(0)"},{transform:"scaleX(1)"}],{delay:t0+1700,duration:700});an($(".ti .en"),[{opacity:0},{opacity:.85}],{delay:t0+2000,duration:500});
+    an($(".boss"),[{opacity:0,transform:"translateY(6px)"},{opacity:1,transform:"none"}],{delay:Math.min(def.end-600,t0+3600),duration:600});
+    if(def.jag&&!lite)an($(".ti"),[{transform:"translate(-50%,0)"},{transform:"translate(calc(-50% + 2px),-2px)"},{transform:"translate(calc(-50% - 2px),1px)"},{transform:"translate(-50%,0)"}],{delay:t0,duration:160,easing:"steps(2,end)",fill:"none"})}
+  at(def.end,()=>finish(false));
+  // controls: input after 400 ms; first press jumps to the end card, the second enters
+  const go=$(".ts-go");let armed=false;const armT=setTimeout(()=>{armed=true},400);
+  function finish(jump){if(ended)return;ended=true;
+    if(jump){C.forEach(a=>{try{a.cancel()}catch(e){}});A.forEach(a=>{try{if(a.effect&&a.effect.getTiming().iterations!==Infinity)a.finish()}catch(e){}});
+      qq(".scn",root).slice(0,-1).forEach(e=>e.remove());an(root,[{opacity:.35},{opacity:1}],{duration:200,easing:E.lin})}
+    go.textContent=fin?"Weiter":"Eintreten";go.classList.add("end");cue("end")}
+  function close(silent){if(closed)return;closed=true;clearTimeout(armT);C.forEach(a=>{try{a.cancel()}catch(e){}});D.removeEventListener("visibilitychange",vis);
+    const end=()=>{A.forEach(a=>{try{a.cancel()}catch(e){}});root.remove();if(!D.getElementById("ts"))H.classList.remove("ts-on");if(CUR===api)CUR=null;resolve();if(!silent&&o.onEnd)try{o.onEnd()}catch(e){log(e)}};
+    if(silent){end();return}const a=root.animate([{opacity:1},{opacity:0}],{duration:lite?120:320,easing:E.in,fill:"forwards"});a.onfinish=end;setTimeout(()=>{if(root.isConnected)end()},900)}
+  function press(){if(!armed)return;if(!ended)finish(true);else close()}
+  go.addEventListener("click",press);root.addEventListener("keydown",e=>{if(e.key==="Escape"||e.key==="Enter"||e.key===" "){e.preventDefault();e.stopPropagation();press()}});
+  root.addEventListener("pointerdown",e=>{if(e.target!==go&&armed&&!ended)finish(true)});
+  function vis(){A.concat(C).forEach(a=>{try{if(D.hidden){if(a.playState==="running")a.pause()}else if(a.playState==="paused")a.play()}catch(e){}})}
+  D.addEventListener("visibilitychange",vis);try{go.focus({preventScroll:true})}catch(e){}
+  if(def.sober&&window.FX&&FX.standDown)try{FX.standDown()}catch(e){}
+  const api={name,skip:()=>finish(true),close:s=>close(s),done,root,anims:()=>A.length,ended:()=>ended};CUR=api;return api};
+M.seqCurrent=()=>CUR;
+
+// ---------------------------------------------------------------- 4 · where the sequences play
+function nocine(){try{return !!localStorage.getItem("mephisto_nocine")}catch(e){return false}}
+function realmAuto(r,force){if(!r||!(typeof A7_SEQ!=="undefined"&&A7_SEQ[r]))return false;if(!force&&(nocine()||S.realmSeen===r))return false;if(D.getElementById("ts"))return false;
+  M.seq(r,{auto:true,onEnd:()=>{try{S.realmSeen=r;saveSoon()}catch(e){}}});return true}
+// the old cinematic (#lore-cine, from realmIntro) is taken over when it appears: hidden at once, the new sequence plays,
+// and on the end its own button is pressed, so its close logic (S.realmSeen when auto) stays the app's
+function takeover(ov){try{if(ov.dataset.a7)return;ov.dataset.a7="1";const r=(String(ov.className).match(/\br(I|II|III|IV|V)\b/)||[])[1];
+  if(!r||!(typeof A7_SEQ!=="undefined"&&A7_SEQ[r]))return;ov.classList.add("a7-hidden");ov.setAttribute("aria-hidden","true");
+  const press=()=>{const b=ov.querySelector(".cine-go");if(b)b.click();else ov.remove()};
+  if(CUR){press();return}M.seq(r,{onEnd:press})}catch(e){log(e)}}
+try{new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes){if(n.id==="lore-cine")takeover(n)}}).observe(D.body,{childList:true})}catch(e){log(e)}
+// delegated clicks (capture): no ACT entry is wrapped; the app's handler runs first (setTimeout 0 after it)
+D.addEventListener("click",e=>{const t=e.target&&e.target.closest&&e.target.closest("[data-act]");if(!t)return;const a=t.dataset.act;
+  if(a==="pkRead")setTimeout(()=>{try{const n=+t.dataset.n||P().ch;realmAuto(pkCh(n).r)}catch(x){}},0);
+  else if(a==="pkSeal")setTimeout(()=>{const x=q("#fIn>.stack .pk-flicker");if(x)M.seal(x)},0);
+  else if(a==="pkSpeakLine")setTimeout(()=>{try{const card=t.closest(".card,.pk-line,.st-l")||t.parentElement;const who=card&&card.querySelector(".pk-say .who");
+    if(who&&window.speechSynthesis&&!uiCalm()){who.classList.add("speaking");const iv=setInterval(()=>{if(!speechSynthesis.speaking&&!speechSynthesis.pending||!who.isConnected){clearInterval(iv);who.classList.remove("speaking")}},250)}}catch(x){}},60);
+  else if(a==="loreRead")setTimeout(()=>{const d=q("#fIn .lore-dark");if(!d)return;if("IntersectionObserver" in window){const io=new IntersectionObserver(es=>es.forEach(en=>{if(en.isIntersecting){en.target.classList.add("m-seen");io.disconnect()}}),{threshold:.4});io.observe(d)}else d.classList.add("m-seen")},0)},true);
+
+// the Focus overlay grows out of the place that was pressed (keyboard/pad: the centre)
+D.addEventListener("pointerdown",e=>{const f=D.getElementById("focus");if(f&&f.hidden){f.style.setProperty("--m-ox",e.clientX+"px");f.style.setProperty("--m-oy",e.clientY+"px")}},{capture:true,passive:true});
+D.addEventListener("keydown",()=>{const f=D.getElementById("focus");if(f&&f.hidden){f.style.setProperty("--m-ox","50%");f.style.setProperty("--m-oy","50%")}},{capture:true,passive:true});
+// ---------------------------------------------------------------- 5 · hooks
+const ORDER=["home","learn","pakt","practice","me"];let lastKey=null,lastTab=null,sk0=null;
+function hooks(){
+  try{MOD.after("saveSoon","a7",function(){M.sync()})}catch(e){log(e)}
+  // tab change: the new view slides in from its side; an in-place rerender does not animate (A6 D11); streak flame (item 8)
+  try{MOD.after("chrome","a7",function(){try{const m=q("#main");const k=[R.tab,R.id||"",R.seg||"",typeof meSeg!=="undefined"?meSeg:""].join("|");
+    if(m){m.classList.toggle("m-still",k===lastKey);const a=ORDER.indexOf(lastTab),b=ORDER.indexOf(R.tab);H.style.setProperty("--m-x",b>a?1:b<a?-1:0)}lastKey=k;lastTab=R.tab;
+    const sk=typeof streak==="function"?streak():0,c=q("#topChips .chip.flame");if(c&&sk0!=null&&sk>sk0)c.classList.add("m-up");sk0=sk;
+    setTimeout(safety,1200)}catch(e){}})}catch(e){log(e)}
+  try{MOD.after("viewPakt","a7",function(){M.debt();try{if(P().signed&&!Focus.isOpen()&&!q(".pk-prolog")&&!q("#lore-cine"))setTimeout(()=>{if(!Focus.isOpen()&&R.tab==="pakt")realmAuto(pkCh().r)},700)}catch(e){}})}catch(e){log(e)}
+  try{MOD.after("meSettings","a7",settingsRow)}catch(e){log(e)}
+  // confetti → embers (Pixel keeps its confetti; nothing during the finale)
+  try{MOD.around("confetti","a7",function(orig){if(H.dataset.ui==="pixel")return orig();if(M._finale)return;M.sparks(18,innerWidth/2,Math.min(innerHeight*.4,320))})}catch(e){log(e)}
+  // the finale: the lantern sequence first, then the app's own end screen (its text untouched), no confetti, sober
+  try{MOD.around("st3End","a7",function(orig){const args=[].slice.call(arguments,1);if(M._finaleSeen){M._finale=1;try{return orig.apply(this,args)}finally{M._finale=0}}
+    M._finaleSeen=1;M._finale=1;const restore=()=>{try{if(window.FX&&FX.resume)FX.resume()}catch(e){}};
+    M.seq("finale",{onEnd:()=>{try{orig.apply(null,args)}catch(e){log(e)}finally{M._finale=0;setTimeout(()=>{M._finaleSeen=0;restore()},50)}}})})}catch(e){log(e)}
+}
+// .fade-in must never leave a view invisible (ux D44): an entrance stuck at its first frame is finished
+function safety(){try{qq("#main .fade-in,#fIn.fade-in").forEach(el=>{(el.getAnimations?el.getAnimations():[]).forEach(a=>{try{if(a.playState!=="finished"&&a.effect&&a.effect.getTiming().iterations!==Infinity&&(a.currentTime||0)<1)a.finish()}catch(e){}})})}catch(e){}}
+// reduced motion: script-driven smooth scrolling becomes a jump (R5); the app's own calls are not edited
+(function(){const fix=a=>{if(uiCalm()&&a&&typeof a==="object"&&a.behavior==="smooth"){a=Object.assign({},a,{behavior:"auto"})}return a};
+  try{const s=Element.prototype.scrollTo;if(s)Element.prototype.scrollTo=function(a,b){return typeof a==="object"?s.call(this,fix(a)):s.call(this,a,b)}}catch(e){}
+  try{const v=Element.prototype.scrollIntoView;Element.prototype.scrollIntoView=function(a){return v.call(this,fix(a))}}catch(e){}
+  try{const w=window.scrollTo;window.scrollTo=function(a,b){return typeof a==="object"?w.call(window,fix(a)):w.call(window,a,b)}}catch(e){}})();
+// settings: "Bewegung" Voll · Ruhig · Sparsam (A6 P9), into a8's [data-set-group="aussehen"] when it exists, else after the Animationen switch
+function settingsRow(el){try{if(!el||el.querySelector(".a7-motion"))return;const k=S.motion===false?"ruhig":S.power==="spar"?"spar":"voll";
+  const html=`<div class="card stack s a7-motion"><div class="eyebrow">Bewegung <span class="en">motion</span></div>
+   <div class="seg">${[["voll","Voll"],["ruhig","Ruhig"],["spar","Sparsam"]].map(([v,n])=>`<button class="${k===v?"on":""}" data-a7m="${v}" aria-pressed="${k===v}">${n}</button>`).join("")}</div>
+   <p class="ui muted" style="margin:0">Voll: alles. Ruhig: nichts fährt, alles blendet über (auch wenn das Gerät „Bewegung reduzieren“ meldet). Sparsam: keine Schwebeteilchen, Vorspann als Standbilder, schont den Akku.
+   <span class="en">Full: everything. Calm: nothing travels, everything cross-fades. Lean: no particles, title sequences as stills, saves battery.</span></p></div>`;
+  const host=el.querySelector('[data-set-group="aussehen"]');const sw=el.querySelector('input[data-pref="motion"]');const card=sw&&sw.closest(".card");
+  if(host)host.insertAdjacentHTML("beforeend",html);else if(card)card.insertAdjacentHTML("afterend",html);else el.insertAdjacentHTML("beforeend",html);
+  qq("[data-a7m]",el).forEach(b=>b.onclick=()=>{const v=b.dataset.a7m;S.motion=v!=="ruhig";S.power=v==="spar"?"spar":v==="voll"?"voll":"auto";
+    try{applyPrefs()}catch(e){}M.sync();saveSoon();qq("[data-a7m]",el).forEach(x=>{x.classList.toggle("on",x===b);x.setAttribute("aria-pressed",String(x===b))});
+    if(sw)sw.checked=S.motion!==false;try{toast({voll:"Volle Bewegung",ruhig:"Ruhig: alles blendet über",spar:"Sparsam"}[v])}catch(e){}})}catch(e){log(e)}}
+// motion inspector (A6 P10): M.audit() in the console or a diagnostics screen
+M.audit=function(){const L=D.getAnimations?D.getAnimations():[];const rows=L.map(a=>{const e=a.effect,t=e&&e.getTiming?e.getTiming():{},kf=e&&e.getKeyframes?e.getKeyframes():[];
+  const props=[...new Set(kf.flatMap(k=>Object.keys(k)))].filter(p=>!["offset","easing","composite","computedOffset"].includes(p));
+  return {name:a.animationName||a.transitionProperty||"script",el:e&&e.target?(e.target.id?"#"+e.target.id:String(e.target.className&&e.target.className.baseVal!=null?e.target.className.baseVal:e.target.className||e.target.tagName)):"?",
+    endless:t.iterations===Infinity,props,bad:props.some(p=>!/^(transform|opacity|translate|scale|rotate)$/.test(p)),state:a.playState}});
+  return {running:rows.filter(r=>r.state==="running").length,endless:rows.filter(r=>r.endless&&r.state==="running").length,offCompositor:rows.filter(r=>r.bad).length,rows}};
+// boot: hooks need the app's functions (all defined by now: c_a7 loads after c_story3/c_s*); one sync now, app start choreography
+try{hooks()}catch(e){log(e)}
+M.sync();H.classList.add("m-boot");setTimeout(()=>H.classList.remove("m-boot"),1400);
+window.M=M;
+})();
+
+// ===== a3 · Musik und Dirigent (MUS). Daten: v2/x_a3_music.js (G("A3_THEMA") G("A3_BOSS") G("A3_MOTIV") G("A3_STINGER") G("A3_FINALE") G("A3_CHORALE_KEEP") …). Engine: SND (a2).
+// What it does: (1) repairs G("PAKT_MUSIC") at load (bwv6_6 out, at most four chorales from G("A3_CHORALE_KEEP"), catalogue titles, tempo/octave/duplicate fixes);
+// (2) silences the old 200 ms boss poller (BOSS_MUSIC emptied); (3) MUS plays the realm: theme → ambience → public-domain pieces → ambience → theme,
+// with layers from hx:answer (tension 2 of 5 wrong, triumph after a streak of 10), debt transposition, night −4 dB, ≤ 60 % music per 10 minutes,
+// no repeat within 20 minutes, chorales ≤ 10 % of music time; (4) boss pieces with intro/loop/low/victory/defeat read from ONE observer on #fIn,
+// connected only while Focus is open; (5) story overlays fade the music; motifs and stingers; the finale cue.
+// State: S.a3 = {adapt:boolean, last:id} — device-local (see MANIFEST). Nothing runs before the first gesture (SND returns null until then).
+const MUS=(function(){
+const W=typeof window!=="undefined"?window:globalThis,D=typeof document!=="undefined"?document:null;
+// const/let globals of other scripts are not window properties: read them once, by name, without eval (the artifact's CSP may forbid it)
+const GL={PAKT_MUSIC:typeof PAKT_MUSIC!=="undefined"?PAKT_MUSIC:undefined,
+  BOSS_MUSIC:typeof BOSS_MUSIC!=="undefined"?BOSS_MUSIC:undefined,
+  BOSSES:typeof BOSSES!=="undefined"?BOSSES:undefined,
+  A3_THEMA:typeof A3_THEMA!=="undefined"?A3_THEMA:undefined,
+  A3_BOSS:typeof A3_BOSS!=="undefined"?A3_BOSS:undefined,
+  A3_MOTIV:typeof A3_MOTIV!=="undefined"?A3_MOTIV:undefined,
+  A3_STINGER:typeof A3_STINGER!=="undefined"?A3_STINGER:undefined,
+  A3_FINALE:typeof A3_FINALE!=="undefined"?A3_FINALE:undefined,
+  A3_CHORALE_KEEP:typeof A3_CHORALE_KEEP!=="undefined"?A3_CHORALE_KEEP:undefined,
+  A3_CHORALE_SHARE:typeof A3_CHORALE_SHARE!=="undefined"?A3_CHORALE_SHARE:undefined,
+  A3_GAIN:typeof A3_GAIN!=="undefined"?A3_GAIN:undefined,
+  A3_PD:typeof A3_PD!=="undefined"?A3_PD:undefined,
+  A3_CUES:typeof A3_CUES!=="undefined"?A3_CUES:undefined};
+const def=n=>GL[n]!==undefined,G=n=>GL[n];
+const log=m=>{try{if(typeof logError==="function")logError({message:"a3: "+m})}catch(e){}};
+const has=()=>typeof SND!=="undefined"&&SND&&typeof SND.score==="function";
+const st=()=>{try{if(typeof S!=="undefined"&&S){S.a3=S.a3&&typeof S.a3==="object"?S.a3:{};return S.a3}}catch(e){}return {}};
+const save=()=>{try{if(typeof saveSoon==="function")saveSoon()}catch(e){}};
+const T=()=>{try{return M.t!=null?M.t:SND.time()}catch(e){return 0}};
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const dbl=x=>Math.pow(10,x/20);
+
+// ------------------------------------------------------------------------------------------------ 1. data at load
+const REP={removed:[],before:null,after:null,fixed:[]};
+function pdLen(p){let e=0;(p.ev||[]).forEach(x=>{if(x[0]+x[1]>e)e=x[0]+x[1]});return e*60/(p.bpm||84)/4}
+const isChor=p=>/^bwv/i.test(p.id);
+function share(list){let c=0,a=0;list.forEach(p=>{const d=pdLen(p);a+=d;if(isChor(p))c+=d});return a?c/a:0}
+function prepPD(){if(!def("PAKT_MUSIC"))return;const L=G("PAKT_MUSIC");if(!Array.isArray(L)||L.__a3)return;
+  const FIX=def("A3_PD")?G("A3_PD"):{},KEEP=new Set((def("A3_CHORALE_KEEP")?G("A3_CHORALE_KEEP"):[]).filter(x=>x!=="bwv6_6").slice(0,4));
+  REP.before={share:+share(L).toFixed(3),pieces:L.length,secs:Math.round(L.reduce((s,p)=>s+pdLen(p),0))};
+  for(let i=L.length-1;i>=0;i--){const p=L[i],f=FIX[p.id]||{};
+    if(f.drop||p.id==="bwv6_6"||(isChor(p)&&!KEEP.has(p.id))){REP.removed.push(p.id);L.splice(i,1);continue}
+    if(f.bpm){p.bpm=f.bpm;REP.fixed.push(p.id+" bpm "+f.bpm)}
+    if(f.oct){p.ev=p.ev.map(e=>[e[0],e[1],e[2]+f.oct].concat(e.slice(3)));REP.fixed.push(p.id+" +"+f.oct)}
+    const by={};p.ev.forEach(e=>{const k=e[0]+":"+e[2];if(!by[k]||e[1]>by[k][1])by[k]=e});const n0=p.ev.length;p.ev=p.ev.filter(e=>by[e[0]+":"+e[2]]===e);
+    if(p.ev.length<n0)REP.fixed.push(p.id+" −"+(n0-p.ev.length)+" doubled");
+    if(f.t){p.t0=p.t;p.t=f.t}p.a3auto=f.auto!==false;p.a3chor=isChor(p)}
+  REP.removed.reverse();REP.after={share:+share(L).toFixed(3),pieces:L.length,secs:Math.round(L.reduce((s,p)=>s+pdLen(p),0))};
+  try{Object.defineProperty(L,"__a3",{value:true})}catch(e){}}
+function prepScores(){if(!def("A3_THEMA"))return;const g=def("A3_GAIN")?G("A3_GAIN"):{};G("A3_THEMA").concat(G("A3_BOSS")||[],G("A3_FINALE")?[G("A3_FINALE")]:[]).forEach(p=>{if(g[p.id]!=null)p.gainDb=g[p.id]})}
+// the old boss poller in c_final.js returns early when its data object has no entry (P2: please delete the 200 ms interval)
+function quietOld(){if(def("BOSS_MUSIC")){const B=G("BOSS_MUSIC");if(B&&typeof B==="object")Object.keys(B).forEach(k=>{try{delete B[k]}catch(e){}})}}
+try{prepPD()}catch(e){log("prepPD "+e.message)}try{prepScores()}catch(e){log("prepScores "+e.message)}try{quietOld()}catch(e){}
+
+// ------------------------------------------------------------------------------------------------ 2. pieces
+const KEYN=["c","cis","d","es","e","f","fis","g","as","a","b","h"],KEYM=["C","Des","D","Es","E","F","Fis","G","As","A","B","H"];
+function theme(r){return (def("A3_THEMA")?G("A3_THEMA"):[]).find(p=>p.realm===r)||null}
+function bossDef(id){return (def("A3_BOSS")?G("A3_BOSS"):[]).find(p=>p.id==="boss_"+id||p.id===id)||null}
+const TCACHE={};
+// realm theme for one visit: starts on section q (0–3 = A, A′, B, A″), plays one full round, can be extended by queueing "full"; tr = transposition
+function themeDef(p,q,tr){const k=p.id+"|"+q+"|"+tr;if(TCACHE[k])return TCACHE[k];const S0=p.steps,bar=p.bar||16,a=Math.round(S0*q/4/bar)*bar;
+  let tracks=p.tracks,key=p.key;
+  if(tr){tracks=p.tracks.map(t=>Object.assign({},t,{ev:t.ev.map(e=>[e[0]+tr].concat(e.slice(1)))}));const K=(SND.DSP&&SND.DSP.keyOf)?SND.DSP.keyOf(p.key):null;
+    if(K){const pc=((K.pc+tr)%12+12)%12;key=K.minor?KEYN[pc]+"-Moll":KEYM[pc]+"-Dur"}}
+  const d=Object.assign({},p,{tracks,key,loop:undefined,marks:a>0?{r1:[a,S0],r2:[0,a],full:[0,S0]}:{r1:[0,S0],full:[0,S0]},flow:a>0?{r1:"r2",r2:null,full:null}:{r1:null,full:null}});
+  d.lastSec=a>0?"r2":"r1";TCACHE[k]=d;return d}
+function pdDef(p){return {id:p.id,bpm:p.bpm,fmt:"sdm",inst:p.inst,ev:p.ev,gain:dbl((p.gain||0)-.8)}}
+function titleOf(id){const t=(def("A3_THEMA")?G("A3_THEMA"):[]).concat(def("A3_BOSS")?G("A3_BOSS"):[],def("A3_FINALE")?[G("A3_FINALE")]:[]).find(p=>p.id===id);if(t)return t.t;
+  const p=def("PAKT_MUSIC")?G("PAKT_MUSIC").find(x=>x.id===id):null;return p?p.t:id}
+
+// ------------------------------------------------------------------------------------------------ 3. the director
+const M={mode:"off",h:null,cur:null,realm:null,log:[],played:{},nextAt:0,themeAt:-1e9,win:[],run:0,tension:{wrong:false,debt:false,timer:false,since:0,right:0},
+  triumphUntil:0,sess:null,boss:null,scene:false,first:true,motifEnd:0,stingEnd:0,force:null,t:null,hour:null,timerBpm:null,last:null};
+const adapt=()=>st().adapt!==false;
+const hourNow=()=>{if(M.hour!=null)return M.hour;try{return new Date().getHours()}catch(e){return 12}};
+const night=()=>hourNow()<4;
+const sober=()=>{try{return !!(D&&D.documentElement&&D.documentElement.dataset&&D.documentElement.dataset.sober==="1")}catch(e){return false}};
+const barSec=()=>{const p=M.cur&&M.cur.def;return p?(p.bar||16)*60/(p.bpm||84)/4:2.5};
+function musicIn(a,b){let s=0;M.log.forEach(e=>{const e1=e.t1==null?T():e.t1;s+=Math.max(0,Math.min(b,e1)-Math.max(a,e.t0))});return s}
+function chorShare(add,d){let c=0,a=0;M.log.forEach(e=>{const e1=e.t1==null?T():e.t1,x=Math.max(0,e1-e.t0);a+=x;if(e.chor)c+=x});return (c+(add?d:0))/Math.max(1,a+d)}
+// earliest delay ≥ gap at which a piece of d seconds keeps the last 10 minutes at ≤ 60 % music
+function budgetDelay(d,gap){const now=T();for(let x=gap;x<=600;x+=5){const end=now+x+Math.min(d,600);if(musicIn(end-600,now)+Math.min(d,600)<=360)return x}return 600}
+function realmNow(){try{const r=SND.state().realm;if(r)return r}catch(e){}try{if(typeof pkRealm==="function")return pkRealm()}catch(e){}return "I"}
+function debtNow(){try{const p=typeof P==="function"?P():null;const soul=typeof pkSoul==="function"?pkSoul():100;return !!(p&&p.debt>=1&&soul<50)}catch(e){return false}}
+function wanted(){const a=adapt(),tri=a&&!night()&&(T()<M.triumphUntil||sessTriumph()),ten=a&&(M.tension.wrong||M.tension.debt||M.tension.timer);return {tension:ten&&!tri,triumph:tri}}
+function sessTriumph(){const s=M.sess;return !!(s&&s.n>=3&&s.i>=Math.ceil(2*s.n/3)&&s.ans>=6&&s.ok/s.ans>=.9)}
+function layersFor(){const w=wanted(),L=["calm"];if(w.tension)L.push("tension");if(w.triumph)L.push("triumph");return L}
+function candidates(r){const now=T();return (def("PAKT_MUSIC")?G("PAKT_MUSIC"):[]).filter(p=>p.realm===r&&p.a3auto!==false&&!(M.played[p.id]!=null&&now-M.played[p.id]<1200)&&!(M.first&&p.id===st().last))}
+function pickPD(r){const c=candidates(r);for(let i=c.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)),t=c[i];c[i]=c[j];c[j]=t}
+  return c.find(p=>!p.a3chor||chorShare(true,pdLen(p))<=(def("A3_CHORALE_SHARE")?G("A3_CHORALE_SHARE"):.1))||null}
+function closeLog(h,t1){M.log.forEach(e=>{if(e.h===h&&e.t1==null)e.t1=t1!=null?t1:T()});const cut=T()-3600;M.log=M.log.filter(e=>e.t1==null||e.t1>cut)}
+// start a piece; it = {kind:"theme"|"pd"|"boss"|"finale", id, def, dur, layers, section, at, awake}
+function start(it){if(!has())return false;const o={layers:it.layers,section:it.section,hush:true,gap:1e6,awake:!!it.awake,at:it.at,gain:night()?-4:0,
+    onend:h=>{try{onEnd(h)}catch(e){log("onEnd "+e.message)}},onsection:(n,h)=>onSection(n,h)};
+  let h=null;M.starting=true;try{h=SND.score(it.def,o)}catch(e){log("score "+e.message)}finally{M.starting=false}if(!h)return false;
+  const prev=M.h;M.h=h;if(prev&&prev!==h)closeLog(prev);
+  M.cur={kind:it.kind,id:it.id,def:it.def,realm:it.realm||null,t0:T(),dur:it.dur,chor:!!it.chor,title:titleOf(it.id)};M.played[it.id]=T();
+  M.log.push({h,t0:T(),t1:null,chor:!!it.chor,id:it.id});
+  if(it.kind==="theme")M.themeAt=T();M.first=false;return true}
+function onSection(n,h){if(h!==M.h||!M.cur||M.cur.kind!=="theme")return;const w=wanted();if((w.tension||w.triumph)&&(n===M.cur.def.lastSec||n==="full"))try{h.section("full")}catch(e){}}
+// a piece ended. The piece handed over to a new one ends INSIDE SND.score (M.starting): only its log entry is closed.
+function onEnd(h){const t1=h&&h.seq&&h.seq.endT?h.seq.endT:T();closeLog(h,t1);if(M.starting||h!==M.h)return;const c=M.cur;M.h=null;M.cur=null;
+  try{SND.hush(true)}catch(e){}                                     // keep the old realm playlist away: the director decides what comes next
+  if(c&&c.kind!=="boss"&&c.kind!=="finale"){st().last=c.id;save()}
+  if(M.mode==="boss"){const won=M.boss&&M.boss.ended===true;M.boss=null;M.mode="seq";M.force={theme:true,triumph8:won};M.nextAt=t1+6;return}
+  if(M.mode==="finale"){M.mode="seq";M.nextAt=t1+20;return}
+  if(M.mode==="seq")M.nextAt=t1+rnd(15,25)}
+function playTheme(at,extra){const r=M.realm||realmNow(),p=theme(r);if(!p)return false;const q=M.first?Math.floor((Date.now?Date.now():0)/864e5)%4:0;
+  const tr=M.tension.debt&&adapt()?-3:0,d=themeDef(p,q,tr);
+  return start(Object.assign({kind:"theme",id:p.id,def:d,realm:r,dur:p.steps*60/p.bpm/4,layers:layersFor(),section:"r1",at},extra||{}))}
+function playPD(p,at){return start({kind:"pd",id:p.id,def:pdDef(p),realm:p.realm,dur:pdLen(p),chor:!!p.a3chor,at})}
+function nextItem(){const r=M.realm||realmNow(),f=M.force;M.force=null;
+  if(f&&f.theme){if(f.triumph8)M.triumphUntil=T()+8*((theme(r)||{}).bar||16)*60/((theme(r)||{}).bpm||84)/4+1;return {theme:true}}
+  const w=wanted();if(w.tension||M.first||T()-M.themeAt>=300){const p=theme(r);if(p&&!(M.first&&p.id===st().last))return {theme:true}}
+  const pd=pickPD(r);if(pd)return {pd};return theme(r)?{theme:true}:null}
+// the next piece of the rotation; a forced theme (after a duel or a scene) and tension do not wait for the 60 % budget
+function step(){if(M.mode!=="seq"||M.h||T()<M.nextAt)return;const forced=!!(M.force&&M.force.theme&&!M.force.budget),it=nextItem();if(!it)return;
+  const p=it.theme?theme(M.realm||realmNow()):it.pd,d=it.theme?p.steps*60/p.bpm/4:pdLen(p);
+  if(!forced&&!wanted().tension&&!M.first){const x=budgetDelay(d,0);if(x>0){M.nextAt=T()+x;if(it.theme)M.force={theme:true,budget:true};return}}
+  const ok=it.theme?playTheme():playPD(p);if(!ok)M.nextAt=T()+2}
+function applyLayers(){const h=M.h,c=M.cur;if(!h||!c)return;const w=wanted();
+  if(c.kind==="theme"){let on=[];try{on=h.layers()}catch(e){}["tension","triumph"].forEach(n=>{const want=!!w[n];if(want!==on.includes(n))try{h.layer(n,want)}catch(e){}});
+    if((w.tension||w.triumph)){let sec=null;try{sec=h.state().section}catch(e){}if(sec===c.def.lastSec||sec==="full")try{h.section("full")}catch(e){}}}
+  else if(c.kind==="pd"&&w.tension&&M.mode==="seq")playTheme("bar")}
+function tick(){if(!has())return;let s;try{s=SND.state()}catch(e){return}
+  if(!s.on||!s.started){if(M.h&&!M.h.active()){closeLog(M.h);M.h=null;M.cur=null}if(!s.on){M.mode="off";M.first=true}return}
+  if(D&&D.hidden)return;
+  if(M.h&&!M.h.active()){closeLog(M.h);M.h=null;M.cur=null;if(M.mode==="boss"){M.mode="seq";M.boss=null}if(M.mode==="finale")M.mode="seq";if(M.mode==="seq"&&M.nextAt<T())M.nextAt=T()+rnd(4,8)}
+  if(M.mode==="off"){M.mode="seq";M.first=true;M.realm=realmNow();M.tension.debt=debtNow();M.nextAt=T()+.5;try{SND.hush(true)}catch(e){}}   // the old playlist stops at once; the theme follows when its tables are ready
+  if(M.tension.debt&&!debtNow())M.tension.debt=false;
+  if(M.mode==="seq"){const r=realmNow();if(r!==M.realm){M.realm=r;if(M.cur&&M.cur.realm&&M.cur.realm!==r){if(!playTheme("bar"))M.nextAt=T()}else if(!M.h)M.nextAt=Math.min(M.nextAt,T()+1)}}
+  if(M.mode==="seq"){step();applyLayers()}}
+let timer=null;function ensureTimer(){if(!timer&&typeof setInterval==="function")timer=setInterval(()=>{try{tick()}catch(e){log("tick "+e.message)}},2000)}
+
+// ------------------------------------------------------------------------------------------------ 4. answers (s6's hx:answer — nothing here counts failures of its own)
+function onAnswer(e){const d=e&&e.detail||{};if(d.ctx==="duel"||M.mode==="boss")return;const ok=!!d.ok;
+  M.win.push(ok);if(M.win.length>5)M.win.shift();const run=typeof d.rightRun==="number"?d.rightRun:(ok?M.run+1:0);M.run=run;
+  if(M.sess){M.sess.ans++;if(ok)M.sess.ok++}
+  const tn=M.tension;
+  if(!ok){M.triumphUntil=0;if(!tn.wrong&&M.win.filter(x=>!x).length>=2){tn.wrong=true;tn.since=T();tn.right=0}else tn.right=0}
+  else if(tn.wrong){tn.right++;if(tn.right>=4&&T()-tn.since>=8*barSec()){tn.wrong=false;tn.right=0}}
+  if(ok&&adapt()&&run===5)sting("streak5");
+  if(ok&&adapt()&&run===10){sting("streak10");if(!night())M.triumphUntil=T()+1.5+8*barSec()}
+  if(M.mode==="seq"&&!M.h&&wanted().tension){M.nextAt=T();step()}
+  applyLayers()}
+
+// ------------------------------------------------------------------------------------------------ 5. motifs, stingers, scenes, bosses, cues, finale
+function busy(){return T()<Math.max(M.motifEnd,M.stingEnd)}
+function motif(name,form,o){o=o||{};if(!has()||!def("A3_MOTIV"))return null;const m=G("A3_MOTIV")[name],f=m&&m[form||"N"];if(!f)return null;
+  if(sober()&&name!=="BRANDT")return null;if(busy()&&!o.force)return null;
+  let h=null;try{h=SND.stinger({bpm:f.bpm,steps:f.steps,tr:Object.keys(f.tr).map(k=>f.tr[k])},{quant:o.quant||"4",transpose:false,duck:o.duck==null?9:o.duck,gain:o.gain==null?-2:o.gain})}catch(e){log("motif "+e.message)}
+  if(h)M.motifEnd=T()+(h.len||f.steps*60/f.bpm/4)+.2;return h}
+function sting(id,o){o=o||{};if(!has()||!def("A3_STINGER"))return null;const s=G("A3_STINGER")[id];if(!s)return null;if(busy()&&!o.force)return null;
+  let h=null;try{h=SND.stinger(s,{duck:o.duck!=null?o.duck:/^(seal|lesson|finale)$/.test(id)?9:6,quant:o.quant})}catch(e){log("sting "+e.message)}
+  if(h)M.stingEnd=T()+(h.len||s.steps*60/s.bpm/4)+.1;return h}
+function fadeOut(sec){const h=M.h;if(!h)return;closeLog(h,T()+sec);M.h=null;M.cur=null;try{h.stop({fade:sec,resume:false})}catch(e){}try{SND.hush(true)}catch(e){}}
+function scene(open){if(open){if(M.mode==="boss"||M.mode==="finale"||M.scene)return;M.scene=true;fadeOut(barSec());if(M.mode!=="off")M.mode="scene";return}
+  if(!M.scene)return;M.scene=false;if(M.mode==="scene"){M.mode="seq";M.force={theme:true};M.nextAt=T()+4}}
+function boss(id){const d=bossDef(id);if(!d||!has())return false;M.scene=false;if(M.h){closeLog(M.h)}M.mode="boss";M.boss={id,low:false,ended:null};
+  const ok=start({kind:"boss",id:d.id,def:d,dur:d.steps*60/d.bpm/4,layers:["base"],awake:true});if(!ok){M.mode="seq";M.boss=null}return ok}
+function bossLow(on){if(M.mode!=="boss"||!M.h||!M.boss)return;if(M.boss.low===!!on)return;M.boss.low=!!on;try{M.h.layer("low",!!on)}catch(e){}}
+function bossEnd(win){if(M.mode!=="boss"||!M.boss||M.boss.ended!=null)return;M.boss.ended=!!win;if(M.h)try{M.h.sectionNow(win?"victory":"defeat")}catch(e){}}
+function bossAbort(){if(M.mode!=="boss")return;const h=M.h;M.boss=null;M.mode="seq";M.force={theme:true};M.nextAt=T()+4;if(h){closeLog(h);M.h=null;M.cur=null;try{h.stop({fade:1,resume:false})}catch(e){}try{SND.hush(true)}catch(e){}}}
+function finale(){if(!has()||!def("A3_FINALE"))return false;M.scene=false;fadeOut(barSec());M.mode="finale";const d=G("A3_FINALE");
+  const ok=start({kind:"finale",id:d.id,def:d,dur:d.steps*60/d.bpm/4,layers:["cue"],awake:true});if(!ok)M.mode="seq";return ok}
+function cue(name){const c=(def("A3_CUES")?G("A3_CUES"):{})[name];if(!c)return null;if(c.finale)return finale();if(c.sting)return sting(c.sting,{force:true});
+  fadeOut(barSec());if(M.mode==="seq"){M.force={theme:true};M.nextAt=T()+8}return motif(c.m,c.f,{force:true,duck:0,quant:"now"})}
+
+// ------------------------------------------------------------------------------------------------ 6. the page: one observer on #fIn while Focus is open
+let fobs=null,aobs=null,introShown=null;
+function q(s,el){try{return (el||D).querySelector(s)}catch(e){return null}}
+function classify(){const fin=q("#fIn");if(!fin)return;const title=((q("#fTitle")||{}).firstChild||{}).textContent||"";
+  const duel=fin.querySelector(".duel[data-boss]");
+  if(duel){const id=duel.dataset.boss;if(M.mode!=="boss"||!M.boss||M.boss.id!==id||M.boss.ended!=null)boss(id);
+    const n=fin.querySelectorAll(".duel-lives i.on:not(.i7-sent)").length;if(n<=2)bossLow(true);return}
+  const h2=fin.querySelector("h2"),ht0=h2?h2.textContent.trim():"",ht=/^Sieg\b/.test(ht0)?"Sieg":/^Niederlage\b/.test(ht0)?"Niederlage":ht0;   // integrator 13.7: i7 writes „Sieg · Übung“ in practice
+  if(M.mode==="boss"&&M.boss&&M.boss.ended==null){if(ht==="Sieg"){bossEnd(true);return}if(ht==="Niederlage"){bossEnd(false);return}}
+  if(fin.querySelector(".duel-intro")&&ht!=="Sieg"&&ht!=="Niederlage"){if(introShown!==title){introShown=title;let r=null;
+      try{const B=G("BOSSES");const k=B&&Object.keys(B).find(k=>B[k].n===title.trim());r=k?B[k].realm:null}catch(e){}
+      if(M.mode==="seq")fadeOut(barSec());if(r)motif("REALM_"+r,"T",{force:true,duck:0})}return}
+  if(fin.querySelector(".st-read")||(/^(Kapitel |Bett vier|Prolog)/.test(title)&&fin.querySelector(".pk-say,.pk-nar,.pk-shadow,.st-choice")))scene(true)}
+function onFocusAttr(){const f=q("#focus");if(!f)return;const open=!f.hidden;
+  if(open){const fin=q("#fIn");if(fin&&!fobs&&typeof MutationObserver!=="undefined"){fobs=new MutationObserver(()=>{try{classify()}catch(e){}});fobs.observe(fin,{childList:true,subtree:true})}try{classify()}catch(e){}}
+  else{if(fobs){fobs.disconnect();fobs=null}introShown=null;if(M.mode==="boss"){if(M.boss&&M.boss.ended==null)bossAbort()}scene(false)}}
+function install(){if(aobs||!D||typeof MutationObserver==="undefined")return;const f=q("#focus");if(!f)return;aobs=new MutationObserver(onFocusAttr);aobs.observe(f,{attributes:true,attributeFilter:["hidden"]});if(!f.hidden)onFocusAttr()}
+if(D){D.addEventListener("hx:answer",e=>{try{onAnswer(e)}catch(x){log("answer "+x.message)}});
+  // a2's playlist may be started by others (Focus.close → SND.hush(false), SND.setRealm): while the director runs it steps aside at once
+  D.addEventListener("snd:now",()=>{try{if(M.mode!=="off"&&has())SND.hush(true)}catch(e){}});
+  ["pointerdown","keydown"].forEach(n=>D.addEventListener(n,()=>{ensureTimer();install();setTimeout(()=>{try{tick()}catch(e){}},60)},{capture:true,passive:true}))}
+try{if(typeof SLOT!=="undefined"&&SLOT&&SLOT.on){SLOT.on("session.open","a3",()=>{M.sess={i:0,n:0,ans:0,ok:0}});SLOT.on("step.enter","a3",(el,c)=>{if(!M.sess)M.sess={i:0,n:0,ans:0,ok:0};if(c){M.sess.i=c.i||0;M.sess.n=c.n||0}});SLOT.on("session.close","a3",()=>{M.sess=null})}}catch(e){}
+
+// ------------------------------------------------------------------------------------------------ 7. hand play, list, settings
+function play(id){if(!has())return false;const th=(def("A3_THEMA")?G("A3_THEMA"):[]).find(p=>p.id===id);if(M.mode==="off"){M.mode="seq";M.realm=realmNow()}
+  if(M.mode!=="seq")return false;M.scene=false;
+  if(th)return start({kind:"theme",id:th.id,def:themeDef(th,0,0),realm:th.realm,dur:th.steps*60/th.bpm/4,layers:layersFor(),section:"r1"});
+  const p=def("PAKT_MUSIC")?G("PAKT_MUSIC").find(x=>x.id===id):null;return p?playPD(p):false}
+function next(){if(!has())return false;if(M.mode==="off"){M.mode="seq";M.realm=realmNow()}if(M.mode!=="seq")return false;const r=M.realm||realmNow();
+  const c=M.cur;const p=pickPD(r);if(c&&c.kind==="pd"&&theme(r))return playTheme();if(p)return playPD(p);return playTheme()}
+function pieces(){const R=["I","II","III","IV","V"],out=[];R.forEach(r=>{const t=theme(r);if(t)out.push({id:t.id,realm:r,t:t.t,kind:"theme",src:"a3"});
+  (def("PAKT_MUSIC")?G("PAKT_MUSIC"):[]).filter(p=>p.realm===r).forEach(p=>out.push({id:p.id,realm:r,t:p.t,kind:p.a3chor?"chorale":"pd",src:p.src||"",auto:p.a3auto!==false}))});return out}
+function card(){const L=pieces(),RL={I:"I",II:"II",III:"III",IV:"IV",V:"V"};const esc2=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  return `<div class="card stack s a3-mus"><h3>Musik</h3>
+  <label class="li" style="cursor:pointer"><span class="t"><b style="font-family:var(--ui);font-size:.98rem">Musik passt sich an</b><small>Spannung nach Fehlern, Triumph nach einer Serie, leiser in der Nacht. Aus: immer die ruhige Fassung. <span class="en" lang="en">Tension after mistakes, triumph after a streak, quieter at night.</span></small></span><input type="checkbox" class="a3-adapt" ${adapt()?"checked":""} style="width:24px;min-height:24px;flex-shrink:0"></label>
+  <details><summary class="ui">Alle Stücke (${L.length})</summary><div class="stack s" style="margin-top:.5rem">${["I","II","III","IV","V"].map(r=>`<div><div class="eyebrow">Reich ${RL[r]}</div>${L.filter(x=>x.realm===r).map(x=>`<button class="sm ghost" style="justify-content:flex-start;text-align:left;width:100%" data-act="a3Play" data-id="${esc2(x.id)}">${esc2(x.t)}${x.kind==="theme"?" <small class=\"muted\">· Thema</small>":""}${x.auto===false?" <small class=\"muted\">· nur von Hand</small>":""}</button>`).join("")}</div>`).join("")}
+  <small class="muted ui">Themen, Motive und Boss-Stücke: neu komponiert für Mephisto. Volkslieder: Essen Folksong Collection. Bach, Schubert, Schumann, Schönberg: gemeinfreie Partituren aus dem music21-Korpus. <span class="en" lang="en">All played as notes by the app's own synthesiser.</span></small></div></details></div>`}
+if(typeof ACT!=="undefined"){ACT.a3Play=el=>{play(el.dataset.id);setTimeout(()=>{try{if(typeof R!=="undefined"&&R.tab==="pakt")rerender();chromeExtras()}catch(e){}},500)};
+  ACT.a3Next=()=>{next();setTimeout(()=>{try{if(typeof R!=="undefined"&&R.tab==="pakt")rerender();chromeExtras()}catch(e){}},600)}}
+if(typeof MOD!=="undefined"&&typeof window!=="undefined"){
+  try{MOD.after("meSettings","a3",function(el){if(!el||el.querySelector(".a3-mus"))return;const host=el.querySelector('[data-set-group="grauen-ton"]'),d=document.createElement("div");d.innerHTML=card();const c=d.firstElementChild;
+    if(host)host.appendChild(c);else{const a2=el.querySelector(".a2-snd");if(a2)a2.after(c);else el.appendChild(c)}
+    const cb=c.querySelector(".a3-adapt");cb.onchange=()=>{st().adapt=cb.checked;save();applyLayers()}})}catch(e){}
+  try{MOD.after("viewPakt","a3",function(m){const nb=m.querySelector('[data-act="pkNextTrack"]');if(nb)nb.dataset.act="a3Next";m.querySelectorAll('[data-act="pkPlay"]').forEach(b=>b.dataset.act="a3Play");
+    const np=m.querySelector(".pk-np span");if(np&&M.cur)np.textContent=M.cur.title||np.textContent;
+    const det=nb&&nb.closest(".card")&&nb.closest(".card").querySelector("details .stack");if(det&&!det.querySelector(".a3-th"))det.querySelectorAll(":scope > div").forEach((blk,i)=>{const r=["I","II","III","IV","V"][i],t=theme(r);if(!t)return;
+      const b=document.createElement("button");b.className="sm ghost a3-th";b.style.cssText="justify-content:flex-start;text-align:left;width:100%";b.dataset.act="a3Play";b.dataset.id=t.id;b.textContent=t.t+" · Thema";const e=blk.querySelector(".eyebrow");if(e)e.after(b)})})}catch(e){}
+  try{MOD.after("chrome","a3",function(){install()})}catch(e){}
+  // the desktop rail (chromeExtras) has its own "Nächstes" button and now-playing line
+  try{MOD.after("chromeExtras","a3",function(){const r=document.getElementById("pakt-rail");if(!r)return;r.querySelectorAll('[data-act="pkNextTrack"]').forEach(b=>b.dataset.act="a3Next");const np=r.querySelector(".pk-np span");if(np&&M.cur&&M.cur.title)np.textContent=M.cur.title})}catch(e){}
+  // key "n" (c_pakt: ACT.pkNextTrack → SND.next(), which yields while a score runs): the same key also asks the director for the next piece
+  document.addEventListener("keydown",e=>{try{if(e.ctrlKey||e.metaKey||e.altKey||!/^n$/i.test(e.key))return;const t=e.target;if(t&&(/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)||t.isContentEditable))return;if(M.mode==="seq"&&M.h)next()}catch(x){}});
+  // c_lore's motif(r) (realm cinematic, lore pages): A3's realm motif with its harmony, on the beat, music ducked — NOT a listed hook (MANIFEST)
+  try{if(typeof window.motif==="function")MOD.around("motif","a3",function(orig,r){try{if(motif(r==="H"?"LATERNE":"REALM_"+r,"N"))return}catch(e){}if(busy())return;return orig(r)})}catch(e){}
+  // c_story3's st3Cue(ln): the wager tritone, the warm lantern and Bett vier get A3's stinger/motifs; every other line as before — NOT a listed hook
+  try{if(typeof window.st3Cue==="function")MOD.around("st3Cue","a3",function(orig,ln){try{const s=String(ln&&ln[1]||"")+String(ln&&ln[2]||"");
+      if(ln&&(ln[0]==="D"||/zufrieden bist|ältere[nr]? Wette/.test(s))){sting("wager",{force:true});return}
+      if(/Laterne ist warm/.test(s)){motif("LATERNE","X",{force:true});return}
+      if(ln&&ln[0]==="N"&&/Bett vier|Bed four/.test(s)){motif("BRANDT","N",{force:true});return}}catch(e){}return orig(ln)})}catch(e){}
+  // c_story3's st3End(): the seven organ notes give way to the finale cue "Die Laterne wird warm" — NOT a listed hook. SND.motif is muted only during
+  // the synchronous call of the original (its one SND.motif line), then restored.
+  try{if(typeof window.st3End==="function")MOD.around("st3End","a3",function(orig){const m=SND.motif,args=[].slice.call(arguments,1);let r;const back=()=>{if(SND.motif!==m)SND.motif=m};try{SND.motif=function(){return null};r=orig.apply(this,args)}finally{
+    // integrator 13.7 (a3 + a7): a7's around (inner) plays the lantern sequence and runs the app's own st3End only at its end — keep the seven organ
+    // notes muted until then (M._finale), so they never sound over the finale cue; plain restore when a7 is absent
+    const A7=window.M;if(A7&&A7._finale){const t0=Date.now(),t=setInterval(()=>{if(!A7._finale||Date.now()-t0>9e4){clearInterval(t);setTimeout(back,0)}},300)}else back()}
+    try{finale()}catch(e){}return r})}catch(e){}}
+
+return {realm(r){if(!r)return M.realm;try{SND.setRealm(r)}catch(e){}M.realm=r;if(M.mode==="seq"&&(!M.cur||M.cur.realm!==r)){if(M.h)playTheme("bar");else M.nextAt=T()}return r},
+  boss,bossEnd,bossLow,cue,scene,finale,motif,sting,play,next,pieces,
+  timer(frac){const on=frac!=null&&frac<.25;if(on===M.tension.timer)return;M.tension.timer=on;const h=M.h,c=M.cur;if(h&&c&&c.kind==="theme"){try{const b=c.def.bpm;h.tempo(on?b*1.06:b,2*(c.def.bar||16))}catch(e){}}applyLayers()},
+  adapt(on){if(on!==undefined){st().adapt=!!on;save();applyLayers()}return adapt()},
+  state(){let L=[],sec=null;try{if(M.h){L=M.h.layers();sec=M.h.state().section}}catch(e){}const w=wanted();
+    return {mode:M.mode,id:M.cur&&M.cur.id,kind:M.cur&&M.cur.kind,title:M.cur&&M.cur.title,realm:M.realm,layers:L,section:sec,want:w,tension:Object.assign({},M.tension),
+      music10:+musicIn(T()-600,T()).toFixed(1),chorale:+chorShare(false,0).toFixed(3),adapt:adapt(),night:night(),nextIn:M.h?null:+(M.nextAt-T()).toFixed(1),scene:M.scene,boss:M.boss&&Object.assign({},M.boss)}},
+  report(){return JSON.parse(JSON.stringify(REP))},
+  tick(){tick()},
+  _t:{M,onAnswer,themeDef,budgetDelay,musicIn,chorShare,pickPD,candidates,prepPD,share,pdLen,classify,install}}})();
 
 // ================= P3 · speech layer: honest capabilities, normalised text, chunks, one player at a time =================
 // Replaces say(), stopSpeech(), pkSpeak(), pickVoice(), hoerenRunner(), rListen(); wraps numbersRunner(), shadowRunner(), listen().
@@ -6743,11 +8515,11 @@ const L8_GROUPS=[["ohr","Zahlen, Namen, Buchstabieren","numbers, names, spelling
 function l8AudioHere(){return typeof window!=="undefined"&&!!window.MEPHISTO_PWA&&lxPacksPossible()}
 function l8CardHTML(list,est){const aud=l8AudioHere()?list.filter(p=>p.kind==="audio"):[];const inst=aud.filter(p=>p.installed);const instB=inst.reduce((a,p)=>a+(p.bytes||0),0);
   const voice=(typeof canSpeak==="function"?canSpeak():typeof hasDeVoice==="function"?hasDeVoice():false);
-  const head=`<div class="row between"><h3 style="margin:0">Hörpakete <span class="en">real German voices</span></h3><span class="pill">${inst.length} / ${aud.length}</span></div>
-   <p class="ui small" style="margin:0">Echte deutsche Stimmen (Thorsten, Kerstin, Ramona, Eva, Karlsson), vorab aufgenommen. Ein geladenes Paket spielt überall in der App, auch offline – ohne Systemstimme. Geladen wird nur, was du antippst. <span class="en">Downloaded only on a tap; stays on this device; never synced.</span></p>`;
+  const head=`<div class="row between"><h3 style="margin:0">Hörpakete <span class="en" lang="en">real German voices</span></h3><span class="pill">${inst.length} / ${aud.length}</span></div>
+   <p class="ui small" style="margin:0">Echte deutsche Stimmen (Thorsten, Kerstin, Ramona, Eva, Karlsson), vorab aufgenommen. Ein geladenes Paket spielt überall in der App, auch offline – ohne Systemstimme. Geladen wird nur, was du antippst. <span class="en" lang="en">Downloaded only on a tap; stays on this device; never synced.</span></p>`;
   if(!aud.length)return head+`<p class="ui small" style="margin:0"><b>Hier gibt es keine Hörpakete.</b> Sie gehören zur installierten App (PWA, z. B. auf GitHub Pages) – in dieser Ansicht nicht. Bis dahin spricht ${voice?"die Systemstimme":"<b>keine</b> Stimme"}.</p><p class="ui small" style="margin:0"><b>Systemstimme einrichten:</b> ${esc(l8VoiceHelp())}</p>`;
   const rows=L8_GROUPS.map(([g,t,en])=>{const ps=aud.filter(p=>p.name.split("-")[0]===g);if(!ps.length)return "";
-    return `<div class="stack s" style="gap:.3rem"><div class="eyebrow">${esc(t)} <span class="en">${esc(en)}</span></div>${ps.map(p=>`<div class="row between l8-pk" data-n="${esc(p.name)}" style="gap:.5rem;align-items:center"><span class="ui" style="flex:1;min-width:0"><b>${esc(p.title||p.name)}</b><small class="muted" style="display:block">${l8Mb(p.bytes||0)}${p.min?" · "+Math.round(p.min)+" min":""}${p.n?" · "+p.n+" Clips":""}</small><span class="l8-bar" hidden style="display:block;height:6px;border-radius:3px;background:var(--line,#ddd);overflow:hidden;margin-top:.25rem"><i style="display:block;height:100%;width:0;background:var(--accent,#E2651C)"></i></span></span>${p.installed?`<span class="pill ok">geladen</span><button class="sm ghost" data-act="l8PackDel" data-n="${esc(p.name)}">Entfernen</button>`:`<button class="sm" data-act="l8PackGet" data-n="${esc(p.name)}">Laden</button>`}</div>`).join("")}</div>`}).join("");
+    return `<div class="stack s" style="gap:.3rem"><div class="eyebrow">${esc(t)} <span class="en" lang="en">${esc(en)}</span></div>${ps.map(p=>`<div class="row between l8-pk" data-n="${esc(p.name)}" style="gap:.5rem;align-items:center"><span class="ui" style="flex:1;min-width:0"><b>${esc(p.title||p.name)}</b><small class="muted" style="display:block">${l8Mb(p.bytes||0)}${p.min?" · "+Math.round(p.min)+" min":""}${p.n?" · "+p.n+" Clips":""}</small><span class="l8-bar" hidden style="display:block;height:6px;border-radius:3px;background:var(--line,#ddd);overflow:hidden;margin-top:.25rem"><i style="display:block;height:100%;width:0;background:var(--accent,#E2651C)"></i></span></span>${p.installed?`<span class="pill ok">geladen</span><button class="sm ghost" data-act="l8PackDel" data-n="${esc(p.name)}">Entfernen</button>`:`<button class="sm" data-act="l8PackGet" data-n="${esc(p.name)}">Laden</button>`}</div>`).join("")}</div>`}).join("");
   const rest=aud.filter(p=>!p.installed);const restB=rest.filter(p=>/^(ohr|pruefung)(-|$)/.test(p.name)).reduce((a,p)=>a+(p.bytes||0),0);
   return head+rows+`<div class="row" style="gap:.5rem;flex-wrap:wrap">${restB?`<button class="sm" data-act="l8PackCore">Zahlen + Prüfung laden (${l8Mb(restB)})</button>`:""}<button class="sm ghost" data-act="l8PackTest">Probe hören</button></div>
    <small class="muted ui">Belegt: ${l8Mb(instB)}${est&&est.quota?" · frei auf dem Gerät: "+l8Mb(Math.max(0,est.quota-est.usage)):""}. Stimmen: Piper (MIT-lizenzierte Software) mit den Stimmen thorsten und kerstin (Datensätze CC0) sowie ramona, eva_k und karlsson (M-AILABS-Datensatz). Ohne Paket spricht die Systemstimme${voice?"":" – auf diesem Gerät gibt es keine: "+esc(l8VoiceHelp())}.</small>`}
@@ -10563,7 +12335,10 @@ function tagPush(t,ok){if(!t)return;const d=DS();d.tg[t]=(tagStr(t)+(ok?"1":"0")
 function lmWeakIds(){if(!W.LM)return [];return i7Try("lm",()=>W.LM&&typeof W.LM.weakLessons==="function"?W.LM.weakLessons(6).map(x=>x.id):[],[])}
 function lmNemDe(){if(!W.LM)return [];return i7Try("lmn",()=>W.LM&&typeof W.LM.nemeses==="function"?W.LM.nemeses(20).map(x=>String(x.de||"")):[],[])}
 // Hexe phase 1: the learner's own nouns first (S.palace misses, lapsed cards, LM nemeses), then the table; D9 filters
-function hexePool(D){if(D&&D._hp)return D._hp;const r=hexePool0(D);if(D)D._hp=r;return r}
+function hexePool(D){if(D&&D._hp)return D._hp;let r=hexePool0(D);
+  // integrator 13.7 (s6 + i7): s6's rule — a noun that hxSober holds back (family, faith, origin, death …) never stands in the Witch's duel; s6's bossPool around only reaches the old pool
+  try{if(typeof hxSober==="function"){const f=r.filter(x=>!(x&&x.ui==="seal"&&hxSober(x.q,x.sub)));if(f.length>=8)r=f}}catch(e){}
+  if(D)D._hp=r;return r}
 function hexePool0(D){return i7Try("hexePool",()=>{const out=[];const seen=c=>{const s=S.cards&&S.cards[c.id];return !!(s&&(s.reps||0)>0)};const nem=new Set(lmNemDe());
   let cards=[];try{cards=allCards().filter(c=>/^(der|die|das) [A-ZÄÖÜ][^\s]+$/.test(c.de)&&lvI(c.level)<=0&&!/nur Plural/i.test(c.info||""))}catch(e){}
   const m={},two=new Set();cards.forEach(c=>{const [g,n]=c.de.split(" ");if(m[n]&&m[n]!==g)two.add(n);m[n]=g});
@@ -11085,7 +12860,8 @@ if(typeof ACT!=="undefined"){
 const padNow=()=>{try{const gp=[...(navigator.getGamepads?navigator.getGamepads():[])].find(Boolean);return gp?gp.buttons.map(b=>!!(b&&b.pressed)):[]}catch(e){return []}};
 const sealView=()=>{const D=Duel.state();return !!(D&&D.view==="ask"&&D.item&&D.item.ui==="seal"&&!D.hard.stumm&&box&&box.querySelector(".duel-opts.genus"))};
 function clickArt(a){const D=Duel.state();if(!D||!D.item)return;const b=[...box.querySelectorAll(".duel-opts button")].find(b=>D.item.o[+b.dataset.i]===a);if(b)b.click()}
-window.addEventListener("keydown",e=>{try{if(e.key!=="Escape"||!Duel.live()||I7.selfClose)return;const sh=document.getElementById("sheet");if(sh&&!sh.hidden)return;e.stopImmediatePropagation();e.preventDefault();
+window.addEventListener("keydown",e=>{try{if(e.key!=="Escape"||!Duel.live()||I7.selfClose)return;if(window.PAD&&typeof PAD.confirm==="function")return;   // integrator 13.7: with a10 the „Kampf abbrechen?“ confirm is the guard (i7's second press is the fallback without it)
+  const sh=document.getElementById("sheet");if(sh&&!sh.hidden)return;e.stopImmediatePropagation();e.preventDefault();
   if(Date.now()-(I7.qAt||0)<=1500){I7.qAt=0;I7.selfClose=true;try{Focus.close()}finally{I7.selfClose=false}return}I7.qAt=Date.now();try{toast(UI.quit?UI.quit[0]:"Noch einmal drücken.",1500)}catch(x){}}catch(x){}},true);
 function startPad(){if(raf||!navigator.getGamepads)return;const poll=()=>{if(!box||!box.isConnected||!Focus.isOpen()){raf=null;return}const b=padNow();const edge=i=>b[i]&&!padPrev[i];
   if(sealView()){if(edge(2))clickArt("der");if(edge(3))clickArt("die")}else if(Duel.state()&&Duel.state().view==="ask"){if(edge(3)){const u=box.querySelector(".i7-uml");if(u)u.click()}if(edge(2)){const u=box.querySelector('[data-du="undo"]');if(u)u.click()}}
@@ -11699,6 +13475,219 @@ ACT.i8PenGo=function(){const pd=penDue();if(!pd)return toast("Keine Strafe offen
   runItems(box,items,{kind:k,onDone:()=>done()})};
 })();
 
+// ===== Mephisto · package s6 · HX, the director of the horror (S6-horror §6, PLAN-S §3.3). Loads in module "media" after c_horror.js (and after a6's c_a6.js).
+// One number (dread 0–100, never shown) from story position, hour, debt, absence, recent errors, streak and shift day → a tier −1…4 → what may happen now.
+// One entry point for every graded answer: HX.onAnswer(ok,el,opts). Sources: I9's EV bus when it exists (subscribed in setTimeout, it loads late),
+// the verdict watcher in c_horror.js, and direct calls (palace, Gruft, duel via HOR.hurt). Reports of the same answer that arrive within 400 ms are
+// merged, so every answer is counted once. After every graded answer: document event "hx:answer" {ok,ctx,fails,rightRun,lapse,tier,word,type}.
+// Nobody else counts failures (s5's dial reads this event). State: S.hx (see MANIFEST: merge = later date per id of S.hx.seen; the rest is device-local).
+var HX_WH=HX_WH||[];
+if(typeof window.sFill!=="function")window.sFill=function(s,x){try{if(typeof lmFill==="function")return lmFill(s,x)}catch(e){}return String(s).replace(/\[\[(.*?)\|\|(.*?)\]\]/g,"$2").replace(/\{(\w+)\}/g,(m,a)=>x&&x[a]!=null?x[a]:(x&&a==="N"&&x.n!=null?x.n:m))};
+const HX=(function(){
+  const CURVE=[0, 12,16,22,20,28,24,32,45, 15,26,24,32,30,40,34,52, 20,34,30,26,42,50,36,60, 28,46,42,56,40,52,58,70, 40,50,44,54,66,58,30,20];
+  const COOL={whisper:[1e9,15,8,5,4],veil:1.5,shake:3,shakeDuel:1/3,edge:2,wrong:10,hand:1440,thunder:4,nightmare:1440}; // minutes
+  const LVS=["A1","A2","B1","B2","C1"];
+  const now=()=>Date.now(),min=ms=>ms/60000;
+  const st=()=>{const s=S.hx=(S.hx&&typeof S.hx==="object")?S.hx:{};s.seen=s.seen||{};s.last=s.last||{};s.wr=s.wr||[];s.fails=s.fails|0;s.rr=s.rr|0;s.se=s.se||{w:0,x:0,t:0,back:0};s.nm=s.nm||{};s.hh=s.hh||[];return s};
+  const td=()=>todayKey();
+  const pk=()=>{try{return P()}catch(e){return {}}};
+  function chap(){const p=pk();return Math.max(1,Math.min(40,p.ch|0||1))}
+  function realm(){try{return pkCh().r}catch(e){return "I"}}
+  function absent(){let k=addDays(td(),-1),n=0;while(n<60&&!(S.log&&S.log[k]&&S.log[k].act)){n++;k=addDays(k,-1)}return n}
+  function shiftDay(){return !!(S.shifts&&S.shifts[td()])}
+  function focusTitle(){const t=document.getElementById("fTitle");return t&&!document.getElementById("focus").hidden?(t.textContent||""):""}
+  // context of an element: sober > speech > exam > clinic > duel > drill
+  function ctx(el){const h=document.documentElement;if(h.dataset.sober==="1"||h.classList.contains("p2-grave")||h.classList.contains("hx-paused"))return "sober";
+    const fo=document.getElementById("focus"),fopen=fo&&!fo.hidden;
+    const box=(el&&el.closest&&(el.closest("[data-hx]")||el.closest("#fIn")||el.closest(".view")))||(fopen?document.getElementById("fIn"):document.querySelector("#main .view"))||document.body;
+    const mark=box.closest?box.closest("[data-hx]"):null;if(mark&&mark.dataset.hx)return mark.dataset.hx;
+    const ft=fopen?focusTitle():"";
+    if(/Bett vier|Frau Brandt/.test(ft))return "sober";
+    if(/Aussprache|Schattensprechen|Rezitation|Nachsprechen/.test(ft)||(box.querySelector&&box.querySelector(".pc-out,.sh-out,[data-act='micGo'],.rz-mic,.speech-out")))return "speech";
+    const text=(box.textContent||"").slice(0,6000);
+    if(typeof HX_SOBER_RE!=="undefined"&&HX_SOBER_RE.test(text+" "+ft))return "sober";
+    if(box.querySelector&&box.querySelector(".duel"))return "duel";
+    if(/Prüfung|Simulation|Modelltest|Stufenprüfung|Einstufung/.test(ft))return "exam";
+    if(/Anamnese|SBAR|Arztbrief|Fachbegriffe|Rollenspiel|Klinik|FSP|Übergabe|Visite/.test(ft))return "clinic";
+    return "drill"}
+  function dread(){const p=pk(),h=new Date().getHours(),s=st();let d=CURVE[chap()];
+    d+=h===3?18:(h>=1&&h<4)?14:(h===23||h===0)?8:0;
+    d+=4*Math.min(7,p.debt||0);
+    if(s.se.back)d+=Math.min(15,3*s.se.back);
+    const e=s.wr.filter(x=>!x).length;d+=3*Math.max(0,Math.min(3,e-2));
+    let sk=0;try{sk=streak()}catch(x){}d-=sk>=30?10:sk>=7?6:0;if(sk>0&&sk%30===0)d+=10;
+    if(shiftDay())d-=20;
+    if(s.rest===td())d=Math.min(d,19);                    // the omen „Abwarten und Tee trinken": a rest day
+    return Math.max(0,Math.min(100,d))}
+  function tier(el,c){const L=HOR.lvl();if(!L)return -1;c=c||ctx(el);if(c==="sober"||c==="speech")return -1;const s=st();if(s.fails>=3)return -1;
+    if(c==="duel"&&document.querySelector('#fIn .duel[data-boss="kommission"]'))return -1;   // the Kommission is quiet: the eye is closed (W40)
+    let t=Math.min(4,Math.floor(dread()/20));if(c==="duel")t=Math.min(4,t+1);if(c==="exam"||c==="clinic")t=Math.min(t,1);
+    if(chap()>=39)t=Math.min(t,1);if(shiftDay())t=Math.min(t,1);if(L===1)t=Math.min(t,2);return t}
+  function can(cls,t,peek){const s=st();const c=cls==="whisper"?COOL.whisper[Math.max(0,t|0)]:COOL[cls];if(c==null)return true;if(min(now()-(s.last[cls]||0))<c)return false;
+    if(min(now()-(s.se.t||0))<2&&(cls==="wrong"||cls==="whisper"))return false;   // two quiet minutes at the start of every session
+    if(!peek)s.last[cls]=now();return true}
+  function session(){const s=st();const la=s.se.la||s.se.t||0;if(min(now()-la)>30){s.se={w:0,x:0,t:now(),back:absent()};s.hh.push(new Date().getHours());if(s.hh.length>14)s.hh.shift()}s.se.la=now()}   // a session ends after 30 minutes without activity
+  // most-missed word in citation form, never a noun that hxSober holds back (the strict rule: stem + English gloss)
+  function word(){let best=null,n=1;const cut=(st().wq||{});for(const k in (S.cards||{})){const c=S.cards[k];if((c.lapses||0)>n){let x=null;try{x=card(k.replace(/^p:/,""))}catch(e){}
+      if(x&&x.kind!=="satz"&&x.de&&x.de.length<24&&!(cut[x.de]>addDays(td(),-30))&&!hxSober(x.de,x.en)&&hxLineOk(x.de)){best=x.de;n=c.lapses}}}return best}
+  function firstName(){const nm=String(pk().name||"").trim().replace(/^(Dr\.|Prof\.)\s*/i,"").split(/\s+/)[0]||"";return nm}
+  function fillTok(t){const s=st(),w=/\{WORD\}/.test(t)?word():null,nm=firstName(),back=s.se.back|0;
+    if(/\{WORD\}/.test(t)&&!w)return null;if(/\{DAYS_AWAY\}|\{N\}/.test(t)&&!(back>=2))return null;if(/\{NAME\}/.test(t)&&!nm)return null;
+    t=t.replace(/\{WORD\}/g,w||"").replace(/\{DAYS_AWAY\}|\{N\}/g,String(back)).replace(/\{NAME\}/g,nm);
+    try{t=window.sFill(t,{})}catch(e){}return /\{[A-Z_]+\}/.test(t)?null:t}
+  const key=w=>{let h=0;const k=String(w[0]);for(let i=0;i<k.length;i++)h=(h*31+k.charCodeAt(i))>>>0;return "w"+h.toString(36)};
+  function tagOk(tag,o){if(!tag||tag==="any")return true;const h=new Date().getHours(),md=td().slice(5);
+    if(/^ch:/.test(tag)){const [a,b]=tag.slice(3).split("-").map(Number);const c=chap();return c>=a&&c<=(b||a)}
+    if(tag==="night")return h>=22||h<6;if(tag==="rauh")return md>="12-25"||md<="01-05";if(tag==="fast")return !!(o&&o.fast);if(tag==="I")return realm()==="I";
+    if(tag==="bett")return false;   // a whisper at a bedside is never allowed: sober contexts are silent
+    return true}
+  function pool(o){const s=st(),r=realm(),c=chap();let lv=0;try{lv=learnerLv()|0}catch(e){}const day=td(),cut=addDays(day,-21);
+    return HX_WH.filter(w=>{if(!Array.isArray(w)||!w[0])return false;const wl=LVS.indexOf(w[2]);if(wl>Math.max(0,lv))return false;
+      const wr=w[3]||"*";if(wr!=="*"&&wr!==r)return false;
+      if(r==="V"){if(c>=39)return w[4]==="-";if(c<33&&w[4]!=="K")return false;if(c>=33&&!/^[KP]$/.test(w[4]))return false}else if(w[4]==="-"||w[4]==="P")return false;
+      if(!tagOk(w[5],o))return false;if((s.seen[key(w)]||"")>cut)return false;return hxLineOk(w[0])})}
+  function pickWhisper(o){const s=st();const P0=pool(o);if(!P0.length)return null;
+    if(!s.firstW){const f=P0.find(w=>w[0]==="„{WORD}.“");if(f){const t=fillTok(f[0]);if(t){s.firstW=td();s.seen[key(f)]=td();return [t,fillTok(f[1])||"",f[4]]}}}
+    const data=P0.filter(w=>/\{/.test(w[0])),P2=(data.length&&Math.random()<.6)?data:P0;
+    for(let i=0;i<10&&P2.length;i++){const w=P2[Math.floor(Math.random()*P2.length)],t=fillTok(w[0]);if(t!=null){s.seen[key(w)]=td();s.firstW=s.firstW||td();return [t,fillTok(w[1])||w[1],w[4]]}}return null}
+  function whisperNow(t,o){const s=st();if(s.se.w>=6||!can("whisper",t))return false;const w=pickWhisper(o);if(!w)return false;let lv=0;try{lv=learnerLv()|0}catch(e){}
+    const shown=HOR.whisper(w[0],lv<2?w[1]:"",w[2]);if(shown)s.se.w++;return shown}
+  // ---------- the single entry point
+  let pend=null,pendT=null;
+  function onAnswer(ok,el,opts){ok=!!ok;opts=opts||{};const t=now();
+    if(pend&&pend.ok===ok&&t-pend.t<400){if(!pend.el&&el)pend.el=el;if(opts.lapse)pend.lapse=true;if(opts.word)pend.word=opts.word;if(opts.type)pend.type=opts.type;if(opts.fast)pend.fast=true;return}
+    flush();pend={ok,el:el||null,t,lapse:!!opts.lapse,word:opts.word||"",type:opts.type||"",fast:!!opts.fast,src:opts.src||""};clearTimeout(pendT);pendT=setTimeout(flush,40)}
+  function flush(){clearTimeout(pendT);const a=pend;pend=null;if(!a)return null;return process(a)}
+  function targetOf(el){if(el&&el.isConnected!==false)return el;const f=document.querySelector("#focus:not([hidden]) #fIn");return (f&&(f.querySelector(".verdict.no,.verdict.bad,.card,.fc")||f))||null}
+  function process(a){session();const s=st();const el=targetOf(a.el);const was=s.fails;s.wr.push(a.ok);if(s.wr.length>10)s.wr.shift();
+    if(a.ok){s.fails=0;s.rr=(s.rr|0)+1}else{s.fails=(s.fails|0)+1;s.rr=0}
+    try{saveSoon()}catch(e){}
+    const c=ctx(el),t=tier(el,c);
+    const lapse=!!a.lapse;
+    try{document.dispatchEvent(new CustomEvent("hx:answer",{detail:{ok:a.ok,ctx:c,fails:s.fails,rightRun:s.rr,lapse,tier:t,word:a.word||"",type:a.type||""}}))}catch(e){}
+    const out={ok:a.ok,ctx:c,tier:t,fx:[]};
+    if(a.ok){if(s.rr>=2||was<3)HOR.openEye();schedule("answer");return out}
+    if(t<0){if(c==="sober"||c==="speech"){HOR.shutEye(2000)}else{HOR.shutEye(s.fails>=3?0:2000)}try{HOR.standDown&&c!=="drill"&&HOR.standDown()}catch(e){}
+      if(s.fails===5)try{toast("Die Karte kommt morgen wieder.",3000)}catch(e){}out.fx.push("stand");return out}
+    if(HOR.ink(el,lapse?"blood":"ink",t))out.fx.push("ink");
+    if(t>=2&&lapse&&can("veil",t)&&HOR.veil(t))out.fx.push("veil");
+    if(t>=3&&(lapse||c==="duel")&&can(c==="duel"?"shakeDuel":"shake",t)&&HOR.shake())out.fx.push("shake");
+    if(t>=3&&can("edge",t)&&HOR.gutter(1+Math.min(3,pk().debt||0)))out.fx.push("gutter");
+    if(t>=1&&whisperNow(t,{fast:a.fast}))out.fx.push("whisper");
+    if(c==="duel"&&lastCandle())HOR.whisper("Eine Kerze noch …","One candle left …","S");
+    return out}
+  function lastCandle(){const L=document.querySelectorAll("#fIn .duel-lives i.on");return L.length===1}
+  // ---------- EV (I9) when it exists: card, exercise and boss answers. Without EV the verdict watcher and direct calls are the sources.
+  function hookEV(){const E=window.EV;if(!E||typeof E.on!=="function"||hookEV.done)return;hookEV.done=true;
+    E.on("card.answer",d=>{const prevInt=d&&d.prev?d.prev.int|0:0;onAnswer(!!(d&&d.ok),null,{lapse:!!(d&&d.lapse&&prevInt>=21),word:d&&d.de,type:"card",fast:d&&d.ms>0&&d.ms<2000,src:"ev"})});
+    E.on("ex.answer",d=>onAnswer(!!(d&&d.ok),null,{type:d&&d.type,fast:d&&d.ms>0&&d.ms<2000,src:"ev"}));
+    E.on("boss.answer",d=>onAnswer(!!(d&&d.ok),document.querySelector("#fIn .duel-boss"),{type:"boss",src:"ev"}));
+    E.on("boss.lost",d=>{const s=st();s.lost={id:d&&d.id,d:td()}});
+    E.on("cards.round",d=>{try{w35(d)}catch(e){}})}
+  setTimeout(hookEV,0);setTimeout(hookEV,1500);
+  // duel outcome without EV: the end screen of c_boss.js shows „Niederlage"
+  function watchDuel(){const f=document.getElementById("fIn");if(!f)return;const h=f.querySelector(".stack h2");if(h&&/^Niederlage$/.test(h.textContent||"")&&!f.dataset.hxLost){f.dataset.hxLost="1";const s=st();const d=f.querySelector(".duel")||{};s.lost={id:(d.dataset&&d.dataset.boss)||"",d:td()}}}
+  // ---------- wrongness events (S6 §7.2): table HX_WRONG (data), behaviour here. Rules: tier, chapter, gap, budget per session, never in sober/speech/exam/clinic,
+  // never while an input is focused or audio plays, purely presentational, any pointerdown/keydown ends them, nothing explains them.
+  const RUN={};const ending=[];
+  function endAll(){while(ending.length){try{ending.pop()()}catch(e){}}}
+  ["pointerdown","keydown"].forEach(t=>document.addEventListener(t,endAll,{passive:true,capture:true}));
+  function evOk(ev,t){const s=st();if(!ev||chap()<ev.ch||t<ev.tier)return false;const seen=s.seen[ev.id];
+    if(ev.gap===-1&&seen)return false;if(ev.gap>0&&seen&&seen>addDays(td(),-ev.gap))return false;if(ev.m&&HOR.calm())return false;return true}
+  function busy(){const a=document.activeElement;if(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))return true;try{if(typeof speechSynthesis!=="undefined"&&speechSynthesis.speaking)return true}catch(e){}return false}
+  function schedule(why){try{const c=ctx(null);if(c!=="drill"&&c!=="duel")return null;if(c==="duel")return null;const t=tier(null,c);if(t<0||busy())return null;const s=st();
+      const cap=t>=3?2:t>=2?1:0;if((s.se.x|0)>=cap)return null;if(!can("wrong",t,true))return null;
+      const cand=(typeof HX_WRONG!=="undefined"?HX_WRONG:[]).filter(ev=>RUN[ev.id]&&RUN[ev.id].when&&evOk(ev,t)&&RUN[ev.id].when(why));
+      if(!cand.length)return null;cand.sort((a,b)=>(s.seen[a.id]?1:0)-(s.seen[b.id]?1:0)||Math.random()-.5);const ev=cand[0];
+      if(!can("wrong",t))return null;const end=RUN[ev.id].run(ev);if(end===false)return null;s.seen[ev.id]=td();s.se.x=(s.se.x|0)+1;if(typeof end==="function")ending.push(end);try{saveSoon()}catch(e){}return ev.id}catch(e){return null}}
+  const onHome=()=>typeof R!=="undefined"&&R.tab==="home"&&!Focus.isOpen();
+  const onPakt=()=>typeof R!=="undefined"&&R.tab==="pakt"&&!Focus.isOpen();
+  const fillW=(s)=>fillTok(String(s||""));
+  const du=()=>!!pk().du;
+  // W06 the eye looks elsewhere
+  RUN.W06={when:w=>w==="view"&&onHome(),run:()=>HOR.lookAway(12000)?(()=>{}):false};
+  // W08 the streak counter miscounts for a moment; the true number stands last
+  RUN.W08={when:w=>w==="view"&&onHome()&&!!document.querySelector("#main .chip.flame"),run:()=>{const ch=document.querySelector("#main .chip.flame");if(!ch)return false;const m=(ch.textContent||"").match(/(\d+)/);if(!m||+m[1]<4)return false;
+    const orig=ch.innerHTML,n=+m[1];ch.innerHTML=orig.replace(String(n),`<s style="text-decoration-color:#3a1410">${n+1}</s>`);const T=setTimeout(()=>{ch.innerHTML=orig},700);return ()=>{clearTimeout(T);ch.innerHTML=orig}}};
+  // W12 „Sie kommen sonst um …" — only when this session starts ≥ 2 h from his median hour (S.hx.hh, the last 14 session hours)
+  RUN.W12={when:w=>w==="view"&&onHome()&&st().hh.length>=6,run:ev=>{const H=st().hh.slice(0,-1).slice().sort((a,b)=>a-b);const med=H[Math.floor(H.length/2)],cur=new Date().getHours();const d=Math.min(Math.abs(cur-med),24-Math.abs(cur-med));if(d<2)return false;
+    const v=document.querySelector("#main .view");if(!v)return false;const p=document.createElement("p");p.className="muted ui hx-w12";p.style.cssText="font-style:italic;margin:.2rem 0 .6rem";
+    p.textContent=(du()?ev.du:ev.de).replace("{HH}",String(med).padStart(2,"0"));v.insertBefore(p,v.firstChild);return ()=>{}}};
+  // W16 the search field of the Merkmärchen knows his word
+  RUN.W16={when:w=>w==="focus"&&!!document.querySelector("#fIn .mn-q"),run:ev=>{const q=document.querySelector("#fIn .mn-q");const t=fillW(ev.de);if(!q||!t)return false;q.placeholder=t;return ()=>{}}};
+  // W17 a page turns in realm III; nothing on screen moves
+  RUN.W17={when:w=>w==="idle"&&realm()==="III"&&(onHome()||onPakt()),run:()=>{try{SND.fx("page")}catch(e){return false}return ()=>{}}};
+  // W20 the music listens: drops out mid-phrase for 8 s (tier 4)
+  RUN.W20={when:w=>w==="idle"&&(onHome()||onPakt()),run:()=>{try{if(!SND.state().started||SND.hushed())return false;SND.hush(true);const T=setTimeout(()=>{try{SND.hush(false)}catch(e){}},8000);return ()=>{clearTimeout(T);try{SND.hush(false)}catch(e){}}}catch(e){return false}}};
+  // W33 the tab title waits (desktop/PWA): handled by visibilitychange below, listed here for the table
+  // W35 one word fought back (card round summary, needs EV)
+  const roundFails={};
+  function w35(d){const ev=(HX_WRONG||[]).find(e=>e.id==="W35");const t=tier(null,"drill");if(!ev||!evOk(ev,t))return;const k=Object.keys(roundFails).find(k=>roundFails[k]>=2);for(const x in roundFails)delete roundFails[x];if(!k)return;
+    setTimeout(()=>{const box=document.querySelector("#fIn .celebrate");if(!box||!hxLineOk(k)||hxSober(k,""))return;const p=document.createElement("p");p.className="muted ui";p.style.fontStyle="italic";p.textContent=ev.de.replace("{WORD}",k);box.appendChild(p);st().seen.W35=td()},60)}
+  document.addEventListener("hx:answer",e=>{try{const d=e.detail;if(!d.ok&&d.word)roundFails[d.word]=(roundFails[d.word]||0)+1}catch(x){}});
+  // W39 a card with a Mephisto line leans 0.4° in realm IV
+  RUN.W39={when:w=>w==="view"&&realm()==="IV"&&!!document.querySelector("#main .pk-say"),run:()=>{const c=document.querySelector("#main .pk-say");const card=c&&c.closest(".card");if(!card)return false;const o=card.style.transform;card.style.transition="transform .6s";card.style.transform="rotate(.4deg)";
+    const T=setTimeout(()=>{card.style.transform=o},6000);return ()=>{clearTimeout(T);card.style.transform=o}}};
+  // W05 marginal notes under the pact (one per qualifying visit; on a day the debt grew, or from chapter 21 the day after the wager is found)
+  function paktNote(v){const s=st(),p=pk();if(chap()<21||!p.signed)return;const ev=(HX_WRONG||[]).find(e=>e.id==="W05");const t=tier(null,"drill");if(!ev||t<ev.tier)return;
+    const day=td();if(s.pnDay===day){show(s.pnLast);return}const grew=(p.debtNew|0)>0&&p.lastCheck===day;const wager=s.wagerDay&&s.wagerDay===addDays(day,-1);if(!grew&&!wager&&!(s.pn==null&&chap()>=21))return;
+    const i=s.pn==null?0:s.pn+1;if(i>=HX_PAKT_NOTES.length)return;const n=HX_PAKT_NOTES[i];const tx=fillW(du()&&n[2]?n[2]:n[0]);if(!tx)return;s.pn=i;s.pnDay=day;s.pnLast=[tx,fillW(n[1])||n[1]];show(s.pnLast);try{saveSoon()}catch(e){}
+    function show(x){if(!x)return;const box=v.querySelector(".pk-clauses,.card.orn")||v;const d=document.createElement("p");d.className="hx-note no-sig";d.style.cssText="font-family:var(--body);font-style:italic;margin:.6rem 0 0;color:color-mix(in srgb,var(--fg) 82%,#B3261E)";d.textContent=x[0];
+      const e2=document.createElement("small");e2.className="muted ui";e2.style.display="block";e2.textContent=x[1];d.appendChild(e2);box.appendChild(d)}}
+  // W28 wet signature while debt is open; W29 the signing date at night
+  function paktSig(v){const p=pk();const img=v.querySelector('img[src^="data:image/png"]');if(!img)return;if((p.debt|0)>0&&!HOR.quiet(img)){img.classList.add("hx-wet");img.style.filter="drop-shadow(0 0 6px #B3261E) drop-shadow(0 3px 0 rgba(120,0,0,.55)) saturate(1.3)"}}
+  // ---------- nightmares: a dark card on Heute after an unprotected missed day or a lost duel; never opens by itself; ≤ 1 a day, ≤ 3 a week
+  function nmFor(){const c=chap();return Object.keys(typeof NIGHTMARE!=="undefined"?NIGHTMARE:{}).filter(k=>{const n=NIGHTMARE[k];return c>=n.ch[0]&&c<=n.ch[1]})}
+  function nmDue(){const s=st(),p=pk();if(!p.signed||HOR.lvl()<1)return null;const day=td();if(s.nmDay===day&&s.nmCur)return s.nmCur;
+    const lost=s.lost&&s.lost.d&&s.lost.d>=addDays(day,-1);const missed=(p.debtNew|0)>0&&p.lastCheck===day;if(!lost&&!missed)return null;
+    const t=tier(null,"drill");if(t<(lost?2:3))return null;
+    const week=Object.values(s.nm).filter(d=>d>addDays(day,-7)).length;if(week>=3||Object.values(s.nm).some(d=>d===day))return null;
+    const ids=nmFor().filter(k=>!(s.nm[k]>addDays(day,-30)));if(!ids.length)return null;s.nmDay=day;s.nmCur=ids[Math.floor(Math.random()*ids.length)];return s.nmCur}
+  function nmCard(id){const n=NIGHTMARE[id];return `<div class="card hx-nm" data-nm="${id}" style="background:#0d0606;color:#e9dccb;border-color:#3a1410"><div class="eyebrow" style="color:#b87a6a">Sie haben geträumt. <span class="en">You have been dreaming.</span></div><p class="pk-nar" style="margin:.3rem 0">${esc(n.t)}</p><div class="row"><button class="go sm" data-act="hxNm" data-id="${id}">Den Traum ansehen</button><button class="ghost sm" data-act="hxNmLater">Später</button></div></div>`}
+  ACT.hxNm=el=>{const id=(el&&el.dataset&&el.dataset.id)||nmFor()[0];const n=NIGHTMARE[id];if(!n)return;try{if(typeof CHOICES!=="undefined")Object.assign(CHOICES,n.choices)}catch(e){}
+    st3Play({c:pkCh(),title:n.t,sub:"Ein Traum",lines:n.lines.map(l=>l.slice()),done:{label:"Aufwachen",fn:()=>{const s=st();s.nm[id]=td();s.nmCur=null;s.se.back=0;try{logDay("act")}catch(e){}try{saveSoon()}catch(e){}Focus.close()}}})};
+  ACT.hxNmLater=()=>{const c=document.querySelector("#main .hx-nm");if(c)c.remove();st().nmLater=td()};
+  // ---------- residues of beaten monsters (P8), visual only (no new sound): Kommission → the eye's iris takes the lantern's orange for good
+  function residues(){const w=S.bossWins||{};const e=HOR.eye&&HOR.eye();if(e)e.classList.toggle("lantern",!!w.kommission)}
+  // ---------- W07 no eye in the first session after a lost duel; W40 the eye closes through chapter 40 and the Kommission
+  function eyeState(){const e=HOR.eye&&HOR.eye();if(!e)return;const s=st();const lostSess=s.lost&&s.lost.d===td()&&s.lost.sess!==s.se.t&&s.lost.shown!==s.se.t;
+    if(lostSess&&chap()>=9&&tier(null,"drill")>=3&&!s.seen.W07){e.classList.add("gone");s.lost.shown=s.se.t;s.seen.W07=td()}else if(s.lost&&s.lost.shown!==s.se.t)e.classList.remove("gone");
+    const f=focusTitle();if(/^Kapitel 40\b/.test(f)||document.querySelector('#fIn .duel[data-boss="kommission"]'))HOR.shutEye(0);}
+  // ---------- view changes: tier on <html>, the pupil, the gutter, events
+  function onView(){try{session();const h=document.documentElement,t=tier(null,"drill");h.dataset.hxt=String(Math.max(0,t));h.style.setProperty("--hxd",String(dread()));HOR.pupil(t);HOR.gutterSync(pk().signed?(pk().debt||0):0);residues();eyeState()}catch(e){}}
+  const later=()=>setTimeout(()=>{try{schedule("view")}catch(e){}},0);
+  try{MOD.after("chromeExtras","s6",onView)}catch(e){}
+  try{MOD.after("viewHome","s6",function(m){const v=(m&&m.querySelector(".view"))||m;if(!v||!pk().signed)return;later();const s=st();if(s.nmLater===td())return;const id=nmDue();if(id&&!v.querySelector(".hx-nm"))v.insertAdjacentHTML("afterbegin",nmCard(id))})}catch(e){}
+  try{MOD.after("viewPakt","s6",function(m){const v=(m&&m.querySelector(".view"))||m;if(!v)return;paktNote(v);paktSig(v);later()})}catch(e){}
+  // Focus content changes (cheap: childList of #fIn only) → stand-down of our own transient nodes in sober places, W16, duel outcome, W40
+  function watchFocus(){const f=document.getElementById("fIn");if(!f||watchFocus.on)return;watchFocus.on=true;let T=null;
+    new MutationObserver(()=>{clearTimeout(T);T=setTimeout(()=>{try{const c=ctx(null);if(c==="sober"||c==="speech"){document.querySelectorAll("#fIn .hx-blot,#fIn .hx-ink,#fIn .hor-drip,.hor-whisper").forEach(n=>{if(!n.closest(".duel-boss"))n.remove()});HOR.shutEye(2000)}
+      watchDuel();eyeState();if(c==="drill")schedule("focus")}catch(e){}},60)}).observe(f,{childList:true})}
+  setTimeout(watchFocus,0);
+  document.addEventListener("ui:idle",e=>{try{if(e.detail&&e.detail.idle)schedule("idle")}catch(x){}});
+  // W33 the tab title while hidden (≥ 10 min / ≥ 60 min)
+  let hidT=null,hid2=null,title0="";document.addEventListener("visibilitychange",()=>{const ev=(typeof HX_WRONG!=="undefined"?HX_WRONG:[]).find(e=>e.id==="W33");
+    if(document.hidden){if(!ev||HOR.lvl()<1||!pk().signed)return;title0=document.title;hidT=setTimeout(()=>{document.title=ev.de},600000);hid2=setTimeout(()=>{document.title=ev.de2},3600000)}
+    else{clearTimeout(hidT);clearTimeout(hid2);if(title0&&/^Mephisto wartet/.test(document.title))document.title=title0}});
+  window.HX_READY=1;
+  return {dread,tier,ctx,can,onAnswer,flush,fill:fillTok,word,pickWhisper,absent,session,schedule,fails:()=>st().fails|0,rightRun:()=>st().rr|0,CURVE,COOL,RUN,nmDue,_st:st,_hookEV:hookEV}})();
+// ---------- the palace generator in the Gruft (c_v126.js is not ours): PLURAL.put becomes objects whose replace() applies hxPut and adds the gloss
+(function(){try{if(typeof PLURAL==="undefined"||typeof HX_PLURAL_PUT==="undefined")return;
+  PLURAL.put=HX_PLURAL_PUT.map(p=>({s:p.s,en:p.en,t:p.t,replace:function(tok,html){let noun="",en="";try{const h=document.querySelector("#fIn h2.no-sig");const sg=h?h.textContent.trim():"";noun=sg.replace(/^(der|die|das)\s+/,"");const mu=h&&h.nextElementSibling;en=mu?mu.textContent:"";
+      const cd=typeof allCards==="function"?allCards().find(c=>c.de===sg):null;if(cd)en=cd.en||en}catch(e){}
+    const s=HX._st();const r=hxPut(HX_PLURAL_PUT,noun,en,"pl",s.putPl);s.putPl=r.s;let lv=0;try{lv=learnerLv()|0}catch(e){}
+    return r.s.replace("{X}",html)+(r.en&&lv<2?`<br><small class="muted ui">${esc(r.en)}</small>`:"")},toString:function(){return this.s}}))}catch(e){}})();
+// ---------- the Witch's duel: a noun that hxSober holds back never stands under her taunts (bossPool is not a MOD hook: MOD.around, listed in MANIFEST)
+try{MOD.around("bossPool","s6",function(orig,id){const q=orig(id);try{if(id==="hexe"&&Array.isArray(q))return q.filter(x=>x.k!=="genus"||!hxSober(x.q,x.sub))}catch(e){}return q})}catch(e){}
+// ---------- dark omens (c_omen.js is not ours): on a day with debt, after an absence of ≥ 2 days or at tier ≥ 3 the omen comes from HX_OMEN; the sealed card shows its sign.
+// OMEN „Blut ist dicker als Wasser" (its matter is family, S6 H11) is removed from the proverb list at load.
+(function(){try{if(typeof OMEN!=="undefined"&&Array.isArray(OMEN)){for(let i=OMEN.length-1;i>=0;i--)if(OMEN[i]&&/^Blut ist dicker als Wasser/.test(OMEN[i].de||""))OMEN.splice(i,1)}}catch(e){}
+  function dark(){try{const p=P();if(!p.signed||HOR.lvl()<1)return false;return (p.debt|0)>0||HX.absent()>=2||HX.tier(null,"drill")>=3}catch(e){return false}}
+  try{MOD.around("omenToday","s6",function(orig){const o=orig();try{if(o&&o.kind==="p"&&dark()&&typeof HX_OMEN!=="undefined"&&HX_OMEN.length){let h=0;for(const c of o.k)h=(h*37+c.charCodeAt(0))>>>0;const x=HX_OMEN[h%HX_OMEN.length];if(/^Abwarten und Tee/.test(x.de))HX._st().rest=o.k;return Object.assign({},o,{x,dark:1})}}catch(e){}return o})}catch(e){}
+  try{MOD.around("omenHTML","s6",function(orig){let h=orig();try{const o=omenToday();if(o&&o.dark&&o.x&&o.x.sign)h=String(h).replace("Tippen, um das Siegel zu brechen",esc(o.x.sign[0]))}catch(e){}return h})}catch(e){}})();
+// ---------- nightmare choices are registered at load (ids nm1a … nm10c; the s2 loader hides unknown ids)
+try{if(typeof CHOICES!=="undefined"&&typeof NIGHTMARE!=="undefined")for(const k in NIGHTMARE)Object.assign(CHOICES,NIGHTMARE[k].choices)}catch(e){}
+
 // ===== Mephisto · track I · c_i1_pre.js — Vorwissen: the next chapter's words enter the new-card queue before the chapter opens (owner: i1).
 // Source: beta r8 I3 §6.4 (c_preteach.js), with PLAN-I i1 step 4: canon lists (x_i1_pre.js, generated by tools/gen_preteach.js), new arm rule,
 // feed through preToday() (l4/PLAN-L §2.4 reads it first; while l4's memQueue is absent, newPool is adapted here by one MOD.around).
@@ -12160,6 +14149,623 @@ l5Try("css",()=>{if(typeof document==="undefined"||document.getElementById("l5cs
 .l5-rc.cF{background:rgba(226,101,28,.18)}.l5-rc.cS{background:rgba(47,100,181,.2)}.l5-rc.cN{background:rgba(60,60,90,.35)}.l5-rc.cD{background:rgba(127,127,127,.25)}.l5-rc.cX{background:rgba(42,138,85,.18)}
 .l5-card .steps{margin-top:.3rem}.l5-ext .chip{cursor:pointer}`;document.head.appendChild(s)});
 
+// ===== Mephisto · track A · c_a8.js (owner: a8) — Home "Heute", navigation, one Werkstatt, one settings page, onboarding
+// "Der Handel" (pact signed by pad or by name), the session shell, wide layouts (Deck 1280, 27" 2560) and the seven layout slots.
+// Module "core", after c_final / track S / c_a4 c_a5 c_a7 c_a3 c_a9, before c_cloud (PLAN-A §4). PLAN-A §2.7 (SLOT), §2.8 (UIX), D10.
+// Rules kept: screens change through MOD.after / MOD.around only; every section in try/catch; nothing throws at load.
+// New hook points (after-only, listed in MANIFEST for approval): runStep, finishSession, sigPad. One MOD.around: meSettings, toast.
+// ACT entries replaced (originals kept and called): ACT.pkProlog (unsigned → Der Handel), ACT.reset (accepts LOESCHEN).
+// State: S.a8 = {hd, last, shift} — device-local (see MANIFEST).
+window.SLOT=window.SLOT||{h:{},on(n,tag,f){(this.h[n]=this.h[n]||[]).push([tag,f])},
+  fill(n,el,ctx){(this.h[n]||[]).forEach(([t,f])=>{try{f(el,ctx)}catch(e){try{logError({message:"SLOT "+n+"/"+t+": "+e.message})}catch(x){}}})}};
+(function(){"use strict";
+const LOG=(w,e)=>{try{logError({message:"a8 "+w+": "+(e&&e.message||e)})}catch(x){}};
+const q=(s,r)=>(r||document).querySelector(s),qa=(s,r)=>[...(r||document).querySelectorAll(s)];
+const st=()=>{try{if(!S.a8||typeof S.a8!=="object")S.a8={};return S.a8}catch(e){return {}}};
+const E=s=>{try{return esc(s)}catch(e){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c])}};
+const I=n=>{try{return ic(n)}catch(e){return ""}};
+const signed=()=>{try{return !!P().signed}catch(e){return false}};
+const nocine=()=>{try{return !!localStorage.getItem("mephisto_nocine")}catch(e){return false}};
+// integrator 13.7: dev/test flag like mephisto_nocine — localStorage "mephisto_nohandel" keeps the 13.0 onboarding (no automatic Der Handel,
+// „Den Pakt schließen“ opens the old prolog). tests/pw_legacy.js sets it for the suites written before a8; real users never have it.
+const noHandel=()=>{try{return !!localStorage.getItem("mephisto_nohandel")}catch(e){return false}};
+const H=document.documentElement;
+try{Object.assign(IC,{werk:'<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.5-.5-.5-2.5z"/>',
+  a8pause:'<path d="M8 5v14M16 5v14"/>',search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>'})}catch(e){}
+
+// ---------------------------------------------------------------- 1. layout attribute (PLAN-A §2.3 breakpoints)
+function layout(){const w=innerWidth||H.clientWidth||390;const L=w<600?"phone":w<1100?"tablet":w<1600?"deck":"desk";if(H.dataset.layout!==L)H.dataset.layout=L;return L}
+let rz=0;addEventListener("resize",()=>{if(rz)return;rz=requestAnimationFrame(()=>{rz=0;const was=H.dataset.layout;layout();if(was!==H.dataset.layout){try{if(R.tab==="home"&&!Focus.isOpen())rerender()}catch(e){}}})});
+layout();
+
+// ---------------------------------------------------------------- 2. chrome in Sie, labels, step names (ux D6, D8)
+try{TABS.forEach(t=>{if(t[0]==="practice"){t[1]="Werkstatt";t[2]="werk"}})}catch(e){}
+try{const en={review:"repeat what is due",learn:"today's new lesson",input:"listen and read",output:"write and speak",fluency:"say it faster",culture:"culture"};Object.keys(en).forEach(k=>{if(STRAND[k])STRAND[k].en=en[k]})}catch(e){}
+const SIE=[[/Wo stehst du gerade\?/g,"Wo stehen Sie gerade?"],[/Sichere ihn regelmäßig/g,"Sichern Sie ihn regelmäßig"],[/Tippe (LÖSCHEN|<b class="mono">LÖSCHEN<\/b>) zur Bestätigung/g,"Tippen Sie $1 zur Bestätigung"],
+  [/Dein Fortschritt/g,"Ihr Fortschritt"],[/\bdein(e[nmrs]?)? Deck\b/g,"Ihr Deck"],[/Wähle /g,"Wählen Sie "],[/Tippe /g,"Tippen Sie "]];
+function sie(root){if(!root)return;try{const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let n;const L=[];while((n=w.nextNode()))L.push(n);
+  L.forEach(t=>{let s=t.nodeValue,o=s;SIE.forEach(([a,b])=>{if(typeof b==="string"&&!/\$1/.test(b))s=s.replace(a,b)});if(s!==o)t.nodeValue=s})}catch(e){}}
+
+// ---------------------------------------------------------------- 3. UIX: signature from a typed name (pad / keyboard / mouse path)
+function sigFromName(c,name){if(!c||!c.getContext)return false;const nm=String(name||"").trim();if(!nm)return false;const x=c.getContext("2d");
+  x.clearRect(0,0,c.width,c.height);x.save();x.fillStyle="#9B1C14";x.strokeStyle="#9B1C14";x.shadowColor="#B3261E";x.shadowBlur=6;
+  let fs=Math.round(c.height*.42);const fam=`"Mephisto Fell","IM Fell DW Pica","Mephisto Garamond","EB Garamond",Georgia,serif`;
+  x.font=`italic ${fs}px ${fam}`;while(x.measureText(nm).width>c.width*.84&&fs>22){fs-=4;x.font=`italic ${fs}px ${fam}`}
+  const w=x.measureText(nm).width;x.translate(Math.max(12,(c.width-w)/2),c.height*.62);x.rotate(-.05);x.fillText(nm,0,0);
+  x.lineWidth=Math.max(3,fs*.05);x.lineCap="round";x.beginPath();x.moveTo(-6,fs*.2);x.bezierCurveTo(w*.3,fs*.34,w*.62,fs*.08,w+18,fs*.24);x.stroke();x.restore();
+  c.dataset.ink="1";c.dataset.inkFrom="name";try{SND.fx("quill")}catch(e){}return true}
+
+// ---------------------------------------------------------------- 4. Onboarding "Der Handel" — six screens, Sie, step dots, Back
+const HD={i:0,lv:null,min:60,shift:false,sound:true,el:null,opener:null};
+function a8Place(lv){try{const p=PLACE.find(x=>x[0]===lv);if(!p)return;const prev=S.placement;S.placement=lv;S.wdt=null;S.placed=S.placed||todayKey();
+  setPlanWeek(prev===lv?Math.max(p[3],weekNumber()):p[3]);if(lv==="C1"&&S.focus!=="pruefung")S.focus="pruefung";S.today=null;logEvent("plan","Einstufung "+lv+" (Der Handel) · ab Woche "+weekNumber());saveSoon()}catch(e){LOG("place",e)}}
+function a8Seal(name,c){const p=P();p.name=name;try{const t=document.createElement("canvas");t.width=360;t.height=120;t.getContext("2d").drawImage(c,0,0,360,120);p.sig=t.toDataURL("image/png")}catch(e){}
+  // same fields as c_pakt.js prolog, handler k==="4" (first signing)
+  p.signed=true;p.date=todayKey();p.ch=1;p.chStart=todayKey();p.chSess=0;p.lastCheck=addDays(todayKey(),-1);if(!S.look||S.look==="auto"||S.look==="classic")S.look="gothic";
+  S.onboarded=true;S.weekSeen=weekNumber();st().hd=todayKey();saveSoon();try{SND.fx("seal")}catch(e){}try{applyPrefs()}catch(e){}}
+const fig=id=>{try{return typeof pkFig==="function"?pkFig(id,"a8-fig"):""}catch(e){return ""}};
+const say=l=>{try{return pkSay(l)}catch(e){return `<p class="de">${E(l[0])}</p><p class="en" lang="en">${E(l[1])}</p>`}};
+const HSCR=[
+ ()=>`<h2 id="a8hT" class="t-display">Der Pakt</h2>${fig("clarke_10")}
+   <p class="pk-faust">Ihr naht euch wieder, schwankende Gestalten,<br>Die früh sich einst dem trüben Blick gezeigt.<small lang="en">Faust I, Zueignung — “You approach again, wavering figures …”</small></p>
+   <div class="a8-hbtns"><button class="btn-primary go" data-h="sound" data-pad="a">Mit Ton eintreten</button><button class="btn-secondary" data-h="mute" data-pad="x">Ohne Ton eintreten</button></div>
+   <button class="btn-quiet a8-later" data-h="later">Später <span class="en" lang="en">not now</span></button>`,
+ ()=>`<h2 id="a8hT">Mephisto</h2>${fig("clarke_15")}
+   <div class="card orn">${say(["Guten Abend, Herr Doktor. Sie wollen Deutsch lernen. Wie rührend.","Good evening, Doctor. You want to learn German. How touching."])}</div>
+   <div class="card">${say(["Sie können Herzen lesen, Lungen hören, Knochen sehen — und in Deutschland können Sie nicht einmal ein Brötchen bestellen.","You can read hearts, hear lungs, see bones — and in Germany you can't even order a bread roll."])}</div>
+   <div class="card">${say(["Ich biete Ihnen einen Handel an.","I offer you a deal."])}</div>
+   <div class="a8-hbtns"><button class="btn-primary go" data-h="next" data-pad="a">Welchen Handel?</button></div>`,
+ ()=>`<h2 id="a8hT">Wo stehen Sie?</h2><p class="en" lang="en">Where do you stand? Your cards and lessons start at this level.</p>
+   <div class="a8-levels">${(typeof PLACE!=="undefined"?PLACE:[]).map(p=>`<button class="tile a8-lv ${HD.lv===p[0]?"on":""}" data-h="lv" data-l="${p[0]}"><b class="num">${p[0]}</b><span>${E(p[1])}</span><small>${E(p[2])}</small></button>`).join("")}</div>
+   <button class="btn-secondary" data-h="lv" data-l="?">Ich weiß es nicht · mit A1 beginnen<small class="en" lang="en">If you are faster, Mephisto offers to move the plan ahead.</small></button>`,
+ ()=>`<h2 id="a8hT">Wie viel Zeit geben Sie mir?</h2><p class="en" lang="en">Minutes per day. You can change this on Heute at any time.</p>
+   <div class="a8-mins a8-mins-big" role="group" aria-label="Minuten pro Tag">${[20,40,60,90].map(n=>`<button class="pill-btn ${HD.min===n?"on":""}" data-h="min" data-n="${n}" aria-pressed="${HD.min===n}"><b class="num">${n}</b> Min.</button>`).join("")}</div>
+   <label class="a8-check"><input type="checkbox" data-h="shift" ${HD.shift?"checked":""}> <span>Ich arbeite im Schichtdienst<small class="en" lang="en">Shift days protect the candle; a short pocket session counts.</small></span></label>
+   <div class="a8-hbtns"><button class="btn-primary go" data-h="next" data-pad="a">Weiter</button></div>`,
+ ()=>`<h2 id="a8hT">Die Klauseln</h2>
+   <div class="a8-sigwrap"><div class="card orn a8-clauses" data-fx-protect>
+     <p><b>§ 1</b> Ich, Mephistopheles, führe Sie durch fünf Reiche: vom Schwarzwald bis auf den Brocken. Am Ende bestehen Sie das Goethe-Zertifikat B2 und die Fachsprachprüfung.</p>
+     <p><b>§ 2</b> Ihre Seele gehört ab sofort mir. Jeden Tag, an dem Sie arbeiten, kaufen Sie ein Stück zurück.</p>
+     <p><b>§ 3</b> Sie geben mir ${HD.min} Minuten am Tag, an Diensttagen 20. Ein Ruhetag pro Woche sei Ihnen gegönnt.</p>
+     <p><b>§ 4</b> Jeder versäumte Tag wird ein Schuldschein. Schuldscheine bezahlen Sie mit Bußrunden.</p>
+     <p><b>§ 5</b> Ich werde Sie beleidigen. Täglich. Ihre Fehler werde ich Ihnen trotzdem immer richtig erklären.</p></div>
+   <div class="stack s a8-sign">${say(["Mit Blut, bitte. Tinte ist für Feiglinge.","In blood, please. Ink is for cowards."])}
+     <label class="f">Ihr Name<input id="pkName" value="${E((()=>{try{return P().name||""}catch(e){return ""}})())}" autocomplete="name" placeholder="Dr. …"></label>
+     <div class="pk-sign"><canvas id="pkSig" width="900" height="300" aria-label="Unterschriftsfeld"></canvas><span class="hint">Mit Finger oder Maus unterschreiben — oder „Mit Namen zeichnen“</span></div>
+     <div class="a8-hbtns"><button class="btn-quiet" data-h="clr">Neu</button><button class="btn-secondary" data-h="signame" data-pad="x">Mit Namen zeichnen</button><button class="btn-primary go" data-h="seal" data-pad="a">Besiegeln</button></div></div></div>`,
+ ()=>`<div class="a8-sealed pk-flicker" aria-hidden="true">☩</div><h2 id="a8hT" class="t-display">Besiegelt.</h2>
+   <p class="pk-faust">Blut ist ein ganz besondrer Saft.<small lang="en">Faust I, Studierzimmer — “Blood is a very special juice.”</small></p>
+   <div class="card">${say(["Willkommen im Schwarzwald, "+((()=>{try{return P().name}catch(e){return ""}})()||"Doktor")+". Folgen Sie der Laterne.","Welcome to the Black Forest. Follow the lantern."])}</div>
+   <div class="a8-hbtns"><button class="btn-primary go" data-h="first" data-pad="a">Erste Sitzung beginnen</button><button class="btn-secondary" data-h="ch1" data-pad="x">Zuerst Kapitel 1 lesen</button></div>`];
+function hdDraw(){const ov=HD.el;if(!ov)return;const n=HSCR.length;
+  ov.innerHTML=`<i class="pk-prolog" hidden></i><div class="a8-hhead"><div class="a8-dots" aria-hidden="true">${HSCR.map((_,i)=>`<i class="${i<HD.i?"done":i===HD.i?"cur":""}"></i>`).join("")}</div><span class="num a8-hcount">${HD.i+1} / ${n}</span></div>
+   <div class="a8-hbody pk-prolog-a8">${HSCR[HD.i]()}</div>
+   <div class="a8-hfoot">${HD.i>0&&HD.i<5?`<button class="btn-quiet" data-h="back" data-pad="b">‹ Zurück</button>`:"<span></span>"}<span class="muted ui a8-legend">Ⓐ wählen · ✚ bewegen · Ⓑ zurück</span></div>`;
+  ov.scrollTop=0;if(HD.i===4){try{sigPad()}catch(e){}}
+  const f=q("[data-h].on",ov)||q(".btn-primary",ov)||q("[data-h]",ov);try{f&&f.focus({preventScroll:true})}catch(e){}}
+function hdClose(){const ov=HD.el;HD.el=null;if(ov)ov.remove();try{q("#app").inert=false}catch(e){}}
+function hdGo(i){HD.i=Math.max(0,Math.min(HSCR.length-1,i));hdDraw();if(HD.i===5)hdRealm()}
+function hdRealm(){try{if(window.M&&typeof M.seq==="function"){M.seq("I",{onEnd(){try{S.realmSeen="I";saveSoon()}catch(e){}const b=HD.el&&q(".btn-primary",HD.el);b&&b.focus()}});return}   // integrator 13.7: mark realm I seen, else a7 plays it again on the Pakt tab
+  if(typeof realmIntro==="function"&&!nocine()&&S.realmSeen!=="I")realmIntro("I",true)}catch(e){LOG("realm",e)}}
+function handel(){if(HD.el)return HD.el;let ov=document.createElement("div");ov.id="a8-handel";ov.className="a8-handel";ov.setAttribute("role","dialog");ov.setAttribute("aria-modal","true");ov.setAttribute("aria-labelledby","a8hT");
+  document.body.appendChild(ov);HD.el=ov;HD.i=0;HD.lv=S.placement||null;HD.min=[20,40,60,90].reduce((a,b)=>Math.abs(b-(S.minutes||60))<Math.abs(a-(S.minutes||60))?b:a,60);HD.shift=!!(st().shift);
+  try{q("#app").inert=true}catch(e){}
+  ov.addEventListener("click",e=>{const b=e.target.closest("[data-h]");if(!b||b.tagName==="INPUT")return;const k=b.dataset.h;try{
+    if(k==="sound"){S.sound=Object.assign({},S.sound||{},{on:true});try{SND.start();SND.fx("bell")}catch(x){}hdGo(1)}
+    else if(k==="mute"){S.sound=Object.assign({},S.sound||{},{on:false});try{SND.stop()}catch(x){}saveSoon();hdGo(1)}
+    else if(k==="later"){st().hd="later:"+todayKey();saveSoon();hdClose()}
+    else if(k==="next")hdGo(HD.i+1);else if(k==="back")hdGo(HD.i-1);
+    else if(k==="lv"){const lv=b.dataset.l==="?"?"A1":b.dataset.l;HD.lv=lv;a8Place(lv);hdGo(3)}
+    else if(k==="min"){HD.min=+b.dataset.n;S.minutes=HD.min;saveSoon();qa("[data-h=min]",ov).forEach(x=>{x.classList.toggle("on",x===b);x.setAttribute("aria-pressed",x===b)})}
+    else if(k==="clr"){const c=q("#pkSig",ov);c.getContext("2d").clearRect(0,0,c.width,c.height);c.dataset.ink=""}
+    else if(k==="signame"){const nm=(q("#pkName",ov).value||"").trim();if(!nm){toast("Bitte zuerst Ihren Namen eintragen.");q("#pkName",ov).focus();return}sigFromName(q("#pkSig",ov),nm);q("[data-h=seal]",ov).focus()}
+    else if(k==="seal"){const nm=(q("#pkName",ov).value||"").trim(),c=q("#pkSig",ov);if(!c.dataset.ink&&nm)sigFromName(c,nm);if(!c.dataset.ink){toast("Ohne Unterschrift kein Pakt.");return}
+      S.minutes=HD.min;st().shift=HD.shift;if(HD.shift)S.restDays=true;a8Seal(nm||"Doktor",c);hdGo(5)}
+    else if(k==="first"){hdClose();try{go("home")}catch(x){}setTimeout(()=>{try{openSession()}catch(x){LOG("first",x)}},60)}
+    else if(k==="ch1"){hdClose();try{go("pakt");setTimeout(()=>pkRead(1),250)}catch(x){}}
+  }catch(x){LOG("handel "+k,x)}});
+  ov.addEventListener("change",e=>{if(e.target.matches("[data-h=shift]"))HD.shift=e.target.checked});
+  ov.addEventListener("keydown",e=>{if(e.key==="Escape"&&HD.i>0&&HD.i<5){e.preventDefault();e.stopPropagation();hdGo(HD.i-1)}});
+  hdDraw();return ov}
+try{const _pp=ACT.pkProlog;ACT.pkProlog=function(){try{if(!signed()&&!noHandel())return handel()}catch(e){}return _pp&&_pp.apply(this,arguments)}}catch(e){}
+// the old prolog (still reached by "Prolog noch einmal"): add "Mit Namen zeichnen" beside "Neu" (ux D9)
+try{MOD.after("sigPad","a8",function(){const ov=q("#pakt-pro");if(!ov)return;const clr=q("[data-pro=clr]",ov);if(!clr||q(".a8-signame",ov))return;
+  clr.insertAdjacentHTML("afterend",`<button class="btn-secondary a8-signame" type="button" data-pad="x">Mit Namen zeichnen</button>`);
+  q(".a8-signame",ov).onclick=e=>{e.stopPropagation();const nm=((q("#pkName",ov)||{}).value||"").trim();if(!nm){toast("Bitte zuerst Ihren Namen eintragen.");return}sigFromName(q("#pkSig",ov),nm);const s=q("[data-pro='4']",ov);s&&s.focus()}})}catch(e){}
+
+// ---------------------------------------------------------------- 5. Home "Heute" (ux P2): hero → Mephisto → Weiter → three rows → Zeugnis
+const MINS=[20,40,60,90];
+ACT.a8Min=el=>{const n=+el.dataset.n;if(!n)return;S.minutes=n;if(S.today&&!S.today.steps.some(s=>s.done))S.today=null;saveSoon();toast(n+" Minuten pro Tag");rerender()};
+function resumeHTML(){const L=st().last;let a="",lbl="",sub="";
+  if(L&&L.act&&ACT[L.act]&&Date.now()-(L.at||0)<14*864e5){a=` data-act="${E(L.act)}"`+Object.entries(L.data||{}).map(([k,v])=>` data-${E(k)}="${E(v)}"`).join("");lbl=L.label;sub="Werkstatt · zuletzt "+(()=>{try{return fmtDate(new Date(L.at).toISOString().slice(0,10))}catch(e){return ""}})()}
+  else if(signed()){try{const c=pkCh();a=` data-act="pkRead" data-n="${c.n}"`;lbl="Kapitel "+c.n+": "+c.t;sub="Der Pakt · weiterlesen"}catch(e){}}
+  if(!a)return "";return `<button class="card a8-resume"${a}><span class="t"><span class="eyebrow">Weiter, wo Sie waren <span class="en" lang="en">resume</span></span><b>${E(lbl)}</b><small class="muted">${E(sub)}</small></span>${I("chev")}</button>`}
+function homeLayout(m){const v=q(".view",m);if(!v||v.classList.contains("a8-home"))return;const hero=q(":scope > .hero",v);if(!hero)return;
+  const kids=[...v.children];const used=new Set();const take=el=>{if(el){used.add(el)}return el};
+  const head=take(q(":scope > .head",v));const meph=take(kids.find(c=>c.matches(".card.orn.pk-fade")));take(hero);
+  const omen=take(q(":scope > .omen",v)),lore=take(q(":scope > .lore-new",v)),wdt=take(q(":scope > .wdt",v)),zeug=take(q(":scope > .zeugnis",v)),strip=take(q(":scope > .prog-strip",v));
+  const stepsCard=take(kids.find(c=>c.querySelector&&c.querySelector(":scope > .steps")));const place=take(q(":scope > .place-card",v));
+  const welcome=take(kids.find(c=>c.querySelector&&c.querySelector("[data-act=onboardDone]")));if(welcome)welcome.remove();
+  // hero: chips 20·40·60·90 + shift toggle, no hidden long-press hint (ux D7), the home.hero slot
+  qa(".go small,.btn-primary small",hero).forEach(s=>{s.dataset.kit=1;s.textContent=s.textContent.replace(/\s*·\s*gedr\S*\s+halten\s+f\S*r\s+L\S*nge/i,"")});
+  const go1=q("[data-act=startSession],[data-act=extraRoundHome],.go",hero);if(go1){go1.dataset.pad="a";go1.classList.add("a8-start")}
+  const shiftBtn=q("[data-act=toggleShift]",v);const shiftRow=shiftBtn&&shiftBtn.closest(".row");const sh=(()=>{try{return isShift()}catch(e){return false}})();
+  const cur=(S.today&&S.today.minutes)||S.minutes;
+  hero.insertAdjacentHTML("beforeend",`<div class="a8-mins" role="group" aria-label="Minuten pro Tag">${MINS.map(n=>`<button class="pill-btn ${cur===n||(!MINS.includes(cur)&&n===60&&false)?"on":""}" data-act="a8Min" data-n="${n}" aria-pressed="${cur===n}"><span class="num">${n}</span></button>`).join("")}<span class="a8-minlbl muted">Min.</span>
+    <button class="pill-btn a8-shift ${sh?"on":""}" data-act="toggleShift" aria-pressed="${sh}">${I(sh?"check":"timer")} ${sh?"Dienst heute":"Heute Dienst?"}</button></div><div class="a8-slot" data-slot="home.hero"></div>`);
+  if(shiftRow){const info=q("span",shiftRow);if(shiftBtn)shiftBtn.remove();used.add(shiftRow);if(info){info.classList.add("a8-today-min");hero.appendChild(info)}shiftRow.remove()}
+  // head: one h1 per page (the hero's); the greeting becomes a line
+  if(head){const h1=q("h1",head);if(h1){const p=document.createElement("p");p.className="a8-greet";p.textContent=h1.textContent;h1.replaceWith(p)}}
+  const col1=document.createElement("div");col1.className="a8-col1";const col2=document.createElement("div");col2.className="a8-col2";
+  [head,hero,meph].forEach(x=>x&&col1.appendChild(x));col1.insertAdjacentHTML("beforeend",resumeHTML());
+  if(place){if(noHandel()||signed()&&!S.placement){const d=document.createElement("details");d.className="card a8-place";if(noHandel())d.open=true;d.innerHTML=`<summary><span class="eyebrow">Einstufung</span> Wo stehen Sie? <span class="en" lang="en">pick your level</span></summary>`;d.appendChild(place);col1.appendChild(d)}else place.remove()}
+  if(omen||lore||wdt){const t=document.createElement("div");t.className="a8-trio";[omen,lore].forEach(x=>x&&t.appendChild(x));
+    if(wdt){const d=document.createElement("details");d.className="card a8-wdt";const eb=q(".eyebrow",wdt);const word=(()=>{let t=wdt.textContent.replace(/\s+/g," ").trim();const e=eb?eb.textContent.replace(/\s+/g," ").trim():"";if(e&&t.startsWith(e))t=t.slice(e.length);return t.trim().slice(0,40)})();
+      d.innerHTML=`<summary><span class="eyebrow">Wort des Tages</span><b>${E(word)}</b></summary>`;wdt.classList.remove("card");d.appendChild(wdt);t.appendChild(d)}col1.appendChild(t)}
+  if(zeug){const d=document.createElement("details");d.className="card a8-z";const note=(q(".z-note",zeug)||{}).textContent||"";d.innerHTML=`<summary><span class="eyebrow">Zeugnis</span> ${note?`<b class="num">Note ${E(note.trim())}</b>`:"diese Woche"} <span class="en" lang="en">weekly report</span></summary>`;zeug.classList.remove("card");d.appendChild(zeug);col1.appendChild(d)}
+  if(strip){strip.classList.add("a8-strip");col1.appendChild(strip)}
+  const LY=layout();const desk=LY==="desk"||LY==="deck";
+  if(stepsCard){const d=document.createElement("details");d.className="card a8-steps";if(desk)d.open=true;const T=S.today||{steps:[]};const dn=T.steps.filter(s=>s.done&&!s.skipped).length;
+    d.innerHTML=`<summary><span class="eyebrow">Heute</span> <b class="num">${dn}/${T.steps.length}</b> Schritte <span class="en" lang="en">today's steps</span></summary>`;stepsCard.classList.remove("card");d.appendChild(stepsCard);col2.appendChild(d)}
+  let rest=[...v.children].filter(c=>!used.has(c)&&c!==col1&&c!==col2);
+  // integrator 13.7: one-time notices and pact prompts must not hide in the collapsed „Mehr für heute“ (i4 migration, the du offer, i8's decision cards — weekly clause, settlement, deal, way back — any card marked data-a8-top)
+  const TOP=".i4-mig,.du-offer,.i8-kl,.i8-set,.i8-deal,.i8-back,[data-a8-top]";
+  // i8: only the cards that ask for a decision (clause, settlement, deal, way back) move up, in a wrapper with the package's own class
+  rest.forEach(c=>{if(!c.matches||c.matches(TOP))return;const L=qa(TOP,c);if(!L.length)return;const w=document.createElement("div");w.className=c.className+" a8-lifted";L.forEach(x=>w.appendChild(x));col1.appendChild(w)});
+  rest=rest.filter(c=>{if(c.matches&&c.matches(TOP)){c.classList.add("a8-lifted");col1.appendChild(c);return false}return !(c.matches&&c.children.length===0&&!c.textContent.trim())});
+  if(rest.length){const d=document.createElement("details");d.className="a8-more";if(desk)d.open=true;d.innerHTML=`<summary class="card">Mehr für heute <span class="muted num">(${rest.length})</span> <span class="en" lang="en">more</span></summary>`;
+    const box=document.createElement("div");box.className="a8-morebox";rest.forEach(x=>box.appendChild(x));d.appendChild(box);col2.appendChild(d)}
+  v.innerHTML="";v.appendChild(col1);v.appendChild(col2);v.classList.add("a8-home");sie(v);
+  const slot=q("[data-slot='home.hero']",v);let ctx={date:todayKey(),week:weekNumber(),plan:S.today,shift:sh};SLOT.fill("home.hero",slot,ctx);
+  if(!signed()&&!st().hd&&!nocine()&&!noHandel()&&!q("#a8-handel"))handel()}
+MOD.after("viewHome","a8",function(m){try{homeLayout(m)}catch(e){LOG("home",e)}});
+
+// ---------------------------------------------------------------- 6. Werkstatt: every tool exactly once, six groups (ux D28, P5)
+const GROUPS=[["karten","Karten","cards & words","cards"],["grammatik","Grammatik","grammar","grid"],["hoeren","Hören & Sprechen","listening & speaking","ear"],["lesen","Lesen & Schreiben","reading & writing","pen"],["pruefung","Prüfung","exams","target"],["welt","Welt","Germany & culture","book"]];
+const GMAP={cards:"karten",review:"karten",blitz:"karten","drill:artikel":"karten",palace:"karten",gruft:"karten",mnemo:"karten",shadowWork:"karten",wortschatz:"karten",terms:"karten",numbers:"karten","drill:abbr":"karten",pocketAny:"karten","lab:dict":"karten",
+  gramMap:"grammatik",web:"grammatik",rules:"grammatik",stark:"grammatik","drill:verben":"grammatik","drill:faelle":"grammatik","lab:konj":"grammatik","lab:dekl":"grammatik","lab:satz":"grammatik",rf:"grammatik",teach:"grammatik",teachDevil:"grammatik",autopsy:"grammatik",
+  hoerenLib:"hoeren",shadow:"hoeren",dict:"hoeren",pronCheck:"hoeren",pron:"hoeren","lab:laut":"hoeren",talk:"hoeren",abzw:"hoeren","drill:respond":"hoeren",rezi:"hoeren",
+  write:"lesen",bib:"lesen","lab:brief":"lesen","drill:cloze":"lesen",
+  examHub:"pruefung",fsp:"pruefung",bossHub:"pruefung",duels:"pruefung","lab:plan":"pruefung",
+  kompass:"welt",media:"welt","lab:zahl":"welt"};
+const EXTRA=[["gramMap","Grammatik komplett","alle Lektionen A1 bis C1"],["web","Grammatik-Landkarte","wie die Regeln zusammenhängen"],["rules","Regeln & Spickzettel","kurz nachschlagen"],["wortschatz","Wortschatz nach Themen","neue Wörter nach Thema"],["hoerenLib","Hörbibliothek","Hörtexte nach Niveau"],["kompass","Kompass","Deutschland verstehen"],["stark","Starke Verben","Ablautreihen und Perfekt"]];
+const SKIP=new Set(["labs","tutorHelp","seg","meSeg","newTag"]);
+const keyOf=(act,d)=>act+(d.k?":"+d.k:d.id?":"+d.id:d.ex?":"+d.ex:"");
+function guessGroup(act,d,ctxText){const k=act+(d.k?":"+d.k:"");if(GMAP[k])return GMAP[k];if(GMAP[act])return GMAP[act];const t=ctxText||"";
+  return /Prüf|exam/i.test(t)?"pruefung":/Hör|Sprech|Ausspr|listen/i.test(t)?"hoeren":/Schreib|Les|writ|read/i.test(t)?"lesen":/Gramm/i.test(t)?"grammatik":/Karte|Wort|Drill|card/i.test(t)?"karten":"welt"}
+function harvest(root){const tools=[],seen=new Set();
+  const add=(act,data,de,sub,icon,ctx)=>{if(!act||SKIP.has(act)||!ACT[act])return;const k=keyOf(act,data);if(seen.has(k))return;seen.add(k);tools.push({act,data,de:String(de||act).trim(),sub:String(sub||"").trim(),icon,g:guessGroup(act,data,ctx),key:k})};
+  qa(".tile[data-act],.werk-grid button[data-act]",root).forEach(b=>{if(b.closest(".fd-row"))return;const d=Object.assign({},b.dataset);const act=d.act;delete d.act;delete d.pad;
+    const sec=b.closest(".tiles");let ctx="";let p=sec&&sec.previousElementSibling;if(p)ctx=p.textContent;
+    add(act,d,(q("b",b)||b).textContent,(q("small",b)||{}).textContent,(q(".ic",b)||{}).innerHTML,ctx)});
+  try{const tmp=document.createElement("div");tmp.innerHTML=werkstattHTML();qa("button[data-act]",tmp).forEach(b=>{const d=Object.assign({},b.dataset);const act=d.act;delete d.act;add(act,d,(q("b",b)||b).textContent,(q("small",b)||{}).textContent,"","")})}catch(e){}
+  try{LABS.forEach(L=>add("lab",{k:L[0]},L[1],L[2],I(L[3]),""))}catch(e){}
+  // integrator 13.7: tiles that later packages put into the Pakt's Werkstatt card (l3 Leben in Deutschland, s9 Märchenstube/Sammlung, …) — a8 removes
+  // that card from Pakt, so they are harvested here from an off-screen Pakt render (same guard as the settings move)
+  try{if(signed()&&typeof viewPakt==="function"&&!PAKT_HARVEST){PAKT_HARVEST=true;try{const tmp=document.createElement("div");viewPakt(tmp);
+    qa(".pk-werk .tile[data-act],.pk-werk .werk-grid button[data-act],.werk-grid .tile[data-act]",tmp).forEach(b=>{const d=Object.assign({},b.dataset);const act=d.act;delete d.act;delete d.pad;add(act,d,(q("b",b)||b).textContent,(q("small",b)||{}).textContent,(q(".ic",b)||{}).innerHTML,"Pakt Werkstatt")})}finally{PAKT_HARVEST=false}}}catch(e){LOG("werkstatt/pakt",e)}
+  EXTRA.forEach(([a,de,sub])=>add(a,{},de,sub,"",""));
+  return tools}
+function tileHTML(t,sugg){const gi=(GROUPS.find(g=>g[0]===t.g)||GROUPS[5])[3];
+  return `<button class="tile a8-tool" data-act="${E(t.act)}"${Object.entries(t.data).map(([k,v])=>` data-${E(k.replace(/[A-Z]/g,c=>"-"+c.toLowerCase()))}="${E(v)}"`).join("")} data-key="${E(t.key)}"><span class="ic">${t.icon||I(gi)}</span><b>${E(t.de)}</b>${t.sub?`<small>${E(t.sub)}</small>`:""}${sugg?`<i class="chip a8-badge">heute</i>`:""}</button>`}
+const norm=s=>String(s||"").toLowerCase().replace(/ä/g,"a").replace(/ö/g,"o").replace(/ü/g,"u").replace(/ß/g,"ss");
+function werkLayout(m){const v=q(".view",m)||m;if(v.classList.contains("a8-werk"))return;const sugg=new Set(qa(".fd-row .tile[data-act]",v).map(b=>keyOf(b.dataset.act,b.dataset)));
+  const tools=harvest(v);const keep=qa(":scope > .card",v).filter(c=>!c.querySelector(".tile,.werk-grid"));
+  // integrator 13.7: a8 was built on 13.2 and knows no batch-2 card (l9 sittings + resume, i3 „Fragen stellen“, l10 sections, l3 …). A block whose
+  // controls are not all harvested as tools is kept whole (below the groups), so no package loses its card, status line or resume button.
+  const tk=new Set(tools.map(x=>x.key)),pk=[];qa(":scope > *",v).forEach(c=>{if(keep.includes(c)||c.matches(".head,.fd-row,script,style")||c.querySelector(".fd-row"))return;
+    const acts=qa("[data-act]",c).concat(c.matches("[data-act]")?[c]:[]);if(!acts.length)return;
+    if(acts.some(b=>{const d=Object.assign({},b.dataset);const a=d.act;delete d.act;return !SKIP.has(a)&&!tk.has(keyOf(a,d))}))pk.push(c)});
+  v.classList.add("a8-werk");v.innerHTML=`<div class="head"><div class="eyebrow">Werkstatt <span class="en" lang="en">every tool, once</span></div><h1>Werkstatt</h1></div>
+   <label class="a8-wsearch">${I("search")}<input type="search" class="a8-wq" placeholder="Werkzeug suchen … (z. B. Dativ, Diktat, FSP)" aria-label="Werkzeug suchen"></label>
+   <nav class="a8-jump" aria-label="Gruppen">${GROUPS.map(g=>`<a href="#wg-${g[0]}" class="pill-btn" data-jump="wg-${g[0]}">${E(g[1])}</a>`).join("")}</nav>
+   ${GROUPS.map(g=>{const L=tools.filter(t=>t.g===g[0]);return `<section class="a8-wg" id="wg-${g[0]}" data-group="${g[0]}"><h2>${E(g[1])} <span class="en" lang="en">${E(g[2])}</span> <span class="muted num a8-n">${L.length}</span></h2><div class="tiles">${L.map(t=>tileHTML(t,sugg.has(t.key))).join("")}</div></section>`}).join("")}
+   <section class="a8-wg a8-deck" data-group="deck"><h2>Ihr Deck <span class="en" lang="en">your deck</span></h2></section>`;
+  const dk=q(".a8-deck",v);keep.forEach(c=>dk.appendChild(c));if(!keep.length)dk.remove();
+  if(pk.length){const s=document.createElement("section");s.className="a8-wmore";s.innerHTML=`<h2>Weitere Werkstätten <span class="en" lang="en">more workshops</span></h2>`;pk.forEach(c=>s.appendChild(c));v.appendChild(s)}
+  const inp=q(".a8-wq",v);inp.oninput=()=>{const t=norm(inp.value.trim());qa(".a8-tool",v).forEach(b=>b.hidden=!!t&&!norm(b.textContent).includes(t));qa(".a8-wg[data-group]",v).forEach(s=>{if(s.dataset.group==="deck")return;s.hidden=!!t&&!q(".a8-tool:not([hidden])",s)})};
+  qa("[data-jump]",v).forEach(a=>a.onclick=e=>{e.preventDefault();const s=q("#"+a.dataset.jump,v);s&&s.scrollIntoView({behavior:"smooth",block:"start"})});sie(v);
+  A8C.tools=tools}
+const A8C={tools:null};
+MOD.after("viewPractice","a8",function(m){try{werkLayout(m)}catch(e){LOG("werkstatt",e)}});
+// remember the last tool for "Weiter, wo Sie waren"
+document.addEventListener("click",e=>{try{const b=e.target.closest&&e.target.closest(".a8-tool");if(!b)return;const d=Object.assign({},b.dataset);const act=d.act;delete d.act;delete d.key;delete d.pad;
+  st().last={act,data:d,label:(q("b",b)||b).textContent.trim(),at:Date.now()};saveSoon()}catch(x){}},true);
+// Lernen keeps the course; its tool entries live in the Werkstatt now
+MOD.after("viewLearn","a8",function(m){try{if(R.id)return;const v=q(".view",m)||m;let n=0;qa(".pk-werk-link,.pk-werk",v).forEach(x=>{x.remove();n++});
+  ["wortschatz","hoerenLib","web","kompass","rules"].forEach(a=>qa(`[data-act="${a}"]`,v).forEach(b=>{if(b.closest(".li-list,.lessons,.list"))return;const p=b.parentElement;b.remove();n++;if(p&&p!==v&&!p.children.length&&!p.textContent.trim())p.remove()}));
+  if(n&&!q(".a8-towerk",v)){const h=q(":scope > .head",v);(h||v.firstElementChild).insertAdjacentHTML("afterend",`<button class="card a8-towerk" data-go="practice"><span><span class="eyebrow">Werkstatt</span> Wortschatz, Hörbibliothek, Landkarte, Regeln, Kompass und alle Werkzeuge</span>${I("chev")}</button>`)}}catch(e){LOG("learn",e)}});
+// Pakt keeps the story; tools → Werkstatt, sound / horror / voice → Einstellungen
+let PAKT_HARVEST=false;
+MOD.after("viewPakt","a8",function(m){if(PAKT_HARVEST)return;try{const v=q(".view",m);if(!v||!signed())return;qa(".pk-werk",v).forEach(x=>x.remove());
+  ["stark","gramMap"].forEach(a=>qa(`[data-act="${a}"]`,v).forEach(b=>{const p=b.parentElement;b.remove();if(p&&!p.querySelector("button")&&p.classList.contains("row"))p.remove()}));
+  qa(".card",v).filter(c=>c.querySelector(".pk-vol,[data-act=setHorror],[data-act=setEn]")).forEach(c=>c.remove());const sg=q("#sigT",v);if(sg){const r=sg.closest(".row")||sg.closest("label");r&&r.remove()}
+  v.insertAdjacentHTML("beforeend",`<button class="card a8-toset" data-act="a8Settings" data-g="grauen-ton"><span><span class="eyebrow">Einstellungen</span> Grauen, Musik, Mephistos Stimme, Genus-Siegel</span>${I("chev")}</button>`)}catch(e){LOG("pakt",e)}});
+
+// ---------------------------------------------------------------- 7. one settings page, six groups (ux D29, D30; PLAN-A §2.6 data-set-group)
+const SG=[["lernen","Lernen","learning"],["sprache","Sprache & Hilfe","language & help"],["aussehen","Aussehen","appearance"],["grauen-ton","Grauen & Ton","horror & sound"],["geraete","Geräte & Sync","devices & sync"],["daten","Daten","data"]];
+function sgOf(el){const pref=el.querySelector&&el.querySelector("[data-pref]");const p=pref&&pref.dataset.pref;
+  if(p){return {restDays:"lernen",autoplay:"sprache",hints:"sprache",motion:"aussehen",sound:"grauen-ton",haptic:"geraete"}[p]||"lernen"}
+  const hd=((el.querySelector&&(el.querySelector("h2,h3,.eyebrow")||{}).textContent)||"");const c1=sgText(hd);return c1||sgText((el.textContent||"").slice(0,160))||"lernen"}
+function sgText(t){if(!t)return null;
+  if(/Backup|Schnappsch|Yuzu|Zurücksetz|Diagnose|Fehlerprotokoll|Reparatur/i.test(t))return "daten";
+  if(/Aussprache|Langes Dr|Tutor|Stimme|Siegel|Englisch|Übersetz|übersetzt/i.test(t))return "sprache";
+  if(/Google|Citrus|als App|Controller|Sync|Gerät|Wolke/i.test(t))return "geraete";
+  if(/Grauen|Klang|Musik|\bTon\b|Töne|Lautsprecher|Akku|Duell-Tempo|Atmosph/i.test(t))return "grauen-ton";
+  if(/Erscheinungsbild|Textgr|Look|Schriften|Animation|Kontrast/i.test(t))return "aussehen";
+  if(/Wiederholung|Rechtschreib|Ruhetag|Minuten|Neue Karten/i.test(t))return "lernen";
+  return null}
+function setSections(el){if(q(":scope > .a8-setnav",el))return;const frag=document.createDocumentFragment();
+  const nav=document.createElement("nav");nav.className="a8-setnav a8-jump";nav.setAttribute("aria-label","Gruppen");nav.innerHTML=SG.map(g=>`<a href="#set-${g[0]}" class="pill-btn" data-sj="${g[0]}">${E(g[1])}</a>`).join("");
+  const secs={};SG.forEach(g=>{const s=document.createElement("section");s.className="a8-set stack";s.id="set-"+g[0];s.dataset.setGroup=g[0];s.innerHTML=`<h2>${E(g[1])} <span class="en" lang="en">${E(g[2])}</span></h2>`;secs[g[0]]=s});
+  const kids=[...el.children];kids.forEach(c=>{if(c.matches(".list")){qa(":scope > *",c).forEach(li=>{const g=sgOf(li);let L=q(":scope > .list.a8-tog",secs[g]);if(!L){L=document.createElement("div");L.className="list a8-tog";secs[g].appendChild(L)}L.appendChild(li)});c.remove();return}
+    secs[sgOf(c)].appendChild(c)});
+  frag.appendChild(nav);SG.forEach(g=>frag.appendChild(secs[g[0]]));el.appendChild(frag);
+  qa("[data-sj]",nav).forEach(a=>a.onclick=e=>{e.preventDefault();const s=q("#set-"+a.dataset.sj);s&&s.scrollIntoView({behavior:"smooth",block:"start"})})}
+function syncState(){try{if(typeof gAuth==="function"&&gAuth())return {ok:true,txt:(typeof clText==="function"?clText():"Mit Google Drive verbunden"),ic:(typeof clIcon==="function"?clIcon():"✓")}}catch(e){}return {ok:false,txt:"Nicht verbunden: Ihr Fortschritt liegt nur auf diesem Gerät.",ic:"○"}}
+function setFinish(el){const sec=g=>q(`:scope > [data-set-group="${g}"]`,el);if(!sec("lernen"))setSections(el);
+  // stray cards appended by later sections, and the spelling card that lands outside .me-in
+  [...el.children].forEach(c=>{if(c.matches("section.a8-set,.a8-setnav"))return;sec(sgOf(c)).appendChild(c)});
+  const view=el.closest(".view");if(view)qa(":scope > .card",view).forEach(c=>sec(sgOf(c)).appendChild(c));
+  if(!q(".a8-minrow",el)){const cur=S.minutes;q(":scope > h2",sec("lernen")).insertAdjacentHTML("afterend",`<div class="card stack s a8-minrow"><h3>Minuten pro Tag</h3><div class="a8-mins" role="group" aria-label="Minuten pro Tag">${MINS.map(n=>`<button class="pill-btn ${cur===n?"on":""}" data-act="a8Min" data-n="${n}" aria-pressed="${cur===n}"><span class="num">${n}</span></button>`).join("")}</div><small class="muted">Fokus, Prüfungsformat und Startdatum: Ich › Plan.</small></div>`)}
+  // story-tab settings live here now (rendered by viewPakt off-screen, moved with their handlers)
+  if(!q(".a8-fromPakt",el)){let moved=0;if(signed()){try{PAKT_HARVEST=true;const tmp=document.createElement("div");viewPakt(tmp);
+      qa(".card",tmp).filter(c=>c.querySelector(".pk-vol,[data-act=setHorror],[data-act=setEn]")).forEach(c=>{c.classList.add("a8-fromPakt");sec(c.querySelector("[data-act=setEn]")?"sprache":"grauen-ton").appendChild(c);moved++});
+      qa(".pk-vol",el).forEach(r=>r.oninput=()=>{try{SND.vol(r.dataset.k,+r.value)}catch(e){}})}catch(e){LOG("settings/pakt",e)}finally{PAKT_HARVEST=false}}
+    if(!q("[data-act=setHorror]",el)){const h=S.horror==null?2:S.horror;q(":scope > h2",sec("grauen-ton")).insertAdjacentHTML("afterend",`<div class="card stack s a8-fromPakt"><h3>Grauen</h3><div class="seg">${[["0","Aus"],["1","Schaurig"],["2","Albtraum"]].map(([k,n])=>`<button class="${String(h)===k?"on":""}" data-act="setHorror" data-k="${k}">${n}</button>`).join("")}</div><small class="muted ui">Albtraum: Blut bei Fehlern, Flüstern, Glut. Nie über dem Text, den Sie gerade lesen.</small></div>`)}
+    if(!q("#a8Sig",el))sec("sprache").insertAdjacentHTML("beforeend",`<label class="li a8-check"><span class="t"><b>Genus-Siegel an Nomen</b><small>der ▲ blau · die ● rot · das ◆ grün</small></span><input type="checkbox" id="a8Sig" ${S.sigils===false?"":"checked"}></label>`);
+    const sg=q("#a8Sig",el);if(sg)sg.onchange=()=>{S.sigils=sg.checked;saveSoon();toast(sg.checked?"Siegel an":"Siegel aus");if(!sg.checked)location.reload()}}
+  // Hell / Dunkel only where the look supports it (ux D29)
+  qa("[data-act=setTheme]",el).forEach(b=>{const s=b.closest(".seg");if(s)s.hidden=!(S.look==="pixel")});
+  if(!q(".a8-sync",el)){const s=syncState();q(":scope > h2",sec("geraete")).insertAdjacentHTML("afterend",`<div class="card stack s a8-sync"><h3>Sync <span class="chip a8-syncchip ${s.ok?"ok":""}">${E(s.ic)}</span></h3><p>${E(s.txt)}</p>${!s.ok&&ACT.hubConnect?`<div class="row"><button class="btn-secondary sm" data-act="hubConnect">Google verbinden</button></div>`:""}</div>
+     <div class="card stack s a8-pad"><h3>Steam Deck, Tastatur, Controller</h3><p class="fg2">Steuerkreuz bewegt, Ⓐ wählt, Ⓑ geht zurück, Start pausiert eine Sitzung. Für Texteingaben öffnet <b>Steam + X</b> die Bildschirmtastatur. Tasten 1–5 wechseln die Bereiche, Strg K sucht.</p></div>`)}
+  if(!q(".a8-daten",el)){const d=document.createElement("div");d.className="a8-daten stack";sec("daten").appendChild(d);try{meData(d)}catch(e){LOG("settings/daten",e)}
+    const s=syncState();qa("p",d).forEach(p=>{if(/liegt nur in diesem Browser/.test(p.textContent)){p.innerHTML=s.ok?"Ihr Fortschritt wird mit Google Drive synchronisiert; eine Datei-Sicherung schadet trotzdem nie.":"Nicht verbunden: Ihr Fortschritt liegt nur auf diesem Gerät. Sichern Sie ihn regelmäßig."}})}
+  if(!q(".a8-fonts",el))sec("aussehen").insertAdjacentHTML("beforeend",`<details class="card a8-fonts"><summary>Schriften <span class="en" lang="en">font credits</span></summary><div class="a8-fontlist muted">…</div></details>`);
+  const fd=q(".a8-fonts",el);if(fd)fd.ontoggle=()=>{if(!fd.open||fd.dataset.l)return;fd.dataset.l=1;fetch("media/fonts/a1-fonts.json").then(r=>r.json()).then(j=>{const L=Array.isArray(j)?j:(j.fonts||Object.values(j));
+    q(".a8-fontlist",fd).innerHTML=`<ul>${L.map(f=>`<li>${E(f.family||f.name||"")} — ${E(f.licence||f.license||"")}</li>`).join("")}</ul>`}).catch(()=>{q(".a8-fontlist",fd).textContent="Schriftliste nicht verfügbar (offline?)."})};
+  sie(el)}
+try{MOD.around("meSettings","a8",function(orig,el){const r=orig(el);try{setSections(el)}catch(e){LOG("settings/groups",e)}return r})}catch(e){}
+MOD.after("meSettings","a8",function(el){try{setFinish(el)}catch(e){LOG("settings",e)}});
+MOD.after("viewMe","a8",function(m){try{qa("[data-act=meSeg][data-k=data]",m).forEach(b=>b.remove());if(typeof meSeg!=="undefined"&&meSeg==="data"){meSeg="set";queueMicrotask(()=>{try{rerender();const s=q("#set-daten");s&&s.scrollIntoView()}catch(e){}})}}catch(e){LOG("me",e)}});
+ACT.a8Settings=el=>{const g=(el&&el.dataset&&el.dataset.g)||"lernen";try{meSeg="set"}catch(e){}go("me");setTimeout(()=>{const s=q("#set-"+g);s&&s.scrollIntoView({block:"start"})},60)};
+try{const _rs=ACT.reset;if(_rs)ACT.reset=function(){const i=q(".rs-in");if(i&&/^\s*l(ö|oe|o)schen\s*$/i.test(i.value))i.value="LÖSCHEN";return _rs.apply(this,arguments)}}catch(e){}
+
+// ---------------------------------------------------------------- 8. navigation: names, rail search, sync line, html[data-tab]
+function searchIndex(){const L=[];try{if(!A8C.tools){const d=document.createElement("div");d.className="view";const w=document.createElement("div");w.appendChild(d);viewPractice(w)}
+  (A8C.tools||[]).forEach(t=>L.push({g:"Werkzeuge",t:t.de,s:t.sub,act:t.act,data:t.data}))}catch(e){}
+  try{[].concat(typeof GRAMMAR!=="undefined"?GRAMMAR:[],typeof MEDL!=="undefined"?MEDL:[],typeof ALLTAG!=="undefined"?ALLTAG:[]).forEach(l=>{if(l&&l.id&&l.title)L.push({g:"Lektionen",t:l.title,s:l.id,goto:["learn","id:"+l.id]})})}catch(e){}
+  try{if(signed())CHAPTERS.filter(c=>c.n<=P().ch).forEach(c=>L.push({g:"Geschichte",t:"Kapitel "+c.n+": "+c.t,s:c.en||"",act:"pkRead",data:{n:c.n}}))}catch(e){}
+  SG.forEach(g=>L.push({g:"Einstellungen",t:g[1],s:g[2],act:"a8Settings",data:{g:g[0]}}));return L}
+function runItem(it){try{if(it.goto)return go(it.goto[0],it.goto[1]);const f=ACT[it.act];if(f)f({dataset:Object.assign({},it.data||{}),closest:()=>null,getAttribute:()=>null})}catch(e){LOG("search",e)}}
+function railSearch(){const side=q("aside.side");if(!side||q(".a8-search",side))return;const nav=q("#sideNav",side);if(!nav)return;
+  nav.insertAdjacentHTML("afterend",`<div class="a8-search" role="search"><label>${I("search")}<input type="search" id="a8Q" placeholder="Suchen … Strg K" aria-label="Suche: Werkzeuge, Lektionen, Kapitel, Einstellungen" autocomplete="off"></label><div id="a8QR" class="a8-qr" role="listbox" hidden></div></div><button class="a8-syncline" data-act="a8Settings" data-g="geraete"></button>`);
+  const inp=q("#a8Q"),box=q("#a8QR");let idx=null,hits=[];
+  const draw=()=>{const t=norm(inp.value.trim());if(!t){box.hidden=true;return}idx=idx||searchIndex();hits=idx.filter(x=>norm(x.t+" "+x.s).includes(t)).slice(0,12);
+    box.hidden=false;box.innerHTML=hits.length?hits.map((h,i)=>`<button role="option" data-i="${i}"><small class="eyebrow">${E(h.g)}</small><span>${E(h.t)}</span></button>`).join(""):`<p class="muted">Nichts gefunden.</p>`};
+  inp.oninput=draw;inp.onfocus=()=>{idx=null};
+  inp.onkeydown=e=>{if(e.key==="Enter"&&hits[0]){e.preventDefault();runItem(hits[0]);inp.value="";box.hidden=true}else if(e.key==="ArrowDown"){const b=q("button",box);b&&(e.preventDefault(),b.focus())}else if(e.key==="Escape"){inp.value="";box.hidden=true;inp.blur()}};
+  box.onclick=e=>{const b=e.target.closest("[data-i]");if(!b)return;runItem(hits[+b.dataset.i]);inp.value="";box.hidden=true};
+  box.onkeydown=e=>{const L=qa("button",box);const i=L.indexOf(document.activeElement);if(e.key==="ArrowDown"&&L[i+1]){e.preventDefault();L[i+1].focus()}else if(e.key==="ArrowUp"){e.preventDefault();(L[i-1]||inp).focus()}else if(e.key==="Escape"){inp.focus()}}}
+document.addEventListener("keydown",e=>{try{const t=e.target;const typing=t&&(/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)||t.isContentEditable);
+  if(((e.ctrlKey||e.metaKey)&&/^k$/i.test(e.key))||(!typing&&e.key==="/"&&!Focus.isOpen()&&!HD.el)){e.preventDefault();const r=q("#a8Q");if(r&&r.offsetParent){r.focus();return}go("practice");setTimeout(()=>{const w=q(".a8-wq");w&&w.focus()},50)}}catch(x){}});
+MOD.after("chrome","a8",function(){try{layout();H.dataset.tab=R.tab;const b=q("#bar"),s=q("#sideNav");b&&b.setAttribute("aria-label","Hauptnavigation");s&&s.setAttribute("aria-label","Hauptnavigation");
+  railSearch();const sl=q(".a8-syncline");if(sl){const x=syncState();sl.innerHTML=`<span class="chip ${x.ok?"ok":""}">${E(x.ic)}</span> ${x.ok?"Sync":"Nur dieses Gerät"}`;sl.title=x.txt}}catch(e){LOG("chrome",e)}});
+
+// ---------------------------------------------------------------- 9. session shell (ux P4): ⏸ + pause menu, progress text, focus, data-pad, slots
+const SHL={open:false,idx:-1,exited:true,reason:null,hx:0,raf:0};
+const XSVG='<svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+function ensureEl(id,slot,parent,before){let e=document.getElementById(id);if(!e){e=document.createElement("div");e.id=id;e.className="a8-slot";e.dataset.slot=slot;if(parent)parent.insertBefore(e,before||null)}return e}
+function headBtn(pause){const b=q("#focus .fhead > button.icon");if(!b)return;if(pause){b.dataset.act="a8Pause";b.dataset.a8x="1";b.setAttribute("aria-label","Pause");b.dataset.pad="start";b.innerHTML=`<svg class="i" viewBox="0 0 24 24">${IC.a8pause||""}</svg>`}
+  else if(b.dataset.a8x){b.dataset.act="closeFocus";delete b.dataset.a8x;b.setAttribute("aria-label","Schließen");b.dataset.pad="b";b.innerHTML=XSVG}}
+function progText(i,n){const p=q("#fProg");if(!p||p.hidden)return;p.setAttribute("role","progressbar");p.setAttribute("aria-valuemin","0");p.setAttribute("aria-valuemax",String(n));p.setAttribute("aria-valuenow",String(Math.min(i,n)));p.setAttribute("aria-label",`Schritt ${Math.min(i+1,n)} von ${n}`);
+  let t=q(".a8-ptx",p);if(!t){t=document.createElement("span");t.className="a8-ptx num";p.appendChild(t)}t.textContent=Math.min(i+1,n)+"/"+n}
+function shellOpen(){const T=S.today||{steps:[]};const fo=q("#focus");SHL.open=true;SHL.idx=-1;SHL.exited=true;fo.dataset.shell="session";fo.setAttribute("role","dialog");fo.setAttribute("aria-modal","true");fo.setAttribute("aria-labelledby","fTitle");headBtn(true);
+  const band=ensureEl("a8-band","session.open",fo,q("#fBody"));band.innerHTML="";SLOT.fill("session.open",band,{kind:"session",steps:T.steps.map(s=>s.t),budget:T.minutes||S.minutes})}
+function stepExit(result){if(!SHL.open||SHL.exited||SHL.idx<0)return;SHL.exited=true;const T=S.today||{steps:[]};const x=ensureEl("a8-exit","step.exit",q("#fFoot"),q("#fFootIn"));x.innerHTML="";SLOT.fill("step.exit",x,{i:SHL.idx,n:T.steps.length,step:T.steps[SHL.idx],result})}
+function onStep(){const T=S.today;if(!T||T.idx>=T.steps.length||T.steps.every(s=>s.done))return;if(!SHL.open)shellOpen();
+  if(!SHL.exited)stepExit(SHL.reason||"left");SHL.reason=null;SHL.idx=T.idx;SHL.exited=false;headBtn(true);progText(T.idx,T.steps.length);
+  const e=ensureEl("a8-step","step.enter",q("#fBody"),q("#fIn"));e.innerHTML="";const x=ensureEl("a8-exit","step.exit",q("#fFoot"),q("#fFootIn"));x.innerHTML="";
+  SLOT.fill("step.enter",e,{i:T.idx,n:T.steps.length,step:T.steps[T.idx]});decorate()}
+function onFinish(){if(!SHL.open)return;const T=S.today||{steps:[],stats:{}};if(!SHL.exited)stepExit("done");progText(T.steps.length-1,T.steps.length);headBtn(false);
+  const c=q("#fIn .celebrate")||q("#fIn");if(c){c.dataset.fxProtect="";let s=q(".a8-slot[data-slot='session.close']",c);if(!s){s=document.createElement("div");s.className="a8-slot";s.dataset.slot="session.close";c.appendChild(s)}s.innerHTML="";
+    SLOT.fill("session.close",s,{stats:Object.assign({},T.stats||{},{steps:T.steps.length,done:T.steps.filter(x=>x.done&&!x.skipped).length,skipped:T.steps.filter(x=>x.skipped).length,minutes:(()=>{try{return minutesOn(todayKey())}catch(e){return 0}})()})})}
+  SHL.idx=-1;decorate()}
+function shellClose(){if(!SHL.open)return;if(!SHL.exited)stepExit("paused");SHL.open=false;SHL.idx=-1;const fo=q("#focus");delete fo.dataset.shell;headBtn(false);["a8-band","a8-step","a8-exit"].forEach(id=>{const e=document.getElementById(id);if(e)e.innerHTML=""});const pm=q(".a8-pause");pm&&pm.remove()}
+try{MOD.after("runStep","a8",function(){try{onStep()}catch(e){LOG("runStep",e)}})}catch(e){}
+try{MOD.after("finishSession","a8",function(){try{onFinish()}catch(e){LOG("finish",e)}})}catch(e){}
+ACT.a8Pause=()=>{const fo=q("#focus");if(q(".a8-pause",fo))return;const T=S.today;const cur=T&&T.steps[T.idx];
+  fo.insertAdjacentHTML("beforeend",`<div class="a8-pause" role="dialog" aria-modal="true" aria-labelledby="a8pT"><div class="card stack"><h2 id="a8pT">Pause</h2><p class="muted">Alles ist gespeichert. <span class="en" lang="en">Everything is saved.</span></p>
+   <button class="btn-primary go" data-a8p="go" data-pad="a">Fortsetzen</button>${cur&&!cur.done?`<button class="btn-secondary" data-a8p="skip" data-pad="x">Schritt überspringen</button>`:""}<button class="btn-quiet" data-a8p="end" data-pad="y">Beenden (alles gespeichert)</button></div></div>`);
+  const pm=q(".a8-pause",fo);pm.onclick=e=>{const b=e.target.closest("[data-a8p]");if(!b){if(e.target===pm)pm.remove();return}const k=b.dataset.a8p;pm.remove();
+    if(k==="skip"){SHL.reason="skipped";ACT.stepSkip()}else if(k==="end"){Focus.close()}else decorate(true)};q("button",pm).focus()};
+addEventListener("keydown",e=>{try{if(e.key!=="Escape")return;if(HD.el&&HD.i===0){return}
+  if(!SHL.open||!Focus.isOpen()||!q("#sheet").hidden||q("#lore-cine"))return;e.preventDefault();e.stopImmediatePropagation();const pm=q(".a8-pause");if(pm){pm.remove();decorate(true)}else ACT.a8Pause()}catch(x){}},true);
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("#fFootIn [data-act]");if(!b||!SHL.open)return;const a=b.dataset.act;if(a==="stepSkip")SHL.reason="skipped";else if(a==="stepBack")SHL.reason="back";else if(a==="stepNext")SHL.reason="done"},true);
+const PADMAP=[["#fIn .cr-flip","a"],["#fIn .rate .r0","left"],["#fIn .rate .r1","down"],["#fIn .rate .r2","right"],["#fIn .rate .r3","up"],["#fIn .cr-say","y"],["#fFootIn [data-act=stepSkip]","x"],["#fFootIn [data-act=stepBack]","l"]];
+function decorate(force){const fo=q("#focus");if(!fo||fo.hidden)return;
+  PADMAP.forEach(([s,k])=>qa(s).forEach(b=>{if(!b.dataset.pad)b.dataset.pad=k}));
+  if(!q("#focus [data-pad=a]")){const p=q("#fFootIn [data-act=stepNext]")||q("#fIn .primary:not([disabled]),#fIn .go:not([disabled])")||q("#fFootIn .primary");if(p)p.dataset.pad="a"}
+  qa("#fIn .verdict,#fIn .fc,#fIn .xp,#fIn .exam-passage,#fIn .pk-nar,#fIn .q,#fIn .st-read p,#fIn .celebrate").forEach(x=>{if(!x.hasAttribute("data-fx-protect"))x.setAttribute("data-fx-protect","")});
+  // desktop: card + context pane once the card is turned
+  const wide=/deck|desk/.test(H.dataset.layout||"");const fIn=q("#fIn");const fc=q("#fIn .fc.flip");let cx=q("#fIn > .a8-ctx");
+  if(wide&&fc&&SHL.open){if(!cx){const back=q(".face.back > div",fc);if(back){cx=document.createElement("aside");cx.className="card a8-ctx";cx.setAttribute("data-fx-protect","");cx.innerHTML=`<div class="eyebrow">Kontext <span class="en" lang="en">context</span></div>`+back.innerHTML;fIn.appendChild(cx)}}fIn.classList.add("a8-two")}
+  else{if(cx)cx.remove();fIn&&fIn.classList.remove("a8-two")}
+  if(SHL.open){const a=document.activeElement;if(force||!a||a===document.body||!fo.contains(a)||!a.isConnected){const t=q(".a8-pause button")||q("#fIn .rate .r2")||q("#fIn .cr-flip")||q("#fFootIn [data-act=stepNext]")||q("#fIn .primary:not([disabled]),#fIn .go:not([disabled])")||q("#fFootIn .primary");
+    if(t&&!(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)&&fo.contains(a)))try{t.focus({preventScroll:true})}catch(x){}}}}
+// one observer, scoped to #focus: re-render passes, step "done" (step.exit), open/close of the layer
+try{const fo=q("#focus");if(fo)new MutationObserver(ms=>{let closed=false;for(const m of ms)if(m.type==="attributes"&&m.attributeName==="hidden"&&fo.hidden)closed=true;
+  if(closed){shellClose();return}if(SHL.raf)return;SHL.raf=setTimeout(()=>{SHL.raf=0;try{if(SHL.open&&!SHL.exited){const T=S.today;const s=T&&T.steps[SHL.idx];if(s&&s.done)stepExit(s.skipped?"skipped":"done")}
+    if(!SHL.open&&!fo.hidden)headBtn(false);decorate()}catch(e){}},16)}).observe(fo,{attributes:true,attributeFilter:["hidden","class"],childList:true,subtree:true})}catch(e){}
+// answers: s6's hx:answer (preferred) or i1's EV, forwarded into the verdict container — a8 never counts
+function answer(d,src){if(!SHL.open)return;const now=Date.now();if(src==="ev"&&now-SHL.hx<3000)return;if(src==="hx")SHL.hx=now;
+  setTimeout(()=>{try{const v=qa("#fIn .verdict").pop()||q("#fIn .fc-wrap")||q("#fIn");if(!v)return;v.setAttribute("data-fx-protect","");const n=d&&d.ok?"item.right":"item.wrong";
+    let s=q(":scope > .a8-slot.a8-ans",v);if(!s){s=document.createElement("div");s.className="a8-slot a8-ans";v.appendChild(s)}s.dataset.slot=n;s.innerHTML="";SLOT.fill(n,s,d||{})}catch(e){LOG("answer",e)}},0)}
+document.addEventListener("hx:answer",e=>answer(e.detail||{},"hx"));
+setTimeout(()=>{try{if(window.EV&&EV.on){EV.on("card.answer",d=>answer(d,"ev"));EV.on("ex.answer",d=>answer(d,"ev"))}}catch(e){}},0);
+
+// ---------------------------------------------------------------- 10. toasts: long German lines stay long enough to read; [de,en] shows two lines (ux D42)
+try{MOD.around("toast","a8",function(orig,msg,ms){let de=msg,en="";if(Array.isArray(msg)){de=msg[0];en=msg[1]||""}const len=String(de||"").length+String(en).length;
+  const dur=len>40?Math.max(ms||2000,Math.min(9000,90*len)):ms;const r=orig(de,dur);if(en){try{const t=q("#toast");t.insertAdjacentHTML("beforeend",`<small class="en a8-ten" lang="en">${E(en)}</small>`)}catch(e){}}return r})}catch(e){}
+
+// device-local key (no cross-device merge needed): ask c_cloud to keep it local when present
+setTimeout(()=>{try{if(typeof DEVICE_KEYS!=="undefined"&&DEVICE_KEYS.add)DEVICE_KEYS.add("a8")}catch(e){}},0);
+window.UIX={layout,sigFromName,handel,settings:g=>ACT.a8Settings({dataset:{g}}),tools:()=>A8C.tools||[],shell:()=>({open:SHL.open,idx:SHL.idx}),version:"a8-1"};
+})();
+
+// ===== Mephisto 13.x · a10 · PAD (Steam Deck controller), input device, legend, dialogs and the accessibility pass (PLAN-A D12, ux D9–D18, D26, P8).
+// Module core, last before c_cloud. Needs s_a10.css. Exposes window.PAD and html[data-input="touch|mouse|key|pad"].
+// Contract (PLAN-A §2.6/§2.8): a screen marks the control a pad button presses with data-pad="a|b|x|y|up|down|left|right|start|l|r";
+// everything else is reached by SPATIAL navigation on the TOP LAYER only (sheet > dialog > focus layer > app). PAD.keys(map) adds a map by
+// selector for screens that cannot mark their own markup. Adaptive polling: 30 Hz timer while nothing is held, rAF while a button/stick is
+// held, 5 Hz under html.idle, none while the tab is hidden or no pad is connected. The legacy loop in c_pakt.js stops itself when
+// PAD.owns (one-line guard requested from P1); until then navigator.getGamepads() answers [] to everyone but PAD (see "legacy").
+// Accessibility: role/aria-modal/labels on every layer, inert background, Tab trap, focus in on open and back to the opener on close,
+// #fTitle as level-1 heading, skip link, scroll restore on Back, names for unnamed controls, lang="en" on English that a1 missed.
+// No state key: everything is device-local and derived. One MutationObserver (childList of body, #main, #fIn — no subtree; "hidden" of #focus/#sheet).
+const PAD=(function(){
+"use strict";
+const D=document,H=D.documentElement,W=window;
+const LOG=(w,e)=>{try{logError({message:"a10 "+w+": "+(e&&e.message||e)})}catch(x){}};
+const q=(s,r)=>(r||D).querySelector(s),qa=(s,r)=>[...(r||D).querySelectorAll(s)];
+const calm=()=>H.classList.contains("calm")||H.classList.contains("nomotion");
+const st={owns:true,conn:false,mode:"off",polls:0,presses:0,last:"",layer:"app",ts:0};
+const mapExtra=[];                                   // PAD.keys([[selector,key],…])
+// ---------------------------------------------------------------- input device (html[data-input])
+function setInput(k){if(H.dataset.input===k)return;H.dataset.input=k;legendSoon();try{D.dispatchEvent(new CustomEvent("ui:inputdevice",{detail:{input:k}}))}catch(e){}}
+try{H.dataset.input=(matchMedia&&matchMedia("(pointer:coarse)").matches)?"touch":"mouse"}catch(e){H.dataset.input="mouse"}
+let mvAcc=0;
+addEventListener("pointerdown",e=>{if(!e.isTrusted)return;setInput(e.pointerType==="touch"||e.pointerType==="pen"?"touch":"mouse")},{capture:true,passive:true});
+addEventListener("pointermove",e=>{if(!e.isTrusted||e.pointerType!=="mouse"||H.dataset.input!=="pad")return;mvAcc+=Math.abs(e.movementX||0)+Math.abs(e.movementY||0);if(mvAcc>40){mvAcc=0;setInput("mouse")}},{capture:true,passive:true});
+addEventListener("keydown",e=>{if(!e.isTrusted||/^(Shift|Control|Alt|Meta|Unidentified)$/.test(e.key))return;setInput("key")},{capture:true,passive:true});
+// ---------------------------------------------------------------- the top layer
+const FSEL='button:not([disabled]),a[href],input:not([type=hidden]):not([disabled]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"]),[contenteditable="true"]';
+const MODALS='[aria-modal="true"],.kit-sheet,#a10-confirm,#a8-handel,#lore-cine,#ts,#pakt-pro,.egg-pop';
+function shown(el){if(!el||!el.isConnected)return false;if(el.checkVisibility){if(!el.checkVisibility({checkVisibilityCSS:true}))return false}else if(!el.getClientRects().length)return false;const r=el.getBoundingClientRect();return r.width>0&&r.height>0}
+function rootOf(el){let e=el;while(e&&e.parentElement&&e.parentElement!==D.body)e=e.parentElement;return e}
+function zOf(el){let m=0;for(let e=el;e&&e!==D.body;e=e.parentElement){const z=parseInt(getComputedStyle(e).zIndex,10);if(!isNaN(z)&&z>m)m=z}return m}
+function layer(){const c=[];const add=el=>{if(el&&!c.includes(el)&&shown(el))c.push(el)};
+  qa(MODALS).forEach(add);const sh=D.getElementById("sheet");if(sh&&!sh.hidden)add(sh);const fo=D.getElementById("focus");if(fo&&!fo.hidden)add(fo);
+  if(!c.length)return D.getElementById("app")||D.body;
+  let best=c[0];for(const el of c.slice(1)){if(best.contains(el)){best=el;continue}if(el.contains(best))continue;
+    const a=zOf(best),b=zOf(el);if(b>a||(b===a&&(best.compareDocumentPosition(el)&Node.DOCUMENT_POSITION_FOLLOWING)))best=el}
+  return best}
+function usable(el,L){if(!el||el.closest('[inert]')&&!(L&&L.closest('[inert]')))return false;if(el.classList.contains("kit-hidden-select")||el.classList.contains("a10-skip"))return false;
+  for(let d=el.closest("details:not([open])");d;d=d.parentElement&&d.parentElement.closest("details:not([open])"))if(!(el.tagName==="SUMMARY"&&el.parentElement===d))return false;
+  if(!shown(el))return false;const r=el.getBoundingClientRect();if(r.right<=0||r.bottom<=-20000)return false;
+  if(L&&L.id==="focus"){const pm=q(".a8-pause",L);if(pm&&!pm.contains(el))return false}
+  return true}
+function focusables(L){const l=qa(FSEL,L).filter(el=>usable(el,L));
+  // one control, two focus stops (<a href><button>…</button></a>, P1 markup): keep the inner one; its click bubbles to the link
+  return l.filter(el=>!l.some(o=>o!==el&&el.contains(o)&&same(el,o)))}
+function same(a,b){const r=a.getBoundingClientRect(),o=b.getBoundingClientRect();return Math.abs(r.left-o.left)<3&&Math.abs(r.top-o.top)<3&&Math.abs(r.width-o.width)<4&&Math.abs(r.height-o.height)<4}
+// ---------------------------------------------------------------- spatial navigation
+function center(r){return [(r.left+r.right)/2,(r.top+r.bottom)/2]}
+function gap(a1,a2,b1,b2){return a2<b1?b1-a2:b2<a1?a1-b2:0}
+function next(cur,dir,list){const r=cur.getBoundingClientRect();const [cx,cy]=center(r);let best=null,bs=Infinity;
+  for(const el of list){if(el===cur||el.contains(cur)||cur.contains(el))continue;const o=el.getBoundingClientRect();const [ox,oy]=center(o);let p,x;
+    const tolV=Math.min(r.height,o.height)*.3,tolH=Math.min(r.width,o.width)*.3;
+    if(dir==="down"){if(o.top<r.bottom-tolV||oy<=cy)continue;p=Math.max(0,o.top-r.bottom);x=gap(r.left,r.right,o.left,o.right)+.2*Math.abs(ox-cx)}
+    else if(dir==="up"){if(o.bottom>r.top+tolV||oy>=cy)continue;p=Math.max(0,r.top-o.bottom);x=gap(r.left,r.right,o.left,o.right)+.2*Math.abs(ox-cx)}
+    else if(dir==="right"){if(o.left<r.right-tolH||ox<=cx)continue;p=Math.max(0,o.left-r.right);x=gap(r.top,r.bottom,o.top,o.bottom)+.2*Math.abs(oy-cy)}
+    else{if(o.right>r.left+tolH||ox>=cx)continue;p=Math.max(0,r.left-o.right);x=gap(r.top,r.bottom,o.top,o.bottom)+.2*Math.abs(oy-cy)}
+    const s=p+2*x;if(s<bs){bs=s;best=el}}
+  return best}
+const lastByTab={};
+function keyOf(el){const d=el.dataset||{};const id=[d.act,d.go,d.arg,d.i,d.h,d.pro,d.k].filter(x=>x!=null&&x!=="").join(",");return el.tagName+"|"+(id||(el.getAttribute("aria-label")||el.textContent||"").trim().slice(0,40))}
+function primaryIn(L,list){const pick=s=>list.find(el=>el.matches(s));
+  return pick('[data-pad="a"]')||pick('.btn-primary,.go,.primary,button.cr-flip')||null}
+function initial(L,list){if(!list.length)return null;
+  if(L.id==="app"){const main=D.getElementById("main");const inMain=list.filter(el=>main&&main.contains(el));
+    const k=lastByTab[typeof R!=="undefined"?R.tab:""];if(k){const el=inMain.find(e=>keyOf(e)===k);if(el)return el}
+    const vis=inMain.filter(el=>{const r=el.getBoundingClientRect();return r.bottom>0&&r.top<innerHeight});
+    return primaryIn(L,vis)||vis[0]||inMain[0]||list[0]}
+  return primaryIn(L,list)||list[0]}
+function focusEl(el){if(!el)return;try{el.focus({preventScroll:true})}catch(e){}try{el.scrollIntoView({block:"nearest",inline:"nearest",behavior:calm()?"auto":"smooth"})}catch(e){}}
+function scroller(L){const fb=L.id==="focus"?D.getElementById("fBody"):null;if(fb)return fb;if(L.id==="app"||L===D.body)return null;
+  if(L.scrollHeight>L.clientHeight+4)return L;const k=qa("*",L).find(e=>e.scrollHeight>e.clientHeight+40&&/(auto|scroll)/.test(getComputedStyle(e).overflowY));return k||null}
+function scrollStep(L,dy){const s=scroller(L);const b=calm()?"auto":"smooth";if(s){const before=s.scrollTop;s.scrollBy({top:dy,behavior:b});return s.scrollHeight-s.clientHeight>before+1||before>0}
+  const before=scrollY;scrollBy({top:dy,behavior:b});return before!==scrollY||(dy>0?innerHeight+scrollY<D.documentElement.scrollHeight-1:scrollY>0)}
+function move(dir){const L=layer();const list=focusables(L);const a=D.activeElement;
+  if(!list.length){scrollStep(L,(dir==="down"?1:dir==="up"?-1:0)*innerHeight*.6);return null}
+  if(!a||a===D.body||!L.contains(a)||!list.includes(a)){const el=initial(L,list);focusEl(el);return el}
+  let el=next(a,dir,list);
+  if(!el){// nothing in that direction: reveal more text first, then fall back to document order (so every control stays reachable)
+    if((dir==="down"||dir==="up")&&scrollStep(L,(dir==="down"?1:-1)*innerHeight*.5)){const i=list.indexOf(a);const n=list[i+(dir==="down"?1:-1)];
+      if(n){const r=n.getBoundingClientRect();if(r.top>=0&&r.bottom<=innerHeight)el=n}if(!el)return a}
+    else{const i=list.indexOf(a);el=list[i+(dir==="down"||dir==="right"?1:-1)]||null}}
+  if(el)focusEl(el);return el}
+// ---------------------------------------------------------------- guarded contexts (duel, timed exam, FSP): B / Esc ask first
+function guardCtx(){try{if(typeof Focus==="undefined"||!Focus.isOpen())return null;if(q("#fIn .duel"))return"duel";if(q("#fTools .ex-t"))return"exam";if(q("#fIn .fsp-chat,#fIn .fsp-q"))return"fsp"}catch(e){}return null}
+const GUARD={duel:["Kampf abbrechen?","Leave the duel?","Weiterkämpfen","Aufgeben"],exam:["Prüfung abbrechen?","Leave the exam?","Weitermachen","Abbrechen"],
+  fsp:["Gespräch beenden?","End the conversation?","Weitersprechen","Beenden"]};
+function confirmOpen(kind){if(q("#a10-confirm"))return;const g=GUARD[kind]||GUARD.duel;const opener=D.activeElement;const w=D.createElement("div");w.id="a10-confirm";w.className="a10-confirm";
+  w.setAttribute("role","alertdialog");w.setAttribute("aria-modal","true");w.setAttribute("aria-labelledby","a10cT");w.setAttribute("aria-describedby","a10cD");
+  w.innerHTML=`<div class="card stack a10-cbox"><h2 id="a10cT">${esc(g[0])}</h2><p class="muted" id="a10cD"><span class="en" lang="en">${esc(g[1])}</span></p>
+   <div class="a10-crow"><button class="btn-primary go" data-a10c="stay" data-pad="a">${esc(g[2])}</button><button class="btn-danger" data-a10c="quit" data-pad="x">${esc(g[3])}</button></div></div>`;
+  D.body.appendChild(w);const close=quit=>{w.remove();a11ySoon();if(quit){try{Focus.close(kind==="duel")}catch(e){}}   /* integrator 13.7: a silent close is i7's „quit“ (QUIT recorded) */else if(opener&&opener.isConnected)focusEl(opener)};
+  w.addEventListener("click",e=>{const b=e.target.closest("[data-a10c]");if(b)close(b.dataset.a10c==="quit");else if(e.target===w)close(false)});
+  w.addEventListener("keydown",e=>{if(e.key==="Escape"){e.preventDefault();e.stopPropagation();close(false)}});
+  a11ySoon();focusEl(q("[data-a10c=stay]",w))}
+addEventListener("keydown",e=>{try{if(e.key!=="Escape"||e.defaultPrevented)return;if(q("#a10-confirm")||q(".kit-sheet")||!q("#sheet").hidden)return;const k=guardCtx();if(!k)return;
+  e.preventDefault();e.stopImmediatePropagation();confirmOpen(k)}catch(x){}},true);
+// ---------------------------------------------------------------- actions
+function esc_(){const t=D.activeElement&&D.activeElement!==D.body?D.activeElement:(layer()||D.body);try{t.dispatchEvent(new KeyboardEvent("keydown",{key:"Escape",code:"Escape",bubbles:true,cancelable:true}))}catch(e){}}
+function mapped(L,k){const sel=`[data-pad="${k}"]`;let el=qa(sel,L).find(e=>usable(e,L));if(el)return el;
+  for(const [s,kk] of mapExtra)if(kk===k){el=qa(s,L).find(e=>usable(e,L));if(el)return el}return null}
+let oskT=0;
+function oskHint(el){if(!el||!/^(INPUT|TEXTAREA)$/.test(el.tagName)||/^(range|checkbox|radio|button|submit|color|file)$/.test(el.type||""))return;if(Date.now()-oskT<60000)return;oskT=Date.now();
+  try{if(W.UIX)toast(["Steam + X öffnet die Bildschirmtastatur.","Steam + X opens the on-screen keyboard."],5000);else toast("Steam + X öffnet die Bildschirmtastatur.",5000)}catch(e){}}
+function activate(el){if(!el)return;if(el.tagName==="SELECT"){focusEl(el);try{el.showPicker&&el.showPicker()}catch(e){}return}
+  if(/^(INPUT|TEXTAREA)$/.test(el.tagName)&&!/^(checkbox|radio|button|submit|range)$/.test(el.type||"")){focusEl(el);oskHint(el);return}
+  if(el.tagName==="INPUT"&&el.type==="range")return;
+  el.click()}
+function stepRange(el,d){try{d>0?el.stepUp():el.stepDown()}catch(e){const s=+el.step||1;el.value=String(Math.min(+el.max||100,Math.max(+el.min||0,+el.value+d*s)))}
+  el.dispatchEvent(new Event("input",{bubbles:true}));el.dispatchEvent(new Event("change",{bubbles:true}))}
+function cycleSelect(el,d){const n=el.options.length;if(!n)return;el.selectedIndex=Math.max(0,Math.min(n-1,el.selectedIndex+d));el.dispatchEvent(new Event("input",{bubbles:true}));el.dispatchEvent(new Event("change",{bubbles:true}))}
+function tabStep(d){try{const t=TABS.map(x=>x[0]);go(t[(t.indexOf(R.tab)+d+t.length)%t.length])}catch(e){}}
+function press(k){st.presses++;st.last=k;activity();setInput("pad");const L=layer();const a=D.activeElement;const inL=a&&a!==D.body&&L.contains(a);
+  try{
+  if(inL&&a.tagName==="INPUT"&&a.type==="range"&&(k==="left"||k==="right")){stepRange(a,k==="right"?1:-1);return}
+  if(inL&&a.tagName==="SELECT"&&(k==="left"||k==="right")){cycleSelect(a,k==="right"?1:-1);return}
+  if(L.id==="focus"&&q("#fIn .book")){if(k==="left"||k==="l"){ACT.bkPrev&&ACT.bkPrev();return}if(k==="right"||k==="r"){ACT.bkNext&&ACT.bkNext();return}}
+  const m=mapped(L,k);
+  if(k==="a"){if(inL&&usable(a,L))activate(a);else if(m)activate(m);else move("down");return}
+  if(k==="up"||k==="down"||k==="left"||k==="right"){if(m&&!(inL&&/^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName)))activate(m);else move(k);return}
+  if(k==="b"){if(inL&&/^(INPUT|TEXTAREA)$/.test(a.tagName)&&!/^(range|checkbox|radio)$/.test(a.type||"")){a.blur();focusEl(next(a,"down",focusables(L))||next(a,"right",focusables(L)));return}   // B leaves a text field first
+    if(L.id==="focus"){const g=guardCtx();if(g){confirmOpen(g);return}}        // duel / timed exam / FSP: ask first, even if a close button carries data-pad="b"
+    if(m){activate(m);return}
+    if(L.id==="app"){try{if(R.id||(R.seg&&location.hash.indexOf("/")>0))history.back();else if(R.tab!=="home")go("home")}catch(e){}return}
+    esc_();return}
+  if(k==="x"||k==="y"){if(m)activate(m);return}
+  if(k==="start"){if(m){activate(m);return}if(L.id==="app"){try{go("home")}catch(e){}}else esc_();return}
+  if(k==="select"){if(m){activate(m);return}if(inL&&W.kitHold&&W.kitHasHold&&W.kitHasHold(a)){W.kitHold(a);return}try{ACT.pkMute&&ACT.pkMute()}catch(e){}return}
+  if(k==="l"||k==="r"){if(m){activate(m);return}if(L.id==="app")tabStep(k==="r"?1:-1);return}        // ux D11: ignored while a layer is open
+  if(k==="lt"||k==="rt"){scrollStep(L,(k==="rt"?1:-1)*innerHeight*.8);return}
+  }catch(e){LOG("press "+k,e)}finally{legendSoon()}}
+// ---------------------------------------------------------------- activity (pad counts as input for idle, study time and c_horror's idle roast)
+let actT=0;const sink=D.createElement("span");sink.hidden=true;sink.className="a10-sink";
+function activity(){try{if(W.FX&&FX.poke)FX.poke();D.dispatchEvent(new Event("ui:input"))}catch(e){}
+  const now=Date.now();if(now-actT<1500)return;actT=now;try{if(!sink.isConnected)D.body.appendChild(sink);sink.dispatchEvent(new KeyboardEvent("keydown",{key:"Unidentified",bubbles:true}))}catch(e){}}
+// ---------------------------------------------------------------- polling
+const BTN={0:"a",1:"b",2:"x",3:"y",4:"l",5:"r",6:"lt",7:"rt",8:"select",9:"start",12:"up",13:"down",14:"left",15:"right"};
+const REP={up:1,down:1,left:1,right:1};let prev={},held={},tm=0,rf=0,lastAct=-1e9,lostT=0;
+// legacy: c_pakt.js runs its own rAF loop from "gamepadconnected" (its listener fires before ours, so the event cannot be swallowed).
+// Until P1 adds the guard line, other callers of navigator.getGamepads() get an empty list: that loop then stops after one frame.
+// Anyone else who needs the pads calls PAD.pads().
+const realGP=navigator.getGamepads?navigator.getGamepads.bind(navigator):null;
+try{if(realGP)navigator.getGamepads=function(){return st.owns?[]:realGP()}}catch(e){}
+function pads(){try{return [...(realGP?realGP():[])].filter(p=>p&&p.connected!==false)}catch(e){return[]}}
+function read(gp){const now=performance.now();let any=false;const b=gp.buttons||[],ax=gp.axes||[];const down={};
+  for(const i in BTN){const x=b[i];if(x&&(x.pressed||x.value>.6))down[BTN[i]]=true}
+  const lx=ax[0]||0,ly=ax[1]||0;if(Math.abs(lx)>.55||Math.abs(ly)>.55){if(Math.abs(ly)>=Math.abs(lx))down[ly>0?"down":"up"]=true;else down[lx>0?"right":"left"]=true}
+  const ry=ax[3]||0;if(Math.abs(ry)>.25){any=true;const L=layer();const s=scroller(L);const dy=ry*Math.abs(ry)*28;s?s.scrollBy(0,dy):scrollBy(0,dy);activity()}
+  for(const k in down){any=true;if(!prev[k]){held[k]=now+380;press(k)}else if(REP[k]&&now>=held[k]){held[k]=now+110;press(k)}}
+  prev=down;return any}
+function tick(){tm=rf=0;st.polls++;if(D.hidden){st.mode="hidden";return}const gp=pads()[0];if(!gp){st.conn=false;st.mode="off";legendSoon();return}st.conn=true;
+  let act=false;try{act=read(gp)}catch(e){LOG("poll",e)}const now=performance.now();if(act)lastAct=now;
+  // a tap shorter than the idle poll interval is not seen as "pressed", but it changes gp.timestamp: wake up and poll fast
+  const ts=gp.timestamp||0;if(ts!==st.ts){if(st.ts&&!act){lastAct=now;activity()}st.ts=ts}
+  if(H.dataset.input==="pad"&&!H.classList.contains("idle")){if(st.polls%15===0)legendSoon();
+    // a re-render dropped the focus (step change, view rebuilt): put it back on the layer's primary control (ux D9 item 3)
+    const ae=D.activeElement;if((!ae||ae===D.body||!ae.isConnected)&&performance.now()-lostT>250){lostT=performance.now();try{const L=layer();const el=initial(L,focusables(L));if(el){el.focus({preventScroll:true});legendSoon()}}catch(e){}}}
+  if(now-lastAct<400){st.mode="raf";rf=requestAnimationFrame(tick)}else{const idle=H.classList.contains("idle");st.mode=idle?"5hz":"30hz";tm=setTimeout(tick,idle?200:33)}}
+function start(){if(tm||rf||D.hidden)return;if(!pads().length)return;tick()}
+function stop(){clearTimeout(tm);cancelAnimationFrame(rf);tm=rf=0}
+addEventListener("gamepadconnected",e=>{start();try{if(!st.toasted){st.toasted=1;toast(["Controller verbunden. Die Leiste unten zeigt die Tasten.","Controller connected. The bar at the bottom shows the buttons."],4000)}}catch(x){}},true);
+addEventListener("gamepaddisconnected",()=>{if(!pads().length){stop();st.conn=false;st.mode="off";if(H.dataset.input==="pad")setInput("mouse")}});
+D.addEventListener("visibilitychange",()=>{if(D.hidden)stop();else start()});
+// ---------------------------------------------------------------- keyboard: arrows walk spatially between controls (never inside fields, never when a screen handles them)
+D.addEventListener("keydown",e=>{try{if(e.defaultPrevented||e.altKey||e.ctrlKey||e.metaKey||e.shiftKey)return;const dir={ArrowUp:"up",ArrowDown:"down",ArrowLeft:"left",ArrowRight:"right"}[e.key];if(!dir)return;
+  const a=D.activeElement;if(!a||a===D.body||/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)||a.isContentEditable)return;if(!a.matches('button,a[href],summary,[tabindex]'))return;
+  if(typeof Focus!=="undefined"&&Focus.isOpen()&&(q("#fIn .book")||(typeof KEYS!=="undefined"&&KEYS)))return;if(a.closest('[role="listbox"],[role="tablist"],[role="radiogroup"],.a8-search,.xl-pop'))return;
+  const L=layer();if(!L.contains(a))return;if(move(dir)){e.preventDefault()}}catch(x){}});
+// ---------------------------------------------------------------- legend (from the active map, only while the pad is the input)
+const GLY={a:"Ⓐ",b:"Ⓑ",x:"Ⓧ",y:"Ⓨ",l:"L1",r:"R1",start:"☰",select:"⧉",up:"↑",down:"↓",left:"←",right:"→"};
+let lg=null,lgQ=0,lgSig="";
+function labelOf(el){const t=(el.getAttribute("aria-label")||el.dataset.padLabel||(el.innerText||"").trim().split("\n")[0]||el.value||"").replace(/\s+/g," ").trim();return t.length>22?t.slice(0,21)+"…":t}
+function legendItems(){const L=layer();const items=[];const seen={};
+  const g=L.id==="focus"&&guardCtx();
+  for(const k of ["a","x","y","left","down","right","up","b","l","r","start"]){if(k==="b"&&g)continue;const el=mapped(L,k);if(el){const t=labelOf(el);if(t){items.push([k,t]);seen[k]=1}}}
+  const four=["up","down","left","right"];
+  if(four.every(k=>seen[k])&&four.every(k=>{const e=mapped(L,k);return e&&e.closest(".rate")})){for(let i=items.length-1;i>=0;i--)if(four.includes(items[i][0]))items.splice(i,1);items.splice(1,0,["dpad","Bewerten"]);four.forEach(k=>seen[k]=2)}
+  const dirs=four.some(k=>!seen[k]);
+  if(!seen.a)items.unshift(["a","Wählen"]);if(dirs)items.splice(1,0,["dpad","Bewegen"]);
+  if(!seen.b)items.push(["b",L.id==="app"?"Zurück":g?"Abbrechen …":(L.id==="focus"&&L.dataset.shell!=null)?"Pause":"Schließen"]);
+  if(L.id==="app"&&!seen.l)items.push(["lr","Reiter"]);
+  const a=D.activeElement;if(a&&L.contains(a)&&(a.type==="range"||a.tagName==="SELECT"))items.splice(1,0,["lrr","Wert ändern"]);
+  if(!seen.select&&items.length<7&&a&&L.contains(a)&&W.kitHasHold&&W.kitHasHold(a))items.push(["select","Menü"]);
+  return items}
+function legend(){lgQ=0;try{const on=H.dataset.input==="pad"&&st.conn;if(!on){if(lg){lg.hidden=true;H.classList.remove("a10-lg")}return}
+  if(!lg){lg=D.createElement("div");lg.id="a10-legend";lg.className="a10-legend";lg.setAttribute("aria-hidden","true");D.body.appendChild(lg)}
+  const it=legendItems();const sig=it.map(x=>x.join(":")).join("|");if(sig!==lgSig){lgSig=sig;
+    lg.innerHTML=it.map(([k,t])=>`<span class="a10-k"><b>${k==="dpad"?"✚":k==="lr"?"L1 R1":k==="lrr"?"← →":GLY[k]||k}</b>${esc(t)}</span>`).join("");
+    lg.hidden=false;H.style.setProperty("--a10-lg-h",(lg.offsetHeight+16)+"px")}
+  lg.hidden=false;H.classList.add("a10-lg")}catch(e){LOG("legend",e)}}
+function legendSoon(){if(!lgQ)lgQ=requestAnimationFrame(legend)}
+// ---------------------------------------------------------------- accessibility pass
+const NAMES={stepBack:"Schritt zurück",stepSkip:"Schritt überspringen",stepNext:"Weiter",closeSheet:"Schließen",closeFocus:"Schließen",pkMute:"Ton an oder aus",pkNextTrack:"Nächstes Stück",
+  lpPrev:"Vorheriges Paar",lpNext:"Nächstes Paar",bkPrev:"Vorherige Seite",bkNext:"Nächste Seite",a8Pause:"Pause",micGo:"Aufnahme starten",say:"Anhören"};
+const FIELDS=[[".lq","Suche"],[".kj-in","Verb eingeben"],[".wb-in","Wort suchen"],[".rs-in","Bestätigung: LÖSCHEN"],[".k-in","API-Schlüssel"],[".bk-txt","Backup-Text"],
+  [".fsp-q","Frage an die Patientin"],[".dm-in","Diktat"],[".gl-in","Bedeutung auf Englisch"],[".duel-in","Antwort"],[".sh-in","Antwort"]];
+function hasName(el){if(el.getAttribute("aria-label")||el.getAttribute("aria-labelledby")||el.getAttribute("title"))return true;
+  if(/^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName)){if(el.labels&&el.labels.length&&[...el.labels].some(l=>l.textContent.trim()))return true;return el.type==="button"||el.type==="submit"?!!el.value:false}
+  if((el.textContent||"").trim())return true;const img=el.querySelector("img[alt]");return !!(img&&img.alt.trim())}
+function nameControls(root){let n=0;for(const el of qa('button,a[href],[role="button"],input:not([type=hidden]),select,textarea',root)){if(hasName(el))continue;
+  let t="";if(/^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName)){const f=FIELDS.find(([s])=>el.matches(s));t=f?f[1]:(el.placeholder||(el.type==="range"?"Regler":el.tagName==="SELECT"?"Auswahl":"Eingabe"))}
+  else{const a=el.dataset.act;t=(a&&NAMES[a])||(el.hasAttribute("data-say")?"Anhören":"")||(el.classList.contains("lp-prev")?"Vorheriges Paar":"")||(el.querySelector("svg title")||{}).textContent||(a?a.replace(/([A-Z])/g," $1").toLowerCase():"")}
+  if(t){el.setAttribute("aria-label",t.trim());n++}}return n}
+function langPass(root){for(const el of qa('.en:not([lang]),.tr:not([lang]),.xp-en:not([lang])',root))el.setAttribute("lang","en")}
+function progPass(root){for(const el of qa(".pbar:not([role]),.prog-bar:not([role])",root)){const i=el.querySelector("i,b,span");const w=i&&i.style&&i.style.width;const v=w&&/%$/.test(w)?Math.round(parseFloat(w)):null;
+  el.setAttribute("role","progressbar");el.setAttribute("aria-valuemin","0");el.setAttribute("aria-valuemax","100");if(v!=null)el.setAttribute("aria-valuenow",String(v));if(!el.getAttribute("aria-label"))el.setAttribute("aria-label","Fortschritt")}}
+function pass(root){try{nameControls(root);langPass(root);progPass(root)}catch(e){LOG("pass",e)}}
+// dialogs: role, label, inert background, focus in, Tab trap, focus back to the opener
+const LOWER=["app","focus","sheet"];let top=null,inerted=[],a11yQ=0;const lastIn=new WeakMap();   // layer element → [element, key] last focused inside it
+const layerOf=t=>t.closest(MODALS+",#focus,#sheet")||D.getElementById("app")||D.body;
+function label(L){if(L.getAttribute("aria-labelledby")||L.getAttribute("aria-label"))return;let h=L.id==="focus"?D.getElementById("fTitle"):q("h1,h2,h3,h4,.ttl,.title",L);
+  if(h&&h.textContent.trim()){if(!h.id)h.id="a10h"+Math.random().toString(36).slice(2,8);L.setAttribute("aria-labelledby",h.id)}else{const t=(L.innerText||"").trim().split("\n")[0].slice(0,60);if(t)L.setAttribute("aria-label",t)}}
+function setInert(L){inerted.forEach(el=>{el.inert=false;delete el.dataset.a10Inert});inerted=[];if(!L||L.id==="app")return;const r=rootOf(L);
+  const cand=LOWER.map(id=>D.getElementById(id)).concat(qa(MODALS).map(rootOf));
+  for(const el of cand){if(!el||el===r||el.contains(r)||inerted.includes(el))continue;if(el.parentElement!==D.body)continue;
+    if(zOf(el)>zOf(L))continue;el.inert=true;el.dataset.a10Inert="1";inerted.push(el)}}
+function a11y(){a11yQ=0;try{const L=layer();
+  const fo=D.getElementById("focus"),ft=D.getElementById("fTitle");if(fo){fo.setAttribute("role","dialog");fo.setAttribute("aria-modal","true");if(ft){fo.setAttribute("aria-labelledby","fTitle");ft.setAttribute("role","heading");ft.setAttribute("aria-level","1")}}
+  const sh=D.getElementById("sheet");if(sh){sh.setAttribute("role","dialog");sh.setAttribute("aria-modal","true")}
+  for(const m of qa("#lore-cine,#ts,#pakt-pro,.kit-sheet,.egg-pop")){if(!m.getAttribute("role"))m.setAttribute("role","dialog");m.setAttribute("aria-modal","true")}
+  if(L!==top){top=L;st.layer=L.id||L.className||"?";setInert(L);
+    if(L.id!=="app"){label(L);pass(L)}
+    const a=D.activeElement;
+    if(!a||a===D.body||!a.isConnected||!L.contains(a)||!usable(a,L)){   // focus in on open, back to where it was in this layer on close
+      const m=lastIn.get(L);let o=m&&m[0].isConnected&&L.contains(m[0])&&usable(m[0],L)?m[0]:null;if(!o&&m)o=focusables(L).find(e=>keyOf(e)===m[1])||null;
+      if(!o&&L.id!=="app")o=initial(L,focusables(L));if(o)try{o.focus({preventScroll:true})}catch(e){}}
+    legendSoon()}
+  else pass(L.id==="app"?(D.getElementById("main")||L):L);
+  }catch(e){LOG("a11y",e)}}
+function a11ySoon(){if(!a11yQ)a11yQ=requestAnimationFrame(a11y)}
+// Tab trap inside the top layer (inert covers most; this handles a dialog nested inside #focus, e.g. a8's pause)
+D.addEventListener("keydown",e=>{if(e.key!=="Tab")return;try{const L=layer();if(L.id==="app")return;const list=focusables(L);if(!list.length)return;const a=D.activeElement;const i=list.indexOf(a);
+  if(i<0){e.preventDefault();list[0].focus();return}if(!e.shiftKey&&i===list.length-1){e.preventDefault();list[0].focus()}else if(e.shiftKey&&i===0){e.preventDefault();list[list.length-1].focus()}}catch(x){}},true);
+// remember the last focused control per tab (pad returns there)
+D.addEventListener("focusin",e=>{try{const t=e.target;if(t&&t.closest&&t!==D.body){const r=layerOf(t);if(r)lastIn.set(r,[t,keyOf(t)])}const m=D.getElementById("main");if(m&&m.contains(t)&&typeof R!=="undefined")lastByTab[R.tab]=keyOf(t);if(H.dataset.input==="pad"){oskHint(t);legendSoon()}if(t&&t.tagName)nameControls(t.parentElement||t)}catch(x){}});
+// skip link (ux D17)
+function skip(){if(q(".a10-skip"))return;const a=D.createElement("a");a.className="a10-skip";a.href="#main";a.textContent="Zum Inhalt springen";
+  a.addEventListener("click",e=>{e.preventDefault();const m=D.getElementById("main");if(!m)return;if(!m.hasAttribute("tabindex"))m.tabIndex=-1;m.focus();try{m.scrollIntoView({block:"start"})}catch(x){}});D.body.insertBefore(a,D.body.firstChild)}
+// scroll position per view, restored on Back/Forward (ux D17)
+const pos={};const vkey=()=>{try{return R.tab+"|"+(R.id||"")+"|"+(R.seg||"")}catch(e){return""}};
+const keep=()=>{if(typeof Focus!=="undefined"&&Focus.isOpen())return;pos[vkey()]=scrollY};
+addEventListener("scroll",keep,{passive:true});D.addEventListener("click",keep,{capture:true,passive:true});   // also on the click that navigates away (scroll events are coalesced per frame)
+addEventListener("popstate",()=>{const y=pos[vkey()];if(!(y>0))return;setTimeout(()=>{if(typeof Focus!=="undefined"&&Focus.isOpen())return;requestAnimationFrame(()=>{scrollTo(0,y);pos[vkey()]=y})},0)});   // runs after c_ux's handler (registered earlier), so R is already the restored view
+// one observer: layers coming and going (body children), Focus renders (#fIn children), #focus / #sheet hidden flips
+function boot(){try{skip();const mo=new MutationObserver(()=>{a11ySoon();legendSoon()});mo.observe(D.body,{childList:true});
+  const fi=D.getElementById("fIn");if(fi)mo.observe(fi,{childList:true});const mn=D.getElementById("main");if(mn)mo.observe(mn,{childList:true});["focus","sheet"].forEach(id=>{const el=D.getElementById(id);if(el)mo.observe(el,{attributes:true,attributeFilter:["hidden"]})});
+  a11y();pass(D);start()}catch(e){LOG("boot",e)}}
+try{MOD.after("chrome","a10",function(){try{const m=D.getElementById("main");if(m)pass(m);const n=D.getElementById("sideNav");if(n&&!n.getAttribute("aria-label"))n.setAttribute("aria-label","Hauptnavigation");a11ySoon()}catch(e){LOG("chrome",e)}})}catch(e){}
+if(D.readyState==="loading")D.addEventListener("DOMContentLoaded",boot);else setTimeout(boot,0);
+return {owns:true,pads,start,stop,keys(map){(Array.isArray(map)?map:Object.entries(map).map(([k,s])=>[s,k])).forEach(x=>mapExtra.push(x));legendSoon()},
+  legend(){return legendItems()},layer,focusables:()=>focusables(layer()),next,move,press,confirm:confirmOpen,guard:guardCtx,
+  state:()=>Object.assign({},st,{input:H.dataset.input,polling:!!(tm||rf)}),nameControls,pass,_a11y:a11y}})();
+window.PAD=PAD;
+
 // ===== Mephisto · integrator late fix-ups (13.5). Loaded after every package that adds cards at load (c_i2, c_i3, track L) and before c_p2_ui/c_cloud.
 // 1. L1 gives every card a level `lv` and a `rank` when c_l1 loads; cards that later files add at load (i2's chapter words, i3's phrases, l10's words …)
 //    would have neither. Rebuild L1's rank and the dictionary once here, so cardRank()/l4's order and tap-to-translate see them too.
@@ -12198,7 +14804,7 @@ function p2Size(n){return n>=1048576?(n/1048576).toFixed(1).replace(".",",")+" M
 function p2SnapHTML(L,est){const st=STORE.st;const kind={d:"täglich",w:"wöchentlich",u:"vor einer Änderung"};
   const row=x=>`<div class="li" style="cursor:default;align-items:center"><span class="t"><b>${x.day?esc(fmtDate(x.day)):"ohne Datum"}${x.at&&x.kind==="u"?" · "+esc(String(x.at).slice(11,16)):""}</b><br><small class="muted ui">${esc(x.label||kind[x.kind]||"")} · ${p2Size(x.bytes||0)}</small></span><span class="row" style="gap:.3rem;flex-wrap:wrap;justify-content:flex-end"><button class="sm" data-act="restoreSnap" data-id="${esc(x.id)}">Wiederherstellen</button><button class="sm ghost" data-act="snapSave" data-id="${esc(x.id)}" data-day="${esc(x.day||"")}">Als Datei</button></span></div>`;
   const where=st.mode==="idb"?"im Gerätespeicher dieser App (IndexedDB)":"im einfachen Browserspeicher (localStorage) – hier ist nur Platz für zwei Tage";
-  return `<h3>Sicherungen</h3><p class="fg2" style="font-size:.95rem">Automatisch: ${st.mode==="idb"?"täglich (die letzten 7) und wöchentlich (die letzten 4)":"täglich (die letzten 2)"}. Vor jedem Zurücksetzen und Wiederherstellen entsteht zusätzlich eine Kopie. Jede Kopie wird nach dem Schreiben zurückgelesen und geprüft. Sie liegen ${where}. <span class="en">Automatic backups, each read back and checked after writing. A copy is also made before every reset or restore.</span></p>
+  return `<h3>Sicherungen</h3><p class="fg2" style="font-size:.95rem">Automatisch: ${st.mode==="idb"?"täglich (die letzten 7) und wöchentlich (die letzten 4)":"täglich (die letzten 2)"}. Vor jedem Zurücksetzen und Wiederherstellen entsteht zusätzlich eine Kopie. Jede Kopie wird nach dem Schreiben zurückgelesen und geprüft. Sie liegen ${where}. <span class="en" lang="en">Automatic backups, each read back and checked after writing. A copy is also made before every reset or restore.</span></p>
    ${st.note?`<div class="card p2-note"><b>Achtung:</b> ${esc(st.note)} <button class="sm" data-act="snapRaw">Rohdaten als Datei speichern</button></div>`:""}
    ${st.snapErr?`<div class="card p2-note"><b>Die letzte tägliche Sicherung ist fehlgeschlagen</b>${st.snapErr==="quota"?" (Speicher voll)":""}. Bitte oben „Als Datei speichern“ benutzen.</div>`:""}
    ${st.unsaved?`<div class="card p2-note"><b>Der letzte Speicherversuch ist fehlgeschlagen.</b> Dein Fortschritt liegt gerade nur in diesem Fenster. Bitte oben „Als Datei speichern“ benutzen.</div>`:""}
@@ -12244,6 +14850,17 @@ MERGE_RULES.bossPrac=(a,b)=>joinDeep(isObj(a)?a:{},isObj(b)?b:{});
 MERGE_RULES.l9=(a,b)=>joinDeep(isObj(a)?a:{},isObj(b)?b:{});
 //   sim (l9: running exam simulation clock) is device-local: never synced (l9 MANIFEST)
 DEVICE_KEYS.add("sim");
+//   a3 {adapt, last} (a3: "Musik passt sich an", last piece) — device-local, like S.sound (a3 MANIFEST)
+DEVICE_KEYS.add("a3");
+//   power "auto"|"voll"|"spar" (a7: battery choice per device) — device-local (a7 MANIFEST)
+DEVICE_KEYS.add("power");
+//   hx {seen:{lineId:date}, nm:{nightmareId:date}, …device counters} (s6: horror director) — seen/nm per id the later date (whispers and
+//   nightmares do not repeat across devices); the other fields are per-device counters (fails, wr, rr, se, hh, …): s6 asks "keep local", which a
+//   symmetric rule cannot know, so they come whole from the side whose counters sort higher (stableJ) — deterministic, commutative, associative
+MERGE_RULES.hx=(a,b)=>{const A=isObj(a)?a:{},B=isObj(b)?b:{};const rest=X=>{const o={};for(const k of Object.keys(X).sort())if(k!=="seen"&&k!=="nm")o[k]=X[k];return o};
+  const ra=rest(A),rb=rest(B);const o=Object.assign({},stableJ(ra)>=stableJ(rb)?ra:rb);
+  const lat=(x,y)=>{const X=isObj(x)?x:{},Y=isObj(y)?y:{},r={};for(const k of [...new Set([...Object.keys(X),...Object.keys(Y)])].sort()){const u=X[k],v=Y[k];r[k]=u===undefined?v:v===undefined?u:(String(u)>=String(v)?u:v)}return r};
+  if(A.seen!==undefined||B.seen!==undefined)o.seen=lat(A.seen,B.seen);if(A.nm!==undefined||B.nm!==undefined)o.nm=lat(A.nm,B.nm);return o};
 //   l8 {v, lv, k:{kind:[n,right,date]}, miss:{itemId:date}} (l8: Ohr-Training) — k per kind the entry with more items (tie: larger JSON), miss union with the
 //   newer date, lv the higher non-null level
 //   p3fsp {seen:{caseId:date}, strict:bool} (P3: FSP cases played) — seen union with the later date; strict OR (a join; turning it off on one

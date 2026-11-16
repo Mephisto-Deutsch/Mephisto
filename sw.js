@@ -3,9 +3,9 @@
    - single download: "./" is not a second copy; files that did not change between versions are not fetched again;
    - resumable: every verified file is kept at once, so an interrupted install continues where it stopped;
    - atomic: the new version only takes over when every file is stored and matches its SHA-256 (a stale CDN copy fails and is retried later). */
-const VERSION = "13.6.0-9c72bd7464";
+const VERSION = "13.7.0-2580f01a55";
 const FILES = {
-"index.html": "5a3ebce4951c312c3aad8ad048c0e25f3e8d4d5693ea01e2c80d346c19a08dfb",
+"index.html": "8370274cc14c343e31562bb77a9a25b3729b5cb051c0ccd4145000fa0c9c8d6c",
 "manifest.webmanifest": "d573eb33cf31c814060c21e4f4cb29abf24b12f9ab8950b4ca18aabd1c360cd9",
 "fonts.css": "8d483729ffa0c8054319a0ab4223a52671c7471c86e678358d990a13b24fcd39",
 "icons/apple-touch-icon.png": "3911a4362fc845fbaf7c9fcc664ef3a538a6e3050a7dd7ad20f1435eb99fd0e7",
@@ -21,7 +21,7 @@ const FILES = {
 "fonts/sourceserif4-italic.woff": "65cb81b09f72ccd03e756b200d2c08bdd4e8a30e6634a59dc5310e43cba9857e",
 "fonts/sourceserif4.woff": "0375575b7d682774f40208171de11fd99a042c083fdd17b925721455ea21278f",
 "fonts/unifraktur.woff": "961e1cfdcf923c87df0dbf6215a32d3f02fa40b2f330e04c4b6dc90f842cfe35",
-"js/app.js": "061f859a7083e94d9ff65dc08f13e6f609a5664d748739ec42093f2adc80293b",
+"js/app.js": "6f779044e44347cb4031b6c2df44bb5497c13dd95fce87bc74c8401fad9baafd",
 "js/data-b2.js": "f1a561e5277a177631eb4ecfda8c324e5daa36f1bddfc5ec779ff06d5f90900a",
 "js/data-base.js": "19e2fb924bec6004f439f07f1b48519f784765db7993d22e828a382806779a6f",
 "js/data-bib.js": "dc6d0bf4d328c70f9abe260f5cc1abc2661f376283a6ab71b8d88feb036994a7",
@@ -38,9 +38,11 @@ const FILES = {
 "js/data-l8.js": "7bf37c1e4ae44aa16bd0d92b28ca1db655cd42de127bdf3ba02e167e99a051d7",
 "js/data-l9.js": "93231079e6eac71efe66634c6136908475e46e19e8a42461fd12f3838bbac14c",
 "js/data-media.js": "07a5088b8e81c3f7271264c63f2f6baea8471d042d3faaa992ce6734c2cdbb38",
-"js/data-more.js": "39e3519366d98b021a72ef17511d60f98ed18c7c6fad392bd657ebe99618cdfa",
+"js/data-more.js": "544f60f9ac2c2aa30a4e8bb72ddfc4944721a47118f7d6b24f8742b60a72d2d6",
+"js/data-music.js": "036e9356d25cdc8871ae57fad447b5fc96ec326f263d824fb95d25c602bd6c78",
 "js/data-p3.js": "f69fddfe614c11b8a6b455009016c04bac812ee5bc84009ba96d81e1bc70622c",
-"js/data-story.js": "f43d6ce3745e33d218103cfb4bf48d8e853abfb28988da06fe25b7794afdc0c9",
+"js/data-scenes.js": "f03f49eaf7451280e8837616a9d1da0002482973249490f2647e0e4a476db7dd",
+"js/data-story.js": "a140ac98dbe490cc09d4dd72b7d214bcb6d23a3dd07368a8f4fc97834cbfe7ca",
 "media/art/a8_finale.webp": "a0e4bce554fee3bf2640551c33e0058ab35038719d068235bcdda591d446c357",
 "media/art/a8_finale@2x.webp": "dca3850a1add4b9c579f3266942a076c49bd77f175cffeac2913dbc703a89f87",
 "media/art/clarke_10.webp": "b6e7f5e3d0cc605017b6834b6000e2c1e7784b93b4dc541e227b6b066ec3fccf",
@@ -172,7 +174,21 @@ const FILES = {
 "media/l6/les-b2.json": "739f52300932f5ea5671939d631d92907aef01ee45f46fe5c61e0e6705eb9596",
 "media/l9/set5.json": "ba71691a19a6795768cbaa3745e6708c17d5421fe6494a3c1c25f97e8474340c",
 "media/l9/set6.json": "599eef03e241bda105a5d1859cb4283dcf9ed6289e691545b09161a3f4663d3f",
-"media/packs.json": "ddb0683e6691c37d6a690baa21b2c479222ac6767ac77aee9fe563be18d2285c"
+"media/packs.json": "ddb0683e6691c37d6a690baa21b2c479222ac6767ac77aee9fe563be18d2285c",
+"media/scenes/I-boss.svg": "7938d65deeb0e26542d10f145d92b2426dc55ee6170f05d4640c1fb1b1b845d7",
+"media/scenes/I-dusk.svg": "8e33d32112214b6fbb4735acaacb93f7091aa7823c1780b9a1255d6693ead3fc",
+"media/scenes/I-night.svg": "c65dedf5274bf91d4c3d6634a6a1bfe43dd69b0ba9729954403a84d427c10e93",
+"media/scenes/I-snow.svg": "484ec75ca686016459d3d077d33e83f29f72dacf88884ab6af0e6d87d7428c5c",
+"media/scenes/II-boss.svg": "66236a3f4c8b0e65f77b56302d4175e422d0d3378c241dd1e58a0a059852103d",
+"media/scenes/II.svg": "787918ab33abf785054e207ee39a7f9226638cab49ed3dc8824076467e2a7880",
+"media/scenes/III-boss.svg": "ad6dd9affe1ec13fbcb58267e641b5a9848094a74ca1fb8f2d33b25fff834e02",
+"media/scenes/III.svg": "e59ce149be1dd2efa99bd9c2c3d7cb20f57fab11031481eadb92dd4e009d7d44",
+"media/scenes/IV-boss.svg": "3e472112b493b6de067b91de15110147f8fcf62b3f6e21a635bcf25063351eac",
+"media/scenes/IV.svg": "3e7a5eb7fc0b3640af6747b4d5b98342fac99e6cd2d6c9fb8b031b1f91c71378",
+"media/scenes/V-boss.svg": "31af33a134cd547fff145db9e6cc8278e2bb5401970b8a808e45da65e3d3110d",
+"media/scenes/V.svg": "b68186d5d60c2d5e6ffeacaeb711358da1022c97604fe07007b77af872c59088",
+"media/scenes/bett4.svg": "9a253f3f32e6f4ea0936a0516b5a99dcc97d6f3ea117d120c18b0138316eda8c",
+"media/scenes/finale.svg": "89b40bcc08f19635e282f906e06a231f2469e1914e698c53905c0e37881f5428"
 };            // {path: sha256 hex}
 const FC = "mephisto-files", RT = "mephisto-rt";
 const keyOf = p => new Request(new URL(p + "?sha=" + FILES[p], self.registration.scope).href);
