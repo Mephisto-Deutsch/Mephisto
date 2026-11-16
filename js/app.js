@@ -161,6 +161,194 @@ const LEARNER="Der Lernende ist ein arabischsprachiger Arzt (Englisch fließend)
 function tutorMsg(code){return {not_granted:"Du hast dem Tutor keinen Zugriff erlaubt. Der Rest der App funktioniert weiter.",rate_limited:"Zu viele Anfragen oder Nutzungslimit erreicht. Später noch einmal versuchen.",refused:"Diese Eingabe wurde abgelehnt. Formuliere sie anders.",invalid_json:"Antwort war unlesbar. Noch einmal versuchen.",session_expired:"Bitte neu anmelden.",sampling_disabled:"Claude ist für dieses Konto nicht verfügbar.",cancelled:""}[code]||"Verbindung unterbrochen. Noch einmal versuchen."}
 async function saveFile(name,text){if(DOWNLOADS){try{await DOWNLOADS.save({filename:name,data:text});toast("Gespeichert: "+name);return true}catch(e){if(e&&e.code==="declined")return false}}return null}
 
+// ===== Mephisto · P2 · Speicher: the learner's progress lives in IndexedDB, with a write-ahead journal, verified backups and one writing window.
+// Loaded right after c_core.js. c_core.js is not edited: this file replaces saveNow / saveSoon / snapshot and adds STORE and adopt().
+//
+// Layout (database "mephisto", version 1)
+//   state     key "k:<top-level key of S>" | "c:<card id>" | "l:<log day>"  → JSON string of that slice
+//   meta      "head" → {seq, at, n}                 (sequence number of the last committed write)
+//   snaps     id → JSON string of a whole state     (id "d:<yyyy-mm-dd>" daily, "w:<yyyy>-<week>" weekly, "u:<stamp>" before a risky step)
+//   snapmeta  id → {id, kind, day, at, label, bytes, h}
+// localStorage keeps two small things: LS_KEY = a stub {v:2,_idb:1,<scalar settings>} for the first paint, and
+// "mephisto_wal" = the journal: every change is written there synchronously BEFORE the IndexedDB transaction starts, and removed when
+// that transaction has completed. A tab that dies in between loses nothing: the journal is replayed at the next start.
+// Every write is ONE IndexedDB transaction (changed slices + head), so the stored state swaps atomically from one consistent version to the next.
+// Where IndexedDB is missing or blocked (claude.ai artifact sandbox, some private windows) everything falls back to the old behaviour
+// (whole state in localStorage) — with honest messages when a save or a backup did not happen.
+function adopt(n,why){ // replace the state IN PLACE: closures that hold S, S.pakt, S.cards … keep pointing at live objects (QA D1)
+  try{if(!n||typeof n!=="object"||n===S)return S;
+    for(const k of Object.keys(S)){if(!(k in n))delete S[k]}
+    for(const k of Object.keys(n)){const o=S[k],v=n[k];
+      if(o&&v&&o!==v&&typeof o==="object"&&typeof v==="object"&&!Array.isArray(o)&&!Array.isArray(v)){for(const x of Object.keys(o))if(!(x in v))delete o[x];Object.assign(o,v)}
+      else S[k]=v}
+  }catch(e){S=n}
+  try{STORE._hooks.forEach(f=>{try{f(why||"")}catch(e){}})}catch(e){}
+  return S}
+const STORE=(function(){
+  const DBN="mephisto",WAL_KEY="mephisto_wal",LOCK="mephisto-writer",KEEP={d:7,w:4,u:6},KEEP_HARD={d:3,w:2,u:3};
+  const st={mode:"ls",db:null,pending:true,readOnly:false,passive:false,unsaved:false,walOK:true,nolock:false,seq:0,lastOk:"",lastErr:"",note:"",snapErr:"",lsKind:"none",booted:false,flushes:0,migrated:""};
+  let shadow=new Map(),refs=new Map(),wal=[],chain=Promise.resolve(),stubJ=null,hold=null,bc=null,warnAt=0;const TAB=Math.random().toString(36).slice(2,8);
+  const hash=s=>{let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0).toString(36)+"."+s.length.toString(36)};
+  const rq=r=>new Promise((ok,no)=>{r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error||new Error("idb"))});
+  const txDone=tx=>new Promise((ok,no)=>{tx.oncomplete=()=>ok(true);tx.onabort=()=>no(tx.error||new Error("tx_abort"));tx.onerror=()=>{}});
+  const isQuota=e=>!!e&&(/quota/i.test(String(e.name||""))||/quota/i.test(String(e.message||e)));
+  const ver=()=>{try{return APP_VERSION}catch(e){return ""}};
+  const weekKey=d=>{const t=new Date(d+"T12:00:00");const day=(t.getDay()+6)%7;t.setDate(t.getDate()-day+3);const y=t.getFullYear();const f=new Date(y,0,4);return y+"-"+String(Math.round(((t-f)/864e5-3+((f.getDay()+6)%7))/7+1)).padStart(2,"0")};
+  const hasContent=o=>{try{o=o||S;return !!(Object.keys(o.cards||{}).length||Object.keys(o.lessons||{}).length||(o.events||[]).length||(o.pakt&&o.pakt.signed)||o.onboarded)}catch(e){return false}};
+  const fire=()=>{try{api._status.forEach(f=>{try{f(st)}catch(e){}})}catch(e){}};
+  // ---------------------------------------------------------------- slices
+  // full=false: cards whose object is the very one we serialised last time are not serialised again (rate() always makes a new card object; log days are
+  // changed in place by logDay(), so they are always compared);
+  // every 20th write and every write while the page is hidden is a full pass, so an in-place change can at worst wait for that pass.
+  function slices(o,full){const m=new Map();const nr=new Map();
+    for(const k in o){const v=o[k];if(v===undefined||typeof v==="function")continue;
+      if((k==="cards"||k==="log")&&v&&typeof v==="object"&&!Array.isArray(v)){const pre=k==="cards"?"c:":"l:";m.set("k:"+k,"{}");
+        for(const id in v){const x=v[id],key=pre+id;let j;if(!full&&k==="cards"&&x&&typeof x==="object"&&refs.get(key)===x&&shadow.has(key))j=shadow.get(key);else j=JSON.stringify(x);if(j===undefined)continue;m.set(key,j);if(x&&typeof x==="object")nr.set(key,x)}}
+      else{const j=JSON.stringify(v);if(j!==undefined)m.set("k:"+k,j)}}
+    return {m,nr}}
+  function build(m){const o={cards:{},log:{}};const bad=[];for(const [k,j] of m){let v;try{v=JSON.parse(j)}catch(e){bad.push([k,j]);continue}
+      const t=k.slice(0,2),n=k.slice(2);if(t==="k:"){if(n==="cards"||n==="log")continue;o[n]=v}else if(t==="c:")o.cards[n]=v;else if(t==="l:")o.log[n]=v}return {o,bad}}
+  const digest=m=>{const ks=[...m.keys()].sort();let s="";for(const k of ks)s+=k+"\u0001"+m.get(k)+"\u0002";return hash(s)};
+  function lsClass(){const raw=lsGet(LS_KEY);if(!raw)return {kind:"none",raw:""};let o=null;try{o=JSON.parse(raw)}catch(e){return {kind:"corrupt",raw}}if(!o||typeof o!=="object")return {kind:"corrupt",raw};
+    if(o._idb&&!Object.keys(o).some(k=>o[k]&&typeof o[k]==="object"))return {kind:"stub",raw};return {kind:"full",raw}}
+  function stubOf(o){const s={v:2,_idb:1};for(const k in o){const v=o[k];const t=typeof v;if(k==="v"||k==="_idb")continue;if(t==="boolean"||t==="number"||(t==="string"&&v.length<200))s[k]=v}return JSON.stringify(s)}
+  function writeStub(){if(st.keepLs)return;try{const j=stubOf(S);if(j!==stubJ){if(lsSet(LS_KEY,j))stubJ=j}}catch(e){}}
+  // ---------------------------------------------------------------- journal
+  function walRead(){try{const o=JSON.parse(lsGet(WAL_KEY)||"null");return o&&Array.isArray(o.ops)?o.ops:[]}catch(e){return []}}
+  function walWrite(){if(!st.walOK)return;try{if(!wal.length){try{localStorage.removeItem(WAL_KEY)}catch(e){}return}const j=JSON.stringify({v:1,ops:wal});
+      if(j.length>1500000){wal=wal.filter(w=>!w.big);return}if(!lsSet(WAL_KEY,j)){try{STORAGE_OK=true}catch(e){}}}catch(e){}}
+  function replay(m,seq){let n=0;const ops=walRead().filter(w=>w&&w.q>seq).sort((a,b)=>a.q-b.q);for(const w of ops){(w.p||[]).forEach(([k,j])=>m.set(k,j));(w.d||[]).forEach(k=>m.delete(k));n++;if(w.q>st.seq)st.seq=w.q}return n}
+  // ---------------------------------------------------------------- database
+  function openDB(idb){return new Promise((ok,no)=>{let done=false;const t=setTimeout(()=>{if(!done){done=true;no(new Error("idb_timeout"))}},2500);let r;try{r=idb.open(DBN,1)}catch(e){clearTimeout(t);return no(e)}
+    r.onupgradeneeded=()=>{const d=r.result;for(const n of ["state","meta","snaps","snapmeta"])if(!d.objectStoreNames.contains(n))d.createObjectStore(n)};
+    r.onsuccess=()=>{const d=r.result;if(done){try{d.close()}catch(e){}return}done=true;clearTimeout(t);d.onversionchange=()=>{try{d.close()}catch(e){}st.db=null;st.readOnly=true;st.note="Die App wurde in einem anderen Fenster aktualisiert. Bitte dieses Fenster neu laden.";fire()};ok(d)};
+    r.onerror=()=>{if(!done){done=true;clearTimeout(t);no(r.error||new Error("idb_open"))}};r.onblocked=()=>{}})}
+  async function readDisk(){const tx=st.db.transaction(["state","meta"],"readonly");const s=tx.objectStore("state");const [keys,vals,head]=await Promise.all([rq(s.getAllKeys()),rq(s.getAll()),rq(tx.objectStore("meta").get("head"))]);
+    const m=new Map();keys.forEach((k,i)=>m.set(k,vals[i]));return {m,head:head||{seq:0}}}
+  function commit(q,puts,dels,retried){chain=chain.then(()=>new Promise(res=>{let tx;
+    const fail=e=>{const quota=isQuota(e);if(quota&&!retried){prune(true).then(()=>{commit(q,puts,dels,true);res(false)},()=>res(false));return}
+      // nothing was written (the transaction is atomic). Make these slices dirty again so that the next save retries them; the journal still holds them.
+      puts.forEach(([k])=>{shadow.delete(k);refs.delete(k)});dels.forEach(k=>shadow.set(k,"\u0000"));st.lastErr=quota?"Speicher voll":String(e&&(e.name||e.message)||e);setUnsaved(true);res(false)};
+    try{tx=st.db.transaction(["state","meta"],"readwrite")}catch(e){return fail(e)}
+    try{const s=tx.objectStore("state");for(const [k,j] of puts)s.put(j,k);for(const k of dels)s.delete(k);tx.objectStore("meta").put({seq:q,at:new Date().toISOString(),n:shadow.size},"head")}catch(e){try{tx.abort()}catch(x){}return fail(e)}
+    tx.oncomplete=()=>{wal=wal.filter(w=>w.q>q);walWrite();st.lastOk=new Date().toISOString();st.lastErr="";setUnsaved(false);try{if(st.nolock&&bc)bc.postMessage({t:"saved",from:TAB})}catch(e){}res(true)};
+    tx.onabort=()=>fail(tx.error||new Error("tx_abort"));tx.onerror=()=>{}}));return chain}
+  function canWrite(){return !st.readOnly&&!st.passive}
+  function setUnsaved(b){if(st.unsaved===b){if(b)warn();return}st.unsaved=b;try{document.documentElement.classList.toggle("unsaved",b)}catch(e){}if(b)warn();fire()}
+  function warn(){const now=Date.now();if(now-warnAt<120000)return;warnAt=now;try{toast("Speichern fehlgeschlagen"+(st.lastErr?" ("+st.lastErr+")":"")+". Dein Fortschritt liegt gerade nur in diesem Fenster – sichere ihn unter Ich → Daten als Datei.",7000)}catch(e){}}
+  function lsSave(){if(!canWrite())return false;let ok=false;try{ok=lsSet(LS_KEY,JSON.stringify(S))}catch(e){ok=false}if(!ok)st.lastErr="localStorage";else{st.lastOk=new Date().toISOString();st.lastErr=""}setUnsaved(!ok);return ok}
+  function flush(){if(st.pending){if(st.lsKind==="stub")return false;return lsSave()}
+    if(st.mode!=="idb"||!st.db)return lsSave();if(!canWrite())return false;
+    let cur;try{const full=(st.flushes++%20===0)||(typeof document!=="undefined"&&document.hidden);cur=slices(S,full)}catch(e){st.lastErr=String(e&&e.message||e);setUnsaved(true);return false}
+    const puts=[],dels=[];for(const [k,j] of cur.m)if(shadow.get(k)!==j)puts.push([k,j]);for(const k of shadow.keys())if(!cur.m.has(k))dels.push(k);
+    refs=cur.nr;if(!puts.length&&!dels.length){writeStub();return true}
+    const q=++st.seq;shadow=cur.m;let size=0;for(const p of puts)size+=p[1].length;
+    wal.push({q,p:puts,d:dels,big:size>600000});walWrite();writeStub();commit(q,puts,dels);return true}
+  // ---------------------------------------------------------------- backups (snapshots), each verified by reading it back
+  async function listMeta(){if(st.mode!=="idb"||!st.db)return lsList();try{const L=await rq(st.db.transaction("snapmeta","readonly").objectStore("snapmeta").getAll());return L.sort((a,b)=>String(b.at).localeCompare(String(a.at)))}catch(e){return []}}
+  async function dropSnap(id){if(st.mode!=="idb"||!st.db){try{if(/^ls:/.test(id)){const k=id.slice(3);if(k.indexOf("snap:")===0){const s=snapshots();delete s[k.slice(5)];lsSet(SNAP_KEY,JSON.stringify(s))}else localStorage.removeItem(k)}}catch(e){}return}
+    try{const tx=st.db.transaction(["snaps","snapmeta"],"readwrite");tx.objectStore("snaps").delete(id);tx.objectStore("snapmeta").delete(id);await txDone(tx)}catch(e){}}
+  async function prune(hard){if(st.mode!=="idb"||!st.db)return;const K=hard?KEEP_HARD:KEEP;const L=await listMeta();for(const kind of ["d","w","u"]){const G=L.filter(x=>x.kind===kind);for(const x of G.slice(K[kind]))await dropSnap(x.id)}}
+  async function snapRaw(kind,label,json,day){if(st.mode!=="idb"||!st.db)return {ok:false,err:"no_idb"};const at=new Date().toISOString();day=day||todayKey();
+    const id=kind==="d"?"d:"+day:kind==="w"?"w:"+weekKey(day):"u:"+Date.now().toString(36)+Math.random().toString(36).slice(2,5);const meta={id,kind,day,at,label:label||"",bytes:json.length,h:hash(json),app:ver()};
+    for(let attempt=0;attempt<2;attempt++){try{const tx=st.db.transaction(["snaps","snapmeta"],"readwrite");tx.objectStore("snaps").put(json,id);tx.objectStore("snapmeta").put(meta,id);await txDone(tx);
+        const back=await rq(st.db.transaction("snaps","readonly").objectStore("snaps").get(id));
+        if(typeof back==="string"&&back.length===json.length&&hash(back)===meta.h)return {ok:true,id,meta};await dropSnap(id);return {ok:false,err:"verify"}}
+      catch(e){if(isQuota(e)&&attempt===0){try{await prune(true)}catch(x){}continue}return {ok:false,err:isQuota(e)?"quota":String(e&&(e.name||e.message)||e)}}}
+    return {ok:false,err:"quota"}}
+  // localStorage fallback: today's and yesterday's state as objects (no double encoding), read back after writing
+  function lsList(){const L=[];try{const s=snapshots();Object.keys(s).forEach(d=>{const v=s[d];const n=typeof v==="string"?v.length:JSON.stringify(v).length;L.push({id:"ls:snap:"+d,kind:"d",day:d,at:d+"T00:00:00",label:"täglich",bytes:n})})}catch(e){}
+    [["mephisto_undo_restore","vor dem letzten Wiederherstellen / Zurücksetzen"],["mephisto_before_reset","vor dem Zurücksetzen"],["mephisto_before_drive","vor dem Laden aus der Wolke"],["mephisto_corrupt","beschädigter Stand"],["mephisto_crash_backup","nach einem Absturz"]].forEach(([k,l])=>{const v=lsGet(k);if(v&&v.length>2)L.push({id:"ls:"+k,kind:"u",day:"",at:"",label:l,bytes:v.length})});
+    return L.sort((a,b)=>String(b.at).localeCompare(String(a.at)))}
+  function lsDaily(){const d=todayKey();let s={};try{s=snapshots()}catch(e){s={}}if(s[d]||!hasContent())return true;s[d]=S;let ks=Object.keys(s).sort();while(ks.length>2)delete s[ks.shift()];
+    let ok=lsSet(SNAP_KEY,JSON.stringify(s));if(!ok){s={};s[d]=S;ok=lsSet(SNAP_KEY,JSON.stringify(s))}
+    if(ok){try{const b=JSON.parse(lsGet(SNAP_KEY)||"{}");ok=!!(b&&b[d])}catch(e){ok=false}}
+    if(!ok){try{localStorage.removeItem(SNAP_KEY)}catch(e){}try{STORAGE_OK=true}catch(e){}snapFail("quota")}else st.snapErr="";return ok}
+  function snapFail(err){st.snapErr=err||"?";fire();try{if(lsGet("mephisto_snapwarn")!==todayKey()){lsSet("mephisto_snapwarn",todayKey());toast("Die tägliche Sicherung konnte nicht gespeichert werden"+(err==="quota"?" (Speicher voll)":"")+". Bitte unter Ich → Daten als Datei sichern.",7000)}}catch(e){}}
+  async function daily(){try{await api.ready}catch(e){}if(!canWrite())return false;if(st.mode!=="idb"||!st.db)return lsDaily();if(!hasContent())return true;
+    const d=todayKey();const L=await listMeta();if(L.some(x=>x.id==="d:"+d))return true;const j=JSON.stringify(S);const r=await snapRaw("d","täglich",j,d);if(!r.ok){snapFail(r.err);return false}st.snapErr="";
+    if(!L.some(x=>x.id==="w:"+weekKey(d)))await snapRaw("w","wöchentlich",j,d);await prune(false);fire();return true}
+  // a verified copy of the state as it is now; callers must not delete or replace anything unless this returns true
+  async function guard(label){try{await api.ready}catch(e){}let j;try{j=JSON.stringify(S)}catch(e){return false}
+    if(st.mode==="idb"&&st.db){const r=await snapRaw("u",label,j);if(r.ok){prune(false).catch(()=>{});return true}return false}
+    const k="mephisto_undo_restore";if(lsSet(k,j)&&lsGet(k)===j)return true;try{localStorage.removeItem(SNAP_KEY)}catch(e){}try{STORAGE_OK=true}catch(e){}return !!(lsSet(k,j)&&lsGet(k)===j)}
+  async function snapGet(id){if(/^ls:/.test(id)){const k=id.slice(3);if(k.indexOf("snap:")===0){const v=snapshots()[k.slice(5)];return v==null?null:(typeof v==="string"?v:JSON.stringify(v))}return lsGet(k)}
+    if(!st.db)return null;try{const tx=st.db.transaction(["snaps","snapmeta"],"readonly");const [j,m]=await Promise.all([rq(tx.objectStore("snaps").get(id)),rq(tx.objectStore("snapmeta").get(id))]);if(typeof j!=="string")return null;if(m&&m.h&&hash(j)!==m.h)return null;return j}catch(e){return null}}
+  async function estimate(){try{if(navigator.storage&&navigator.storage.estimate){const e=await navigator.storage.estimate();let p=null;try{p=await navigator.storage.persisted()}catch(x){}return {usage:e.usage||0,quota:e.quota||0,persisted:p}}}catch(e){}return null}
+  // ---------------------------------------------------------------- one writing window
+  function elect(){return new Promise(res=>{let L=null;try{L=navigator.locks}catch(e){}if(!L||!L.request)return res("nolock");let said=false;
+    try{L.request(LOCK,{ifAvailable:true},lock=>{said=true;if(!lock){res("passive");return}res("writer");return new Promise(r=>{hold=r})}).catch(()=>{if(!said)res("nolock")})}catch(e){res("nolock")}})}
+  function paintTab(kind){try{let ov=document.getElementById("p2-tab");if(!kind){if(ov)ov.remove();return}if(!ov){ov=document.createElement("div");ov.id="p2-tab";ov.setAttribute("role","dialog");ov.setAttribute("aria-modal","true");document.body.appendChild(ov)}
+    ov.innerHTML=`<div class="p2-tab-card"><div class="p2-m">M</div><h2>Mephisto ist schon geöffnet</h2><p>In einem anderen Fenster oder Tab läuft Mephisto bereits. Damit kein Fortschritt doppelt oder gar nicht gespeichert wird, schreibt immer nur ein Fenster.</p><p class="en">Mephisto is already open in another window or tab. Only one window saves at a time, so nothing is lost or written twice.</p>${kind==="wait"?`<p><b>Das andere Fenster speichert noch …</b></p>`:`<button class="primary go" id="p2-here">Hier weiter</button>`}</div>`;
+    const b=ov.querySelector("#p2-here");if(b){b.onclick=takeover;try{b.focus()}catch(e){}}}catch(e){}}
+  function takeover(){paintTab("wait");try{if(bc)bc.postMessage({t:"yield",from:TAB})}catch(e){}
+    try{navigator.locks.request(LOCK,()=>becomeWriter().then(()=>new Promise(r=>{hold=r}),()=>new Promise(r=>{hold=r})))}catch(e){paintTab("passive")}}
+  async function becomeWriter(){const d=await readDisk();const pre=new Map(d.m);st.seq=Math.max(st.seq,d.head.seq||0);replay(d.m,d.head.seq||0);shadow=pre;refs=new Map();wal=[];
+    if(d.m.size)adopt(validate(build(d.m).o),"takeover");st.passive=false;paintTab(null);fire();flush()}
+  function yieldTo(){if(st.passive||!hold)return;try{saveNow()}catch(e){flush()}const done=()=>{st.passive=true;fire();try{if(typeof Focus!=="undefined"&&Focus.isOpen())Focus.close(true)}catch(e){}paintTab("passive");const h=hold;hold=null;if(h)h()};chain.then(done,done)}
+  async function syncFromDisk(){if(st.mode!=="idb"||!st.db||st.pending)return;try{const d=await readDisk();if(!d.m.size)return;const disk=validate(build(d.m).o);const before=digest(slices(S,true).m);const merged=validate(mergeStates(S,disk));shadow=d.m;refs=new Map();
+      if(digest(slices(merged,true).m)!==before)adopt(merged,"sync")}catch(e){}}
+  // ---------------------------------------------------------------- start
+  function fallback(L,why){st.mode="ls";st.db=null;st.pending=false;st.why=why||"";
+    if(L.kind==="stub"){st.readOnly=true;st.note="Der Speicher dieser App ist gerade nicht erreichbar ("+(why||"IndexedDB")+"). Es wird nichts überschrieben. Bitte die Seite neu laden.";try{delete S._idb}catch(e){}}
+    else if(L.kind==="corrupt"){if(lsGet("mephisto_corrupt")!==L.raw){st.readOnly=true;st.note="Die gespeicherten Daten sind beschädigt und ließen sich nicht sichern. Es wird nichts überschrieben – bitte unter Ich → Daten die Rohdaten als Datei speichern."}}
+    fire();return st}
+  async function importLegacy(){try{const s=snapshots();let all=true;for(const d of Object.keys(s)){const v=s[d];const j=typeof v==="string"?v:JSON.stringify(v);const r=await snapRaw("d","täglich (aus dem alten Speicher)",j,d);if(!r.ok)all=false}if(all){try{localStorage.removeItem(SNAP_KEY)}catch(e){}}}catch(e){}
+    for(const [k,l] of [["mephisto_before_reset","vor dem Zurücksetzen (alt)"],["mephisto_before_drive","vor dem Laden aus der Wolke (alt)"],["mephisto_undo_restore","vor dem Wiederherstellen (alt)"],["mephisto_corrupt","beschädigter Stand (alt)"],["mephisto_crash_backup","nach einem Absturz (alt)"],["mephisto_v1_backup","Version 1 (alt)"]]){
+      try{const v=lsGet(k);if(!v||v.length<3)continue;const r=await snapRaw("u",l,v);if(r.ok)localStorage.removeItem(k)}catch(e){}}}
+  async function writeAll(m){try{const tx=st.db.transaction(["state","meta"],"readwrite");const s=tx.objectStore("state");s.clear();for(const [k,j] of m)s.put(j,k);tx.objectStore("meta").put({seq:++st.seq,at:new Date().toISOString(),n:m.size},"head");await txDone(tx);return true}catch(e){st.lastErr=String(e&&(e.name||e.message)||e);return false}}
+  async function init(){const L=lsClass();st.lsKind=L.kind;let idb=null;try{idb=typeof indexedDB!=="undefined"?indexedDB:null}catch(e){idb=null}
+    if(!idb)return fallback(L,"kein IndexedDB");let db;try{db=await openDB(idb)}catch(e){return fallback(L,String(e&&(e.name||e.message)||e))}
+    st.db=db;let role="nolock";try{role=await elect()}catch(e){}
+    try{bc=typeof BroadcastChannel!=="undefined"?new BroadcastChannel("mephisto"):null;if(bc)bc.onmessage=ev=>{const d=ev.data||{};if(d.from===TAB)return;if(d.t==="yield")yieldTo();else if(d.t==="saved"&&st.nolock)syncFromDisk()}}catch(e){bc=null}
+    st.nolock=role==="nolock";st.passive=role==="passive";
+    let d;try{d=await readDisk()}catch(e){try{db.close()}catch(x){}return fallback(L,String(e&&(e.name||e.message)||e))}
+    const pre=new Map(d.m);st.seq=d.head.seq||0;const rep=st.passive?0:replay(d.m,st.seq);const has=d.m.size>0;
+    if(st.passive){st.mode="idb";if(has&&L.kind!=="full")adopt(validate(build(d.m).o),"load");st.pending=false;paintTab("passive");fire();return st}
+    if(has){st.mode="idb";const b=build(d.m);shadow=pre;if(b.bad.length)await snapRaw("u","beschädigte Einträge",JSON.stringify(b.bad));
+      let disk=validate(b.o);
+      if(L.kind==="full"){ // a whole state appeared in localStorage (an older version of the app, or a restore by hand): it is merged, never dropped
+        const s=await snapRaw("u","localStorage vor dem Zusammenführen",L.raw);try{const ls=validate(JSON.parse(L.raw));delete ls._idb;disk=validate(mergeStates(disk,ls))}catch(e){}if(!s.ok)st.keepLs=true}
+      else if(L.kind==="corrupt"){const s=await snapRaw("u","beschädigter localStorage-Stand",L.raw);if(!s.ok)st.keepLs=true}
+      try{delete disk._idb}catch(e){}st.pending=false;adopt(disk,"load");if(rep)st.note="";flush()}
+    else if(L.kind==="full"){ // first run with this version: move the state over, verify it, keep a verified copy of the old one, only then shrink localStorage
+      const cur=slices(S,true);const ok=await writeAll(cur.m);let ver2=false;if(ok){try{const back=await readDisk();ver2=back.m.size===cur.m.size&&digest(back.m)===digest(cur.m)}catch(e){ver2=false}}
+      if(!ver2){try{const tx=db.transaction(["state","meta"],"readwrite");tx.objectStore("state").clear();tx.objectStore("meta").delete("head")}catch(e){}st.note="Umzug in den neuen Speicher nicht bestätigt – der bisherige Speicher bleibt in Gebrauch.";try{db.close()}catch(e){}return fallback(L,"Umzug nicht bestätigt")}
+      st.mode="idb";shadow=cur.m;refs=cur.nr;const s=await snapRaw("u","vor dem Umzug in den neuen Speicher",L.raw);
+      if(s.ok){await importLegacy();st.migrated=new Date().toISOString()}else st.keepLs=true;
+      st.pending=false;flush();writeStub();try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{})}catch(e){}}
+    else if(L.kind==="stub"){st.mode="idb";st.pending=false;try{delete S._idb}catch(e){}
+      if(rep){adopt(validate(build(d.m).o),"load");st.note="Der Browser hat den Speicher dieser App geleert; nur die letzten Änderungen aus dem Journal waren noch da. Hole den Stand aus der Wolke oder aus einer Backup-Datei zurück."}
+      else st.note="Der Browser hat den Speicher dieser App geleert. Hole den Stand aus der Wolke (Ich → Daten) oder aus einer Backup-Datei zurück."}
+    else if(L.kind==="corrupt"){st.mode="idb";const s=await snapRaw("u","beschädigter localStorage-Stand",L.raw);if(!s.ok&&lsGet("mephisto_corrupt")!==L.raw){st.readOnly=true;st.note="Die gespeicherten Daten sind beschädigt und ließen sich nicht sichern. Es wird nichts überschrieben."}st.pending=false}
+    else{st.mode="idb";st.pending=false}
+    fire();return st}
+  async function wipe(label){const ok=!hasContent()||await guard(label||"vor dem Neustart");if(!ok)return false;
+    try{if(st.mode==="idb"&&st.db){const tx=st.db.transaction(["state","meta"],"readwrite");tx.objectStore("state").clear();tx.objectStore("meta").delete("head");await txDone(tx);shadow=new Map();refs=new Map();wal=[]}
+      try{localStorage.removeItem(LS_KEY);localStorage.removeItem(WAL_KEY)}catch(e){}stubJ=null;st.readOnly=true;return true}catch(e){return false}}
+  const api={st,_hooks:[],_status:[],flush,flushNow(){flush();return chain},guard,daily,list:listMeta,get:snapGet,drop:dropSnap,estimate,wipe,takeover,hash,weekKey,
+    onAdopt(f){api._hooks.push(f)},onStatus(f){api._status.push(f)},
+    get mode(){return st.mode},get writable(){return canWrite()&&!st.unsaved},
+    _t:{slices,build,digest,stubOf,lsClass,replay,walRead,snapRaw,prune,readDisk,syncFromDisk,yieldTo,becomeWriter}};
+  api.ready=init().catch(e=>{st.pending=false;st.mode="ls";st.lastErr=String(e&&e.message||e);if(st.lsKind==="stub"){st.readOnly=true;st.note="Der Speicher dieser App ist gerade nicht erreichbar. Es wird nichts überschrieben. Bitte die Seite neu laden."}return st});
+  api.bootWait=lsClass().kind==="stub"?Promise.race([api.ready,new Promise(r=>setTimeout(r,4000))]):null;
+  return api})();
+// saving: the journal is written at once, the database a moment later; nothing else in the app has to know
+saveNow=function(){try{clearTimeout(saveT)}catch(e){}saveT=null;return STORE.flush()};
+saveSoon=function(){clearTimeout(saveT);saveT=setTimeout(function(){saveNow()},400)};
+snapshot=function(){try{STORE.daily().catch(()=>{})}catch(e){}};
+showStorageWarning=function(){};
+// corrupt localStorage state (c_core's load() already started with a fresh state): c_core keeps a copy under "mephisto_corrupt" but does not check it.
+// STORE.ready decides: with a verified copy the app goes on; without one nothing is ever written over the damaged data (STORE.st.readOnly).
+(function(){try{const s=document.createElement("style");s.textContent=`
+#p2-tab{position:fixed;inset:0;z-index:9000;display:grid;place-items:center;padding:1.2rem;background:rgba(8,6,5,.93);color:#F2E9DA;font-family:var(--ui,system-ui,sans-serif)}
+.p2-tab-card{max-width:460px;text-align:center;display:grid;gap:.7rem;justify-items:center}.p2-tab-card h2{margin:0;font-family:var(--display,serif);font-weight:400;font-size:1.7rem}.p2-tab-card p{margin:0;line-height:1.5}.p2-tab-card .en{opacity:.7;font-size:.9rem}
+.p2-m{width:54px;height:54px;border-radius:14px;display:grid;place-items:center;background:#E2651C;color:#fff;font-family:'UnifrakturMaguntia',serif;font-size:2rem}
+#p2-here{min-height:52px;min-width:200px;font-size:1.1rem}
+.chip.p2-unsaved{background:#8E1B14!important;color:#fff!important;border-color:#8E1B14!important;cursor:pointer}
+.p2-note{border-left:3px solid #E0302A!important}
+`;document.head.appendChild(s)}catch(e){}})();
+
 // ===== Mephisto 13.1 · Module hooks. Loaded right after c_core.js.
 // Rule: no file reassigns a shared global function any more. A module that adds to a screen registers a section:
 //   MOD.after("viewHome","kompass",fn)   — fn(m,...args) runs after the base view and every earlier section, in load order.
@@ -177,6 +365,120 @@ const MOD=(function(){const H={};
     around(name,tag,fn){const h=install(name);const inner=h.base;h.base=function(){return fn.call(this,(...a)=>inner.apply(this,a),...arguments)};(h.around=h.around||[]).push(tag)},
     list(){const o={};Object.keys(H).forEach(k=>o[k]=(H[k].around||[]).map(t=>"around:"+t).concat(H[k].after.map(a=>a[0])));return o},
     report(){return Object.entries(this.list()).map(([k,v])=>k+": "+v.join(" → ")).join("\n")}}})();
+
+// ===== Mephisto 13.1 · a1 — typography helpers (PLAN-A §2.2, A7 §6.3, §6.4, §7). Module "core", loaded right after c_mod.js.
+// Exposes on window: uiCalm(), markLang(root), loreInitial(de) -> {html,has}, frakturize(s), frakPlain(s), frakOK(), FRAK_LEX, A1 (state/test info).
+// Hooks: MOD.after("chrome","a1") and MOD.after("showGloss","a1") mark languages after a render; ONE MutationObserver on #fIn (childList)
+// does the same for the focus layer. No saved state. Never throws at load.
+(function(){
+"use strict";
+// ---------- motion helper (same text in every track-A file, PLAN-A §2.4)
+function uiCalm(){const h=document.documentElement;return h.classList.contains("calm")||h.classList.contains("nomotion")}
+// ---------- Fraktur orthography (A7 §7, verbatim logic; 47/47 of A7's cases, tests/typo.js re-runs them)
+const ZWNJ="\u200C",LONG_S="ſ";
+const FRAK_LEX={ // lower-case word -> the same word with | at the seams that matter for s and ligatures
+ walpurgisnacht:"walpurgis|nacht",teufelspakt:"teufels|pakt",todesanzeige:"todes|anzeige",lebenslauf:"lebens|lauf",arbeitsamt:"arbeits|amt",
+ geburtstag:"geburts|tag",dienstag:"diens|tag",donnerstag:"donners|tag",samstag:"sams|tag",wachstum:"wachs|tum",weisheit:"weis|heit",
+ bosheit:"bos|heit",boshaft:"bos|haft",häuschen:"häus|chen",röschen:"rös|chen",mäuschen:"mäus|chen",bläschen:"bläs|chen",gläschen:"gläs|chen",
+ bisschen:"biss|chen",röslein:"rös|lein",häuslich:"häus|lich",lösbar:"lös|bar",dasselbe:"das|selbe",desselben:"des|selben",
+ transport:"trans|port",transplantation:"trans|plantation",disposition:"dis|position",disput:"dis|put",
+ liebeslied:"liebes|lied",todesangst:"todes|angst",ratszimmer:"rats|zimmer",wirtshaus:"wirts|haus",glasauge:"glas|auge",eiszeit:"eis|zeit",
+ hexeneinmaleins:"hexen|einmal|eins",einmaleins:"einmal|eins",auflage:"auf|lage",entzug:"ent|zug",entzündung:"ent|zündung",schifffahrt:"schiff|fahrt",
+ fachsprachprüfung:"fach|sprach|prüfung",sprechstunde:"sprech|stunde",geisterstunde:"geister|stunde",pesthaus:"pest|haus",kassenarzt:"kassen|arzt",
+ lebkuchenhaus:"leb|kuchen|haus",studierzimmer:"studier|zimmer",schwarzwald:"schwarz|wald",anatomiesaal:"anatomie|saal",blutstropfen:"bluts|tropfen",
+ aufklärung:"auf|klärung",auftakt:"auf|takt",mitteilung:"mit|teilung",rückkehr:"rück|kehr",nachtzug:"nacht|zug",arztbrief:"arzt|brief",
+ gedächtnispalast:"gedächtnis|palast",ergebnisliste:"ergebnis|liste",geheimnisträger:"geheimnis|träger",hauptstadt:"haupt|stadt",
+auerbachskeller:"auerbachs|keller",aussprache:"aus|sprache",ausland:"aus|land",ausnahme:"aus|nahme"};
+const FRAK_AUS_NOT=/^(auster|austral|austri|auspizi)/; const FRAK_MISS_NOT=/^(missi|missal|missouri)/;
+function frakSeams(w){const k=w.toLowerCase();if(FRAK_LEX[k])return FRAK_LEX[k];
+  for(const base in FRAK_LEX){ // inflected forms: Pesthauses, Lebensläufe is not caught (umlaut) -> add to FRAK_LEX
+    if(k.length>base.length&&k.length<=base.length+3&&k.startsWith(base)&&/^(e|es|s|n|en|er|ern|em)$/.test(k.slice(base.length)))return FRAK_LEX[base]+k.slice(base.length)}
+  if(/^aus[a-zäöüß]{3,}/.test(k)&&!FRAK_AUS_NOT.test(k))return"aus|"+k.slice(3);
+  if(/^los[bcdfghjklmnpqrstvwxz][a-zäöüß]{3,}/.test(k))return"los|"+k.slice(3);
+  if(/^miss[a-zäöüß]{4,}/.test(k)&&!FRAK_MISS_NOT.test(k))return"miss|"+k.slice(4);
+  if(/^trans[a-zäöüß]{3,}/.test(k))return"trans|"+k.slice(5);
+  return k}
+function frakMorph(m){ // one morpheme, original case
+  let out="";for(let i=0;i<m.length;i++){const c=m[i];if(c!=="s"){out+=c;continue}
+    const nx=m[i+1]||"",last=i===m.length-1;
+    if(last){out+="s";continue}                               // Schluss-s at the end of a morpheme
+    if(nx==="s"){out+=LONG_S;continue}                         // ſſ, and ſs when the second s closes the morpheme
+    if(/[aeiouyäöüéè]/i.test(nx)){out+=LONG_S;continue}        // onset before a vowel: leſen, Roſe, Pſyche
+    if(/[ptczlnr]/.test(nx)){out+=LONG_S;continue}             // ſp ſt ſch ſz, and before l n r (elided e: Wechſler, unſre)
+    if(nx==="'"||nx==="’"){out+=LONG_S;continue}               // ich laſſ’
+    out+="s"}                                                  // syllable-final before b d f g h j k m q v w x: Maske, Dresden, Nosferatu
+  return out}
+function frakturize(str){return String(str).replace(/[A-Za-zÄÖÜäöüßéè\u200C|’']+/g,w=>{
+  if(w.length>1&&w===w.toUpperCase()&&/[A-ZÄÖÜ]{2}/.test(w))w=w[0]+w.slice(1).toLowerCase();   // Fraktur is never set in capitals
+  const typed=/[\u200C|]/.test(w);const bare=w.replace(/[\u200C|]/g,"");
+  const seamed=typed?w.replace(/\u200C/g,"|").toLowerCase():frakSeams(bare);
+  // copy the seams onto the original-case letters
+  let i=0;const parts=[];for(const part of seamed.split("|")){parts.push(bare.slice(i,i+part.length));i+=part.length}
+  if(i<bare.length)parts[parts.length-1]+=bare.slice(i);
+  return parts.map(frakMorph).join(parts.length>1?ZWNJ:"")})}
+// plain(str): what every non-Fraktur context shows (strips the author's seam marks)
+function frakPlain(str){return String(str).replace(/[\u200C|](?=[a-zäöüß])/g,"")}
+
+// Fraktur is drawn only where the display face has ſ: realm I (Grenze Gotisch) and III (UnifrakturMaguntia), Gothic look.
+// Realm V's Pirata One has no ſ (checked in the font files), so V titles stay in round-s spelling.
+function frakOK(){const h=document.documentElement;return h.dataset.ui==="gothic"&&/^(I|III)$/.test(h.dataset.realm||"")}
+
+// ---------- drop cap (A7 §6.3): an initial only for uppercase+lowercase after at most one opening quote; never a digit,
+// never an abbreviation, never a one-letter word. I and J in roman in the blackletter realms. The first word stays ONE glossable word.
+function loreInitial(de){
+  const s=String(de==null?"":de);const gl=typeof glossify==="function"?glossify:(t=>typeof esc==="function"?esc(t):t);
+  const E=typeof esc==="function"?esc:(t=>String(t));
+  const m=s.match(/^([„»‚"]?)(\p{Lu})(\p{Ll}+)/u);
+  if(!m)return{html:gl(s),has:false};
+  const [all,q,cap,tail]=m;const rest=s.slice(all.length);
+  if(/^\.\s/.test(rest)&&tail.length<3)return{html:gl(s),has:false};   // "Dr. …" abbreviation: no initial
+  const h=document.documentElement;const frak=h.dataset.ui==="gothic"&&/^(I|III|V)$/.test(h.dataset.realm||"");
+  const rom=!frak||cap==="I"||cap==="J";
+  const word=cap+tail;let known=false;
+  try{const c=typeof DICT!=="undefined"&&DICT[word.toLowerCase()];known=!!(c&&typeof S!=="undefined"&&S.cards&&S.cards[c.id])}catch(e){}
+  return{has:true,html:(q?`<span class="lore-ini-q" aria-hidden="true">${E(q)}</span>`:"")+
+    `<span class="w${known?" known":""}" tabindex="0" data-w="${E(word)}" aria-label="${E(word)}"><span class="lore-ini${rom?" rom":""}" aria-hidden="true">${E(cap)}</span><span aria-hidden="true">${E(tail)}</span></span>`+gl(rest)}}
+
+// ---------- language marking (A7 §6.4): lang="en" on English help, English-dominant narration, Arabic runs lang="ar" dir="rtl"
+const EN_SEL=".en,.tr,.xp-en,.lore-en,details.lore-en p,.g-ex small,[data-lang=en]";
+const NAR_SEL="p.pk-nar,.st-nar>div:first-child";
+const AR=/[؀-ۿݐ-ݿﭐ-﷿ﹰ-﻿]+(?:[\s،؟]+[؀-ۿݐ-ݿﭐ-﷿ﹰ-﻿]+)*/g;
+function langOf(t){
+  const en=(t.match(/\b(the|and|you|your|is|of|to|in|it|that|with|this|for|are|not)\b/gi)||[]).length;
+  const de=(t.match(/\b(der|die|das|und|ist|nicht|ein|eine|ich|Sie|mit|dem|den|zum|von|auf|für|sich|wir)\b/g)||[]).length+(t.match(/[äöüß]/g)||[]).length*.5;
+  return en>de?"en":"de"}
+function markLang(root){
+  root=root||document;if(!root.querySelectorAll)return 0;let n=0;
+  root.querySelectorAll(EN_SEL).forEach(e=>{if(!e.lang){e.lang="en";n++}});
+  root.querySelectorAll(NAR_SEL).forEach(p=>{if(p.dataset.lg)return;p.dataset.lg="1";if(langOf(p.textContent||"")==="en"){p.lang="en";p.classList.add("nar-en");n++}});
+  const txt=root.textContent||"";
+  if(/[؀-ۿ]/.test(txt)){
+    const w=document.createTreeWalker(root.nodeType===9?root.body:root,NodeFilter.SHOW_TEXT,{acceptNode(t){
+      if(!/[؀-ۿ]/.test(t.data))return NodeFilter.FILTER_REJECT;
+      const p=t.parentElement;if(!p||p.closest('[lang="ar"],script,style,textarea,input'))return NodeFilter.FILTER_REJECT;return NodeFilter.FILTER_ACCEPT}});
+    const list=[];while(w.nextNode())list.push(w.currentNode);
+    for(const t of list){const s=t.data;AR.lastIndex=0;let m,last=0;const frag=document.createDocumentFragment();
+      while((m=AR.exec(s))){if(m.index>last)frag.appendChild(document.createTextNode(s.slice(last,m.index)));
+        const sp=document.createElement("span");sp.lang="ar";sp.dir="rtl";sp.textContent=m[0];frag.appendChild(sp);last=m.index+m[0].length;n++}
+      if(last<s.length)frag.appendChild(document.createTextNode(s.slice(last)));t.parentNode.replaceChild(frag,t)}}
+  return n}
+
+// ---------- wiring
+const A1={marks:0,runs:0,errors:0};
+function safeMark(el){try{if(el){A1.marks+=markLang(el);A1.runs++}}catch(e){A1.errors++;try{logError({message:"a1 markLang: "+(e&&e.message||e)})}catch(x){}}}
+let qd=false;
+const A1q=typeof queueMicrotask==="function"?queueMicrotask:f=>Promise.resolve().then(f);   // integrator: some hosts/test stubs lack queueMicrotask
+function soon(){if(qd)return;qd=true;A1q(()=>{qd=false;safeMark(document.getElementById("main"));safeMark(document.getElementById("sheetIn"));safeMark(document.querySelector(".side"))})}
+// c_a1 loads before c_views.js defines chrome/showGloss: register once the whole app script has run, then mark the first render
+A1q(()=>{for(const n of ["chrome","showGloss"]){try{MOD.after(n,"a1",soon)}catch(e){A1.errors++}}soon()});
+// one observer, #fIn only, childList; coalesced to one pass per frame
+try{const fin=document.getElementById("fIn");if(fin&&window.MutationObserver){let raf=0;
+  new MutationObserver(()=>{if(raf)return;raf=requestAnimationFrame(()=>{raf=0;safeMark(fin)})}).observe(fin,{childList:true,subtree:true})}}catch(e){A1.errors++}
+// keep html.calm in step with the OS setting until a7's M.sync() takes over (it may toggle the same class)
+try{const mq=matchMedia("(prefers-reduced-motion: reduce)");const f=()=>document.documentElement.classList.toggle("calm",mq.matches||(typeof S!=="undefined"&&S&&S.motion===false));
+  if(mq.addEventListener)mq.addEventListener("change",f);else if(mq.addListener)mq.addListener(f)}catch(e){}
+Object.assign(window,{uiCalm,markLang,loreInitial,frakturize,frakPlain,frakOK,FRAK_LEX,A1});
+})();
 
 // ================= UI COMPONENTS (v2) =================
 const IC={
@@ -799,7 +1101,7 @@ ACT.copyYuzu=()=>{const p=yuzuPack();copyText(JSON.stringify(p),$(".bk-txt"));to
 ACT.reset=()=>{const v=($(".rs-in")||{}).value;if(v!=="LÖSCHEN")return toast("Tippe LÖSCHEN zur Bestätigung");lsSet("mephisto_before_reset",JSON.stringify(S));S=fresh();saveNow();buildDict();applyPrefs();R.tab="home";toast("Zurückgesetzt. Eine Kopie liegt unter „mephisto_before_reset“.");rerender()};
 
 // ================= PHONE FEATURES (v10): speech check, Artikel-Blitz, numbers, terms, undo, haptics, coach, PWA =================
-const APP_VERSION="13.2.0";
+const APP_VERSION="13.3.0";
 const IS_PWA=!!window.MEPHISTO_PWA;
 const IS_STANDALONE=(()=>{try{return matchMedia("(display-mode: standalone)").matches||navigator.standalone===true}catch(e){return false}})();
 const IS_IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
@@ -930,10 +1232,35 @@ capsReady=function(){if(!SAMPLE&&SAMPLE_STATE==="absent"&&apiKey()){SAMPLE=apiSa
 ACT.saveKey=()=>{const v=($(".k-in")||{}).value||"";if(v&&!/^sk-ant-/.test(v.trim()))return toast("Ein Anthropic-Schlüssel beginnt mit „sk-ant-“.");lsSet(KEY_LS,v.trim());if(!v.trim()){if(SAMPLE===apiSample){SAMPLE=null;SAMPLE_STATE="absent"}}else if(!SAMPLE||SAMPLE===apiSample){SAMPLE=apiSample;SAMPLE_STATE="key"}capsReady();toast(v.trim()?"Schlüssel gespeichert (nur auf diesem Gerät).":"Schlüssel entfernt.");rerender()};
 ACT.testKey=async el=>{if(!apiKey())return toast("Erst einen Schlüssel speichern.");el.disabled=true;el.textContent="Teste…";try{const r=await apiSample("Antworte nur mit: Alles klar.",{modelTier:"quick"});toast("Verbindung steht: "+r.text.slice(0,40))}catch(e){toast(tutorMsg(e&&e.code)||"Fehler")}el.disabled=false;el.textContent="Testen"};
 function tutorSettingsHTML(){const inViewer=SAMPLE&&SAMPLE!==apiSample;return `<div class="card stack s"><h3>Tutor (Claude)</h3>${inViewer?`<p class="fg2" style="font-size:.95rem"><span class="pill good">${ic("check")} aktiv</span> über dein claude.ai-Konto in dieser Ansicht.</p>`:`<p class="fg2" style="font-size:.95rem">In der installierten App gibt es keinen claude.ai-Zugang. Mit einem eigenen API-Schlüssel (console.anthropic.com) funktionieren Korrektur, Rollenspiel und Prüfungsbewertung trotzdem; jede Anfrage kostet ein paar Cent API-Guthaben. Ohne Schlüssel gibt es Musterlösungen und Checklisten.</p><input class="k-in" type="password" autocomplete="off" placeholder="sk-ant-…" value="${esc(apiKey())}"><div class="row"><button class="sm primary" data-act="saveKey">Speichern</button><button class="sm" data-act="testKey">Testen</button>${apiKey()?`<span class="pill good">Schlüssel gesetzt</span>`:""}</div><p class="muted ui" style="font-size:.8rem">Der Schlüssel bleibt nur auf diesem Gerät, wird nie in Backups oder den Yuzu-Pack exportiert und geht nur an api.anthropic.com. Am sichersten: ein eigener Schlüssel mit Ausgabenlimit nur für Mephisto.</p>`}</div>`}
-// ---------- service worker: offline + update when the user taps
-let SW_WAITING=null;
-function swUpdateReady(w){SW_WAITING=w;snack("Neue Version von Mephisto bereit.","Aktualisieren",()=>{try{w.postMessage({type:"SKIP_WAITING"})}catch(e){}},60000)}
-if(IS_PWA&&"serviceWorker" in navigator&&window.isSecureContext){const hadCtl=!!navigator.serviceWorker.controller;window.addEventListener("load",()=>{navigator.serviceWorker.register("./sw.js").then(reg=>{if(reg.waiting&&navigator.serviceWorker.controller)swUpdateReady(reg.waiting);reg.addEventListener("updatefound",()=>{const n=reg.installing;if(!n)return;n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller)swUpdateReady(n)})});setInterval(()=>reg.update().catch(()=>{}),60*60*1000)}).catch(e=>logError(e))});let reloaded=false;navigator.serviceWorker.addEventListener("controllerchange",()=>{if(reloaded||!hadCtl)return;reloaded=true;saveNow();location.reload()})}
+// ---------- service worker: offline + update when the user taps (P2)
+// A new version installs in the background (each file once, checked against its SHA-256, resumable). When it is ready a banner stays at the
+// bottom of every screen — "Neue Version – jetzt laden" — hidden while a session or duel is open and back as soon as it closes. Accepting it
+// saves first; the page reloads only when no task is open in THIS window (another window that accepted it never pulls a session away).
+let SW_WAITING=null,SW_REG=null,SW_INFO={active:"",waiting:"",checked:0,fail:0};
+function swAsk(w){return new Promise(res=>{try{if(!w)return res("");const ch=new MessageChannel();const t=setTimeout(()=>res(""),1500);ch.port1.onmessage=e=>{clearTimeout(t);res(String((e.data||{}).version||""))};w.postMessage({type:"VERSION"},[ch.port2])}catch(e){res("")}})}
+function swBanner(){try{let b=document.getElementById("p2-upd");if(!SW_WAITING){if(b)b.remove();return}
+  if(!b){b=document.createElement("div");b.id="p2-upd";b.setAttribute("role","status");document.body.appendChild(b)}
+  const v=SW_INFO.waiting?String(SW_INFO.waiting).split("-")[0]:"";b.innerHTML=`<span>Neue Version${v?" "+esc(v):""} bereit <span class="en">new version ready</span></span><button class="primary sm" data-act="swApply">Neue Version – jetzt laden</button>`}catch(e){}}
+function swUpdateReady(w){SW_WAITING=w;swAsk(w).then(v=>{SW_INFO.waiting=v;swBanner()});swBanner()}
+let SW_RELOAD=false;
+function swReload(){if(SW_RELOAD)return;if(typeof Focus!=="undefined"&&Focus.isOpen()){SW_RELOAD="later";return}SW_RELOAD=true;try{saveNow()}catch(e){}
+  const go=()=>location.reload();try{(typeof STORE!=="undefined"&&STORE.flushNow?STORE.flushNow():Promise.resolve()).then(go,go)}catch(e){go()}}
+ACT.swApply=()=>{if(!SW_WAITING)return;try{saveNow()}catch(e){}SW_RELOAD=false;const b=document.getElementById("p2-upd");if(b)b.innerHTML=`<span>Neue Version wird geladen …</span>`;
+  const w=SW_WAITING;const send=()=>{try{w.postMessage({type:"SKIP_WAITING"})}catch(e){}};try{(typeof STORE!=="undefined"&&STORE.flushNow?STORE.flushNow():Promise.resolve()).then(send,send)}catch(e){send()}};
+ACT.swCheck=()=>{if(!SW_REG)return toast("Updates gibt es nur in der installierten App.");toast("Suche nach einer neuen Version …",1800);SW_INFO.checked=Date.now();SW_REG.update().catch(()=>toast("Keine Verbindung."))};
+(function(){try{const _c=Focus.close;Focus.close=function(){const r=_c.apply(this,arguments);try{if(SW_RELOAD==="later"){SW_RELOAD=false;setTimeout(swReload,300)}else swBanner()}catch(e){}return r}}catch(e){}})();
+if(IS_PWA&&"serviceWorker" in navigator&&window.isSecureContext){const hadCtl=!!navigator.serviceWorker.controller;
+  const check=()=>{if(!SW_REG||document.hidden)return;try{if(navigator.connection&&navigator.connection.saveData)return}catch(e){}
+    const wait=SW_INFO.fail>0?Math.min(24,Math.pow(6,SW_INFO.fail-1))*3600000:3600000;if(Date.now()-SW_INFO.checked<wait)return;SW_INFO.checked=Date.now();SW_REG.update().catch(()=>{})};
+  window.addEventListener("load",()=>{navigator.serviceWorker.register("./sw.js").then(reg=>{SW_REG=reg;SW_INFO.checked=Date.now();swAsk(reg.active).then(v=>SW_INFO.active=v);
+    if(reg.waiting&&navigator.serviceWorker.controller)swUpdateReady(reg.waiting);
+    reg.addEventListener("updatefound",()=>{const n=reg.installing;if(!n)return;n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){SW_INFO.fail=0;swUpdateReady(n)}else if(n.state==="redundant"&&!reg.waiting)SW_INFO.fail++})});
+    setInterval(check,15*60*1000);document.addEventListener("visibilitychange",check)}).catch(e=>logError(e))});
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{if(!hadCtl)return;swReload()})}
+MOD.after("meSettings","p2sw",function(el){if(el.querySelector(".p2-ver"))return;const d=document.createElement("div");d.className="card row between p2-ver";
+  d.innerHTML=`<span><b>Version ${esc(APP_VERSION)}</b>${SW_INFO.active?`<br><small class="muted ui">Build ${esc(SW_INFO.active)}</small>`:""}${SW_WAITING?`<br><small class="ui" style="color:var(--accent)">Neue Version bereit${SW_INFO.waiting?": "+esc(SW_INFO.waiting):""}</small>`:""}</span>${SW_WAITING?`<button class="primary sm" data-act="swApply">Jetzt laden</button>`:SW_REG?`<button class="sm ghost" data-act="swCheck">Nach Updates suchen</button>`:""}`;el.appendChild(d)});
+(function(){try{const s=document.createElement("style");s.textContent=`#p2-upd{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 74px);z-index:60;display:flex;gap:.7rem;align-items:center;flex-wrap:wrap;justify-content:center;max-width:calc(100vw - 32px);box-sizing:border-box;padding:.55rem .8rem;border-radius:12px;background:var(--surface,#1B1822);color:var(--fg,#F2E9DA);border:1px solid var(--accent,#E2651C);box-shadow:0 8px 30px rgba(0,0,0,.45);font-family:var(--ui,system-ui)}
+#p2-upd .en{opacity:.65;font-size:.85em}@media(min-width:900px){#p2-upd{bottom:22px}}body:has(#focus:not([hidden])) #p2-upd,body:has(#p2-tab) #p2-upd{display:none}`;document.head.appendChild(s)}catch(e){}})();
 ACT.repairApp=async()=>{saveNow();try{if(navigator.serviceWorker){const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister()))}if(window.caches){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)))}}catch(e){}toast("Zwischenspeicher geleert. Lädt neu…");setTimeout(()=>location.reload(),700)};
 function diagHTML(){return `<details class="card"><summary class="ui" style="cursor:pointer;font-weight:700">Diagnose &amp; Reparatur</summary><div class="kv" style="margin-top:.6rem"><b>Version</b><span>${APP_VERSION}${IS_PWA?" · App":" · claude.ai"}</span><b>Installiert</b><span>${IS_STANDALONE?"ja":"nein"}</span><b>Offline</b><span>${navigator.serviceWorker&&navigator.serviceWorker.controller?"bereit":"nein"}</span><b>Speicher</b><span>${STORAGE_OK?"ok":"blockiert"}</span><b>Sprachausgabe</b><span>${TTS_OK?(DE_VOICE?esc(DE_VOICE.name):"keine deutsche Stimme"):"nicht verfügbar"}</span><b>Spracherkennung</b><span>${SR?"verfügbar":"nicht verfügbar"}</span><b>Tutor</b><span>${SAMPLE?(SAMPLE===apiSample?"eigener Schlüssel":"claude.ai"):"aus"}</span><b>Karten</b><span>${Object.keys(S.cards).length}</span></div>${IS_PWA?`<div class="row" style="margin-top:.6rem"><button class="sm" data-act="repairApp">App reparieren</button><span class="muted ui" style="font-size:.8rem">Leert nur den App-Zwischenspeicher. Dein Fortschritt bleibt.</span></div>`:""}</details>`}
 // ---------- deep links from app shortcuts (?a=…)
@@ -1631,7 +1958,7 @@ function examEvidence(el,q){const want=q.kind==="mc"?(q.opts||[])[+q.answer]||""
 // "Orange Pixel" (5×7, drawn for Orange; German glyphs ä ö ü Ä Ö Ü ß „ added for Mephisto) for headings and
 // numbers; German reading text stays in the serif. Square notched panels, bevels, pressed buttons, flat ink,
 // no gradients or glow. Settings → Erscheinungsbild: Look Auto (pixel in the installed app) · Klassisch · Pixel.
-const PX_FONT="data:font/woff;base64,d09GRgABAAAAAA40AAoAAAAAPMgAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAABPUy8yAAABZAAAADkAAABgKB7sx2NtYXAAAAHoAAABFAAAAXpIf0riZ2x5ZgAAA/QAAAewAAAw3rveHBpoZWFkAAAA9AAAADYAAAA2L4BjAmhoZWEAAAEsAAAAHQAAACQF3gM3aG10eAAAAaAAAABHAAAB6ANgAABsb2NhAAAC/AAAAPYAAAD2GjoNj21heHAAAAFMAAAAGAAAACAAjwBSbmFtZQAAC6QAAAC8AAABI/rknNJwb3N0AAAMYAAAAdQAAATeH//FrwABAAAAAQAAb8eaKl8PPPUAAQPoAAAAAOcGSb0AAAAA5wzVqf+c/zgCvAOEAAAAAwACAAAAAAAAeJxjYGRgYFb4bwEiGRgYUpj2MABFUEAVAEMKAxwAAAB4nGNgZGBgqGIIYBBhAAEmBjQAABbbAOJ4nGNgZlJinMDAysDCQAA0MDAwMzA8SIDx7YEASCmoizIr/LcASiownIDJMX5h2gOSY2AAAA4/B/UAAAB4nGOKYGBgohJmnEA9s4i1hxI7QXoZTgBpHVQaJAfmQ+VhbDD+ApFnVkA1C6Yf2WwU/AWKJ5DnZlx6wOJ7COgF2gsARO4zMgB4nG2Qu0oDURCGv8TkCRJBQeRswmZLtcyCeIsxXsAL0Yh3RaOVWIkGfAURrMQ3EAsjilZWsbGzUbJI3MJnsIqM4yIa0IH5ZzjMfId/gDDQpBlXDQU1EipqzdBLlAhJOkhrP8c8iyxToswNFZ554ZU33qmbuGk17SZhUsa1jq37RM6+sm/tu1TUiTnNIkoz2HTi0vdNWeUioDw1UGKmxbQFlLR19C8FedR8kA+pE5aK9qdSDvREDuVA9nz3a8rv8rv9JNTOa4537V16Z95WdbZaUH8ZRnRggd9YCrTxBabI/3R/o0cpQ7o3rT6yzFBgjXF1NqZXytPPgN5qQn0OssIO2+wyyTA5/XmUfTYoss7mJytGWKwAAAAAAFAAfgCyAOUBHwFUAY8BvAIEAj8CjALTAw4DWQOIA7cD/gRPBH0EsQT/BSwFiwXlBjIGbQbCBw0HPAdqB7sICwhuCL0I+wkpCVMJkwm9Cf8KKQpdCp8K6AsQC0QLhgu0C/wMOgxwDKsM5g0TDTcNag2oDeEOKQ5hDqcOyg7KDtUO7A7+DxYPPQ9rD3wPmA+pD7oP1g/yD/4QChAWEDoQTRCFEJEQohDQERIRPhFqEZgRxhHyEh0SPhJfEqkS9hNBE00ThhObE74T4RQaFFMUaxSEFKcU0BUIFT0VXBWOFaoV6BYeFl8WqhcgF4sX7hhJGG8AAHicvRpLbhxFtNqDM4QYwmBaLFgkIxR5kZEiq2UFiQULIrFgwZYD9AH6EBxgDpADcIgcoA7gA3CIWRKH+ryqelX13qtq29BWT/e0e97/X6W+VOYYTmcf1EZt1TP1XF2q79T36oX6QV2p1+qNmpS6vNmP5zfTuDenvU7oOhXP/Dv7cR4Od4v5mO8uZq3Nhz3uLrS2D+zjZTic/TE3DkPTbOg7VvQZmqZxS577URuMAYLm0Cj1Oct7xjGFIXJnEPg/A4fhRsKzM7AC3BFOLMXhZIHPHTJTTwVNqgFwlNo7R/gNAqOoW4ttMUgNspNFzStJlOAOJGilNSLsiTNrE8OxjzmZu0uAHbSDbTXgc6xpizGaZdMKDSYaa6a38hxOwShmVnwGlux3lc8FPqhn2NeAqX4mu+RL490ivdY0HK0Y7m61IN+LZvRZIQd/Lem4cIaGvtvPVuBRbf3sVuinsLmL+ntDPau0g22RshB/tI2/RztBChOhiTpjGEkcnBfm7Ics0ZUTZJ8so0C499EGvN9emWh9H+hTBZ1z+vVev3Wya3u9U2gmz6VpVKor9+9YrYo+WCj3Pk5otfHpvSFR19rYsPHXySVmfyH9N7J/CRlbuU4YfKrkg9w9pFxWVFviGZKy86bZ0uAKheReXdUVa+18dYUhsH70dQfXb9VP6meed+qetzaTb2ORGS6rDS7o7Hkn9aR3tKvj2kt8WQxku3J5JdVd0ZrOpbx/V7m0+uwJ2HL2kvJojK9U/rSHlL2+6tJhUyaUFqcbos5A2dV75a2WCESkrsizlJQoG2MktiI68LHhEmlnzKp7azFHJwPXGfGFjerNs2Vl7dqTcHCwH5jXRH/gXWFNV/voFE4gIZm22VbkHeSpXXf0/kWmk4vj5T3vSPiysEp/XCkHaeLMy0RuL1PtqVtT2qgvROqadIWzosUfEgUN7+PyfuprtZD41RMPezhlsF3UGFHUynxqcWED7txMIAfaISu+90e45qr/7+rAJJ5wrMrzpsPmQwLBUounNLGRefITlCTAFT2AqKsyy4x5PQAFPcGYWFeXlW1ubTCjsTV1qLD5utrI79OPFe1RftLMIre/YykzPJGqGcQ0dGXuOpaI1aw79N2SJqVrBhdPyI6JqecN92FQCn2SLsBZbX56T8xfXyQL5bokN0/0cHCXVKAAPL4zpvDEeQsvx/KZ56juixoNsdBtCt0Q4keYNV+QnlZZypr+R0NGJDseyW5R9OG8p6SFt1bOUnkCQoQgcDeqca4jYf3U9R5slHhY7yEwKGNtTVN9VieiUgvrlpErqc2IKWmQg6/UOQE58jGizI7orhN5Y8Ul+RSWRKDXAohZQR65dNi2PKdka1JtZSUq4amAu4mZrOB9Vceh7I4saypztg5fRAv09HRLgKuyybqa5/+ZWAe8lieYdTVQl1C95YAhhvSTuqYO63pu2bD2ksFCUbP52yh17W1f2XuTn7T587DV28yLs8Sq1JmHAJQ4GWz8e46hW4Bo812k1vngJoMYXp5jtajmvtpiwnPC0lV1z3yBWnud83VXqj60sM8s5EhppDC9rz5zejog7FWUnIF1hEJ1QP7vcN/3d8aerOUOR6vxnesZrATh+Qk9P6XnZx/Sc3N/AOt2jV+eBfI+xdXxjgyY1ti2MbfvM291yTb3Y1gR9u6gQxwpsT1CHCmoKaRkMALX/veg8UP0kqhPrTV4Lm/JVIWc6gpHlYbPe68YlRZQ4sH/c2le69jFu0GzFhZoPQ2evwPlqTW+sIshrYCzgzoW7g7BYaKKFmQmwOVmi7AyGQ+2kBdhU3r2q54JgvELGTax16W0oxGdtssKol4Ld1fAKuWsJTH7aHCgowFlCVUgICFQugdS6kjSteZR73ih71PvCJtgTEBaspsispJH39SxnISUMYxccYjTkTn61pqVhvusEE1IQlPxrJgIwQo0UBWWo9urQ4ObMJyUq0dGmDO24j+WX6nJuEobKhfYDwOa5TPAxsvH1V2uHrpGELM3yUw43EyxD4pR/uCWQdzklLF/Jp9uo5Rdj2bdx4m18oHmzqgtIZts6mb7qiQff0grax0Y64kQ3m0WF8+TfqThjNeMRnV1rBlgVcgBSIV0/X6Swz7wiytvxccirAvol+3P7VSp1sUT0maJ3Xf7WAO4VWsNHFSm+b9XQaFDr/EVlV697ydWfQvkUhGXrWYLzsCrPWSvKagi7SXB0TBDouVCRPwywvtpB4RTe4do1BmFtlLG9fYlkvA2eGaRI938wTwhdXaF6dsT9O0LOl0EWSDuu6BK2UnELUxYbkBPQ9Tf3nV7Q8AHPa4R9hH63iXAtVRoH4YOsLrbXJXJ8aX7V/G+wLuUdxi7O6xZOQV51+3JaDeAZSiwhu/nJTVx94Wd9FSTGEQP7CRLtR0Qpb71VG3+7Fg9/VX9pn73meaKOK1+dsKV+w1nH9LhcxVcb/Prx7/I15X6ZhWvThsP5XE9f5bUf/72Sc1ygq9xQyRma7eCK5Knq4KH64bOVqrKEr956Znydx/fVS+FXUybl61dTMlTvQ/gqBCupZ8Us8IZ9o7rEKvQ5jSdJAvW9C599/9KMzCbQ+2KU5xzQQ4dAd8VXF/FKDnD+k4tgH8BkQBsonicXY9NCsIwFISn/gvi2uXbupF24U7wCBVvkGKaBmIa0gpew2N4Aq/n2GZlYOCbeTOLAFihRobx7amRM2zoRp5giWPiOaY4UdlsTXfFOXGGHV6JJ9jinXiOBT5ltMZ65aSy/V0FuenOGi91G6VvtJRReaNFhZDoYp/aXbV5OBWLQ44SERaG8lBwEFTkHne6QHeDRjc0PF2Nln3hvWEuw1rxYgb3W4S/7MLtk+T4Ic3sQVJsFDgg/wK9EjIueJx9klV3GzEYBT0ppMzMzLDWrqS4lMZeu8zMDCmkmEJ+fc+JZ1+7L3NWWs/9rqzWSOv/z0yrxQhzmMs85jPKAhayiMUsYSnLWM4KVrKK1axhLetYzwY2sonNbGEr29jODnayi93sYS/72M8BDnKIwxzhKMc4TkGbQElFJJEZo8MJTnKK05xhnLNM0KVHTZ8B5zjPBS5yictc4SrXuM4NbnKL29zhLve4zwMe8ojHPOEpz3jOC17yite84S3veM8kH/jIJz4zxRe+8o3v/OAn0/ziN3/4y8zo9NRkUZSFbMsgS1nJKJPMckx2hqz0VHoqPZWeSk+lp9JT6akaz4Tsyp6sZV8Ohoz2iOZH86P50fxofjQ/mh/Nj+ZH85O+pC/pS/qSvqQv6Uv6kr7U+OyT7JPsk+yT7JPtk83P5mfzs/nZ/Gx+Nj+bn83P5ge9wbzgHKX7pfOF5j44T9AbZucIRbsjx2RP2ifUvpfSeYP+0u9qvd08/C7YMzS59gv2Cc3/oyfqKZse/aGndL6mV/DcQnPvmvvS5EyYP7sf2p0gC9mWwz6x25eVHJ5Dtm9uz84dUuH83eHvQ3PPu3p77vc9n4HzDezTc712vXa9Hniu/X/TXSDR";
+const PX_FONT="media/fonts/a1-orangepixel.woff";   // a1 13.1: a real file (assets/media/fonts), no base64 in the script
 const PX_PAL=[["orange","Orange"],["blood","Blut"],["yuzu","Yuzu"],["gameboy","Game Boy"],["night","Nacht"],["paper","Papier"]];
 (function(){const st=document.createElement("style");st.id="pxcss";st.textContent=`
 @font-face{font-family:"Orange Pixel";src:url(${PX_FONT}) format("woff");font-display:block}
@@ -1648,11 +1975,11 @@ html:root.px[data-pxt="paper"]{--bg:#efe6d4;--surface:#fbf6ea;--raise:#fffdf6;--
  --klinik:#1F7A8C;--klinik-soft:#D7ECEF;--alltag:#7457B8;--alltag-soft:#E8E1F5;--gram:#9A2B45;--gram-soft:#F4DDE3;--read:#2E7D4F;--read-soft:#DCEFE3;--lit:#A86B12;--lit-soft:#F5E8D2;--kult:#3B7F7A;--kult-soft:#D9EDEB;--der:#2F64B5;--die:#C23B3B;--das:#2A8A55;--good:#2E7D4F;--good-soft:#DCEFE3;--bad:#B3261E;--bad-soft:#F7DCD9;--bev:rgba(255,255,255,.7);--bevd:rgba(29,25,34,.18);color-scheme:light}
 html.px body{background:var(--bg);color:var(--fg)}
 html.px h1,html.px h2,html.px h3,html.px h4,html.px .eyebrow,html.px .stat b,html.px .brand b,html.px nav.bar button,html.px #sideNav button,html.px .chips,html.px .tile b,html.px .step .t b,html.px .seg button,html.px button.primary,html.px .pill,html.px .tch-ring text,html.px .tch-role,html.px .bz-score,html.px .ring{font-family:var(--px)!important;font-weight:400!important;font-synthesis:none;letter-spacing:0!important;-webkit-font-smoothing:none;-moz-osx-font-smoothing:auto}
-html.px h1{font-size:26px!important;line-height:1.2}html.px .hero h1{font-size:24px!important;line-height:1.25}
-html.px h2{font-size:20px!important;line-height:1.25}html.px h3,html.px h4{font-size:16px!important;line-height:1.3}
-html.px .eyebrow{font-size:10px!important;color:var(--accent);text-transform:uppercase}
-html.px .stat b{font-size:20px!important}html.px .tile b,html.px .step .t b{font-size:13px!important;line-height:1.35}
-html.px nav.bar button{font-size:10px!important}html.px .pill{font-size:10px!important}html.px .seg button,html.px button.primary{font-size:12px!important}
+html.px h1{font-size:var(--fs-h2)!important;line-height:1.2}html.px .hero h1{font-size:var(--fs-h2)!important;line-height:1.25}
+html.px h2{font-size:var(--fs-lead)!important;line-height:1.25}html.px h3,html.px h4{font-size:var(--fs-body)!important;line-height:1.3}
+html.px .eyebrow{font-size:var(--fs-cap)!important;color:var(--accent);text-transform:uppercase}
+html.px .stat b{font-size:var(--fs-lead)!important}html.px .tile b,html.px .step .t b{font-size:var(--fs-sm)!important;line-height:1.35}
+html.px nav.bar button{font-size:var(--fs-cap)!important}html.px .pill{font-size:var(--fs-cap)!important}html.px .seg button,html.px button.primary{font-size:var(--fs-cap)!important}
 html.px *{border-radius:0!important}
 html.px .tch-dot,html.px input[type=radio],html.px .dot{border-radius:50%!important}
 html.px .card,html.px .stat,html.px .tile,html.px .step,html.px .sheet,html.px .kit-sheet,html.px .q,html.px .coach-it,html.px .tch-hp,html.px .xl-en{--n:3px;clip-path:polygon(0 var(--n),var(--n) var(--n),var(--n) 0,calc(100% - var(--n)) 0,calc(100% - var(--n)) var(--n),100% var(--n),100% calc(100% - var(--n)),calc(100% - var(--n)) calc(100% - var(--n)),calc(100% - var(--n)) 100%,var(--n) 100%,var(--n) calc(100% - var(--n)),0 calc(100% - var(--n)))}
@@ -1679,7 +2006,7 @@ html.px .hero .go{background:var(--raise)!important;color:var(--fg)!important;bo
 html.px .hero .go *{color:var(--fg)!important}html.px .hero .go small{color:var(--muted)!important}
 html.px .toast,html.px .snack,html.px .kit-tip{border:2px solid var(--accent)!important;box-shadow:4px 4px 0 rgba(0,0,0,.55)!important}
 html.px .pbar{background:var(--bg);border:2px solid var(--line);height:12px}html.px .pbar i{background:var(--accent)}
-html.px select,html.px input[type=text],html.px input:not([type]),html.px input[type=search],html.px textarea{background:var(--raise);color:var(--fg);border:2px solid var(--line)!important}
+html.px select,html.px input[type=text],html.px input:not([type]),html.px input[type=search],html.px textarea{background:var(--raise);color:var(--fg);border:2px solid var(--field-line)!important}
 html.px :focus-visible{outline:2px dashed var(--accent)!important;outline-offset:2px}
 html.px .tch-hero{background:var(--surface)!important;border-color:var(--accent)!important}
 html.px .dg{border-width:2px}html.px .mbars i{border-radius:0}
@@ -1690,17 +2017,17 @@ function pxOn(){const l=S.look||"auto";return l==="pixel"||(l==="auto"&&typeof I
 const _applyPrefsPx=applyPrefs;
 applyPrefs=function(){_applyPrefsPx();const h=document.documentElement;const on=pxOn();h.classList.toggle("px",on);
   const pal=PX_PAL.some(p=>p[0]===S.pxt)?S.pxt:"orange";if(on)h.dataset.pxt=pal;else h.removeAttribute("data-pxt");
-  const ts=clamp(+S.textSize||100,85,130);h.style.fontSize=ts===100?"":ts+"%";
+  const ts=clamp(+S.textSize||100,85,200);h.style.fontSize="";h.style.setProperty("--ts",String(ts/100));h.classList.toggle("ts-big",ts>150);   // a1: root = 100% × --vp × --ts (s_a1.css)
   const tc=getComputedStyle(h).getPropertyValue("--bg").trim();$$('meta[name="theme-color"]').forEach(m=>{if(on)m.setAttribute("content",tc||"#0b0907");else if(m.dataset.orig)m.setAttribute("content",m.dataset.orig)})};
 $$('meta[name="theme-color"]').forEach(m=>m.dataset.orig=m.getAttribute("content"));
 
-MOD.after("meSettings","pixel",function(el){const card=[...el.querySelectorAll(".card")].find(c=>/Erscheinungsbild/.test(c.textContent));if(!card)return;const on=pxOn();const ts=clamp(+S.textSize||100,85,130);
+MOD.after("meSettings","pixel",function(el){const card=[...el.querySelectorAll(".card")].find(c=>/Erscheinungsbild/.test(c.textContent));if(!card)return;const on=pxOn();const ts=clamp(+S.textSize||100,85,200);
   card.innerHTML=`<h3>Erscheinungsbild</h3>
    <div class="stack s"><div class="eyebrow">Look</div><div class="seg">${[["auto","Auto"],["classic","Klassisch"],["pixel","Pixel (8-bit)"]].map(([k,n])=>`<button class="${(S.look||"auto")===k?"on":""}" data-act="setLook" data-k="${k}">${n}</button>`).join("")}</div>
    <small class="muted ui">Auto: Pixel in der installierten App, klassisch in claude.ai. Wie Sinus, Orange und Yuzu.</small></div>
    ${on?`<div class="stack s"><div class="eyebrow">Palette</div><div class="px-pals">${PX_PAL.map(([k,n])=>`<button class="px-pal${(S.pxt||"orange")===k?" on":""}" data-act="setPal" data-k="${k}"><i class="sw sw-${k}"></i>${n}</button>`).join("")}</div></div>`
      :`<div class="stack s"><div class="eyebrow">Hell / Dunkel</div><div class="seg">${[["system","System"],["light","Hell"],["dark","Dunkel"]].map(([k,n])=>`<button class="${S.theme===k?"on":""}" data-act="setTheme" data-k="${k}">${n}</button>`).join("")}</div></div>`}
-   <label class="f">Textgröße: <span class="ts-v">${ts} %</span><input type="range" min="85" max="130" step="5" value="${ts}" class="ts-r" style="padding:0;min-height:32px"></label>
+   <label class="f">Textgröße: <span class="ts-v">${ts} %</span><input type="range" min="85" max="200" step="5" value="${ts}" class="ts-r" style="padding:0;min-height:44px" aria-label="Textgröße"></label>
    <p class="ts-demo" style="margin:0">Guten Tag, Frau Müller. Was führt Sie zu uns?</p>`;
   const r=card.querySelector(".ts-r");r.oninput=()=>{S.textSize=+r.value;card.querySelector(".ts-v").textContent=r.value+" %";applyPrefs();saveSoon()}});
 ACT.setLook=el=>{S.look=el.dataset.k;applyPrefs();saveSoon();rerender();toast(pxOn()?"Pixel-Look an":"Klassischer Look")};
@@ -1945,7 +2272,7 @@ function stateFingerprint(){const o=Object.assign({},S);delete o.savedAt;delete 
 async function hubPullState(o){o=o||{};const g=gConf();if(g.syncState===false||!gAuth())return null;return withRetry(async retry=>{const folder=await hubFolder(retry);const f=await dFile(folder,"state.json");if(!f){HUB.last.state="noch keine Sicherung";return null}const remote=await dRead(f.id);if(!remote||remote.v!==2)return null;
     const rAt=remote.savedAt||f.modifiedTime||"";HUB.last.remoteAt=rAt;const mine=syncedAt();
     const localEmpty=!Object.keys(S.cards).length&&!Object.keys(S.lessons).length&&!(S.events||[]).length;
-    if(rAt&&rAt!==mine){if(localEmpty||o.force||!localChangedSince(mine)){lsSet("mephisto_before_drive",JSON.stringify(S));const keep=Object.assign({},g);S=validate(remote);S.google=Object.assign({},S.google||{},keep);saveNow();setSynced(rAt);HUB.stateAt=Date.now();HUB.fp=stateFingerprint();HUB.conflict=null;HUB.last.state="geladen "+fmtTime(rAt);try{applyPrefs();buildDict();rerender()}catch(e){}logEvent("sync","Fortschritt von Google Drive geladen");return "pulled"}
+    if(rAt&&rAt!==mine){if(localEmpty||o.force||!localChangedSince(mine)){const keep=Object.assign({},g);adopt(validate(remote),"cloud");S.google=Object.assign({},S.google||{},keep);saveNow();setSynced(rAt);HUB.stateAt=Date.now();HUB.fp=stateFingerprint();HUB.conflict=null;HUB.last.state="geladen "+fmtTime(rAt);try{applyPrefs();buildDict();rerender()}catch(e){}logEvent("sync","Fortschritt von Google Drive geladen");return "pulled"}
       HUB.last.state="Konflikt";HUB.conflict={at:rAt};return "conflict"}
     HUB.last.state=HUB.last.state||"aktuell";return "same"})}
 async function hubPushState(force){const g=gConf();if(!g.syncState||!gAuth())return;const fp=stateFingerprint();if(!force&&fp===HUB.fp)return;if(!force&&Date.now()-HUB.stateAt<120000)return;if(HUB.busy)return;HUB.busy=true;
@@ -3596,14 +3923,16 @@ function kabCards(){const p=P();const B=S.bib||{};const L=[];
   const sh=Object.keys(S.shadowDone||{}).length;[[10,"Schattenbann"],[50,"Ohne Schatten"]].forEach(([n,t])=>L.push({id:"shadow_"+n,r:"episch",t,art:"clarke_54",flav:"Der Schatten weicht zurück.",how:`${n} Fehler gebannt`,ok:sh>=n}));
   const w=S.bibWords||0;[[10000,"Leser"],[100000,"Bücherwurm"],[300000,"Die ganze Bibliothek"]].forEach(([n,t])=>L.push({id:"words_"+n,r:n>=100000?"episch":"selten",t,art:"clarke_11",flav:`${n.toLocaleString("de-DE")} Wörter gelesen`,how:`${n.toLocaleString("de-DE")} Wörter in der Bibliothek`,ok:w>=n}));
   return L}
-function kabCheck(){S.kab=S.kab||{};const neu=kabCards().filter(c=>c.ok&&!S.kab[c.id]);neu.forEach(c=>S.kab[c.id]=todayKey());if(neu.length){saveSoon();setTimeout(()=>{toast(`Neue Kuriosität: ${neu[0].t}${neu.length>1?` (+${neu.length-1})`:""}`,3500);SND.fx("bell")},400)}return neu}
+// P2: a card flagged `grave` (grave history) is never part of the cabinet — not shown, not counted, not granted
+function kabList(){return kabCards().filter(c=>c&&!c.grave)}
+function kabCheck(){S.kab=S.kab||{};const neu=kabList().filter(c=>c.ok&&!S.kab[c.id]);neu.forEach(c=>S.kab[c.id]=todayKey());if(neu.length){saveSoon();setTimeout(()=>{toast(`Neue Kuriosität: ${neu[0].t}${neu.length>1?` (+${neu.length-1})`:""}`,3500);SND.fx("bell")},400)}return neu}
 function kabGrant(){return kabCheck()}
-ACT.kabinett=()=>{kabCheck();const L=kabCards();const n=L.filter(c=>c.ok).length;const box=Focus.open({title:"Kuriositätenkabinett",sub:`${n} von ${L.length} gesammelt`});
+ACT.kabinett=()=>{kabCheck();const L=kabList();const n=L.filter(c=>c.ok).length;const box=Focus.open({title:"Kuriositätenkabinett",sub:`${n} von ${L.length} gesammelt`});
   const groups=[["legendär","Legendär"],["episch","Episch"],["selten","Selten"],["gewöhnlich","Siegel"]];
   box.innerHTML=`<div class="stack" style="max-width:820px;margin:0 auto"><div class="card orn">${pkSay(["Ein Kabinett für Ihre Trophäen. Leer sieht es traurig aus. Wie Sie.","A cabinet for your trophies. Empty, it looks sad. Like you."])}</div>
    ${groups.map(([r,name])=>{const G=L.filter(c=>c.r===r);return `<div class="stack s"><div class="eyebrow">${name} · ${G.filter(c=>c.ok).length}/${G.length}</div><div class="kab-grid">${G.map(c=>{const a=c.art&&pkArt(c.art);return `<button class="kab ${c.ok?"got":"lock"} r-${r}" data-kab="${c.id}"><span class="kab-in"><span class="kab-f">${a?`<img src="${a.u}" alt="" class="k-${a.k}">`:`<span class="kab-glyph">☩</span>`}<b>${esc(c.ok?c.t:"???")}</b></span><span class="kab-b"><b>${esc(c.t)}</b><i>${esc(c.flav)}</i><small>${c.ok?"Erhalten "+esc(fmtDate((S.kab||{})[c.id]||todayKey())):"Wie: "+esc(c.how)}</small></span></span></button>`}).join("")}</div></div>`}).join("")}</div>`;
   box.querySelectorAll(".kab").forEach(b=>b.onclick=()=>{b.classList.toggle("flip");SND.fx("page")})};
-MOD.after("viewPakt","omen",function(m){if(!P().signed)return;kabCheck();const w=m.querySelector(".pk-werk .werk-grid");if(w){const L=kabCards();w.insertAdjacentHTML("afterbegin",`<button data-act="kabinett"><b>Kuriositätenkabinett</b><small>${L.filter(c=>c.ok).length} von ${L.length} gesammelt</small></button>`)}
+MOD.after("viewPakt","omen",function(m){if(!P().signed)return;kabCheck();const w=m.querySelector(".pk-werk .werk-grid");if(w){const L=kabList();w.insertAdjacentHTML("afterbegin",`<button data-act="kabinett"><b>Kuriositätenkabinett</b><small>${L.filter(c=>c.ok).length} von ${L.length} gesammelt</small></button>`)}
   const gate=m.querySelector('[data-act="pkDuel"]');});
 (function(){const s=document.createElement("style");s.textContent=`
 .omen{display:block;width:100%;padding:0;border:0;background:none;min-height:0;text-align:left}
@@ -3886,7 +4215,13 @@ function motif(r){const m=MOTIF[r]||MOTIF.I;try{SND.motif(m[0],m[1],m[2])}catch(
 function eggs(){return S.eggs=S.eggs||{}}
 function loreOpen(e){if(e.egg)return !!eggs()[e.egg];const p=P();return p.signed&&(p.ch||1)>=e.ch}
 function loreSeen(){return S.loreSeen=S.loreSeen||{}}
-function loreNew(){return LORE.filter(e=>loreOpen(e)&&!loreSeen()[e.id])}
+// P2: grave history (Shoah, NS medicine, executions) is a page flag — `grave:1` (or `sober:true`) on a LORE entry. Such a page is never a find:
+// no "new page" card or badge, no secret pop-up, sting or Mephisto line, no Kabinett card, no motif, no horror layer while it is open.
+function loreGrave(e){return !!(e&&(e.grave||e.sober))}
+function eggGrave(id){try{return LORE.some(e=>e.egg===id&&loreGrave(e))}catch(x){return false}}
+function loreNew(){return LORE.filter(e=>loreOpen(e)&&!loreSeen()[e.id]&&!loreGrave(e))}
+// repeating work that stops while the page is hidden and starts again when it is back
+function visInterval(fn,ms){let t=null;const on=()=>{if(!t&&!document.hidden)t=setInterval(fn,ms)},off=()=>{if(t){clearInterval(t);t=null}};document.addEventListener("visibilitychange",()=>{if(document.hidden)off();else on()});on();return {stop:off,start:on}}
 function loreArt(id,cls){const a=pkArt(id);return a?`<img class="${cls||""}${a.k==="ink"?" ink":""}" src="${a.u}" alt="">`:""}
 // ---------------------------------------------------------------- 1. Die Chronik (codex)
 let CHR_TAB="reiche";
@@ -3895,7 +4230,7 @@ ACT.chronik=el=>{if(el&&el.dataset&&el.dataset.tab)CHR_TAB=el.dataset.tab;const 
   let body="";
   if(CHR_TAB==="zeit"){const L=LORE.slice().sort((a,b)=>a.sort-b.sort);body=`<div class="chr-time">${L.map(e=>{const o=loreOpen(e);return `<button class="chr-tl r${e.r}${o?"":" locked"}" ${o?`data-act="loreRead" data-id="${e.id}"`:""}><span class="yr">${esc(e.y)}</span><span class="dot"></span><span class="tt">${o?esc(e.t):"???"}</span></button>`}).join("")}</div>`}
   else{const realms=CHR_TAB==="funde"?["H","N"]:["I","II","III","IV","V"];body=realms.map(r=>{const L=LORE.filter(e=>e.r===r);return `<div class="chr-realm"><div class="chr-rh"><span class="num">${r==="H"?"✠":r}</span><div><b>${esc(LORE_REALM[r])}</b><small>${L.filter(loreOpen).length} von ${L.length} Seiten</small></div>${r!=="H"?`<button class="sm ghost" data-act="realmIntro" data-r="${r}" ${LVX.indexOf(r)<=LVX.indexOf(pkCh().r)?"":"disabled"}>▶ Auftakt</button>`:""}</div>
-     <div class="chr-grid">${L.map(e=>{const o=loreOpen(e);const nw=o&&!loreSeen()[e.id];return `<button class="chr-tile${o?"":" locked"}${nw?" new":""}" ${o?`data-act="loreRead" data-id="${e.id}"`:""}>${loreArt(e.art,"chr-img")}<span class="chr-y">${esc(e.y)}</span><b>${o?esc(e.t):"Versiegelt"}</b><small>${o?"":e.egg?esc(EGGS[e.egg][1]):"Kapitel "+e.ch}</small>${nw?`<i class="chr-nw">neu</i>`:""}</button>`}).join("")}</div></div>`}).join("")}
+     <div class="chr-grid">${L.map(e=>{const o=loreOpen(e);const gr=loreGrave(e);const nw=o&&!gr&&!loreSeen()[e.id];return `<button class="chr-tile${o?"":" locked"}${nw?" new":""}${gr?" grave":""}" ${o?`data-act="loreRead" data-id="${e.id}"`:""}>${gr?"":loreArt(e.art,"chr-img")}<span class="chr-y">${esc(e.y)}</span><b>${o?esc(e.t):"Versiegelt"}</b><small>${o?"":e.egg?esc(EGGS[e.egg][1]):"Kapitel "+e.ch}</small>${nw?`<i class="chr-nw">neu</i>`:""}</button>`}).join("")}</div></div>`}).join("")}
   box.innerHTML=`<div class="chr stack" style="max-width:900px;margin:0 auto">
    <div class="card orn">${pkSay(["Jede Sage hat einen wahren Kern. Und jeder wahre Kern ist schlimmer als die Sage.","Every legend has a true core. And every true core is worse than the legend."])}</div>
    <div class="row between" style="flex-wrap:wrap;gap:.5rem"><div class="seg">${tab("reiche","Die Reiche")}${tab("zeit","Zeitstrahl")}${tab("funde","Funde &amp; Verbotenes")}</div><span class="chip">${n} / ${LORE.length} Seiten</span></div>
@@ -3919,25 +4254,38 @@ function realmIntro(r,auto){const R0=REALMS[r];if(!R0)return;let ov=$("#lore-cin
   const close=()=>{ov.classList.remove("on");setTimeout(()=>ov.remove(),700);if(auto){S.realmSeen=r;saveSoon()}};ov.querySelector(".cine-go").onclick=close;ov.addEventListener("keydown",k=>{if(k.key==="Escape"||k.key==="Enter")close()});ov.querySelector(".cine-go").focus()}
 ACT.realmIntro=el=>realmIntro(el.dataset.r,false);
 // ---------------------------------------------------------------- 3. easter eggs
-function findEgg(id){const E=eggs();if(E[id]||!EGGS[id])return;E[id]=todayKey();saveSoon();const g=EGGS[id];try{SND.sting("egg")}catch(e){}
-  const lore=LORE.find(e=>e.egg===id);let ov=document.createElement("div");ov.className="egg-pop";
-  ov.innerHTML=`<div class="egg-card"><div class="eyebrow">Geheimnis gefunden · ${Object.keys(E).length} / ${Object.keys(EGGS).length}</div><h2>${esc(g[0])}</h2>${pkSay([P().du===true&&DU_MAP[g[2]]?DU_MAP[g[2]]:g[2],g[3]])}${lore?`<p class="ui">Neue Seite: <b>${esc(lore.t)}</b> (${esc(LORE_REALM[lore.r]||"")})</p>`:""}<div class="row" style="justify-content:flex-end;gap:.5rem"><button class="sm ghost egg-x">Später</button>${lore?`<button class="go sm egg-go">Lesen</button>`:""}</div></div>`;
-  document.body.appendChild(ov);requestAnimationFrame(()=>ov.classList.add("on"));const close=()=>{ov.classList.remove("on");setTimeout(()=>ov.remove(),400)};ov.querySelector(".egg-x").onclick=close;const go2=ov.querySelector(".egg-go");if(go2)go2.onclick=()=>{close();ACT.loreRead({dataset:{id:lore.id}})}}
+// P2: a secret is recorded the moment it is found, but its pop-up never interrupts: it waits while a session, a duel, an exam, a choice or any
+// text field or the story reader is in use and appears when the learner is back on a quiet screen or in the Chronik (QA D6). Secrets tied to a grave page are recorded without any show.
+const EGG_WAIT=[];let EGG_T=null;
+function eggBusy(){try{if(document.hidden)return true;if(document.querySelector("#p2-tab,#lore-cine,.egg-pop,.pk-prolog"))return true;const a=document.activeElement;if(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))return true;
+  const sh=document.getElementById("sheet");if(sh&&!sh.hidden)return true;if(!Focus.isOpen())return false;const f=document.getElementById("fIn");if(!f)return true;
+  if(f.querySelector(".lore-page,.chr,.kab-grid"))return false;return true}catch(e){return true}}
+function eggPump(){if(!EGG_WAIT.length){if(EGG_T){clearInterval(EGG_T);EGG_T=null}return}if(eggBusy())return;const id=EGG_WAIT.shift();try{eggShow(id)}catch(e){}if(!EGG_WAIT.length&&EGG_T){clearInterval(EGG_T);EGG_T=null}}
+function findEgg(id){const E=eggs();if(E[id]||!EGGS[id])return;E[id]=todayKey();saveSoon();if(eggGrave(id))return;
+  if(eggBusy()){if(!EGG_WAIT.includes(id))EGG_WAIT.push(id);if(!EGG_T)EGG_T=setInterval(eggPump,1500);return}eggShow(id)}
+function eggShow(id){const E=eggs();const g=EGGS[id];if(!g)return;try{SND.sting("egg")}catch(e){}
+  const lore=LORE.find(e=>e.egg===id);let ov=document.createElement("div");ov.className="egg-pop";ov.dataset.id=id;
+  ov.innerHTML=`<div class="egg-card"><div class="eyebrow">Geheimnis gefunden · ${Object.keys(E).filter(k=>EGGS[k]&&!eggGrave(k)).length} / ${Object.keys(EGGS).filter(k=>!eggGrave(k)).length}</div><h2>${esc(g[0])}</h2>${pkSay([P().du===true&&DU_MAP[g[2]]?DU_MAP[g[2]]:g[2],g[3]])}${lore?`<p class="ui">Neue Seite: <b>${esc(lore.t)}</b> (${esc(LORE_REALM[lore.r]||"")})</p>`:""}<div class="row" style="justify-content:flex-end;gap:.5rem"><button class="sm ghost egg-x">Später</button>${lore?`<button class="go sm egg-go">Lesen</button>`:""}</div></div>`;
+  document.body.appendChild(ov);requestAnimationFrame(()=>ov.classList.add("on"));const close=()=>{ov.dataset.closing="1";ov.classList.remove("on");setTimeout(()=>{ov.remove();eggPump()},400)};ov.querySelector(".egg-x").onclick=close;const go2=ov.querySelector(".egg-go");if(go2)go2.onclick=()=>{close();ACT.loreRead({dataset:{id:lore.id}})}}
+(function(){const _c=Focus.close;Focus.close=function(){const r=_c.apply(this,arguments);try{if(EGG_WAIT.length)setTimeout(eggPump,600)}catch(e){}return r}})();
+// a task that opens while a secret is still on screen takes precedence: the pop-up goes back into the queue (not lost, not covering the task)
+(function(){const _o=Focus.open;Focus.open=function(){try{document.querySelectorAll(".egg-pop:not([data-closing])").forEach(o=>{const id=o.dataset.id;o.remove();if(id&&!EGG_WAIT.includes(id))EGG_WAIT.unshift(id)});if(EGG_WAIT.length&&!EGG_T)EGG_T=setInterval(eggPump,1500)}catch(e){}return _o.apply(this,arguments)}})();
 // konami (keyboard; also the gamepad D-pad arrives as arrow keys in some browsers)
 (function(){const K=["ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowLeft","ArrowRight","ArrowLeft","ArrowRight","b","a"];let i=0;document.addEventListener("keydown",e=>{const k=e.key.length===1?e.key.toLowerCase():e.key;i=k===K[i]?i+1:(k===K[0]?1:0);if(i===K.length){i=0;findEgg("konami")}},true)})();
-// the eye, seven times
-(function(){let n=0,t=0;document.addEventListener("click",e=>{if(!e.target.closest||!e.target.closest("#hor-eye"))return;const now=Date.now();n=now-t<1500?n+1:1;t=now;if(n>=7){n=0;findEgg("eye7")}},true)})();
+// the eye, seven times — it ignores the pointer (pointer-events:none), so the click is found by position (systems.md 9)
+(function(){let n=0,t=0;document.addEventListener("click",e=>{const eye=document.getElementById("hor-eye");if(!eye||Focus.isOpen())return;const r=eye.getBoundingClientRect();if(!r.width||e.clientX<r.left-10||e.clientX>r.right+10||e.clientY<r.top-10||e.clientY>r.bottom+10)return;const now=Date.now();n=now-t<1500?n+1:1;t=now;if(n>=7){n=0;findEgg("eye7")}},true)})();
 // Mephisto's face, three times
 (function(){let n=0,t=0;document.addEventListener("click",e=>{if(!e.target.closest||!e.target.closest(".pk-say .who"))return;const now=Date.now();n=now-t<900?n+1:1;t=now;if(n>=3){n=0;findEgg("portrait")}},true)})();
 // "Verweile doch" written anywhere
-document.addEventListener("input",e=>{const v=String((e.target&&e.target.value)||"").toLowerCase();if(/verweile doch/.test(v))findEgg("verweile")},true);
+document.addEventListener("input",e=>{try{if(e.target&&e.target.closest&&e.target.closest(".st-typed"))return;const v=String((e.target&&e.target.value)||"").toLowerCase();if(/verweile doch/.test(v))findEgg("verweile")}catch(x){}},true);
 // midnight and the devil's calendar
 function timeEggs(){try{if(!P().signed)return;const d=new Date();if(d.getHours()===0){document.documentElement.classList.add("geister");if(!eggs().geister){findEgg("geister");try{SND.bell(12,true)}catch(x){}}}else document.documentElement.classList.remove("geister");
-  const md=todayKey().slice(5);if(EGG_DATES[md]){if(!eggs().datum)findEgg("datum");if(S.dateSeen!==todayKey()){S.dateSeen=todayKey();saveSoon();setTimeout(()=>toast(`Heute: ${EGG_DATES[md]}.`,4500),2500)}}
+  const md=todayKey().slice(5);const ed=EGG_DATES[md];const edG=ed&&typeof ed==="object"&&(ed.grave||ed[2]); // a day of remembrance marked grave is never a secret and gets no toast
+  if(ed&&!edG){if(!eggs().datum)findEgg("datum");if(S.dateSeen!==todayKey()){S.dateSeen=todayKey();saveSoon();setTimeout(()=>{if(!Focus.isOpen())toast(`Heute: ${Array.isArray(ed)?ed[0]:ed}.`,4500)},2500)}}
   document.documentElement.dataset.walpurgis=(md==="04-30"||md==="05-01")?"1":""}catch(e){}}
-setInterval(timeEggs,60000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)timeEggs()});
+visInterval(timeEggs,60000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)timeEggs()});
 // hourly bell while you are on Heute or Pakt (never inside a task)
-(function(){let lastH=new Date().getHours();setInterval(()=>{const h=new Date().getHours();if(h!==lastH){lastH=h;if(!Focus.isOpen()&&(R.tab==="home"||R.tab==="pakt")&&!document.hidden)try{SND.bell(h%12||12)}catch(e){}}},30000)})();
+(function(){let lastH=new Date().getHours();visInterval(()=>{const h=new Date().getHours();if(h!==lastH){lastH=h;if(!Focus.isOpen()&&(R.tab==="home"||R.tab==="pakt")&&!document.hidden)try{SND.bell(h%12||12)}catch(e){}}},30000)})();
 // ---------------------------------------------------------------- 4. living scenes (every look but Pixel): ravens, chimney smoke, candles, the tram, the witch over the moon, and sometimes a black poodle
 function spriteLayer(){let L=$("#lore-sprites");if(!L){L=document.createElement("div");L.id="lore-sprites";document.body.prepend(L)}return L}
 const SPR={
@@ -3952,14 +4300,14 @@ function livingScene(){try{const ui=document.documentElement.dataset.ui;const L=
 function poodleRun(){try{if(Focus.isOpen()||document.hidden||!P().signed||document.documentElement.dataset.ui==="pixel")return;if(eggs().pudel&&Math.random()>.25)return;if(R.tab!=="home"&&R.tab!=="pakt")return;
   const d=document.createElement("button");d.className="sp-poodle";d.setAttribute("aria-label","Ein schwarzer Pudel");d.innerHTML=`<svg viewBox="0 0 64 40"><circle cx="50" cy="12" r="7" fill="#050505"/><circle cx="56" cy="15" r="3" fill="#050505"/><circle cx="52" cy="10" r="1.2" fill="#E0302A"/><ellipse cx="32" cy="22" rx="16" ry="8" fill="#050505"/><circle cx="14" cy="18" r="5" fill="#050505"/><rect x="20" y="26" width="3" height="12" fill="#050505"/><rect x="40" y="26" width="3" height="12" fill="#050505"/><circle cx="21" cy="38" r="3" fill="#050505"/><circle cx="41" cy="38" r="3" fill="#050505"/></svg>`;
   d.onclick=()=>{d.classList.add("caught");findEgg("pudel");setTimeout(()=>d.remove(),600)};document.body.appendChild(d);setTimeout(()=>d.remove(),9500)}catch(e){}}
-setInterval(()=>{if(Math.random()<.18)poodleRun()},45000);
+visInterval(()=>{if(Math.random()<.18)poodleRun()},45000);
 // ---------------------------------------------------------------- 5. hooks: Home card for new pages, realm cinematic on entering a realm, Werkstatt + Pakt entry, Kabinett cards, seal toast
 (function(){MOD.after("viewHome","lore",function(m){try{if(!P().signed)return;timeEggs();const v=m.querySelector(".view")||m;const nw=loreNew();
   if(nw.length){const e=nw[0];const html=`<button class="card lore-new r${e.r}" data-act="loreRead" data-id="${e.id}">${loreArt(e.art,"ln-img")}<span><span class="eyebrow">Neue Seite in der Chronik${nw.length>1?` · +${nw.length-1}`:""}</span><b>${esc(e.t)}</b><small>${esc(e.y)} · ${esc(LORE_REALM[e.r])}</small></span></button>`;const strip=v.querySelector(".prog-strip");if(strip)strip.insertAdjacentHTML("afterend",html);else{const f=v.querySelector(".card.orn");if(f)f.insertAdjacentHTML("afterend",html)}}
   const r=pkCh().r;let nc=null;try{nc=localStorage.getItem("mephisto_nocine")}catch(x){}if(!nc&&S.realmSeen!==r&&!document.querySelector("#lore-cine")&&!document.querySelector(".pk-prolog"))setTimeout(()=>{if(!Focus.isOpen())realmIntro(r,true)},700)}catch(e){}})})();
 (function(){const _w=werkstattHTML;werkstattHTML=function(){const h=_w();if(R.tab==="learn")return h;const n=LORE.filter(loreOpen).length,nw=loreNew().length;return h.replace('<div class="werk-grid">',`<div class="werk-grid"><button data-act="chronik" class="werk-chr"><b>Die Chronik${nw?` · ${nw} neu`:""}</b><small>${n} / ${LORE.length} Seiten · Sagen und Geschichte</small></button>`)}})();
-(function(){const _k=kabCards;kabCards=function(){const L=_k();const E=eggs();Object.entries(EGGS).forEach(([k,g])=>{const lore=LORE.find(e=>e.egg===k);L.push({id:"egg_"+k,r:"episch",t:E[k]?`Geheimnis: ${g[0]}`:"Geheimnis: ???",art:lore?lore.art:"clarke_46",flav:E[k]?(lore?lore.t:g[0]):"…",how:g[1],ok:!!E[k]})});return L}})();
-(function(){const _s=pkSealChapter;pkSealChapter=function(){const before=new Set(LORE.filter(loreOpen).map(e=>e.id));const r=_s.apply(this,arguments);try{const nw=LORE.filter(e=>loreOpen(e)&&!before.has(e.id));if(nw.length)setTimeout(()=>{toast(`Neue Seite in der Chronik: ${nw[0].t}`,4200);try{SND.sting("lore")}catch(x){}},2600)}catch(e){}return r}})();
+(function(){const _k=kabCards;kabCards=function(){const L=_k();const E=eggs();Object.entries(EGGS).forEach(([k,g])=>{if(eggGrave(k))return;const lore=LORE.find(e=>e.egg===k);L.push({id:"egg_"+k,r:"episch",t:E[k]?`Geheimnis: ${g[0]}`:"Geheimnis: ???",art:lore?lore.art:"clarke_46",flav:E[k]?(lore?lore.t:g[0]):"…",how:g[1],ok:!!E[k]})});return L}})();
+(function(){const _s=pkSealChapter;pkSealChapter=function(){const before=new Set(LORE.filter(loreOpen).map(e=>e.id));const r=_s.apply(this,arguments);try{const nw=LORE.filter(e=>loreOpen(e)&&!before.has(e.id)&&!loreGrave(e));if(nw.length)setTimeout(()=>{toast(`Neue Seite in der Chronik: ${nw[0].t}`,4200);try{SND.sting("lore")}catch(x){}},2600)}catch(e){}return r}})();
 // ---------------------------------------------------------------- styles
 (function(){const s=document.createElement("style");s.textContent=`
 .chr-realm{display:grid;gap:.6rem;margin-top:.6rem}.chr-rh{display:flex;align-items:center;gap:.8rem}.chr-rh .num{font-family:var(--body);font-weight:700;font-size:2.2rem;color:var(--accent);min-width:2.2rem;text-align:center}.chr-rh b{display:block;font-family:var(--display);font-weight:400;font-size:1.3rem}.chr-rh small{opacity:.7}.chr-rh button{margin-left:auto}
@@ -4096,7 +4444,7 @@ ACT.starkAux=()=>{const P0=starkPool().filter(v=>v[6]!=="modal"&&!/\//.test(v[4]
 // ===== Mephisto 12.10 · Die Wette: story reader with voices, documents and choices; Bett vier; the ending; milestone lines; r7 story-beta fixes.
 // ---------------------------------------------------------------- 0. merge the new beats into the chapters
 (function(){try{
-  Object.keys(STORY3).forEach(k=>{const c=CHAPTERS[+k-1],s=STORY3[k];if(!c)return;if(s.open)c.scene=s.open.map(l=>l.slice());if(s.add&&!c.scene.some(l=>l[1]===s.add[0][1]))s.add.forEach(l=>c.scene.push(l.slice()))});
+  Object.keys(STORY3).forEach(k=>{const c=CHAPTERS[+k-1],s=STORY3[k];if(!c)return;if(s.open)c.scene=s.open.map(l=>l.slice());if(s.add&&!c._s3&&!c.scene.some(l=>l[0]===s.add[0][0]&&l[1]===s.add[0][1]&&l[2]===s.add[0][2])){c._s3=1;s.add.forEach(l=>c.scene.push(l.slice()))}});
   // B5: the poodle is not the shadow; he borrowed the shadow's mistakes
   const c24=CHAPTERS[23];if(c24&&c24.scene[0]&&c24.scene[0][0]==="N")c24.scene[0]=["N","Der Pudel wächst noch einmal. Diesmal trägt er dein Gesicht. Er hat sich deine Fehler geliehen – bei deinem Schatten, der sie alle aufgehoben hat – und spricht sie mit deiner Stimme.","The poodle grows once more. This time it wears your face. It has borrowed your mistakes — from your shadow, who kept them all — and speaks them in your voice."];
   if(BOSSES.pudel)BOSSES.pudel.intro=["Ein schwarzer Pudel hinter dem Ofen. Er wächst. Er trägt Ihr Gesicht – geliehen von Ihrem Schatten, mitsamt allen Ihren Fehlern.","A black poodle behind the stove. It grows. It wears your face — borrowed from your shadow, along with all your mistakes."];
@@ -4110,15 +4458,26 @@ function st3Fill(s){const nm=String(P().name||"").trim()||"Dr. Amron Ismail";con
 function st3Du(){try{return P().du===true}catch(e){return false}}
 function st3En(en){return en?`<div class="pk-say" style="display:block"><div class="en">${esc(st3Fill(en))}</div></div>`:""}
 function ml(k){const x=MILE[k];return x?[st3Du()&&x[2]?x[2]:x[0],x[1]]:pkLine("greet")}
+// ---- P2: the story state, read and written in one place. Story packages build on these (data format unchanged: P().choices[id]=option index,
+// P().verw = times "again" was chosen, P().verwN[id] = the same per decision, P().choicesAt[id] = when it was answered, P().bett[boss]=date).
+function st3Choice(id){try{const v=(P().choices||{})[id];return v==null?null:+v}catch(e){return null}}   // option index or null
+function st3ChoiceIs(id,k){return st3Choice(id)===k}
+function st3Verw(id){try{const p=P();return id?+((p.verwN||{})[id])||0:+p.verw||0}catch(e){return 0}}
+function st3Seen(id){try{return !!(P().bett||{})[id]}catch(e){return false}}
+// every write to the pact from a story screen goes through here: the pact is read again at the moment of writing (never a reference taken when
+// the screen opened — another window or a sync may have replaced the state since), then saved at once.
+function st3Write(fn){const q=P();q.sealed=q.sealed&&typeof q.sealed==="object"?q.sealed:{};q.faust=Array.isArray(q.faust)?q.faust:[];try{fn(q)}catch(e){try{logError(e)}catch(x){}}try{saveNow()}catch(e){try{saveSoon()}catch(x){}}return q}
+function st3Opt(o){const du=st3Du()&&o[4]?o[4]:o[0];return st3Fill(du)}
 // ---------------------------------------------------------------- 1. the reader
 function st3Line(ln,cur,c){const f=cur?" pk-fade":"";const t=ln[0];
   if(t==="M"){const de=st3Fill(st3Du()&&ln[3]?ln[3]:ln[1]);return `<div class="card${f}">${pkSay([de,st3Fill(ln[2])],ln[4]==="secret")}<div class="row" style="margin-top:.5rem"><button class="sm ghost" data-act="pkSpeakLine" data-t="${esc(de)}">${ic("play")}Mephisto hören</button></div></div>`}
   if(t==="S")return `<div class="card pk-shadow${f}"><div class="eyebrow">${c.n<3?`Eine Stimme hinter dir <span class="en">a voice behind you</span>`:`Dein Schatten <span class="en">your shadow</span>`}</div><div class="sh-de">${glossify(ln[1])}</div>${st3En(ln[2])}<div class="row" style="margin-top:.4rem"><button class="sm ghost" data-say="${esc(ln[1])}">${ic("vol")} Anhören</button></div></div>`;
   if(t==="X"){const me=ln[1]==="Du";const de=st3Fill(ln[2]);return `<div class="card st-x${me?" st-me":""}${f}"><div class="eyebrow">${esc(ln[1])}</div><div class="st-de">${glossify(de)}</div>${st3En(ln[3])}<div class="row" style="margin-top:.4rem"><button class="sm ghost" data-say="${esc(de)}">${ic("vol")} Anhören</button></div></div>`}
   if(t==="D"){const ps=st3Fill(ln[2]).split(/\n\n/);return `<div class="st-doc no-sig${f}"><div class="st-doc-h">${esc(ln[1])}</div>${ps.map((p,k)=>`<p class="${k>0?"hand":""}">${glossify(p)}</p>`).join("")}${st3En(ln[3])}</div>`}
-  if(t==="SIG"){const p=P();return `<div class="st-sig${f}">${p.sig?`<img src="${p.sig}" alt="Deine Unterschrift">`:`<span class="st-signame">${esc(p.name||"")}</span>`}<i></i><i></i><i></i></div>`}
-  if(t==="C"){const ch=CHOICES[ln[1]];if(!ch)return "";if(ln[2]!=null)return `<div class="st-pick${f}"><span class="eyebrow">Du</span>${esc(ch.opts[ln[2]][0])}</div>`;
-    return `<div class="st-choice${f}"><div class="eyebrow">Deine Antwort <span class="en">your answer</span></div>${ch.opts.map((o,k)=>`<button class="st-opt" data-act="st3Pick" data-o="${k}">${esc(o[0])}</button>`).join("")}</div>`}
+  if(t==="SIG"){const p=P();return `<div class="st-sig${f}">${/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+\/=]+$/.test(p.sig||"")?`<img src="${p.sig}" alt="Deine Unterschrift">`:`<span class="st-signame">${esc(p.name||"")}</span>`}<i></i><i></i><i></i></div>`}
+  if(t==="C"){const ch=CHOICES[ln[1]];if(!ch)return "";if(ln[2]!=null){const o=ch.opts[ln[2]];return o?`<div class="st-pick${f}"><span class="eyebrow">Du</span>${esc(st3Opt(o))}</div>`:""}
+    const done=!!P().done;const en=(typeof enMode!=="function"||enMode()!=="off");
+    return `<div class="st-choice${f}"><div class="eyebrow">Deine Antwort <span class="en">your answer</span> <small class="st-keys ui">Tasten 1–${ch.opts.length}</small></div>${ch.opts.map((o,k)=>(done&&String(o[2]||"").split(",").includes("again"))?"":`<button class="st-opt" data-act="st3Pick" data-o="${k}"><span class="st-n">${k+1}</span><span>${esc(st3Opt(o))}${en&&o[3]?`<small class="en">${esc(st3Fill(o[3]))}</small>`:""}</span></button>`).join("")}<details class="st-help ui"><summary>Wörter nachschlagen <span class="en">look up the words</span></summary>${ch.opts.map(o=>`<p>${glossify(st3Opt(o))}</p>`).join("")}</details></div>`}
   if(ln[2])return `<div class="pk-nar st-nar${f}"><div>${glossify(st3Fill(ln[1]))}</div>${st3En(ln[2])}</div>`;
   return `<p class="pk-nar${f}">${esc(st3Fill(ln[1]))}</p>`}
 function st3Cue(ln){try{const s=String(ln[1]||"")+String(ln[2]||"");
@@ -4132,28 +4491,37 @@ function st3Play(o){const c=o.c||pkCh();const box=Focus.open({title:o.title,sub:
   const draw=()=>{const cur=lines[i]||[];const wait=cur[0]==="C"&&cur[2]==null;const end=i>=lines.length-1&&!wait;
     box.innerHTML=`<div class="stack st-read" style="max-width:680px;margin:0 auto">${i===0&&o.art?pkFig(o.art):""}${lines.slice(0,i+1).map((ln,j)=>st3Line(ln,j===i,c)).join("")}${end&&o.tail?o.tail():""}</div>`;
     Focus.foot(wait?`<small class="muted ui">Wähle eine Antwort.</small>`:end?`<button class="go" data-act="pkReadDone">${esc(o.done.label)}</button>`:`<button class="go" data-act="pkNext">Weiter</button>`);
-    const b=$("#fBody");if(b&&i>0)b.scrollTo({top:b.scrollHeight,behavior:"smooth"});st3Cue(cur)};
+    const b=$("#fBody");if(b&&i>0)b.scrollTo({top:b.scrollHeight,behavior:"smooth"});st3Cue(cur);
+    try{const t=wait?box.querySelector(".st-choice .st-opt"):$("#fFootIn .go");if(t)t.focus({preventScroll:true})}catch(e){}
+    KEYS=e=>{const tg=e.target&&e.target.tagName;if(/^[1-9]$/.test(e.key)){const bs=box.querySelectorAll(".st-choice .st-opt");const live=lines[i]&&lines[i][0]==="C"&&lines[i][2]==null;if(live&&bs[+e.key-1]){e.preventDefault();bs[+e.key-1].click()}return}
+      if((e.key==="Enter"||e.key===" "||e.key==="ArrowRight")&&tg!=="BUTTON"&&tg!=="A"&&tg!=="SUMMARY"){const g=$("#fFootIn .go");if(g){e.preventDefault();g.click()}}}};
   ACT.pkNext=()=>{if(i>=lines.length-1)return;i++;SND.fx("page");draw()};
   ACT.st3Pick=el=>{const cur=lines[i];if(!cur||cur[0]!=="C"||cur[2]!=null)return;const k=+el.dataset.o,opt=CHOICES[cur[1]].opts[k];const fx=String(opt[2]||"").split(",");const again=fx.includes("again");
     cur[2]=k;const ins=opt[1].map(l=>{const x=l.slice();if(fx.includes("secretFace")&&x[0]==="M")x[4]="secret";return x});if(again)ins.push(["C",cur[1]]);lines.splice(i+1,0,...ins);
-    const p=P();p.choices=p.choices||{};if(again)p.verw=(p.verw||0)+1;else p.choices[cur[1]]=k;saveSoon();
+    // the first answer stands; after the pact is fulfilled a re-read changes nothing (S7 E1)
+    st3Write(p=>{if(p.done)return;p.choices=p.choices||{};if(again){p.verw=(p.verw||0)+1;p.verwN=p.verwN||{};p.verwN[cur[1]]=(p.verwN[cur[1]]||0)+1}else if(p.choices[cur[1]]==null){p.choices[cur[1]]=k;p.choicesAt=p.choicesAt||{};p.choicesAt[cur[1]]=new Date().toISOString()}});
     if(fx.includes("dark"))st3Dark();const egg=fx.find(x=>x.indexOf("egg:")===0);if(egg)setTimeout(()=>{try{findEgg(egg.slice(4))}catch(e){}},2900);
     SND.fx("page");if(i<lines.length-1)i++;draw()};
   ACT.pkReadDone=ACT.st3Done=()=>o.done.fn();draw();SND.fx("page")}
 function st3Scene(c){const p=P();let L=c.scene.map(l=>l.slice());const b=Object.keys(BOSSES).find(k=>BOSSES[k].ch===c.n);
   if(b&&BETT[b]&&(S.bossWins||{})[b])L=L.concat([["N","· · ·"]],BETT[b]);
-  if(c.n===CHAPTERS.length&&p.done&&STORY3[c.n].finale)L=L.concat([["N","· · ·"]],STORY3[c.n].finale);return L}
+  if(c.n===CHAPTERS.length&&p.done&&STORY3[c.n].finale)L=L.concat([["N","· · ·"]],STORY3[c.n].finale.map(l=>l.slice()));
+  // a decision already made is shown as made, with its consequence — re-reading never asks again
+  try{L=L.reduce((o,l)=>{const k=l[0]==="C"&&l[2]==null?(p.choices||{})[l[1]]:null;const ch=k!=null&&CHOICES[l[1]];const op=ch&&ch.opts[k];if(op){o.push(["C",l[1],+k]);(op[1]||[]).forEach(x=>o.push(x.slice()))}else o.push(l);return o},[])}catch(e){}
+  return L}
 pkRead=function(n){const c=pkCh(n);const p=P();
   st3Play({c,title:`Kapitel ${c.n} · ${c.t}`,sub:`${REALMS[c.r].n} · ${REALMS[c.r].de}`,lines:st3Scene(c),art:c.art,onClose:()=>{if(R.tab==="pakt")rerender()},
     tail:()=>{const lo=st3Lore(c.n);return `${lo?`<button class="card lore-new pk-fade" data-act="loreRead" data-id="${lo.id}"><span><span class="eyebrow">Zu diesem Kapitel in der Chronik</span><b>${esc(lo.t)}</b><small>${esc(lo.y)}</small></span></button>`:""}
       <div class="card orn pk-fade"><div class="eyebrow">Faust</div><div class="pk-faust">${esc(c.faust.de.replace(/ \/ /g,"\n"))}<small>${esc(c.faust.src)} — ${esc(c.faust.en)}</small></div><div class="row" style="margin-top:.6rem"><button class="sm ghost" data-act="pkSpeakFaust" data-n="${c.n}">${ic("play")}Vorlesen</button></div></div>
       <div class="card pk-fade"><div class="eyebrow">Klausel des Pakts</div><p style="font-family:var(--body);font-size:1.12rem;margin:.3rem 0">${esc(c.clause.de)}</p><small class="muted ui">${esc(c.clause.en)} · ${esc(c.jung)}</small></div>`},
-    done:{label:c.n===p.ch&&!p.done?"Zur Klausel":"Schließen",fn:()=>{Focus.close();if(R.tab!=="pakt")go("pakt")}}})};
+    done:{label:c.n===p.ch&&!p.done?"Zur Klausel":"Schließen",fn:()=>{try{const b=Object.keys(BOSSES).find(k=>BOSSES[k].ch===c.n);if(b&&BETT[b]&&(S.bossWins||{})[b]&&!(P().bett||{})[b])st3BettSeen(b)}catch(e){}Focus.close();if(R.tab!=="pakt")go("pakt")}}})};
 ACT.pkRead=el=>pkRead(+el.dataset.n||P().ch);
 // ---------------------------------------------------------------- 2. Bett vier: after every boss, the patient who is waiting
-function st3Bett(id,then){const B=BOSSES[id];const p=P();p.bett=p.bett||{};p.bett[id]=todayKey();saveSoon();let L=BETT[id].map(l=>l.slice());
+// "Bett vier" counts as seen when its last line has been read (S7 E3, QA D18) — not when it opens; the fourth visit earns the secret "eid" here.
+function st3BettSeen(id){st3Write(p=>{p.bett=p.bett||{};p.bett[id]=p.bett[id]||todayKey()});try{if(Object.keys(P().bett||{}).length>=4&&typeof f13Egg==="function")f13Egg("eid",900)}catch(e){}}
+function st3Bett(id,then){const B=BOSSES[id];let L=BETT[id].map(l=>l.slice());
   if(id==="hexe"&&Object.keys(S.bossWins||{}).length<=1)L=[["M",MILE.boss1[0],MILE.boss1[1]]].concat(L);
-  st3Play({c:pkCh(B.ch),title:"Bett vier",sub:"Heidelberg · Notaufnahme · irgendwann",lines:L,onClose:null,done:{label:"Zurück zum Pakt",fn:then}})}
+  st3Play({c:pkCh(B.ch),title:"Bett vier",sub:"Heidelberg · Notaufnahme · irgendwann",lines:L,onClose:null,done:{label:"Zurück zum Pakt",fn:()=>{st3BettSeen(id);then()}}})}
 (function(){const _d=bossDuel;bossDuel=function(id){const r=_d.apply(this,arguments);try{const _g=ACT.pkGoPakt;
   ACT.pkGoPakt=function(){const won=(S.bossWins||{})[id];if(won&&BETT[id]&&!(P().bett||{})[id]){document.documentElement.classList.add("st-white");setTimeout(()=>document.documentElement.classList.remove("st-white"),900);return st3Bett(id,()=>{Focus.close(true);go("pakt")})}return _g.apply(this,arguments)}}catch(e){}return r}})();
 // B4: when a duel or any overlay closes, the sound goes home to the realm you are in
@@ -4171,8 +4539,12 @@ function st3End(){const p=P();const box=Focus.open({title:"Der Pakt ist erfüllt
 (function(){const _s=pkSealChapter;pkSealChapter=function(){const p=P();const c=pkCh();
   if(c.n!==CHAPTERS.length)return _s.apply(this,arguments);if(p.done||!pkGate(c).ready)return;
   const fin=STORY3[c.n].finale;st3Play({c,title:`Kapitel ${c.n} · Nach der Prüfung`,sub:`${REALMS[c.r].n} · ${REALMS[c.r].de}`,lines:fin,art:"clarke_7",onClose:null,
-    done:{label:"☩ Das letzte Siegel",fn:()=>{p.sealed[c.n]=todayKey();if(!p.faust.includes(c.n))p.faust.push(c.n);p.done=todayKey();p.debt=0;saveNow?saveNow():saveSoon();SND.fx("seal");st3End()}}})}})();
-(function(){const _g=pkGate;pkGate=function(c){const g=_g.apply(this,arguments);try{if(P().done&&(c||pkCh()).n===CHAPTERS.length)g.ready=false}catch(e){}return g}})();
+    done:{label:"☩ Das letzte Siegel",fn:()=>{st3Write(q=>{q.sealed[c.n]=q.sealed[c.n]||todayKey();if(!q.faust.includes(c.n))q.faust.push(c.n);q.done=q.done||todayKey();q.debt=0});try{STORE.flushNow()}catch(e){}SND.fx("seal");st3End()}}})}})();
+// Chapter 40's clause is "Bestehe die Fachsprachprüfung (Simulation)". c_boss.js replaced that gate item by the duel; both are required again
+// (systems.md 15). An item with k "exam" or text "FSP-Simulation" from another package is respected — then nothing is added here.
+(function(){const _g=pkGate;pkGate=function(c){const g=_g.apply(this,arguments);try{const cc=c||pkCh();if(cc.n===CHAPTERS.length){
+    if(!g.items.some(i=>i.k==="exam"||/FSP-Simulation/.test(i.de||""))){const best=(S.fsp||[]).reduce((m,f)=>Math.max(m,+f.score||0),0);g.items.splice(Math.max(0,g.items.length-1),0,{k:"exam",ok:best>=3.5,de:`FSP-Simulation mit mindestens 3,5 / 5${best?` · beste bisher ${String(best).replace(".",",")}`:""}`,en:"an FSP simulation with at least 3.5 / 5",act:"pkFsp"});g.ready=g.items.filter(i=>!i.opt).every(i=>i.ok)}
+    if(P().done)g.ready=false}}catch(e){}return g}})();
 (function(){const _s=pkSoul;pkSoul=function(){try{if(P().done)return 100}catch(e){}return _s.apply(this,arguments)}})();
 (function(){const _d=pkCheckDebt;pkCheckDebt=function(){try{const p=P();if(p.done){p.lastCheck=addDays(todayKey(),-1);p.debt=0;return}}catch(e){}return _d.apply(this,arguments)}})();
 (function(){MOD.after("viewPakt","story3",function(m){try{const p=P();if(!p.done)return;const v=m.querySelector(".view");if(!v||v.querySelector(".st-donecard"))return;const r=v.querySelector(".pk-realm");
@@ -4187,21 +4559,24 @@ function st3Gap(){try{const t=todayKey();if(S.log[t]&&S.log[t].act)return 0;cons
   if(p.done){const h=[...todayKey()].reduce((a,c)=>a+c.charCodeAt(0),0);const x=MEPH_AFTER[h%MEPH_AFTER.length];return {k:"after",l:[st3Du()&&x[2]?x[2]:x[0],x[1]]}}
   const gap=st3Gap();if(gap>=30)return {k:"secret",l:ml("back30")};if(gap>=7)return {k:"back",l:ml("back7")};if(gap>=3&&!p.debt)return {k:"back",l:ml("back3")};
   if(g.k==="secret"&&p.ch<22)g={k:"greet",l:pkLine("greet")};}catch(e){}return g}})();
-(function(){const _l=pkLine;pkLine=function(kind,n){try{if(kind==="chapter"){const p=P();const cnt=Object.keys(p.sealed||{}).length;if(cnt===1)return ml("seal1");if(cnt===20)return ml("half");if(cnt%3===0){const r=pkCh(Math.max(1,p.ch-1)).r;if(MILE["seal"+r])return ml("seal"+r)}}
+(function(){const _l=pkLine;pkLine=function(kind,n){try{if(kind==="chapter"){const p=P();const cnt=Object.keys(p.sealed||{}).length;if(cnt===1)return ml("seal1");if(cnt===20)return ml("half");if(cnt%3===0){const r=pkCh(Math.max(1,p.ch-1)).r,key="seal"+r;p.mile=p.mile||{};if(MILE[key]&&!p.mile[key]){p.mile[key]=1;return ml(key)}}}
   if(kind==="secret"&&P().ch<22)return _l("greet",n)}catch(e){}return _l.apply(this,arguments)}})();
 // ---------------------------------------------------------------- 5. Chronik page: prev/next stay in their own shelf and say where they lead (B17); first page read gets a word from him
-ACT.loreRead=el=>{const id=el.dataset.id;const e=LORE.find(x=>x.id===id);if(!e||!loreOpen(e))return;const first1=!Object.keys(loreSeen()).length;loreSeen()[id]=todayKey();saveSoon();
-  const box=Focus.open({title:"Die Chronik",sub:`${LORE_REALM[e.r]} · ${e.y}`,onClose:()=>ACT.chronik()});const open=LORE.filter(x=>loreOpen(x)&&!!x.egg===!!e.egg&&(e.egg||x.r===e.r));const k=open.indexOf(e);const prev=open[k-1],next=open[k+1];
+ACT.loreRead=el=>{const id=el.dataset.id;const e=LORE.find(x=>x.id===id);if(!e||!loreOpen(e))return;const first1=!Object.keys(loreSeen()).length;loreSeen()[id]=loreSeen()[id]||todayKey();saveSoon();const G=loreGrave(e);
+  const box=Focus.open({title:"Die Chronik",sub:`${LORE_REALM[e.r]||""} · ${e.y}`,onClose:()=>{try{document.documentElement.classList.remove("p2-grave");if(G&&typeof HOR!=="undefined"&&HOR.pause)HOR.pause(false)}catch(x){}ACT.chronik()}});const open=LORE.filter(x=>loreOpen(x)&&!!x.egg===!!e.egg&&(e.egg||x.r===e.r));const k=open.indexOf(e);const prev=open[k-1],next=open[k+1];
   const first=e.de.charAt(0),rest=e.de.slice(1);const cut=s=>s.length>22?s.slice(0,21)+"…":s;const chap=!e.egg&&(e.link||e.ch);
   box.innerHTML=`<article class="lore-page r${e.r}" style="max-width:760px;margin:0 auto">
-    <figure class="lore-fig">${loreArt(e.art,"lore-img")}</figure>
+    ${G?`<div class="lore-place">${esc(e.y)}</div>`:`<figure class="lore-fig">${loreArt(e.art,"lore-img")}</figure>`}
     <div class="lore-head"><span class="lore-y">${esc(e.y)}</span><h1>${esc(e.t)}</h1>${chap?`<div class="ui muted" style="font-size:.8rem">Kapitel ${chap} · ${esc(pkCh(chap).t)} · Seite ${k+1} von ${open.length}</div>`:""}</div>
     <div class="lore-text"><span class="lore-ini">${esc(first)}</span>${glossify(rest)}</div>
     <details class="lore-en"><summary class="ui">English</summary><p>${esc(e.en)}</p></details>
-    <aside class="lore-dark no-sig"><div class="eyebrow">Die dunkle Fußnote</div><p>${esc(e.dk)}</p><details><summary class="ui">English</summary><p class="en">${esc(e.dken)}</p></details></aside>
+    <aside class="lore-dark no-sig${G?" grave":""}"><div class="eyebrow">${G?"Was daraus folgt":"Die dunkle Fußnote"}</div><p>${esc(e.dk)}</p><details><summary class="ui">English</summary><p class="en">${esc(e.dken)}</p></details></aside>
     <div class="row" style="justify-content:space-between;margin-top:1rem;gap:.5rem;flex-wrap:wrap"><button class="sm ghost" data-say="${esc(e.de+" "+e.dk)}">${ic("vol")} Vorlesen</button>
      <span class="row" style="gap:.4rem;flex-wrap:wrap">${prev?`<button class="sm" data-act="loreRead" data-id="${prev.id}">‹ ${esc(cut(prev.t))}</button>`:""}${next?`<button class="sm" data-act="loreRead" data-id="${next.id}">${esc(cut(next.t))} ›</button>`:""}</span></div></article>`;
-  motif(e.r==="H"||e.r==="N"?"H":e.r);if(first1&&P().signed)setTimeout(()=>toast("Mephisto: "+ml("lore1")[0],5200),1200)};
+  // grave history: no music-box motif, no horror layer, no word from Mephisto
+  if(G){try{box.querySelector(".lore-page").classList.add("grave");document.documentElement.classList.add("p2-grave");if(typeof HOR!=="undefined"&&HOR.pause)HOR.pause(true)}catch(x){}}
+  else{motif(e.r==="H"||e.r==="N"?"H":e.r);if(first1&&P().signed)setTimeout(()=>toast("Mephisto: "+ml("lore1")[0],5200),1200)}};
+(function(){const _c=Focus.close;Focus.close=function(){try{document.documentElement.classList.remove("p2-grave")}catch(e){}return _c.apply(this,arguments)}})();
 // B16: the hour is struck once, not counted out
 (function(){const _b=SND.bell;SND.bell=function(n,low){return _b.call(SND,low?n:1,low)}})();
 // ---------------------------------------------------------------- 6. styles: reader voices, documents, choices, the ending; realm II in night-blue; r7 fixes
@@ -4212,6 +4587,11 @@ ACT.loreRead=el=>{const id=el.dataset.id;const e=LORE.find(x=>x.id===id);if(!e||
 .st-doc .st-doc-h{font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:.78rem;border-bottom:1px solid #2A2118;padding-bottom:.35rem;margin-bottom:.6rem}.st-doc p{margin:.4rem 0;color:#2A2118}.st-doc .w{color:inherit}
 .st-doc p.hand{font-family:var(--body);font-style:italic;font-size:1.2rem;color:#8E1B14;transform:rotate(-2deg);margin-top:.9rem}.st-doc .pk-say .en{color:#5a4a36!important}
 .st-choice{display:grid;gap:.6rem;padding:.4rem 0}.st-opt{font-family:var(--body)!important;font-size:1.2rem!important;padding:.9rem 1rem!important;text-align:left;border:1px solid var(--accent)!important;background:rgba(240,138,63,.06)!important;min-height:52px}.st-opt:hover,.st-opt:focus-visible{background:rgba(240,138,63,.2)!important}
+.st-opt{display:flex!important;gap:.7rem;align-items:flex-start}.st-opt .st-n{flex:none;width:1.6rem;height:1.6rem;border-radius:50%;border:1px solid var(--accent);display:grid;place-items:center;font-family:var(--ui);font-size:.85rem;color:var(--accent)}.st-opt small.en{display:block;font-family:var(--ui);font-size:.85rem;opacity:.75;margin-top:.15rem}
+.st-keys{opacity:.6;font-weight:400;text-transform:none;letter-spacing:0}@media (hover:none){.st-keys{display:none}}.st-help{font-size:.9rem;opacity:.9}.st-help p{margin:.3rem 0;font-family:var(--body);font-size:1.05rem}
+.lore-page.grave{background:#0d0d0d;color:#e9e4da;padding:0 1rem 1rem;border-radius:6px}.lore-place{font:600 .8rem/1 var(--ui);letter-spacing:.3em;text-transform:uppercase;text-align:center;padding:2.2rem 0 .6rem;color:#9a958a;border-bottom:1px solid #2a2a2a}
+.lore-dark.grave{border-left:2px solid #9a958a;background:none;box-shadow:none}.lore-dark.grave .eyebrow{color:#9a958a}.lore-page.grave .lore-ini{color:inherit;font-size:1em;float:none;font-family:inherit;line-height:inherit;padding:0;margin:0}
+:root.p2-grave #hor-eye,:root.p2-grave #hor-embers,:root.p2-grave .sp-rabe,:root.p2-grave .sp-poodle,:root.p2-grave #lore-sprites{display:none!important}
 .st-pick{font-family:var(--body);font-size:1.15rem;text-align:right;padding:.3rem .2rem;color:var(--accent)}.st-pick .eyebrow{display:block;color:var(--muted)}
 .st-sig{position:relative;display:grid;place-items:center;min-height:130px;padding:1rem;background:radial-gradient(ellipse at 50% 100%,rgba(240,138,63,.35),transparent 70%)}.st-sig img{max-width:300px;width:80%;animation:stBurn 5s ease-in forwards;filter:drop-shadow(0 0 6px #F08A3F)}.st-signame{font-family:var(--body);font-style:italic;font-size:2rem;animation:stBurn 5s ease-in forwards}
 .st-sig i{position:absolute;bottom:8px;width:6px;height:6px;border-radius:50%;background:#F08A3F;box-shadow:0 0 10px #F08A3F;animation:stEmber 2.6s ease-out infinite}.st-sig i:nth-child(2){left:38%}.st-sig i:nth-child(3){left:52%;animation-delay:.8s}.st-sig i:nth-child(4){left:64%;animation-delay:1.5s}
@@ -4255,17 +4635,17 @@ try{document.documentElement.lang="de"}catch(e){}
 function f13Egg(id,ms){setTimeout(()=>{try{if(P().signed)findEgg(id)}catch(e){}},ms||0)}
 document.addEventListener("input",e=>{try{const v=String((e.target&&e.target.value)||"").toLowerCase();if(/mehr licht/.test(v))f13Egg("mehrlicht");if(/walle[!,]? walle/.test(v))f13Egg("zauber");if(/rumpelstilzchen/.test(v))f13Egg("rumpel")}catch(x){}},true);
 // hour secrets wait until nothing is open (never over a session) and stay quiet under browser automation, so tests do not depend on the clock
-function f13Hours(){try{if(!P().signed||document.hidden||navigator.webdriver||Focus.isOpen()||!(R.tab==="home"||R.tab==="pakt"))return;const h=new Date().getHours();if(h===3)f13Egg("wolf",1500);if(h===23)f13Egg("sandmann",1500)}catch(e){}}
-setTimeout(f13Hours,6000);setInterval(f13Hours,2*60*1000);
+function f13Hours(){try{if(!P().signed||document.hidden||navigator.webdriver||Focus.isOpen()||!(R.tab==="home"||R.tab==="pakt"))return;const h=new Date().getHours();if(h===3)f13Egg("wolf");if(h===23)f13Egg("sandmann")}catch(e){}}
+setTimeout(f13Hours,6000);visInterval(f13Hours,2*60*1000);
 (function(){let n=0,t=0;document.addEventListener("click",e=>{try{const el=e.target&&e.target.closest?e.target:null;if(!el)return;
   if(el.closest(".pk-shadow .eyebrow")){const now=Date.now();n=now-t<1500?n+1:1;t=now;if(n>=3){n=0;f13Egg("schlemihl")}}
   if(el.closest(".st-lantern")&&P().done)f13Egg("schluss");
   if(el.closest(".sp-rabe")){const r=el.closest(".sp-rabe");r.remove();f13Egg("kyff")}
-  if(el.closest('[data-act="pkReadDone"]')){const ti=(($("#fTitle")||{}).textContent||"");if(/^Kapitel 21\b/.test(ti))f13Egg("wette",700);if(/^Kapitel 29\b/.test(ti))f13Egg("koepenick",700);if(/^Bett vier/.test(ti)&&Object.keys(P().bett||{}).length>=4)f13Egg("eid",900)}}catch(x){}},true)})();
+  if(el.closest('[data-act="pkReadDone"]')){const ti=(($("#fTitle")||{}).textContent||"");if(/^Kapitel 21\b/.test(ti))f13Egg("wette",700);if(/^Kapitel 29\b/.test(ti))f13Egg("koepenick",700)}}catch(x){}},true)})();
 // one raven flies low enough to be caught — in the Black Forest only, until it has been caught
 function f13Raven(){try{if(!P().signed||eggs().kyff||document.hidden||document.querySelector(".sp-rabe"))return;const inI=document.documentElement.dataset.realm==="I"&&!Focus.isOpen()&&(R.tab==="home"||R.tab==="pakt");const onPage=!!document.querySelector(".lore-page.rI");if(!inI&&!onPage)return;
   const b=document.createElement("button");b.className="sp-rabe";b.setAttribute("aria-label","Ein Rabe");b.innerHTML=`<svg viewBox="0 0 60 30"><path d="M30 18 C22 6 10 6 2 12 C12 12 20 14 30 20 C40 14 48 12 58 12 C50 6 38 6 30 18Z" fill="#050806" stroke="#F08A3F" stroke-width=".6"/></svg>`;document.body.appendChild(b);setTimeout(()=>b.remove(),15000)}catch(e){}}
-setInterval(f13Raven,75000);setTimeout(f13Raven,20000);
+visInterval(f13Raven,75000);setTimeout(f13Raven,20000);
 // ---------------------------------------------------------------- 3. boss music: each boss has a two-bar ostinato; the realm score steps aside, the ambience stays
 const BOSS_MUSIC={
  hexe:{inst:"harpsichord",bpm:92,steps:24,ev:[[45,0,6],[57,6,2],[60,8,2],[64,10,2],[44,12,6],[56,18,2],[59,20,2],[65,22,2],[76,0,4],[75,6,2],[76,8,4],[72,12,4],[71,18,6]]},
@@ -4273,16 +4653,19 @@ const BOSS_MUSIC={
  pudel:{inst:"harpsichord",bpm:132,steps:32,ev:[[50,0,2],[57,2,2],[62,4,2],[61,6,2],[62,8,2],[57,10,2],[53,12,2],[57,14,2],[49,16,2],[55,18,2],[61,20,2],[60,22,2],[61,24,2],[58,26,2],[56,28,2],[52,30,2],[38,0,8],[37,16,8]]},
  caligari:{inst:"piano",bpm:104,steps:24,ev:[[36,0,4],[54,4,2],[60,8,2],[42,12,4],[58,16,2],[64,20,2],[72,0,6],[78,6,6],[70,12,6],[76,18,4],[74,22,2]]},
  kommission:{inst:"organ",bpm:54,steps:32,ev:[[38,0,16],[50,0,8],[53,0,8],[57,0,8],[49,8,8],[52,8,8],[57,8,8],[36,16,8],[48,16,8],[52,16,8],[55,16,8],[33,24,8],[49,24,8],[52,24,8],[57,24,8]]}};
-let BOSS_NOW=null,BOSS_AT=0;
-(function(){const _d=bossDuel;bossDuel=function(id){BOSS_NOW=id;BOSS_AT=0;return _d.apply(this,arguments)}})();
-setInterval(()=>{try{const d=document.querySelector(".duel");const q=d&&d.querySelector(".duel-q");const live=!!(q&&q.children.length&&Focus.isOpen()&&!document.hidden);
-  if(!live){if(BOSS_AT){BOSS_AT=0}return}const M=BOSS_MUSIC[BOSS_NOW];if(!M||!SND.state().on||!SND.state().started)return;
+let BOSS_NOW=null,BOSS_AT=0,BOSS_T=null;
+// P2: the 200 ms music clock runs only while a duel is open (platform D9); it stops itself when the duel is gone and rests while the page is hidden.
+// Next bar = previous start + length, not "now" (QA D17); the realm score is hushed whenever it is audible, not only once (QA D16).
+function bossTick(){try{const d=document.querySelector(".duel");if(!Focus.isOpen()||(!d&&!document.querySelector("#fIn .duel-intro,#fIn [data-act='duelGo'],#fFootIn [data-act='duelGo']"))){clearInterval(BOSS_T);BOSS_T=null;BOSS_AT=0;return}
+  const q=d&&d.querySelector(".duel-q");const live=!!(q&&q.children.length&&!document.hidden);if(!live){BOSS_AT=0;return}
+  const M=BOSS_MUSIC[BOSS_NOW];if(!M||!SND.state().on||!SND.state().started)return;
   const lives=d.querySelectorAll(".duel-lives i.on").length;const bpm=Math.round(M.bpm*(lives<=2?1.18:1));const now=performance.now();
-  if(now>=BOSS_AT){if(!SND.hushed())SND.hush(true);const ev=lives<=2?M.ev.concat([[26,0,2],[32,M.steps/2,2]]):M.ev;SND.motif(ev,M.inst,bpm);BOSS_AT=now+M.steps*(60/bpm/4)*1000}}catch(e){}},200);
+  if(now>=BOSS_AT-120){if(!SND.hushed()||(SND.now&&SND.now()))SND.hush(true);const ev=lives<=2?M.ev.concat([[26,0,2],[32,M.steps/2,2]]):M.ev;SND.motif(ev,M.inst,bpm);const dur=M.steps*(60/bpm/4)*1000;BOSS_AT=(BOSS_AT&&now-BOSS_AT<400?BOSS_AT:now)+dur}}catch(e){}}
+(function(){const _d=bossDuel;bossDuel=function(id){BOSS_NOW=id;BOSS_AT=0;clearInterval(BOSS_T);const r=_d.apply(this,arguments);BOSS_T=setInterval(bossTick,200);return r}})();
 // ---------------------------------------------------------------- 4. settings: spelling
 (function(){MOD.after("viewMe","final",function(m){try{if(meSeg!=="set")return;const v=m.querySelector(".view");if(!v||v.querySelector(".f13-spell"))return;const cur=S.strict===true?"an":S.strict===false?"aus":"auto";
   v.insertAdjacentHTML("beforeend",`<div class="card stack s f13-spell"><div class="eyebrow">Rechtschreibung <span class="en">spelling</span></div><p class="ui" style="margin:0">Großschreibung, ß und Umlaute werden immer angezeigt. Streng heißt: Auf Karten gilt eine Antwort mit Rechtschreibfehler nur als „fast richtig“. <span class="en">Capitals, ß and umlauts are always pointed out. Strict means a card answer with a spelling slip only counts as 'almost'.</span></p><div class="seg">${[["auto","Ab B1 streng"],["an","Immer streng"],["aus","Nie streng"]].map(([k,n])=>`<button class="${cur===k?"on":""}" data-act="f13Strict" data-k="${k}">${n}</button>`).join("")}</div></div>`)}catch(e){}})})();
-ACT.f13Strict=el=>{const k=el.dataset.k;if(k==="an")S.strict=true;else if(k==="aus")S.strict=false;else delete S.strict;saveSoon();rerender()};
+ACT.f13Strict=el=>{const k=el.dataset.k;S.strict=k==="an"?true:k==="aus"?false:"auto";saveSoon();rerender()};
 // ---------------------------------------------------------------- 5. styles
 (function(){const s=document.createElement("style");s.textContent=`
 .spell-note{display:block;margin-top:.25rem;font-family:var(--ui);font-size:.86rem;color:var(--accent)}
@@ -4290,7 +4673,8 @@ ACT.f13Strict=el=>{const k=el.dataset.k;if(k==="an")S.strict=true;else if(k==="a
 .sp-rabe svg{width:100%;animation:f13Flap .5s ease-in-out infinite alternate;transform-origin:50% 60%}
 @keyframes f13Rabe{0%{transform:translate(0,0)}35%{transform:translate(45vw,-6vh)}70%{transform:translate(80vw,5vh)}100%{transform:translate(calc(100vw + 140px),-4vh)}}
 @keyframes f13Flap{from{transform:scaleY(1)}to{transform:scaleY(.55)}}
-@media (prefers-reduced-motion: reduce){.sp-rabe svg{animation:none}}
+@media (prefers-reduced-motion: reduce){.sp-rabe svg{animation:none}.sp-rabe{animation:none!important;left:auto;right:14px;top:18vh}}
+:root.nomotion .sp-rabe{animation:none!important;left:auto;right:14px;top:18vh}:root.nomotion .sp-rabe svg{animation:none}
 body:has(#lore-cine) .sp-rabe{display:none}
 .lore-page.rN .lore-y{color:#9BD08A}
 `;document.head.appendChild(s)})();
@@ -4478,61 +4862,394 @@ ACT.s3Film=()=>{const T=BERLIN.titel||[];if(!T.length)return;let i=0;const box=F
   st.textContent="@keyframes s3iris{from{clip-path:circle(0% at 50% 50%)}to{clip-path:circle(75% at 50% 50%)}}.s3-gap{font:inherit;border:0;border-bottom:2px solid var(--accent,#e8772e);background:transparent;color:inherit;padding:0 .15rem;margin:0 .1rem}.s3-gap.ok{border-color:#3a8f5a}.s3-gap.bad{border-color:#b33}.s3-o.ok,.s3-sq.ok,.s3-ord.ok{outline:2px solid #3a8f5a}.s3-o.bad,.s3-sq.bad,.s3-ord.bad{outline:2px solid #b33}";
   document.head.appendChild(st)}catch(e){}})();
 
+// ===== Mephisto · track S · c_s7.js (owner s7) — the finale's witness, „Die Mappe" and „Bett vier hört zu" on the Pakt screen.
+// Load: after v2/c_s2.js (the loader), before v2/c_cloud.js. Needs: x_s7_scn.js, x_s7_brandt.js, x_s7_mappe.js; optional: AMT_DOCS (s2).
+// Saved state: ONE key, S.bv = {<id>: number} — all values numbers; merge rule: per id max (both devices' keys, larger value wins).
+//   ids: "b<n>" = times BRANDT.lines[n] was understood in the listening round · "best" = best round (0–5) · "rounds" = rounds played
+//        "m:<docId>" = questions answered right on that Mappe document (0–2; tf documents count their statements).
+// Hooks: MOD.after("viewPakt","s7",…) only. No shared function is reassigned. STORY3[40].finale becomes an accessor property (see 1).
+// Sober: the listening round sets document.documentElement.dataset.sober="1" while open (PLAN-S §3.3) and clears it on close.
+var S7=S7||{};
+(function(){
+const LVS=["A1","A2","B1","B2","C1"];
+const lvI=l=>Math.max(0,LVS.indexOf(String(l||"A1")));
+function me(){try{return typeof learnerLv==="function"?learnerLv():0}catch(e){return 0}}
+function bv(){try{if(!S.bv||typeof S.bv!=="object")S.bv={};return S.bv}catch(e){return {}}}
+function put(k,v){const b=bv();if(!(b[k]>=v)){b[k]=v;try{saveSoon()}catch(e){}}}
+function fill(s){try{return typeof st3Fill==="function"?st3Fill(s):String(s)}catch(e){return String(s)}}
+function du(){try{return typeof st3Du==="function"&&st3Du()}catch(e){return false}}
+function h(s){try{return esc(s)}catch(e){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c])}}
+function hash(s){let x=0;for(const c of String(s))x=(x*31+c.charCodeAt(0))|0;return Math.abs(x)}
+
+// ---------------------------------------------------------------- 1. the finale: anchors removed, the witness only after three Bett-vier visits
+// FINX.finale carries ["@","zeugin"] … ["@","/zeugin"]. Rule (canon §2.3): shown only if Bett vier was read at least three times.
+// s4 may replace the rule: S7.zeugin=function(){…return true|false}. S7.finaleRaw() returns the finale with its anchors (for s4).
+S7.bett=function(){try{return Object.keys(P().bett||{}).length}catch(e){return 0}};
+S7.zeugin=S7.zeugin||function(){return S7.bett()>=3};
+S7.flatten=function(raw){const out=[];let skip=false;(raw||[]).forEach(l=>{if(!Array.isArray(l))return;
+  if(l[0]==="@"){if(l[1]==="zeugin"){let ok=false;try{ok=!!S7.zeugin()}catch(e){}skip=!ok}else if(l[1]==="/zeugin")skip=false;return}
+  if(!skip)out.push(l)});return out};
+try{const st=STORY3[CHAPTERS.length];if(st){let raw=st.finale;
+  Object.defineProperty(st,"finale",{configurable:true,enumerable:true,get(){return Array.isArray(raw)?S7.flatten(raw):raw},set(v){raw=v}});
+  S7.finaleRaw=()=>raw}}catch(e){try{logError(e)}catch(x){}}
+
+// ---------------------------------------------------------------- 2. „Die Mappe"
+// Notebook: page k opens after k completed runs of 10 consecutive learning days (a run of 23 days counts twice). Read from S.log; nothing stored.
+S7.runs=function(){try{const ks=Object.keys(S.log||{}).filter(k=>S.log[k]&&S.log[k].act).sort();let n=0,run=0,prev=null;
+  ks.forEach(k=>{run=(prev&&addDays(prev,1)===k)?run+1:1;if(run%10===0)n++;prev=k});return n}catch(e){return 0}};
+S7.docs=function(){const L=(typeof MAPPE!=="undefined"?MAPPE:[]).slice();
+  try{if(typeof AMT_DOCS!=="undefined"&&Array.isArray(AMT_DOCS))AMT_DOCS.forEach((d,i)=>{if(!d)return;L.push({id:"amt_"+(d.id||i),set:"amt",prag:true,
+    title:"Prag · "+(d.title||d.t||"Das Amt"),lv:d.lv||"A2",ch:d.ch||11,de:d.de||d.text||"",en:d.en||"",gl:d.gl||d.gloss||d.glosses||[],tf:d.tf||d.truefalse||null,q:d.q||null,task:d.task||null,note:d.note||null,bridge:d.bridge||null})})}catch(e){}
+  return L};
+S7.lock=function(d){const p=P();const why=[];
+  if(lvI(d.lv)>me())why.push(`ab ${d.lv}`);
+  if(d.ch&&(p.ch||1)<d.ch)why.push(`ab Kapitel ${d.ch}`);
+  if(d.page&&S7.runs()<d.page)why.push(d.page===1?"nach 10 Lerntagen am Stück":`nach ${d.page} × 10 Lerntagen am Stück`);
+  return why};
+const SETS=[["nb","Mephistos Notizbuch","Mephisto's notebook"],["amt","Briefe vom Amt","letters from the authorities"],["pk","Postkarten aus dem Goldenen Gässchen","postcards from the Golden Lane"],["br","Frau Brandts Rückmeldung","Mrs Brandt's feedback"]];
+function score(d){return +(bv()["m:"+d.id]||0)}
+function nQ(d){return (d.q||[]).length+(Array.isArray(d.tf)?d.tf.length:0)}
+S7.mappeStat=function(){const D=S7.docs();const open=D.filter(d=>!S7.lock(d).length);return {all:D.length,open:open.length,done:open.filter(d=>nQ(d)&&score(d)>=nQ(d)).length}};
+ACT.s7Mappe=function(){const D=S7.docs();const box=Focus.open({title:"Die Mappe",sub:"Gefundene Schriftstücke · found documents",onClose:()=>{try{if(R.tab==="pakt")rerender()}catch(e){}}});
+  box.innerHTML=`<div class="stack s7-mappe no-sig" style="max-width:680px;margin:0 auto">
+   <p class="ui muted" style="margin:.2rem 0">Briefe, Karten und Notizen aus deinem Pakt. Jedes Blatt ist ein Lesetext mit zwei Fragen. <span class="en">Every sheet is a graded reading text with two questions.</span></p>
+   ${SETS.map(([k,t,en])=>{const L=D.filter(d=>d.set===k);if(!L.length)return "";return `<div class="card stack s"><div class="eyebrow">${h(t)} <span class="en">${h(en)}</span></div>
+     ${L.map(d=>{const lk=S7.lock(d);const sc=score(d),nq=nQ(d);return lk.length?`<div class="s7-row locked"><span>🔒 ${h(d.title)}</span><small class="muted ui">${h(lk.join(" · "))}</small></div>`
+       :`<button class="s7-row" data-act="s7Doc" data-id="${h(d.id)}"><span>${h(fill(d.title))}</span><small class="ui">${h(d.lv)}${nq?` · ${sc}/${nq}`:""}${nq&&sc>=nq?" ✓":""}</small></button>`}).join("")}</div>`}).join("")}</div>`;
+  Focus.foot(`<button class="go" data-act="s7MappeClose">Schließen</button>`)};
+ACT.s7MappeClose=()=>{Focus.close()};
+function shuf(opts,seed){const o=opts.map((t,i)=>[t,i]);for(let i=o.length-1;i>0;i--){const j=hash(seed+i)%(i+1);[o[i],o[j]]=[o[j],o[i]]}return o}
+ACT.s7Doc=function(el){const id=el&&el.dataset?el.dataset.id:el;const d=S7.docs().find(x=>x.id===id);if(!d||S7.lock(d).length)return;
+  const box=Focus.open({title:"Die Mappe",sub:fill(d.title),onClose:()=>ACT.s7Mappe()});const got={};
+  const paras=fill(d.de).split(/\n/);const gl=Array.isArray(d.gl)?d.gl:[];
+  const qs=(d.q||[]).map((q,i)=>`<div class="card stack s s7-q" data-i="${i}"><div><b>${h(q[0])}</b> <span class="en">${h(q[1]||"")}</span></div>${shuf(q[2]||[],d.id+i).map(([t,k])=>`<button class="s7-opt" data-act="s7Ans" data-q="${i}" data-k="${k}">${h(t)}</button>`).join("")}</div>`).join("");
+  const tf=(Array.isArray(d.tf)?d.tf:[]).map((t,i)=>{const s=Array.isArray(t)?t[0]:(t.s||t.de||"");return `<div class="card stack s s7-q" data-t="${i}"><div><b>${h(s)}</b></div><div class="row" style="gap:.5rem"><button class="s7-opt" data-act="s7Tf" data-t="${i}" data-v="1">Richtig</button><button class="s7-opt" data-act="s7Tf" data-t="${i}" data-v="0">Falsch</button></div></div>`}).join("");
+  box.innerHTML=`<div class="stack no-sig" style="max-width:680px;margin:0 auto">
+   <div class="st-doc no-sig s7-doc"><div class="st-doc-h">${h(fill(d.title))}</div>${paras.map(p=>`<p>${h(p)}</p>`).join("")}${d.note?`<p class="hand">${h(d.note[0])}</p>`:""}</div>
+   <div class="row" style="gap:.5rem;flex-wrap:wrap"><button class="sm ghost" data-say="${h(fill(d.de).replace(/\n/g," "))}">${typeof ic==="function"?ic("vol"):""} Vorlesen</button></div>
+   ${gl.length?`<div class="card"><div class="eyebrow">Wörter <span class="en">glossary</span></div><div class="s7-gl">${gl.map(g=>{const a=Array.isArray(g)?g:[g.de,g.expl||"",g.en];return a.length>=3?`<div><b>${h(a[0])}</b> – ${h(a[1])} <span class="en">${h(a[2])}</span></div>`:`<div><b>${h(a[0])}</b> <span class="en">${h(a[1])}</span></div>`}).join("")}</div></div>`:""}
+   ${d.en?`<details class="card"><summary class="ui">English</summary><p class="en" style="white-space:pre-line">${h(fill(d.en))}${d.note?`\n\n${h(d.note[1]||"")}`:""}</p></details>`:""}
+   ${qs}${tf}
+   ${d.task?(()=>{const t=Array.isArray(d.task)?{de:d.task[0],en:d.task[1]}:(typeof d.task==="string"?{de:d.task}:d.task);return `<div class="card"><div class="eyebrow">Aufgabe <span class="en">task</span></div><p>${h(fill(t.de||""))}</p>${t.en?`<small class="en">${h(t.en)}</small>`:""}${t.model?`<details><summary class="ui">Musterlösung</summary><p>${h(fill(t.model))}</p>${t.modelEn?`<small class="en">${h(t.modelEn)}</small>`:""}</details>`:""}</div>`})():""}
+   ${Array.isArray(d.bridge)?`<div class="card"><div class="eyebrow">Heute <span class="en">today</span></div><p>${h(d.bridge[0])}</p>${d.bridge[1]?`<small class="en">${h(d.bridge[1])}</small>`:""}</div>`:""}</div>`;
+  const fin=()=>{const n=Object.values(got).filter(Boolean).length;put("m:"+d.id,n)};
+  ACT.s7Ans=b=>{const i=+b.dataset.q,k=+b.dataset.k;if(got[i]!=null)return;const ok=k===(d.q[i][3]||0);got[i]=ok;
+    b.closest(".s7-q").querySelectorAll(".s7-opt").forEach(x=>{x.disabled=true;if(+x.dataset.k===(d.q[i][3]||0))x.classList.add("right")});if(!ok)b.classList.add("wrong");fin()};
+  ACT.s7Tf=b=>{const i=+b.dataset.t;if(got["t"+i]!=null)return;const t=d.tf[i];const a=Array.isArray(t)?!!t[1]:!!(t.a!=null?t.a:t.ok);const ok=(b.dataset.v==="1")===a;got["t"+i]=ok;
+    b.parentElement.querySelectorAll(".s7-opt").forEach(x=>{x.disabled=true;if((x.dataset.v==="1")===a)x.classList.add("right")});if(!ok)b.classList.add("wrong");fin()};
+  Focus.foot(`<button class="go" data-act="s7Mappe">Zur Mappe</button>`)};
+
+// ---------------------------------------------------------------- 3. „Bett vier hört zu" (S5 P6): five of her lines, spoken, no text; pick the paraphrase. Sober.
+S7.round=function(lv){const B=typeof BRANDT!=="undefined"?BRANDT:null;if(!B||!Array.isArray(B.lines))return [];
+  lv=lv==null?me():lv;const de=lv>=2;const L=B.lines.map((l,i)=>({l,i})).filter(x=>lvI(x.l[2])<=lv&&(!de||x.l[4]));
+  const used=new Set(),out=[];
+  (B.round||["complaint","history","repair","fear","thanks"]).forEach(u=>{
+    let c=L.filter(x=>x.l[3]===u&&!used.has(x.i));if(!c.length)c=L.filter(x=>(B.alt||{})[x.l[3]]===u&&!used.has(x.i));if(!c.length)c=L.filter(x=>!used.has(x.i));if(!c.length)return;
+    const top=Math.max(...c.map(x=>lvI(x.l[2])));c=c.filter(x=>lvI(x.l[2])===top);const x=c[Math.floor(Math.random()*c.length)];used.add(x.i);
+    const say=x.l[de?4:1];const pool=L.filter(y=>y.i!==x.i&&y.l[de?4:1]&&y.l[de?4:1]!==say);const dis=[];
+    while(dis.length<2&&pool.length){const k=Math.floor(Math.random()*pool.length);dis.push(pool.splice(k,1)[0].l[de?4:1])}
+    const opts=[say,...dis].map((t,k)=>[t,k===0]).sort(()=>Math.random()-.5);out.push({i:x.i,de:x.l[0],en:x.l[1],lv:x.l[2],opts})});
+  return out};
+S7.bvOpen=function(){try{return Object.keys(S.bossWins||{}).length>0||Object.keys(P().bett||{}).length>0}catch(e){return false}};
+ACT.s7Bv=function(){const H=document.documentElement;const items=S7.round();if(!items.length)return;let k=0,right=0,shown=false;
+  const box=Focus.open({title:"Bett vier hört zu",sub:"Heidelberg · Notaufnahme · irgendwann",onClose:()=>{try{delete H.dataset.sober}catch(e){}try{if(R.tab==="pakt")rerender()}catch(e){}}});
+  H.dataset.sober="1";const rate=me()<=1?.85:.95;
+  const speak=()=>{try{say(items[k].de,{rate,silent:true})}catch(e){}};
+  const draw=()=>{const it=items[k];const done=it.pick!=null;
+    box.innerHTML=`<div class="stack s7-bv no-sig" style="max-width:640px;margin:0 auto">
+     <div class="eyebrow">Satz ${k+1} von ${items.length} · Frau Brandt <span class="en">${me()<2?"pick what she said":"wähle, was sie gesagt hat"}</span></div>
+     <div class="row" style="gap:.5rem;flex-wrap:wrap"><button class="go" data-act="s7BvSay">${typeof ic==="function"?ic("vol"):""} Anhören</button>${typeof TTS_OK!=="undefined"&&!TTS_OK&&!done?`<button class="sm ghost" data-act="s7BvShow">Ohne Ton: Satz zeigen</button>`:""}</div>
+     ${(shown||done)?`<div class="card st-x"><div class="eyebrow">Frau Brandt</div><div class="st-de">${h(it.de)}</div>${done?`<div class="en">${h(it.en)}</div>`:""}</div>`:""}
+     <div class="stack s">${it.opts.map((o,j)=>`<button class="s7-opt${done&&o[1]?" right":""}${done&&it.pick===j&&!o[1]?" wrong":""}" data-act="s7BvPick" data-j="${j}" ${done?"disabled":""}>${h(o[0])}</button>`).join("")}</div></div>`;
+    Focus.foot(done?`<button class="go" data-act="s7BvNext">${k<items.length-1?"Weiter":"Ergebnis"}</button>`:`<small class="muted ui">Hör zu und wähle. <span class="en">Listen, then choose.</span></small>`)};
+  const end=()=>{const b=bv();put("best",right);b.rounds=(+b.rounds||0)+1;try{saveSoon()}catch(e){}try{if(typeof logDay==="function")logDay("bv",1)}catch(e){}
+    const five=right===items.length&&items.length===5;
+    box.innerHTML=`<div class="stack s7-bv no-sig" style="max-width:640px;margin:0 auto;text-align:center"><h2 style="margin:.4rem 0">${right} von ${items.length}</h2>
+     ${five?(typeof pkSay==="function"?`<div class="card" style="text-align:left">${pkSay([du()?"Sie hat fünf Sätze gesagt. Du hast fünf verstanden. Ich schreibe das nicht auf.":"Sie hat fünf Sätze gesagt. Sie haben fünf verstanden. Ich schreibe das nicht auf.","She said five sentences. You understood five. I am not writing that down."])}</div>`:"")
+       :`<p class="ui">Die Sätze kommen beim nächsten Mal wieder. <span class="en">The sentences will come back next time.</span></p>`}
+     <div class="stack s" style="text-align:left">${items.map(it=>`<div class="card st-x"><div class="st-de">${it.pick!=null&&it.opts[it.pick][1]?"✓":"○"} ${h(it.de)}</div><div class="en">${h(it.en)}</div></div>`).join("")}</div></div>`;
+    Focus.foot(`<button class="go" data-act="s7BvAgain">Noch eine Runde</button><button class="sm ghost" data-act="s7BvClose">Schließen</button>`)};
+  ACT.s7BvSay=()=>speak();ACT.s7BvShow=()=>{shown=true;draw()};
+  ACT.s7BvPick=b=>{const it=items[k];if(it.pick!=null)return;it.pick=+b.dataset.j;if(it.opts[it.pick][1]){right++;const key="b"+it.i;put(key,(+bv()[key]||0)+1)}draw()};
+  ACT.s7BvNext=()=>{if(k<items.length-1){k++;shown=false;draw();speak()}else end()};
+  ACT.s7BvAgain=()=>{Focus.close(true);ACT.s7Bv()};ACT.s7BvClose=()=>Focus.close();
+  draw();setTimeout(speak,350)};
+
+// ---------------------------------------------------------------- 4. the Pakt screen: one card with both entries (after the Werkstatt)
+function card(){const st=S7.mappeStat();const b=bv();
+  return `<div class="card orn stack s s7-card"><div class="eyebrow">Die Mappe · Bett vier <span class="en">found documents · bed four</span></div><div class="werk-grid">
+   <button data-act="s7Mappe"><b>Die Mappe</b><small>${st.open} von ${st.all} Blättern offen${st.done?` · ${st.done} gelesen`:""}</small></button>
+   ${S7.bvOpen()?`<button data-act="s7Bv"><b>Bett vier hört zu</b><small>${b.best!=null?`bestes Ergebnis ${b.best}/5`:"fünf Sätze, nur zum Hören"}</small></button>`:""}</div></div>`}
+try{if(typeof MOD!=="undefined"&&MOD.after)MOD.after("viewPakt","s7",function(m){const v=m.querySelector(".view");if(!v||!P().signed||v.querySelector(".s7-card"))return;
+  const w=v.querySelector(".pk-werk");if(w)w.insertAdjacentHTML("afterend",card());else{const r=v.querySelector(":scope > .row:last-child");if(r)r.insertAdjacentHTML("beforebegin",card());else v.insertAdjacentHTML("beforeend",card())}})}catch(e){try{logError(e)}catch(x){}}
+
+// ---------------------------------------------------------------- 5. styles
+try{const s=document.createElement("style");s.textContent=`
+.s7-row{display:flex;justify-content:space-between;align-items:center;gap:.6rem;width:100%;text-align:left;padding:.65rem .8rem;min-height:48px;border:1px solid var(--line,#333);border-radius:6px;background:transparent}
+.s7-row span{min-width:0;overflow-wrap:anywhere}.s7-row small{flex:none}.s7-row.locked{opacity:.55}
+.s7-doc{transform:rotate(-.4deg);white-space:normal}.s7-doc p{overflow-wrap:anywhere;font-weight:400}.s7-doc p::first-line{font-weight:400}
+.s7-gl{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:.3rem .8rem;font-size:.95rem}
+.s7-opt{display:block;width:100%;text-align:left;min-height:48px;padding:.7rem .9rem;font-family:var(--body);font-size:1.05rem;border:1px solid var(--line,#444);background:transparent}
+.s7-opt.right{border-color:var(--good,#4a9)!important;background:rgba(80,170,120,.15)!important}.s7-opt.wrong{border-color:var(--bad,#c44)!important;background:rgba(200,60,60,.12)!important}
+.s7-q .en,.s7-bv .en{opacity:.75;font-size:.9em}
+`;document.head.appendChild(s)}catch(e){}
+})();
+
+// ===== a4 (round 8) · Plates: the five forbidden plates are gone, their slots re-pointed, one colour treatment, plate API.
+// Module "story", loaded after c_final (and after track S's c_s*). Never throws at load.
+// Removed for good (files, generator, x_assets.js): clarke_7, clarke_47, clarke_48, clarke_62 (Christian devotional images) and
+// struwwel_8 (racial caricature). No crop of any of them is kept.
+// Colour: every plate is a neutral greyscale t-map (k:"tmap"); s_a4.css colours it with the SVG duotone filters inserted here.
+const ART_FORBIDDEN=["clarke_7","clarke_47","clarke_48","clarke_62","struwwel_8"];
+// old id -> new id, for literal references left in code or old saved data (c_story3.js:78 epilogue, :87 card "Die warme Laterne").
+// "" = no picture (pkArt returns null and every caller already draws nothing).
+const ART_ALIAS={clarke_7:"a8_finale",clarke_47:"holbein_counsellor",clarke_48:"durer_melencolia",clarke_62:"roentgen_hand",struwwel_8:""};
+// slot -> plate (each slot that used one of the five, chosen for what the page is about)
+const A4_SLOTS={
+  chapters:{14:"holbein_counsellor",25:"clarke_52",32:"holbein_fool"},
+  realms:{V:"vesalius_epitome"},
+  lore:{nosferatu:"holbein_shipman",mfilm:"holbein_judge",brocken:"delacroix_17",roentgen:"roentgen_hand",n_sand:"durer_melencolia",n_koepenick:""},
+  bib:{landarzt:"holbein_physician",novalis:"dore_31"}
+};
+(function a4Repoint(){
+  const bad=id=>ART_FORBIDDEN.includes(id);
+  const pick=(want,old)=>{if(want!==undefined&&(want===""||(typeof PAKT_ART!=="undefined"&&PAKT_ART[want])))return want;return ART_ALIAS[old]||""};
+  const fix=(o,field,want)=>{try{if(o&&bad(o[field]))o[field]=pick(want,o[field])}catch(e){}};
+  try{if(typeof CHAPTERS!=="undefined")CHAPTERS.forEach(c=>fix(c,"art",A4_SLOTS.chapters[c.n]))}catch(e){}
+  try{if(typeof REALMS!=="undefined")Object.keys(REALMS).forEach(k=>fix(REALMS[k],"art",A4_SLOTS.realms[k]))}catch(e){}
+  try{if(typeof LORE!=="undefined")LORE.forEach(e=>fix(e,"art",A4_SLOTS.lore[e.id]))}catch(e){}
+  try{if(typeof BIB_META!=="undefined")BIB_META.forEach(b=>fix(b,"img",A4_SLOTS.bib[b.id]))}catch(e){}
+  try{if(typeof BOSSES!=="undefined")Object.keys(BOSSES).forEach(k=>fix(BOSSES[k],"art"))}catch(e){}
+  try{if(typeof PALACE!=="undefined")Object.keys(PALACE).forEach(k=>fix(PALACE[k],"art"))}catch(e){}
+  // literal ids still in code: resolve through a hidden alias (not enumerable, so lists of PAKT_ART never show the old ids)
+  try{if(typeof PAKT_ART!=="undefined")ART_FORBIDDEN.forEach(old=>{delete PAKT_ART[old];const to=ART_ALIAS[old];
+    if(to)Object.defineProperty(PAKT_ART,old,{get(){return PAKT_ART[to]},enumerable:false,configurable:true})})}catch(e){}
+})();
+// ---- the duotone filters, once, at the top of <body> (values = A5's palette, PLAN-A §2.1; tables are linear in sRGB, 3 stops)
+function a4Filters(){try{if(document.getElementById("a4-duo-defs"))return;
+  const T={I:["0.027 0.333 0.788","0.051 0.408 0.827","0.035 0.353 0.737"],II:["0.031 0.431 0.863","0.059 0.416 0.796","0.055 0.271 0.588"],
+    III:["0.063 0.478 0.902","0.031 0.322 0.784","0.024 0.204 0.604"],IV:["0.024 0.420 0.871","0.024 0.416 0.863","0.024 0.408 0.831"],
+    V:["0.047 0.494 0.886","0.012 0.188 0.769","0.016 0.149 0.682"],paper:["0.141 0.522 0.937","0.086 0.412 0.898","0.063 0.310 0.812"]};
+  const f=Object.keys(T).map(k=>`<filter id="duo-${k}" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%"><feComponentTransfer><feFuncR type="table" tableValues="${T[k][0]}"/><feFuncG type="table" tableValues="${T[k][1]}"/><feFuncB type="table" tableValues="${T[k][2]}"/></feComponentTransfer></filter>`).join("");
+  const rim=`<filter id="plate-rim" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB"><feMorphology in="SourceAlpha" operator="dilate" radius="2" result="fat"/><feOffset in="fat" dx="-3" dy="-1" result="off"/><feComposite in="off" in2="SourceAlpha" operator="out" result="edge"/><feFlood flood-color="#F08A3F" flood-opacity=".85"/><feComposite in2="edge" operator="in" result="rim"/><feGaussianBlur in="rim" stdDeviation="1.2" result="rimsoft"/><feMerge><feMergeNode in="rimsoft"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`;
+  const grain=`<filter id="paper-grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="7" result="n"/><feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  .5 .5 0 0 -.38"/></filter>`;
+  const d=document.createElement("div");d.id="a4-duo-defs";d.setAttribute("aria-hidden","true");
+  d.style.cssText="position:absolute;width:0;height:0;overflow:hidden;pointer-events:none";
+  d.innerHTML=`<svg width="0" height="0" style="position:absolute" focusable="false"><defs>${f}${rim}${grain}</defs></svg>`;
+  document.body.insertBefore(d,document.body.firstChild)}catch(e){}}
+if(document.body)a4Filters();else document.addEventListener("DOMContentLoaded",a4Filters);
+// ---- plate API (PLAN-A §2.8; A5 Proposal 3: never drawn above 150 % of the source's real pixels)
+function plateMeta(id){const a=(typeof pkArt==="function")?pkArt(id):((typeof PAKT_ART!=="undefined"&&PAKT_ART[id])||null);return a||null}
+function artURL(id,cssW){const a=plateMeta(id);if(!a)return "";const need=(cssW||600)*(window.devicePixelRatio||1);return (a.u2&&need>a.w*1.15)?a.u2:a.u}
+function plateMaxCss(a){return Math.round((a.px||a.w)*1.5/(window.devicePixelRatio||1))}
+function plateHTML(id,ctx,o){try{o=o||{};const a=plateMeta(id);if(!a)return "";ctx=ctx||"reader";
+  const iw=window.innerWidth||800;
+  const colW={reader:Math.min(iw-32,820),chronik:Math.min(iw-32,720),card:200,cine:Math.min(iw*.92,1400),duel:Math.min(iw-32,1100),rail:288,kab:160,map:600}[ctx]||600;
+  const src=artURL(id,colW),big=src===a.u2,w=big?a.w2:a.w,h=big?a.h2:a.h;
+  const cap=o.cap!=null?o.cap:a.t,credit=o.credit!=null?o.credit:[a.a,a.y].filter(Boolean).join(" · ");
+  const set=a.u2?` srcset="${a.u} ${a.w}w, ${a.u2} ${a.w2}w" sizes="${Math.round(colW)}px"`:"";
+  return `<figure class="plate plate--${ctx}" data-k="${esc(id)}" data-realm="${esc(a.r||"")}" style="--ar:${w}/${h};--maxw:${plateMaxCss(a)}px"><div class="plate-mat"><div class="plate-win"><img class="plate-img" data-k="${esc(a.k||"tmap")}" src="${src}"${set} width="${w}" height="${h}" alt="${esc(cap)}" loading="lazy" decoding="async"${o.focus?` style="object-position:${esc(o.focus)}"`:""}></div></div>${cap||credit?`<figcaption class="plate-cap">${cap?`<span class="plate-t">${esc(cap)}</span>`:""}${credit?`<span class="plate-c">${esc(credit)}</span>`:""}</figcaption>`:""}</figure>`}catch(e){return ""}}
+// "Bildnachweis" rows for a9 (one per plate, sorted by realm then title)
+function plateCredits(){try{const R={I:1,II:2,III:3,IV:4,V:5};return Object.keys(PAKT_ART).map(k=>{const a=PAKT_ART[k];return{id:k,u:a.u,t:a.t,a:a.a,y:a.y||"",src:a.src||"",scan:a.scan||"",lic:a.lic||"",r:a.r}})
+  .sort((x,y)=>(R[x.r]||9)-(R[y.r]||9)||String(x.t).localeCompare(String(y.t),"de"))}catch(e){return []}}
+
+// ===== Mephisto · P2 · what the learner sees of the store: the "Sicherungen" list, restore, reset — nothing is replaced or deleted without a verified copy.
+// Loaded after c_final.js and before c_cloud.js. Hooks: MOD.after("meData") (c_views.js). REPLACES restoreFrom (c_views.js) and wraps ACT.reset (c_v126.js) — see MANIFEST.
+try{STORE.onAdopt(why=>{if(why==="load"||why==="takeover"||why==="sync"){try{applyPrefs();buildDict()}catch(e){}try{if(STORE.st.booted&&!(typeof Focus!=="undefined"&&Focus.isOpen()))rerender()}catch(e){}}})}catch(e){}
+const P2_NOCOPY="Keine Sicherheitskopie möglich – es wurde nichts geändert. Speichere den Stand erst unter Ich → Daten als Datei.";
+// restore from a backup text, a file or a snapshot: verified copy of the present state first, then the state is replaced in place
+restoreFrom=async function(txt,label){let n;try{const o=JSON.parse(txt);if(!o||typeof o!=="object"||!o.cards)throw 0;n=o.v===2?validate(o):validate(migrateV1(o))}catch(e){toast("Ungültige Backup-Daten");return false}
+  try{if(!(await STORE.guard(label||"vor dem Wiederherstellen"))){toast(P2_NOCOPY,7000);return false}}catch(e){toast(P2_NOCOPY,7000);return false}
+  try{delete n._idb}catch(e){}adopt(n,"restore");saveNow();try{buildDict();applyPrefs()}catch(e){}toast("Wiederhergestellt. Der Stand davor liegt unter „Sicherungen“.",4500);try{rerender()}catch(e){}return true};
+ACT.restoreText=()=>{const v=(($(".bk-txt")||{}).value||"").trim();if(!v){toast("Erst Backup-Text einfügen");return false}return restoreFrom(v,"vor dem Wiederherstellen aus Text")};
+ACT.restoreSnap=async el=>{const id=el.dataset.id||("ls:snap:"+el.dataset.k);const j=await STORE.get(id);if(!j){toast("Diese Sicherung lässt sich nicht mehr lesen.");return false}return restoreFrom(j,"vor dem Wiederherstellen einer Sicherung")};
+ACT.snapNow=async el=>{if(el)el.disabled=true;const ok=await STORE.guard("von Hand gesichert");toast(ok?"Sicherung angelegt und geprüft.":"Die Sicherung konnte nicht gespeichert werden. Bitte als Datei speichern.",ok?2500:6000);try{rerender()}catch(e){}};
+ACT.snapSave=async el=>{const j=await STORE.get(el.dataset.id);if(!j)return toast("Diese Sicherung lässt sich nicht mehr lesen.");const name="mephisto-sicherung-"+String(el.dataset.day||todayKey()).split("-").reverse().join("-")+".json";const r=await saveFile(name,j);if(r===null)copyText(j,$(".bk-txt"))};
+ACT.snapRaw=async()=>{const raw=lsGet(LS_KEY)||lsGet("mephisto_corrupt")||JSON.stringify(S);const r=await saveFile("mephisto-rohdaten.json",raw);if(r===null)copyText(raw,$(".bk-txt"))};
+// reset: refuse without a verified copy; tell the truth about where the copy is
+(function(){const _r=ACT.reset;if(typeof _r!=="function")return;ACT.reset=async function(){
+  const v=($(".rs-in")||{}).value;const boxes=document.querySelectorAll(".rs-g");if(v!=="LÖSCHEN"||(boxes.length&&!document.querySelectorAll(".rs-g:checked").length))return _r.apply(this,arguments);
+  let ok=false;try{ok=await STORE.guard("vor dem Zurücksetzen")}catch(e){ok=false}if(!ok){toast(P2_NOCOPY,7000);return false}
+  const r=await _r.apply(this,arguments);try{if(STORE.mode==="idb")localStorage.removeItem("mephisto_before_reset")}catch(e){}
+  if(r!==false)toast("Zurückgesetzt. Der Stand davor liegt unter Ich → Daten → Sicherungen.",5500);return r}})();
+// "Geschichte" also resets secrets, Chronik marks and the realm intro; the spelling setting belongs to the settings (QA D26)
+try{if(typeof RESET_GROUPS!=="undefined"){["eggs","loreSeen","realmSeen","dateSeen"].forEach(k=>{if(!RESET_GROUPS.story.k.includes(k))RESET_GROUPS.story.k.push(k)});if(!RESET_GROUPS.settings.k.includes("strict"))RESET_GROUPS.settings.k.push("strict")}}catch(e){}
+// Ich → Daten: the list of backups
+function p2Size(n){return n>=1048576?(n/1048576).toFixed(1).replace(".",",")+" MB":Math.max(1,Math.round(n/1024))+" KB"}
+function p2SnapHTML(L,est){const st=STORE.st;const kind={d:"täglich",w:"wöchentlich",u:"vor einer Änderung"};
+  const row=x=>`<div class="li" style="cursor:default;align-items:center"><span class="t"><b>${x.day?esc(fmtDate(x.day)):"ohne Datum"}${x.at&&x.kind==="u"?" · "+esc(String(x.at).slice(11,16)):""}</b><br><small class="muted ui">${esc(x.label||kind[x.kind]||"")} · ${p2Size(x.bytes||0)}</small></span><span class="row" style="gap:.3rem;flex-wrap:wrap;justify-content:flex-end"><button class="sm" data-act="restoreSnap" data-id="${esc(x.id)}">Wiederherstellen</button><button class="sm ghost" data-act="snapSave" data-id="${esc(x.id)}" data-day="${esc(x.day||"")}">Als Datei</button></span></div>`;
+  const where=st.mode==="idb"?"im Gerätespeicher dieser App (IndexedDB)":"im einfachen Browserspeicher (localStorage) – hier ist nur Platz für zwei Tage";
+  return `<h3>Sicherungen</h3><p class="fg2" style="font-size:.95rem">Automatisch: ${st.mode==="idb"?"täglich (die letzten 7) und wöchentlich (die letzten 4)":"täglich (die letzten 2)"}. Vor jedem Zurücksetzen und Wiederherstellen entsteht zusätzlich eine Kopie. Jede Kopie wird nach dem Schreiben zurückgelesen und geprüft. Sie liegen ${where}. <span class="en">Automatic backups, each read back and checked after writing. A copy is also made before every reset or restore.</span></p>
+   ${st.note?`<div class="card p2-note"><b>Achtung:</b> ${esc(st.note)} <button class="sm" data-act="snapRaw">Rohdaten als Datei speichern</button></div>`:""}
+   ${st.snapErr?`<div class="card p2-note"><b>Die letzte tägliche Sicherung ist fehlgeschlagen</b>${st.snapErr==="quota"?" (Speicher voll)":""}. Bitte oben „Als Datei speichern“ benutzen.</div>`:""}
+   ${st.unsaved?`<div class="card p2-note"><b>Der letzte Speicherversuch ist fehlgeschlagen.</b> Dein Fortschritt liegt gerade nur in diesem Fenster. Bitte oben „Als Datei speichern“ benutzen.</div>`:""}
+   ${L.length?`<div class="list">${L.map(row).join("")}</div>`:`<p class="muted">Noch keine. Die erste entsteht heute nach dem ersten Lernen.</p>`}
+   <div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:.4rem"><button class="sm" data-act="snapNow">Jetzt sichern</button><small class="muted ui">${st.lastOk?"Zuletzt gespeichert "+esc(String(st.lastOk).slice(11,16))+" Uhr (UTC)":""}${est&&est.quota?` · belegt ${p2Size(est.usage)} von ${p2Size(est.quota)}${est.persisted===true?" · dauerhaft":est.persisted===false?" · der Browser darf bei Platzmangel löschen":""}`:""}</small></div>`}
+MOD.after("meData","p2",function(el){try{let card=[...el.querySelectorAll(".card")].find(c=>{const h=c.querySelector("h3");return h&&/Schnappsch/.test(h.textContent)});
+    if(!card){card=document.createElement("div");card.className="card stack s";el.appendChild(card)}card.classList.add("p2-snaps");card.innerHTML=p2SnapHTML([],null).replace(/<p class="muted">Noch keine[^<]*<\/p>/,`<p class="muted">Sicherungen werden gelesen …</p>`);
+    Promise.all([STORE.list(),STORE.estimate()]).then(([L,est])=>{if(card.isConnected)card.innerHTML=p2SnapHTML(L||[],est)}).catch(()=>{});
+    const p=el.querySelector(".card p.fg2");if(p&&/nur in diesem Browser/.test(p.textContent)&&STORE.st.unsaved)p.insertAdjacentHTML("beforeend"," <b>Speichern ist hier gerade nicht möglich!</b>")}catch(e){}});
+// after start: say plainly when something is wrong with the store
+try{STORE.ready.then(st=>{if(st&&st.note)setTimeout(()=>{try{toast(st.note,9000)}catch(e){}},1500)})}catch(e){}
+
 // ===== Mephisto 12.5.1 · Wolke: Drive sync that never asks "which one?" and never destroys.
-// Record-level, deterministic merge (merge(a,b) == merge(b,a)); settings by per-key timestamps (S._ts); reviews by review time;
-// reset / replace by epoch (S._epoch); read failures abort (never overwrite what we could not read); twins merged before trashing;
-// server-side copy of the cloud file into backups before the first write of the day; revision check before and after writing; timeouts.
+// P2 rewrite of the merge (13.1): every rule below is a join — commutative, associative, idempotent — so any number of devices, syncing in
+// any order, end in the same state (tests/merge_prop.js: 3,000 random triples). Device keys (look, sound …) and the ORDER of own cards
+// stay local on purpose. The rules, by key:
+//   cards        newest review wins (stamp = later of `last` and `add`); `n` and `lapses` are the maximum of both sides
+//   del          tombstones, newest per id; a card (and its production twin "p:"+id) is dropped when its stamp is not later than the tombstone
+//   custom       own cards by stable id (c.id; older cards get a deterministic id from their German text), newest edit (`at`) wins;
+//                the app keeps using "c:<index>" — normC/denormC translate to "cid:<id>" and back, production cards ("p:c:<i>") included
+//   _own.orph    review records of own cards whose text is not here (yet); re-attached when the text arrives
+//   log          per day: counters are summed over per-device buckets (dv for seconds, dc for every other counter), flags are OR-ed
+//   pakt         ch/chSess: furthest chapter; sealed, bett, date, done: earliest date per key; faust: union; du: last decision (duAt), else true
+//                wins; choices: newest answer per key (choicesAt), tie → lower option; verw, paid, debtPeak, verwN: maximum; rest: newest pact stamp
+//   eggs, loreSeen, kab: union, earliest date · UNION_MAPS and JOIN_KEYS: deep union, numbers and best scores never go down
+//   arrays       union, ordered by date · settings: newest per-key stamp (S._ts), a deleted setting counts as a change
+//   _epoch       a whole reset wins; from the other side only what happened after it survives (reviews, log days, deletions)
+// Other packages: register MERGE_RULES["myKey"]=(a,b,L,R)=>merged (or PAKT_RULES["myKey"] for a key inside S.pakt). The function gets both
+// values (both defined) and both whole states and must itself be commutative, associative and idempotent. joinDeep(a,b) is a ready-made one.
 const DEVICE_KEYS=new Set(["look","theme","sound","haptic","pxt","google","holdMode","savedAt","today"]);
-const UNION_MAPS=new Set(["kompass","read","kultur","lit","kino","examSeen","examRot","omen","kab","shadowDone","media","shifts","sealed","overrides","why","teach","gram","hoeren","readQ","rounds","coachDismiss","wdt","taskDone","kpSched","sims"]);
+const UNION_MAPS=new Set(["kompass","read","kultur","lit","kino","examSeen","examRot","omen","shadowDone","media","shifts","sealed","overrides","why","teach","gram","hoeren","readQ","rounds","coachDismiss","wdt","taskDone","kpSched","sims"]);
+const JOIN_KEYS=new Set(["errors","stark","yzMiss","yzAdded","unlocked","omenN","bibWords"]);
+const MIN_MAPS=new Set(["eggs","loreSeen","kab"]);
+const MERGE_RULES={},PAKT_RULES={};
+// Integrator registry (13.3): rules of packages that do not register their own. Each is a join (tests/merge_prop.js + int_merge.js).
+//   s3b {done:{id:1}, sc:{id:best%}} — done union, sc max (moved here from the old mergeCore branch)
+MERGE_RULES.s3b=(a,b)=>{const A=isObj(a)?a:{},B=isObj(b)?b:{};const o=Object.assign({},joinDeep(A,B));o.done=joinDeep(A.done||{},B.done||{});o.sc=joinDeep(A.sc||{},B.sc||{});return o};
+//   bv  {key:number} (s7: Bett vier hört zu, Mappe) — union of keys, max per key
+MERGE_RULES.bv=(a,b)=>{const A=isObj(a)?a:{},B=isObj(b)?b:{};const o={};for(const k of [...new Set([...Object.keys(A),...Object.keys(B)])].sort())o[k]=Math.max(+A[k]||0,+B[k]||0);return o};
 const isObj=x=>x&&typeof x==="object"&&!Array.isArray(x);
 const J=x=>{try{return JSON.stringify(x)}catch(e){return ""}};
-const pick=(x,y)=>J(x)>=J(y)?x:y; // deterministic tie-break
-function cardWin(a,b){if(!a)return b;if(!b)return a;const la=a.last||"",lb=b.last||"";if(la!==lb)return la>lb?a:b;const na=(a.n||0),nb=(b.n||0);if(na!==nb)return na>nb?a:b;const sa=(a.reps||0)+(a.lapses||0),sb=(b.reps||0)+(b.lapses||0);if(sa!==sb)return sa>sb?a:b;return pick(a,b)}
+function stableJ(v){if(Array.isArray(v))return "["+v.map(stableJ).join(",")+"]";if(v&&typeof v==="object")return "{"+Object.keys(v).sort().map(k=>JSON.stringify(k)+":"+stableJ(v[k])).join(",")+"}";return JSON.stringify(v===undefined?null:v)}
+const pick=(x,y)=>{if(x===undefined)return y;if(y===undefined)return x;const a=J(x),b=J(y);if(a===b)return x;return stableJ(x)>=stableJ(y)?x:y}; // deterministic tie-break
+const maxS=(x,y)=>(x||"")>=(y||"")?(x||""):(y||"");
+const minS=(x,y)=>!x?(y||""):!y?x:(x<=y?x:y);
+const tRank=v=>v===undefined||v===null?0:typeof v==="boolean"?1:typeof v==="number"?2:typeof v==="string"?3:Array.isArray(v)?4:5;
+// deep union: numbers → larger, flags → or, strings → later, lists → union, maps → key by key. Nothing a device has learned is lost.
+function joinDeep(a,b){const ra=tRank(a),rb=tRank(b);if(ra!==rb)return ra>rb?a:b;if(ra===0)return a===undefined?b:a;if(ra===1)return a||b;if(ra===2)return a>=b?a:(b>a?b:(isNaN(a)?b:a));if(ra===3)return a>=b?a:b;
+  if(ra===4){const m=new Map();a.concat(b).forEach(x=>m.set(stableJ(x),x));return [...m.keys()].sort().map(k=>m.get(k))}
+  const o={};for(const k of [...new Set([...Object.keys(a),...Object.keys(b)])].sort())o[k]=joinDeep(a[k],b[k]);return o}
+function minMap(a,b){const o={};for(const k of [...new Set([...Object.keys(a||{}),...Object.keys(b||{})])].sort()){const x=(a||{})[k],y=(b||{})[k];o[k]=x===undefined?y:y===undefined?x:(typeof x==="string"&&typeof y==="string"?(x<=y?x:y):joinDeep(x,y))}return o}
+const cBorn=c=>{const l=String(c.last||""),a=String(c.add||"");return l>a?l:a};
+const sansJ=(c,skip)=>{const o={};for(const k of Object.keys(c).sort())if(!skip.includes(k))o[k]=c[k];return stableJ(o)};
+function cardWin(a,b){if(!a||typeof a!=="object")return b;if(!b||typeof b!=="object")return a;const ba=cBorn(a),bb=cBorn(b);let w;if(ba!==bb)w=ba>bb?a:b;else if(J(a)===J(b))return a;else w=sansJ(a,["n","lapses"])>=sansJ(b,["n","lapses"])?a:b;
+  const n=Math.max(+a.n||0,+b.n||0),lp=Math.max(+a.lapses||0,+b.lapses||0);if((+w.n||0)===n&&(+w.lapses||0)===lp)return w;const o=Object.assign({},w);if(n)o.n=n;o.lapses=lp;return o}
+// newest by rank, the rest of the record follows the winner; `keep` fields are merged separately by the caller
+function lww(x,y,rx,ry,skip){if(rx!==ry)return rx>ry?x:y;if(J(x)===J(y))return x;return sansJ(x,skip||[])>=sansJ(y,skip||[])?x:y}
 function tsOf(o,k){return (o&&o._ts&&o._ts[k])||""}
-function normC(o){if(!o||!Array.isArray(o.custom)||!isObj(o.cards))return o;const m={};o.custom.forEach((c,i)=>{if(c&&c.de)m["c:"+i]="cde:"+c.de});const cards={};for(const k in o.cards)cards[m[k]||k]=o.cards[k];return Object.assign({},o,{cards})}
-function denormC(o,pref){if(!o||!Array.isArray(o.custom))return o;const pos={};(pref||[]).forEach((c,i)=>{if(c&&c.de&&!(c.de in pos))pos[c.de]=i});const rk=c=>(c.de in pos)?pos[c.de]:1e9;const arr=o.custom.slice().sort((x,y)=>rk(x)-rk(y)||String(x.de).localeCompare(String(y.de)));const idx={};arr.forEach((c,i)=>idx["cde:"+c.de]="c:"+i);const cards={};for(const k in (o.cards||{})){if(k.startsWith("cde:")){if(idx[k])cards[idx[k]]=o.cards[k]}else if(!/^c:\d+$/.test(k))cards[k]=o.cards[k]}return Object.assign({},o,{custom:arr,cards})}
+// ---- own cards: stable ids
+function h32(s){let h=2166136261;s=String(s);for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0).toString(36)}
+function custIds(arr){const used=new Set();(arr||[]).forEach(c=>{if(c&&c.id)used.add(String(c.id))});return (arr||[]).map(c=>{if(!c||typeof c!=="object"||typeof c.de!=="string")return null;if(c.id)return String(c.id);const b="h"+h32(c.de);let id=b,n=1;while(used.has(id))id=b+"~"+(++n);used.add(id);return id})}
+function normC(o){if(!o||typeof o!=="object")return o;const cust=Array.isArray(o.custom)?o.custom:[];const ids=custIds(cust);const m={};const custom=[];
+  cust.forEach((c,i)=>{if(!ids[i])return;m["c:"+i]="cid:"+ids[i];m["p:c:"+i]="p:cid:"+ids[i];custom.push(c.id===ids[i]?c:Object.assign({},c,{id:ids[i]}))});
+  const cards={};const src=isObj(o.cards)?o.cards:{};for(const k in src){if(/^(p:)?c:\d+$/.test(k)){if(m[k])cards[m[k]]=src[k]}else cards[k]=src[k]}
+  const orph=(o._own&&isObj(o._own.orph))?o._own.orph:{};for(const k in orph)cards[k]=cardWin(cards[k],orph[k]);
+  let del=o.del;if(isObj(del)){let ch=false;const d={};for(const k in del){if(k.indexOf("cde:")===0){const nk="cid:h"+h32(k.slice(4));d[nk]=maxS(d[nk],del[k]);ch=true}else d[k]=maxS(d[k],del[k])}if(ch)del=d}
+  const out=Object.assign({},o,{custom,cards});if(del!==undefined)out.del=del;if(out._own)out._own=Object.assign({},out._own,{orph:{}});return out}
+function denormC(o,pref){if(!o||!Array.isArray(o.custom))return o;const pos={};custIds(pref||[]).forEach((id,i)=>{if(id&&!(id in pos))pos[id]=i});const rk=c=>(c.id in pos)?pos[c.id]:1e9;
+  const arr=o.custom.slice().sort((x,y)=>rk(x)-rk(y)||(String(x.id)<String(y.id)?-1:String(x.id)>String(y.id)?1:0));const idx={};arr.forEach((c,i)=>{idx["cid:"+c.id]="c:"+i;idx["p:cid:"+c.id]="p:c:"+i});
+  const cards={},orph={};for(const k in (o.cards||{})){if(/^(p:)?cid:/.test(k)){if(idx[k])cards[idx[k]]=o.cards[k];else orph[k]=o.cards[k]}else if(!/^(p:)?c:\d+$/.test(k))cards[k]=o.cards[k]}
+  const out=Object.assign({},o,{custom:arr,cards});if(Object.keys(orph).length||o._own)out._own=Object.assign({v:1},o._own||{},{orph});return out}
 function mergeStates(L,R){if(!R)return L;if(!L)return R;return denormC(mergeCore(normC(L),normC(R)),L&&L.custom)}
-function mergeCore(L,R){
-  const eL=L._epoch||"",eR=R._epoch||"";if(eL!==eR){const win=eL>eR?L:R,lose=win===L?R:L;const out=Object.assign({},win);for(const k of DEVICE_KEYS)if(L[k]!==undefined)out[k]=L[k];
-    const ep=win._epoch;if(isObj(lose.cards)){out.cards=Object.assign({},win.cards);for(const id in lose.cards){const c=lose.cards[id];if((c.last||"")>ep)out.cards[id]=cardWin(out.cards[id],c)}}
-    return out}
+// lists (events, mistakes, corrections …): union, oldest first, at most 3,000
+function mergeArr(a,b){const seen=new Map();a.concat(b).forEach(x=>seen.set(stableJ(x),x));const m=[...seen.keys()].map(s=>[s,seen.get(s)]);const kk=p=>String((p&&(p.at||p.date||p.d))||"")+"\u0001"+String((p&&p.t)||"");
+  m.sort((p,q)=>{const kp=kk(p[1]),kq=kk(q[1]);return kp!==kq?(kp<kq?-1:1):(p[0]<q[0]?-1:p[0]>q[0]?1:0)});return m.slice(-3000).map(x=>x[1])}
+// ---- one log day
+function mergeLogDay(x,y){if(!isObj(x)||!isObj(y))return isObj(x)?x:isObj(y)?y:pick(x,y);const m={};
+  for(const f of [...new Set([...Object.keys(x),...Object.keys(y)])].sort()){if(f==="dv"||f==="dc")continue;const p=x[f],q=y[f];m[f]=typeof p==="number"&&typeof q==="number"?Math.max(p,q):typeof p==="boolean"&&typeof q==="boolean"?(p||q):joinDeep(p,q)}
+  if(isObj(x.dv)||isObj(y.dv)){const dv=joinDeep(isObj(x.dv)?x.dv:{},isObj(y.dv)?y.dv:{});m.dv=dv;const sum=Object.values(dv).reduce((s,v)=>s+(+v||0),0);m.sec=Math.max(sum,+x.sec||0,+y.sec||0)}
+  if(isObj(x.dc)||isObj(y.dc)){const dc=joinDeep(isObj(x.dc)?x.dc:{},isObj(y.dc)?y.dc:{});m.dc=dc;const tot={};for(const dev in dc)if(isObj(dc[dev]))for(const f in dc[dev])tot[f]=(tot[f]||0)+(+dc[dev][f]||0);for(const f in tot)m[f]=Math.max(tot[f],+x[f]||0,+y[f]||0)}
+  return m}
+// ---- the pact
+function mergePakt(a,b,ta,tb){if(!isObj(a)||!isObj(b))return isObj(a)?a:isObj(b)?b:pick(a,b);
+  const LAT=["ch","chSess","chStart","sealed","bett","faust","signed","date","done","debt","lastCheck","counted","paid","debtPeak","restUsed","du","duAt","duAsked","verw","verwN","choices","choicesAt","mile"].concat(Object.keys(PAKT_RULES));
+  const o=Object.assign({},lww(a,b,ta,tb,LAT));
+  const cha=+a.ch||1,chb=+b.ch||1;o.ch=Math.max(cha,chb);
+  {const w=cha!==chb?(cha>chb?a:b):((+a.chSess||0)!==(+b.chSess||0)?((+a.chSess||0)>(+b.chSess||0)?a:b):(String(a.chStart||"")>=String(b.chStart||"")?a:b));if(w.chSess!==undefined)o.chSess=w.chSess;else delete o.chSess;if(w.chStart!==undefined)o.chStart=w.chStart;else delete o.chStart}
+  o.sealed=minMap(a.sealed,b.sealed);if(a.bett||b.bett)o.bett=minMap(a.bett,b.bett);else delete o.bett;
+  o.faust=[...new Set([...(Array.isArray(a.faust)?a.faust:[]),...(Array.isArray(b.faust)?b.faust:[])])].sort((p,q)=>p-q);
+  o.signed=!!(a.signed||b.signed);const dt=minS(a.date,b.date);if(dt||a.date!==undefined||b.date!==undefined)o.date=dt;const dn=minS(a.done,b.done);if(dn)o.done=dn;else delete o.done;
+  {const la=String(a.lastCheck||""),lb=String(b.lastCheck||""),ca=String(a.counted||""),cb=String(b.counted||"");const lc=la>=lb?la:lb,cn=ca>=cb?ca:cb;if(lc||a.lastCheck!==undefined||b.lastCheck!==undefined)o.lastCheck=lc;if(cn||a.counted!==undefined||b.counted!==undefined)o.counted=cn;
+    const ra=la+"\u0001"+ca,rb=lb+"\u0001"+cb;const d=ra!==rb?(ra>rb?a.debt:b.debt):Math.max(+a.debt||0,+b.debt||0);o.debt=o.done?0:(+d||0)}
+  for(const f of ["paid","debtPeak","verw"]){const v=Math.max(+a[f]||0,+b[f]||0);if(v||a[f]!==undefined||b[f]!==undefined)o[f]=v;else delete o[f]}
+  for(const f of ["restUsed","verwN","mile"]){if(a[f]!==undefined||b[f]!==undefined)o[f]=joinDeep(a[f],b[f]);else delete o[f]}
+  {const r=p=>String(p.duAt||"")+"\u0001"+(p.du===true?2:p.du===false?1:0);const w=r(a)>=r(b)?a:b;if(w.du!==undefined)o.du=w.du;else delete o.du;if(w.duAt!==undefined)o.duAt=w.duAt;else delete o.duAt;const da=minS(a.duAsked,b.duAsked);if(da)o.duAsked=da;else delete o.duAsked}
+  if(a.choices||b.choices||a.choicesAt||b.choicesAt){const ch={},at={};const A=a.choices||{},B=b.choices||{},AT=a.choicesAt||{},BT=b.choicesAt||{};
+    for(const k of [...new Set([...Object.keys(A),...Object.keys(B)])].sort()){const x=A[k],y=B[k];let w;if(x==null)w="b";else if(y==null)w="a";else{const tx=String(AT[k]||""),ty=String(BT[k]||"");w=tx!==ty?(tx>ty?"a":"b"):(+x<=+y?"a":"b")}ch[k]=w==="a"?x:y;const t=w==="a"?AT[k]:BT[k];if(t)at[k]=t}
+    o.choices=ch;if(Object.keys(at).length)o.choicesAt=at;else delete o.choicesAt}else{delete o.choices;delete o.choicesAt}
+  for(const f in PAKT_RULES){try{if(a[f]===undefined)o[f]=b[f];else if(b[f]===undefined)o[f]=a[f];else o[f]=PAKT_RULES[f](a[f],b[f],a,b);if(o[f]===undefined)delete o[f]}catch(e){o[f]=pick(a[f],b[f])}}
+  return o}
+// ---- whole reset: what survives from the side that did not see it
+function epochFilter(X,E){const o={_epoch:E};for(const k of DEVICE_KEYS)if(X[k]!==undefined)o[k]=X[k];const day=E.slice(0,10);
+  if(isObj(X.cards)){const c={};for(const id in X.cards){const x=X.cards[id];if(x&&cBorn(x)>E)c[id]=x}o.cards=c}
+  if(isObj(X.log)){const l={};for(const d in X.log)if(d>day)l[d]=X.log[d];o.log=l}
+  if(isObj(X.del)){const d={};for(const id in X.del)if(X.del[id]>E)d[id]=X.del[id];o.del=d}
+  if(Array.isArray(X.custom))o.custom=X.custom.filter(c=>c&&String(c.at||"")>E);
+  return o}
+function mergeCore(L0,R0){
+  const eL=L0._epoch||"",eR=R0._epoch||"";const E=eL>eR?eL:eR;const L=eL<E?epochFilter(L0,E):L0,R=eR<E?epochFilter(R0,E):R0;
   const out={};const keys=[...new Set([...Object.keys(L),...Object.keys(R)])].sort();
-  for(const k of keys){if(DEVICE_KEYS.has(k)){out[k]=L[k]!==undefined?L[k]:R[k];continue}const a=L[k],b=R[k];
-    if(a===undefined){out[k]=b;continue}if(b===undefined){out[k]=a;continue}
+  for(const k of keys){if(DEVICE_KEYS.has(k)){out[k]=L0[k]!==undefined?L0[k]:R0[k];continue}const a=L[k],b=R[k];
+    if(a===undefined||b===undefined){const v=a===undefined?b:a;const tl=tsOf(L,k),tr=tsOf(R,k);const gone=a===undefined?tl:tr,have=a===undefined?tr:tl;
+      if(gone>have&&(v===null||typeof v!=="object")&&k[0]!=="_")continue; // a setting that was removed later than it was last set stays removed
+      out[k]=Array.isArray(v)&&k!=="custom"&&!MERGE_RULES[k]?mergeArr(v,[]):v;continue}
     try{
-    if(k==="_ts"){const o=Object.assign({},b);for(const x in a)o[x]=(a[x]||"")>(o[x]||"")?a[x]:o[x];out[k]=o}
+    if(MERGE_RULES[k]){out[k]=MERGE_RULES[k](a,b,L,R)}
+    else if(k==="_ts"||k==="del"||k==="_epochs"){const o=Object.assign({},b);for(const x in a)o[x]=(a[x]||"")>(o[x]||"")?a[x]:o[x];out[k]=o}
     else if(k==="_epoch"){out[k]=a>b?a:b}
-    else if(k==="cards"){const o={};for(const id of new Set([...Object.keys(a),...Object.keys(b)]))o[id]=cardWin(a[id],b[id]);out[k]=o}
-    else if(k==="lessons"){const o={};for(const id of new Set([...Object.keys(a),...Object.keys(b)])){const x=a[id],y=b[id];if(!x||!y){o[id]=x||y;continue}const nw=(x.last||"")!==(y.last||"")?((x.last||"")>(y.last||"")?x:y):pick(x,y);o[id]=Object.assign({},nw,{best:Math.max(x.best||0,y.best||0),n:Math.max(x.n||0,y.n||0)})}out[k]=o}
-    else if(k==="log"){const o={};for(const d of new Set([...Object.keys(a),...Object.keys(b)])){const x=a[d],y=b[d];if(!x||!y||!isObj(x)||!isObj(y)){o[d]=x||y;continue}const m={};for(const f of new Set([...Object.keys(x),...Object.keys(y)])){const p=x[f],q=y[f];m[f]=typeof p==="number"&&typeof q==="number"?Math.max(p,q):typeof p==="boolean"||typeof q==="boolean"?!!(p||q):(p===undefined?q:q===undefined?p:pick(p,q))}if(isObj(x.dv)||isObj(y.dv)){const dv=Object.assign({},y.dv||{});for(const id in (x.dv||{}))dv[id]=Math.max(dv[id]||0,x.dv[id]||0);m.dv=dv;const sum=Object.values(dv).reduce((s2,v)=>s2+(+v||0),0);m.sec=Math.max(sum,(isObj(x.dv)&&isObj(y.dv))?0:(m.sec||0))}o[d]=m}out[k]=o}
-    else if(k==="newToday"){out[k]=(a.date||"")!==(b.date||"")?((a.date||"")>(b.date||"")?a:b):Object.assign({},a,{n:Math.max(a.n||0,b.n||0),p:Math.max(a.p||0,b.p||0)})}
-    else if(k==="pakt"){const nw=tsOf(L,"pakt")!==tsOf(R,"pakt")?(tsOf(L,"pakt")>tsOf(R,"pakt")?a:b):((a.ch||1)!==(b.ch||1)?((a.ch||1)>(b.ch||1)?a:b):pick(a,b));
-      out[k]=Object.assign({},nw,{ch:Math.max(a.ch||1,b.ch||1),sealed:Object.assign({},b.sealed,a.sealed),faust:[...new Set([...(a.faust||[]),...(b.faust||[])])].sort((p,q)=>p-q),signed:!!(a.signed||b.signed),sig:a.sig||b.sig,name:nw.name||a.name||b.name,chSess:(a.ch||1)===(b.ch||1)?Math.max(a.chSess||0,b.chSess||0):nw.chSess},(a.done||b.done)?{done:a.done||b.done,debt:0}:{},(a.bett||b.bett)?{bett:Object.assign({},b.bett,a.bett)}:{},(a.choices||b.choices)?{choices:Object.assign({},b.choices,a.choices)}:{})}
-    else if(k==="del"){const o=Object.assign({},b);for(const x in a)o[x]=(a[x]||"")>(o[x]||"")?a[x]:o[x];out[k]=o}
-    else if(k==="_epochs"){const o=Object.assign({},b);for(const x in a)o[x]=(a[x]||"")>(o[x]||"")?a[x]:o[x];out[k]=o}
-    else if(k==="pocket"){out[k]=(a.date||"")!==(b.date||"")?((a.date||"")>(b.date||"")?a:b):{date:a.date,done:Object.assign({},b.done,a.done),counted:a.counted||b.counted}}
-    else if(k==="gruft"){const o={};for(const n of new Set([...Object.keys(a),...Object.keys(b)])){const x=a[n],y=b[n];o[n]=!x||!y?(x||y):{ok:Math.max(x.ok||0,y.ok||0),miss:Math.max(x.miss||0,y.miss||0)}}out[k]=o}
-    else if(k==="palace"){const o={};for(const n of new Set([...Object.keys(a),...Object.keys(b)])){const x=a[n],y=b[n];o[n]=!x||!y?(x||y):Object.assign({},pick(x,y),{ok:Math.max(x.ok||0,y.ok||0),miss:Math.max(x.miss||0,y.miss||0)})}out[k]=o}
-    else if(k==="rezi"||k==="badges"||k==="bossWins"){const o={};for(const n of new Set([...Object.keys(a),...Object.keys(b)])){const x=a[n],y=b[n];o[n]=!x||!y?(x||y):((x.best||x.acc||0)!==(y.best||y.acc||0)?((x.best||x.acc||0)>(y.best||y.acc||0)?x:y):pick(x,y))}out[k]=o}
-    else if(k==="s3b"){out[k]={done:Object.assign({},b.done,a.done),sc:(()=>{const o=Object.assign({},b.sc);for(const x in (a.sc||{}))o[x]=Math.max(o[x]||0,a.sc[x]||0);return o})()}}
-    else if(k==="bib"){const o={};for(const n of new Set([...Object.keys(a),...Object.keys(b)])){const x=a[n]||{},y=b[n]||{};o[n]=Object.assign({},pick(x,y),{done:Object.assign({},y.done,x.done),pg:Object.assign({},y.pg,x.pg)})}out[k]=o}
-    else if(k==="custom"){const m=new Map();[...b,...a].forEach(c=>{const id=c.de;m.set(id,m.has(id)?pick(m.get(id),c):c)});const seen=new Set();const arr=[];a.forEach(c=>{if(!seen.has(c.de)){arr.push(m.get(c.de));seen.add(c.de)}});b.forEach(c=>{if(!seen.has(c.de)){arr.push(m.get(c.de));seen.add(c.de)}});out[k]=arr}
-    else if(Array.isArray(a)&&Array.isArray(b)){const seen=new Map();[...a,...b].forEach(x=>seen.set(J(x),x));const m=[...seen.values()];m.sort((p,q)=>{const kp=String((p&&(p.at||p.date))||""),kq=String((q&&(q.at||q.date))||"");return kp!==kq?kp.localeCompare(kq):J(p).localeCompare(J(q))});out[k]=m.slice(-3000)}
-    else if(UNION_MAPS.has(k)&&isObj(a)&&isObj(b)){const o={};for(const n of new Set([...Object.keys(a),...Object.keys(b)]))o[n]=a[n]===undefined?b[n]:b[n]===undefined?a[n]:pick(a[n],b[n]);out[k]=o}
-    else{const ta=tsOf(L,k),tb=tsOf(R,k);out[k]=ta!==tb?(ta>tb?a:b):(J(a)===J(b)?a:b)}
-    }catch(e){out[k]=a}}
-  // tombstones: a deleted card stays deleted unless it was reviewed after the delete
-  try{const D=out.del||{};if(isObj(out.cards))for(const id in D){const c=out.cards[id];if(c&&(c.last||"")<=D[id])delete out.cards[id]}if(Array.isArray(out.custom))out.custom=out.custom.filter(c=>!(c&&D["cde:"+c.de]&&!(out.cards&&out.cards["cde:"+c.de])))}catch(e){}
+    else if(k==="cards"){const o={};for(const id of new Set([...Object.keys(a),...Object.keys(b)])){const c=cardWin(a[id],b[id]);if(c)o[id]=c}out[k]=o}
+    else if(k==="_own"){out[k]=Object.assign({},joinDeep(Object.assign({},a,{orph:0}),Object.assign({},b,{orph:0})),{orph:{}})}
+    else if(k==="lessons"){const o={};for(const id of new Set([...Object.keys(a),...Object.keys(b)])){const x=a[id],y=b[id];if(!x||!y||!isObj(x)||!isObj(y)){o[id]=isObj(x)?x:isObj(y)?y:pick(x,y);continue}const nw=lww(x,y,String(x.last||""),String(y.last||""),["best","n"]);const r=Object.assign({},nw);const be=Math.max(+x.best||0,+y.best||0),nn=Math.max(+x.n||0,+y.n||0);if(be||x.best!==undefined||y.best!==undefined)r.best=be;if(nn||x.n!==undefined||y.n!==undefined)r.n=nn;o[id]=r}out[k]=o}
+    else if(k==="log"){const o={};for(const d of new Set([...Object.keys(a),...Object.keys(b)])){const x=a[d],y=b[d];o[d]=x===undefined?y:y===undefined?x:mergeLogDay(x,y)}out[k]=o}
+    else if(k==="newToday"){out[k]=(a.date||"")!==(b.date||"")?((a.date||"")>(b.date||"")?a:b):Object.assign({},lww(a,b,"","",["n","p"]),{n:Math.max(+a.n||0,+b.n||0),p:Math.max(+a.p||0,+b.p||0)})}
+    else if(k==="pakt"){out[k]=mergePakt(a,b,tsOf(L,"pakt"),tsOf(R,"pakt"))}
+    else if(k==="pocket"){out[k]=(a.date||"")!==(b.date||"")?((a.date||"")>(b.date||"")?a:b):Object.assign({},lww(a,b,"","",["done","counted"]),{done:joinDeep(a.done||{},b.done||{}),counted:joinDeep(a.counted,b.counted)})}
+    else if(k==="gruft"){const o={};for(const n of new Set([...Object.keys(a),...Object.keys(b)])){const x=a[n],y=b[n];o[n]=!isObj(x)||!isObj(y)?(isObj(x)?x:isObj(y)?y:pick(x,y)):Object.assign({},lww(x,y,"","",["ok","miss"]),{ok:Math.max(+x.ok||0,+y.ok||0),miss:Math.max(+x.miss||0,+y.miss||0)})}out[k]=o}
+    else if(k==="palace"){const o={};for(const n of new Set([...Object.keys(a),...Object.keys(b)])){const x=a[n],y=b[n];o[n]=!isObj(x)||!isObj(y)?(isObj(x)?x:isObj(y)?y:pick(x,y)):Object.assign({},lww(x,y,"","",["ok","miss"]),{ok:Math.max(+x.ok||0,+y.ok||0),miss:Math.max(+x.miss||0,+y.miss||0)})}out[k]=o}
+    else if(k==="rezi"||k==="badges"||k==="bossWins"){const o={};const sc=x=>+(x&&(x.best||x.acc))||0;for(const n of new Set([...Object.keys(a),...Object.keys(b)])){const x=a[n],y=b[n];o[n]=x===undefined?y:y===undefined?x:(sc(x)!==sc(y)?(sc(x)>sc(y)?x:y):pick(x,y))}out[k]=o}
+    else if(k==="bib"){const o={};for(const n of new Set([...Object.keys(a),...Object.keys(b)])){const x=a[n],y=b[n];if(!isObj(x)||!isObj(y)){o[n]=isObj(x)?x:isObj(y)?y:pick(x,y);continue}const r=Object.assign({},lww(x,y,"","",["done","pg"]));if(x.done!==undefined||y.done!==undefined)r.done=joinDeep(x.done,y.done);if(x.pg!==undefined||y.pg!==undefined)r.pg=joinDeep(x.pg,y.pg);o[n]=r}out[k]=o}
+    else if(k==="custom"){const m=new Map();[...a,...b].forEach(c=>{if(!c||!c.id)return;const o=m.get(c.id);m.set(c.id,!o?c:lww(o,c,String(o.at||""),String(c.at||""),[]))});out[k]=[...m.keys()].sort().map(id=>m.get(id))}
+    else if(Array.isArray(a)&&Array.isArray(b)){out[k]=mergeArr(a,b)}
+    else if(MIN_MAPS.has(k)&&isObj(a)&&isObj(b)){out[k]=minMap(a,b)}
+    else if((UNION_MAPS.has(k)||JOIN_KEYS.has(k))&&isObj(a)&&isObj(b)){out[k]=joinDeep(a,b)}
+    else{const ta=tsOf(L,k),tb=tsOf(R,k);out[k]=ta!==tb?(ta>tb?a:b):pick(a,b)}
+    }catch(e){out[k]=pick(a,b)}}
   // partial resets: per-group epochs. The side that reset a group more recently wins that group's keys, except keys the other side changed after the reset.
-  try{const EL=L._epochs||{},ER=R._epochs||{};for(const g of new Set([...Object.keys(EL),...Object.keys(ER)])){const tl=EL[g]||"",tr=ER[g]||"";if(tl===tr)continue;const win=tl>tr?L:R,lose=win===L?R:L,ep=tl>tr?tl:tr;const keys=typeof resetKeysFor==="function"?resetKeysFor(g):[];
-    for(const k of keys){if(DEVICE_KEYS.has(k))continue;if(k==="cards"){const o=Object.assign({},win.cards||{});for(const id in (lose.cards||{})){const c=lose.cards[id];if((c.last||"")>ep)o[id]=cardWin(o[id],c)}out.cards=o;continue}
+  try{const EL=L._epochs||{},ER=R._epochs||{};for(const g of [...new Set([...Object.keys(EL),...Object.keys(ER)])].sort()){const tl=EL[g]||"",tr=ER[g]||"";if(tl===tr)continue;const win=tl>tr?L:R,lose=win===L?R:L,ep=tl>tr?tl:tr;const keys=typeof resetKeysFor==="function"?resetKeysFor(g):[];
+    for(const k of keys){if(DEVICE_KEYS.has(k))continue;if(k==="cards"){const o=Object.assign({},win.cards||{});for(const id in (lose.cards||{})){const c=lose.cards[id];if(c&&cBorn(c)>ep)o[id]=cardWin(o[id],c)}out.cards=o;continue}
+      if(k==="custom"){const m=new Map();(win.custom||[]).forEach(c=>{if(c&&c.id)m.set(c.id,c)});(lose.custom||[]).forEach(c=>{if(c&&c.id&&String(c.at||"")>ep){const o=m.get(c.id);m.set(c.id,!o?c:lww(o,c,String(o.at||""),String(c.at||""),[]))}});out.custom=[...m.keys()].sort().map(id=>m.get(id));continue}
       if(tsOf(lose,k)>ep)continue;if(win[k]===undefined)delete out[k];else out[k]=win[k]}}}catch(e){}
-  out.savedAt=(L.savedAt||"")>(R.savedAt||"")?L.savedAt:R.savedAt;return out}
-let TS_LAST=null;function tsStamp(){try{if(!S)return;S._ts=S._ts||{};const now=new Date().toISOString();const cur={};for(const k in S){if(DEVICE_KEYS.has(k)||k==="_ts"||k==="cards"||k==="log"||k==="events")continue;cur[k]=J(S[k])}
-  if(TS_LAST)for(const k in cur)if(cur[k]!==TS_LAST[k])S._ts[k]=now;TS_LAST=cur}catch(e){}}
+  // tombstones: a deleted card stays deleted unless it was reviewed or added again after the delete; an own card's text unless it was written or edited after it
+  try{const D=out.del||{};if(isObj(out.cards))for(const id in D)for(const key of [id,"p:"+id]){const c=out.cards[key];if(c&&cBorn(c)<=D[id])delete out.cards[key]}
+    if(Array.isArray(out.custom))out.custom=out.custom.filter(c=>!(c&&D["cid:"+c.id]&&String(c.at||"")<=D["cid:"+c.id]))}catch(e){}
+  out.savedAt=(L0.savedAt||"")>(R0.savedAt||"")?L0.savedAt:R0.savedAt;if(out.savedAt===undefined)delete out.savedAt;return out}
+// ---- stamps written before every save: per-key setting times, ids and edit times of own cards, re-add times, per-device counters, the du decision
+let TS_LAST=null,OWN_LAST=null,DU_LAST;
+function stampOwn(now){try{if(!S||!Array.isArray(S.custom))return;now=now||new Date().toISOString();S._own=isObj(S._own)?S._own:{v:0,orph:{}};const first=!S._own.v;const ids=custIds(S.custom);const seen={};
+    S.custom.forEach((c,i)=>{if(!c||!ids[i])return;if(!c.id){c.id=ids[i];if(c.at===undefined)c.at=first?"":now}const j=sansJ(c,["at"]);if(OWN_LAST&&OWN_LAST[c.id]!==undefined&&OWN_LAST[c.id]!==j)c.at=now;else if(OWN_LAST&&OWN_LAST[c.id]===undefined&&!first&&!c.at)c.at=now;seen[c.id]=sansJ(c,["at"])});
+    OWN_LAST=seen;S._own.v=1;if(!isObj(S._own.orph))S._own.orph={};
+    // an orphaned review record whose text has come back
+    for(const k in S._own.orph){const m=/^(p:)?cid:(.*)$/.exec(k);const i=m?S.custom.findIndex(c=>c&&c.id===m[2]):-1;if(i>=0){const rk=(m[1]||"")+"c:"+i;S.cards[rk]=cardWin(S.cards[rk],S._own.orph[k]);delete S._own.orph[k]}}
+    // a card put back into the deck after it was deleted: remember when, so the old tombstone does not take it away again (QA D8)
+    const D=S.del;if(isObj(D)&&isObj(S.cards))for(const id in D){let rk=id;if(id.indexOf("cid:")===0){const i=S.custom.findIndex(c=>c&&c.id===id.slice(4));if(i<0)continue;rk="c:"+i;const c=S.custom[i];if(String(c.at||"")<=D[id])c.at=now}const c=S.cards[rk];if(c&&typeof c==="object"&&!c.last&&!(String(c.add||"")>D[id]))c.add=now}
+  }catch(e){}}
+function stampLog(){try{const d=todayKey(),L=S.log&&S.log[d];if(!isObj(L)||typeof devId!=="function")return;const me=devId();L.dc=isObj(L.dc)?L.dc:{};const mine=L.dc[me]=isObj(L.dc[me])?L.dc[me]:{};
+    for(const f in L){if(f==="sec"||f==="act"||f==="dv"||f==="dc"||typeof L[f]!=="number")continue;let others=0;for(const k in L.dc)if(k!==me)others+=+(L.dc[k]||{})[f]||0;mine[f]=Math.max(+mine[f]||0,L[f]-others)}}catch(e){}}
+function tsStamp(){try{if(!S)return;S._ts=S._ts||{};const now=new Date().toISOString();stampOwn(now);stampLog();
+  try{const p=S.pakt;if(isObj(p)){if(DU_LAST!==undefined&&p.du!==undefined&&p.du!==DU_LAST.du)p.duAt=now;DU_LAST={du:p.du}}}catch(e){}
+  const cur={};for(const k in S){if(DEVICE_KEYS.has(k)||k==="_ts"||k==="cards"||k==="log"||k==="events")continue;cur[k]=J(S[k])}
+  if(TS_LAST){for(const k in cur)if(cur[k]!==TS_LAST[k])S._ts[k]=now;for(const k in TS_LAST)if(!(k in cur))S._ts[k]=now}TS_LAST=cur}catch(e){}}
 const _saveNowTs=saveNow;saveNow=function(){tsStamp();return _saveNowTs.apply(this,arguments)};
 setTimeout(()=>{TS_LAST=null;tsStamp()},50);
-const _rateTs=rate;rate=function(key){const r=_rateTs.apply(this,arguments);try{const c=S.cards[key];if(c){c.last=new Date().toISOString();c.n=(c.n||0)+1}}catch(e){}return r};
+try{STORE.onAdopt(()=>{TS_LAST=null;OWN_LAST=null;DU_LAST=undefined;setTimeout(()=>{try{if(!TS_LAST)tsStamp()}catch(e){}},0)})}catch(e){}
+// a review is always later than the review before it, even when this device's clock is behind (QA D11)
+const _rateTs=rate;rate=function(key){const prev=String((S.cards[key]||{}).last||"");const r=_rateTs.apply(this,arguments);try{const c=S.cards[key];if(c){const now=new Date().toISOString();c.last=prev&&prev>=now?new Date(Date.parse(prev)+1).toISOString():now;c.n=(c.n||0)+1}}catch(e){}return r};
+// deleting a card: the tombstone carries the stable id; production cards of own cards move with their word (QA D9)
+deleteCard=function(key){S.del=S.del||{};const now=new Date().toISOString();let tk=key;stampOwn(now);
+  if(/^c:\d+$/.test(String(key))){const i=+String(key).slice(2);const c=(S.custom||[])[i];if(c){tk="cid:"+c.id;S.custom.splice(i,1);const nc={};for(const k in S.cards){const m=/^(p:)?c:(\d+)$/.exec(k);if(m){const j=+m[2];if(j===i)continue;nc[(m[1]||"")+"c:"+(j>i?j-1:j)]=S.cards[k]}else nc[k]=S.cards[k]}S.cards=nc;OWN_LAST=null}}
+  else{delete S.cards[key];delete S.cards["p:"+key]}
+  S.del[tk]=now;saveNow();try{buildDict()}catch(e){}toast("Aus dem Deck entfernt – auf allen Geräten.")};
 function markEpoch(){S._epoch=new Date().toISOString()}
 // 12.6: ACT.reset (c_v126.js) marks the epoch itself, only after a confirmed reset (whole: _epoch; partial: _epochs[group]).
 const _gFetchC=gFetch;gFetch=async function(url,init){const ac=typeof AbortController!=="undefined"?new AbortController():null;const t=ac?setTimeout(()=>ac.abort(),20000):null;
@@ -4544,7 +5261,6 @@ async function cCopy(id,folder,name){try{await gFetch(`${HUB.DRIVE}/files/${id}/
 async function cWrite(folder,name,obj,fileId,props){const b="mephisto"+Date.now();const meta=fileId?{name,appProperties:props||{}}:{name,parents:[folder],appProperties:props||{}};const body=`--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${b}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify(obj)}\r\n--${b}--`;
   const url=fileId?`${HUB.UPLOAD}/files/${fileId}?uploadType=multipart&fields=id,modifiedTime,appProperties`:`${HUB.UPLOAD}/files?uploadType=multipart&fields=id,modifiedTime,appProperties`;const r=await gFetch(url,{method:fileId?"PATCH":"POST",headers:{"Content-Type":"multipart/related; boundary="+b},body});return r.json()}
 async function cRead(id){const r=await gFetch(`${HUB.DRIVE}/files/${encodeURIComponent(id)}?alt=media`);const txt=await r.text();let o;try{o=JSON.parse(txt)}catch(e){throw new Error("remote_unreadable")}if(!isObj(o))throw new Error("remote_unreadable");if(o.v!==2)throw new Error(o.v>2?"remote_newer":"remote_unreadable");return o}
-function stableJ(v){if(Array.isArray(v))return "["+v.map(stableJ).join(",")+"]";if(v&&typeof v==="object")return "{"+Object.keys(v).sort().map(k=>JSON.stringify(k)+":"+stableJ(v[k])).join(",")+"}";return JSON.stringify(v===undefined?null:v)}
 function fpOf(o){const x={};Object.keys(o).sort().forEach(k=>{if(!DEVICE_KEYS.has(k))x[k]=o[k]});const s=stableJ(x);let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return (h>>>0).toString(36)+s.length.toString(36)}
 const CL={rev:null,status:"",at:"",err:"",running:false,started:0};
 function clSet(st,err){CL.status=st;CL.err=err||"";try{const b=$(".cl-chip");if(b){b.textContent=clIcon();b.title=clText()}hubPaint&&hubPaint()}catch(e){}}
@@ -4559,14 +5275,14 @@ async function cloudSync(force){if(!hubCan()||!gAuth()||!navigator.onLine){clSet
       for(const f of twins){let o;try{o=await cRead(f.id)}catch(e){if(e.message==="remote_unreadable"){try{const bf=await backupFolder();await cCopy(f.id,bf,`damaged-${new Date().toISOString().replace(/[:.]/g,"-")}.json`)}catch(x){}if(twins.length===1)throw e;continue}throw e}remote=remote?mergeStates(remote,validate(o)):validate(o)}
       if(twins.length&&!remote)throw new Error("remote_unreadable");
       const main=twins[0]||null;const before=fpOf(S);const merged=remote?mergeStates(S,remote):S;
-      if(remote&&fpOf(merged)!==before){try{lsSet("mephisto_before_drive",J(S))}catch(e){}const keep=Object.assign({},S.google||{});S=validate(merged);S.google=keep;TS_LAST=null;saveNow();try{applyPrefs();buildDict();rerender()}catch(e){}}
+      if(remote&&fpOf(merged)!==before){const keep=Object.assign({},S.google||{});const nx=validate(merged);nx.google=keep;adopt(nx,"cloud");TS_LAST=null;saveNow();try{applyPrefs();buildDict();if(!Focus.isOpen())rerender()}catch(e){}}
       if(!main&&localEmpty())break;
       const mfp=fpOf(S);const rfp=main&&main.appProperties&&main.appProperties.h;
       if(main&&twins.length===1&&rfp===mfp&&!force){setSynced(S.savedAt||"");CL.rev=(main.appProperties||{}).rev||null;break}
       if(main)await dailyCopy(main.id).catch(()=>{});
       if(main){const m2=await cMeta(main.id);if((m2.appProperties||{}).rev!==(main.appProperties||{}).rev)continue}
       S.savedAt=new Date().toISOString();const snap=Object.assign({},S);delete snap.today;const rev=String(Date.now())+Math.random().toString(36).slice(2,6);
-      await cWrite(folder,"state.json",snap,main&&main.id,{rev,h:fpOf(S),device:(typeof gDevice==="function"?gDevice():"mephisto").slice(0,60),app:"12.5.1"});
+      await cWrite(folder,"state.json",snap,main&&main.id,{rev,h:fpOf(S),device:(typeof gDevice==="function"?gDevice():"mephisto").slice(0,60),app:(typeof APP_VERSION!=="undefined"?APP_VERSION:"")});
       for(const t of twins.slice(1))await cTrash(t.id);
       if(main){const m3=await cMeta(main.id);if((m3.appProperties||{}).rev!==rev)continue}
       CL.rev=rev;setSynced(S.savedAt);saveNow();HUB.fp=stateFingerprint();HUB.stateAt=Date.now();break}
@@ -4584,10 +5300,10 @@ ACT.cloudNow=()=>{cloudSync(true);toast("Wolke: wird zusammengeführt …",1800)
 ACT.cloudBackups=async()=>{const box=Focus.open({title:"Zurückholen",sub:"Sicherungen auf Google Drive"});box.innerHTML=`<p class="muted ui pk-flicker">Sicherungen werden gelesen …</p>`;
   try{const L=await cloudBackups();box.innerHTML=`<div class="stack" style="max-width:640px;margin:0 auto"><div class="card orn">${pkSay(["Nichts geht verloren. Nicht einmal Ihre Fehler.","Nothing is lost. Not even your mistakes."])}</div><p class="muted ui">A copy of the cloud file is kept each day before anything is written: the last 7 days plus one per week for a month. <b>Zusammenführen</b> adds what a copy has — nothing is deleted. <b>Ersetzen</b> makes that day the truth on every device (a snapshot of now is kept; Rückgängig works).</p>
     ${L.length?L.map(x=>{const dmg=/^damaged/.test(x.name);return `<div class="card row between"><span><b>${dmg?"Beschädigte Datei · "+esc(fmtTime(x.modifiedTime)):esc(fmtDate(x.name.slice(6,16)))}</b><br><small class="muted ui">${Math.round((+x.size||0)/1024)} KB</small></span>${dmg?`<small class="muted ui">nur zur Sicherheit aufbewahrt</small>`:`<span class="row"><button class="sm" data-act="cloudRestore" data-id="${x.id}" data-m="merge">Zusammenführen</button><button class="sm ghost" data-act="cloudRestore" data-id="${x.id}" data-m="replace">Ersetzen</button></span>`}</div>`}).join(""):`<div class="card">Noch keine Sicherung. Die erste entsteht beim nächsten Abgleich.</div>`}</div>`}catch(e){box.innerHTML=`<div class="card">Konnte die Sicherungen nicht lesen: ${esc(clErrText(e))}</div>`}};
-ACT.cloudRestore=async el=>{try{const data=validate(await cRead(el.dataset.id));lsSet("mephisto_undo_restore",J(S));const keep=Object.assign({},S.google||{});
-  if(el.dataset.m==="merge")S=validate(mergeStates(S,data));else{S=data;markEpoch()}S.google=keep;S.savedAt=new Date().toISOString();TS_LAST=null;saveNow();applyPrefs();buildDict();Focus.close(true);rerender();
-  toast(el.dataset.m==="merge"?"Zusammengeführt.":"Zurückgesetzt – gilt jetzt auf allen Geräten. Rückgängig in den Einstellungen.",4500);cloudSync(true)}catch(e){toast("Fehler: "+clErrText(e))}};
-ACT.cloudUndo=()=>{const u=lsGet("mephisto_undo_restore");if(!u)return toast("Nichts rückgängig zu machen.");const keep=Object.assign({},S.google||{});S=validate(JSON.parse(u));S.google=keep;markEpoch();S.savedAt=new Date().toISOString();TS_LAST=null;saveNow();lsSet("mephisto_undo_restore","");applyPrefs();buildDict();rerender();toast("Rückgängig gemacht.");cloudSync(true)};
+ACT.cloudRestore=async el=>{try{const data=validate(await cRead(el.dataset.id));if(!(await STORE.guard(el.dataset.m==="merge"?"vor dem Zusammenführen mit einer Wolken-Sicherung":"vor dem Ersetzen durch eine Wolken-Sicherung"))){toast("Keine Sicherheitskopie möglich – nichts geändert. Erst unter Ich → Daten als Datei speichern.",6000);return}const keep=Object.assign({},S.google||{});
+  if(el.dataset.m==="merge")adopt(validate(mergeStates(S,data)),"restore");else{adopt(data,"restore");markEpoch()}S.google=keep;S.savedAt=new Date().toISOString();TS_LAST=null;saveNow();applyPrefs();buildDict();Focus.close(true);rerender();
+  toast(el.dataset.m==="merge"?"Zusammengeführt. Der Stand davor liegt unter Ich → Daten → Sicherungen.":"Ersetzt – gilt jetzt auf allen Geräten. Der Stand davor liegt unter Ich → Daten → Sicherungen.",5500);cloudSync(true)}catch(e){toast("Fehler: "+clErrText(e))}};
+ACT.cloudUndo=()=>{try{meSeg="data";go("me");toast("Wähle unter „Sicherungen“ den Stand, zu dem du zurückwillst.",4500)}catch(e){}};
 hubSync=async function(force){await cloudSync(force);try{await hubPushStatus(force);await hubPullPlan();await hubPullShifts()}catch(e){}HUB.last.sync=fmtTime(new Date().toISOString());hubPaint()};
 hubPushState=async function(force){return cloudSync(!!force)};
 hubPullState=async function(){await cloudSync(false);return "same"};
@@ -4596,13 +5312,27 @@ const _hubHTMLc=hubHTML;hubHTML=function(){let h=_hubHTMLc();if(!gAuth())return 
 let CL_T=null;MOD.after("saveSoon","cloud",function(){clearTimeout(CL_T);CL_T=setTimeout(()=>{if(gAuth&&gAuth())cloudSync(false)},60000)});
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&gAuth&&gAuth())cloudSync(false)});
 window.addEventListener("online",()=>{clSet("");if(gAuth&&gAuth())cloudSync(false)});window.addEventListener("offline",()=>clSet("off"));
-window.addEventListener("storage",e=>{try{if(e.key===LS_KEY&&e.newValue){const other=validate(JSON.parse(e.newValue));const keep=Object.assign({},S.google||{});S=validate(mergeStates(S,other));S.google=keep;TS_LAST=null;buildDict();if(!Focus.isOpen())rerender()}}catch(x){}});
+// second window, old storage only (no IndexedDB): merge what the other window saved, in place. With IndexedDB there is one writing window (c_p2_store.js).
+window.addEventListener("storage",e=>{try{if(STORE.mode==="idb"||STORE.st.pending)return;if(e.key===LS_KEY&&e.newValue){const raw=JSON.parse(e.newValue);if(!raw||raw._idb)return;const other=validate(raw);const keep=Object.assign({},S.google||{});const nx=validate(mergeStates(S,other));nx.google=keep;adopt(nx,"tab");TS_LAST=null;buildDict();if(!Focus.isOpen())rerender()}}catch(x){}});
 setInterval(()=>{if(!document.hidden&&gAuth&&gAuth())cloudSync(false)},300000);
 MOD.after("chrome","cloud",function(){try{const tc=$("#topChips");const cfg=typeof gConf==="function"?gConf():{};if(tc&&!tc.querySelector(".cl-chip")&&(gAuth&&gAuth()||cfg.clientId))tc.insertAdjacentHTML("afterbegin",`<button class="chip cl-chip" data-act="${gAuth&&gAuth()?"cloudNow":"hubConnect"}" title="${esc(gAuth&&gAuth()?clText():"Wolke: Anmeldung nötig")}">${gAuth&&gAuth()?clIcon():"☁⚠"}</button>`)}catch(e){}});
+MOD.after("chrome","p2store",function(){try{const tc0=$("#topChips");if(tc0&&STORE.st.unsaved&&!tc0.querySelector(".p2-unsaved"))tc0.insertAdjacentHTML("afterbegin",`<button class="chip p2-unsaved" data-act="meData" title="Der letzte Speicherversuch ist fehlgeschlagen">⚠ nicht gespeichert</button>`)}catch(e){}});
 
-["restoreText","restoreSnap"].forEach(k=>{const f=ACT[k];if(typeof f!=="function")return;ACT[k]=function(){const g=S.google?Object.assign({},S.google):null;const r=f.apply(this,arguments);try{if(g&&!S.google)S.google=g;markEpoch();TS_LAST=null;saveNow()}catch(e){}return r}});
+["restoreText","restoreSnap"].forEach(k=>{const f=ACT[k];if(typeof f!=="function")return;ACT[k]=async function(){const g=S.google?Object.assign({},S.google):null;const r=await f.apply(this,arguments);try{if(r===false)return r;if(g&&!S.google)S.google=g;markEpoch();TS_LAST=null;saveNow()}catch(e){}return r}});
+
+try{STORE.onStatus(()=>{try{const tc=$("#topChips");if(!tc)return;const c=tc.querySelector(".p2-unsaved");if(STORE.st.unsaved&&!c)tc.insertAdjacentHTML("afterbegin",`<button class="chip p2-unsaved" data-act="meData" title="Der letzte Speicherversuch ist fehlgeschlagen">⚠ nicht gespeichert</button>`);else if(!STORE.st.unsaved&&c)c.remove()}catch(e){}})}catch(e){}
 
 // ================= BOOT =================
-(function boot(){try{applyPrefs();buildDict();snapshot();const h=(location.hash||"").slice(1);if(["home","learn","practice","me"].includes(h))R.tab=h;rerender();capsReady();if(typeof runDeepLink==="function")setTimeout(runDeepLink,0)}
-  catch(e){const m=document.querySelector("main");m.innerHTML='<div class="view"><h1>Start fehlgeschlagen</h1><div class="crash">'+esc(String(e&&e.stack||e))+'</div><p>Dein gespeicherter Stand bleibt erhalten.</p><button class="primary" id="crashFresh">Mit frischem Stand starten</button></div>';document.getElementById("crashFresh").onclick=()=>{lsSet("mephisto_crash_backup",lsGet(LS_KEY)||"");try{localStorage.removeItem(LS_KEY)}catch(x){}location.reload()}}})();
+// P2: when the state lives in IndexedDB (localStorage holds only the stub) the first render waits for it (STORE.bootWait, at most 4 s).
+// The crash screen never deletes anything without a verified copy and offers the state as a file.
+(function(){
+  function crash(e){const m=document.querySelector("main");if(!m)return;m.innerHTML='<div class="view"><h1>Start fehlgeschlagen</h1><div class="crash">'+esc(String(e&&e.stack||e))+'</div><p>Dein gespeicherter Stand bleibt erhalten. Sichere ihn zuerst als Datei.</p><div class="row" style="gap:.5rem;flex-wrap:wrap"><button class="primary" id="crashSave">Stand als Datei sichern</button><button id="crashReload">Neu laden</button><button id="crashFresh">Mit frischem Stand starten</button></div><p id="crashMsg" class="muted"></p></div>';
+    const msg=t=>{const x=document.getElementById("crashMsg");if(x)x.textContent=t};const raw=()=>{try{return JSON.stringify(S)}catch(x){return lsGet(LS_KEY)||""}};
+    document.getElementById("crashSave").onclick=()=>{try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([raw()],{type:"application/json"}));a.download="mephisto-rettung.json";document.body.appendChild(a);a.click();a.remove();msg("Datei „mephisto-rettung.json“ wurde angeboten.")}catch(x){msg("Die Datei konnte nicht erzeugt werden.")}};
+    document.getElementById("crashReload").onclick=()=>location.reload();
+    document.getElementById("crashFresh").onclick=async()=>{msg("Sicherheitskopie wird angelegt …");let ok=false;try{ok=await STORE.wipe("vor dem Neustart nach einem Absturz")}catch(x){ok=false}
+      if(!ok){msg("Die Sicherheitskopie ließ sich nicht speichern – es wurde nichts gelöscht. Bitte zuerst „Stand als Datei sichern“.");return}location.reload()}}
+  function boot(){try{applyPrefs();buildDict();snapshot();const h=(location.hash||"").slice(1);if(["home","learn","practice","me"].includes(h))R.tab=h;rerender();STORE.st.booted=true;capsReady();if(typeof runDeepLink==="function")setTimeout(runDeepLink,0)}catch(e){crash(e)}}
+  let w=null;try{w=STORE.bootWait}catch(e){}
+  if(w&&typeof w.then==="function")w.then(boot,boot);else boot()})();
 

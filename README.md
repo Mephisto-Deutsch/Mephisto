@@ -6,7 +6,7 @@ Fachsprachprüfung, Goethe/telc B2 and telc Medizin practice, daily-life German,
 Open **https://mephisto-deutsch.github.io/Mephisto/** in Safari (iPhone: Share → Add to Home Screen)
 or Chrome (Android: menu → Install app). Works offline after the first visit.
 
-Progress is stored only on the device (localStorage). Move it between devices with Ich → Daten → Backup.
+Progress is stored only on the device (IndexedDB, with daily and weekly backups under Ich → Daten → Sicherungen). Move it between devices with Ich → Daten → Backup.
 
-Build 13.2.0-ac0dc7c58d. Fonts: Fraunces, Source Serif 4, Source Sans 3, JetBrains Mono, UnifrakturMaguntia,
+Build 13.3.0-9bc2c65a5d. Fonts: Fraunces, Source Serif 4, Source Sans 3, JetBrains Mono, UnifrakturMaguntia,
 all under the SIL Open Font License (fonts/OFL.txt), subset for this app.
