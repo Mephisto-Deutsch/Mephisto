@@ -1,15 +1,15 @@
 /* Mephisto 12 — "Der Pakt": realms, chapters, Mephisto's voice. Faust lines checked against Faust I (1808) / Faust II (1832), modern spelling. */
 const REALMS={
- I:{n:"I",de:"Der Schwarzwald",en:"The Black Forest",lv:"A1",mood:"Grimm-Nacht",art:"dore_17",boss:"Die Hexe",bossEn:"the Witch — she cooks every noun that has no gender",
-   intro:"Night. Fir trees close over you like a mouth. Mephisto walks ahead with a lantern that burns orange and gives no warmth. „Hier fängt jeder an“, he says. „Im Wald. Klein. Dumm. Ohne Artikel.“"},
- II:{n:"II",de:"Das Böhmische Café",en:"The Bohemian Café, Prague",lv:"A2",mood:"Jugendstil",art:"fahringer_37",boss:"Der Golem",bossEn:"the Golem — he obeys only commands with the verb in the right place",
-   intro:"Gaslight, gold leaf, green absinthe. Kafka wrote here; the Golem sleeps under the synagogue roof. Mephisto orders two coffees and drinks both. „Jetzt sprechen Sie mit Menschen. Gott steh ihnen bei.“"},
+ I:{n:"I",de:"Der Schwarzwald",en:"The Black Forest",lv:"A1",mood:"Tannenbühl",art:"dore_17",boss:"Die Hexe",bossEn:"the Witch — she cooks every noun that has no gender",
+   intro:"Night on the Tannenbühl, between the Murg and the Enz. Firs close over you like a mouth. Two spirits do business in this forest: a little man of glass who grants wishes, and a giant who buys hearts. Mephisto walks ahead with a lantern that burns orange and gives no warmth. „Hier fängt jeder an“, he says. „Im Wald. Klein. Dumm. Ohne Artikel.“"},
+ II:{n:"II",de:"Das Böhmische Café",en:"The Bohemian Café, Prague",lv:"A2",mood:"Café Arco, 1912",art:"fahringer_37",boss:"Der Golem",bossEn:"the Golem — he obeys only commands with the verb in the right place",
+   intro:"Prague, about 1912. Electric light on marble tables, a rack of newspapers from all over Europe, a head waiter who has heard everything: the Café Arco, opposite the station. Under the roof of the Old-New Synagogue, they say, something sleeps. Mephisto looks for a table for two. „Jetzt sprechen Sie mit Menschen. Die Armen.“"},
  III:{n:"III",de:"Fausts Studierzimmer",en:"Faust's Study",lv:"B1",mood:"Kerzenlicht",art:"delacroix_4",boss:"Der Pudel",bossEn:"the Poodle — Mephisto's own first shape; he tests your subordinate clauses",
-   intro:"A Gothic room, high-vaulted and narrow. Books to the ceiling, a skull, glass and smoke. Here a doctor once sold his soul because knowledge was not enough. „Kommt Ihnen bekannt vor, Doktor?“"},
- IV:{n:"IV",de:"Expressionistisches Berlin",en:"Expressionist Berlin",lv:"B2",mood:"Caligari",art:"clarke_31",boss:"Dr. Caligari",bossEn:"Dr. Caligari — the full Goethe B2 mock exam",
-   intro:"Streets that lean. Shadows painted on the walls. Rain on the U-Bahn, smoke in the cabaret. Every sentence here has a second meaning and a Nominalstil. „Willkommen in der Moderne. Sie wird Sie fressen.“"},
+   intro:"A Gothic room, high-vaulted and narrow. Books to the ceiling, a skull, glass and smoke. Here a doctor once made a bet with the devil because knowledge was not enough. In the old chapbook he sold his soul. Goethe let him wager it. „Kommt Ihnen bekannt vor, Doktor?“"},
+ IV:{n:"IV",de:"Expressionistisches Berlin",en:"Expressionist Berlin",lv:"B2",mood:"November 1923",art:"clarke_31",boss:"Dr. Caligari",bossEn:"Dr. Caligari — the full Goethe B2 mock exam",
+   intro:"Berlin, November 1923. Streets that lean. Shadows painted on the walls. Rain on the Hochbahn, smoke in the cabaret, a queue in front of every counter, and money that is worth less every evening than it was in the morning. Every sentence here has a second meaning and a Nominalstil. „Willkommen in der Moderne. Sie wird Sie fressen.“"},
  V:{n:"V",de:"Walpurgisnacht & Anatomisches Theater",en:"Walpurgis Night & the Anatomy Theatre",lv:"C1 · FSP",mood:"Brocken-Feuer",art:"clarke_7",boss:"Die Kommission",bossEn:"the Commission — a full Fachsprachprüfung",
-   intro:"On the Brocken the witches ride; below, in the anatomy theatre, a body lies open under gaslight and the examiners wait in a ring. „Hier zahlen Sie. Mit Fachsprache.“"}
+   intro:"On the Brocken the witches ride. Below lies one anatomy theatre, and you walk through its history from 1543 to today: wooden tiers, a bed in the arena, gaslight, and at the end a white room with three chairs. In the top row a gentleman in grey is already taking notes. „Hier zahlen Sie. Mit Fachsprache.“"}
 };
 // Chapters: lesson = course lesson bound to the chapter (opens via go("learn","id:"+lesson)); jung = the Jungian thread; scene: N = narrator (EN in I–II, DE from III), M = Mephisto (DE + en)
 const CHAPTERS=[

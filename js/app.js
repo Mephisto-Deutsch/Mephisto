@@ -173,7 +173,9 @@ const MOD=(function(){const H={};
     disp.__mod=name;window[name]=disp;H[name]=h;return h}
   return{
     after(name,tag,fn){install(name).after.push([tag,fn])},
-    list(){const o={};Object.keys(H).forEach(k=>o[k]=H[k].after.map(a=>a[0]));return o},
+    // around: fn(orig, ...args) may change arguments or the result; wrappers nest in load order (last registered is outermost); after-sections still run after the whole chain
+    around(name,tag,fn){const h=install(name);const inner=h.base;h.base=function(){return fn.call(this,(...a)=>inner.apply(this,a),...arguments)};(h.around=h.around||[]).push(tag)},
+    list(){const o={};Object.keys(H).forEach(k=>o[k]=(H[k].around||[]).map(t=>"around:"+t).concat(H[k].after.map(a=>a[0])));return o},
     report(){return Object.entries(this.list()).map(([k,v])=>k+": "+v.join(" → ")).join("\n")}}})();
 
 // ================= UI COMPONENTS (v2) =================
@@ -797,7 +799,7 @@ ACT.copyYuzu=()=>{const p=yuzuPack();copyText(JSON.stringify(p),$(".bk-txt"));to
 ACT.reset=()=>{const v=($(".rs-in")||{}).value;if(v!=="LÖSCHEN")return toast("Tippe LÖSCHEN zur Bestätigung");lsSet("mephisto_before_reset",JSON.stringify(S));S=fresh();saveNow();buildDict();applyPrefs();R.tab="home";toast("Zurückgesetzt. Eine Kopie liegt unter „mephisto_before_reset“.");rerender()};
 
 // ================= PHONE FEATURES (v10): speech check, Artikel-Blitz, numbers, terms, undo, haptics, coach, PWA =================
-const APP_VERSION="13.1.0";
+const APP_VERSION="13.2.0";
 const IS_PWA=!!window.MEPHISTO_PWA;
 const IS_STANDALONE=(()=>{try{return matchMedia("(display-mode: standalone)").matches||navigator.standalone===true}catch(e){return false}})();
 const IS_IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
@@ -4293,6 +4295,189 @@ body:has(#lore-cine) .sp-rabe{display:none}
 .lore-page.rN .lore-y{color:#9BD08A}
 `;document.head.appendChild(s)})();
 
+// ===== Mephisto · track S · c_s2.js — the scene loader (owner: s2).
+// Place: 13.0 build.sh → after v2/c_final.js, before every other c_s*.js · 13.1 modules.json → ["c_s2","story"] right after ["c_final","story"].
+// Contract = PLAN-S §3.1/§3.2. This file ADDS to the reference loader; it changes none of its behaviour.
+//
+// Registries (data files load before the code; each data file starts with its own `var X=X||{}` line):
+//   SCN[n]={scene:[…], sober:true?, after:[…]?}   whole scene of chapter n (one writer per n).
+//        `after` (optional addition): lines played after a WON duel of a boss chapter, BEFORE Bett vier — once right after the duel
+//        (own reader „Kapitel n · Nach dem Duell"), and on every re-read of the chapter between the scene and Bett vier.
+//   (INS[n]=INS[n]||[]).push({at,pkg,ord,lines})  lines inserted BEFORE anchor `at`; "open" = top; unknown anchor = end. Sorted by pkg, then ord.
+//   CHX[n]={faust,clause,ort,stage,jung,prev,next} per-field patch of CHAPTERS[n-1]. prev/next = [de,en] or [sie,en,du]; ort = a string.
+//   BETX[boss]=[…] → BETT[boss] · BOSX[boss]={intro,win,lose,taunt,…} → Object.assign(BOSSES[boss],…) · FINX.finale=[…] → STORY3[40].finale
+// Line shapes: ["N",en] | ["N",de,en] | ["M",sie,en,du?] | ["S",de,en] | ["X",who,de,en] | ["D",title,de,en] | ["SIG"] | ["C",id] | ["@",anchor] | ["IF",cond,then,else?]
+// Anchors, in this order in every scene: cast · task · pay. They are removed from CHAPTERS[n].scene; positions are kept.
+//
+// Exposed: SCN_AT · scnAt(n,name) (index in CHAPTERS[n-1].scene, as in the reference) · scnAt(n,name,true) (index in the list that
+//   st3Scene(c) returned LAST for chapter n, after unknown ["C",id]/["IF"] lines were filtered — use it to splice into the played list) ·
+//   SCN_SOBER · document.documentElement.dataset.sober ("1" while a sober reader is open: sober chapters, Bett vier, the finale) ·
+//   scnFirst() (learner's first name) · token {FIRST} in st3Fill · scnRecap(c) → {prev,next} html.
+// Reader additions for chapter reads: c.ort appended to the subtitle; c.prev as a muted card „Was bisher geschah" under the plate (first
+//   step only, like the plate); c.next as a card „Nächstes Mal" at the end, above the Faust card.
+// Wraps (story-internal functions, none of them a 13.1 MOD hook; a before/around change is required): st3Scene, st3Play, st3Bett, st3Fill.
+// No saved state. Nothing here throws at load.
+var SCN=SCN||{},CHX=CHX||{},INS=INS||{},BETX=BETX||{},BOSX=BOSX||{},FINX=FINX||{};
+const SCN_AT={},SCN_AT_PLAY={};let SCN_SOBER=false,SCN_SOBER_N=0,SCN_SOBER_LEN=-1,SCN_SET=false;
+function scnAt(n,name,played){const a=(played?SCN_AT_PLAY[n]:SCN_AT[n])||{};return a[name]==null?-1:a[name]}
+function scnFirst(){try{let n=String(P().name||"").trim();for(let k=0;k<3;k++)n=n.replace(/^((Dr|Prof)\.?(\s*med\.?)?|Herr|Frau)\s+/i,"");return n.split(/\s+/)[0]||"Amron"}catch(e){return "Amron"}}
+function scnOk(l){return Array.isArray(l)&&typeof l[0]==="string"&&l[0].length>0}
+function scnWon(c){try{const b=Object.keys(BOSSES).find(k=>BOSSES[k].ch===c.n);return !!(b&&(S.bossWins||{})[b])}catch(e){return false}}
+function scnAfter(n){try{const s=SCN[n];return s&&Array.isArray(s.after)&&s.after.length?s.after.filter(scnOk).filter(l=>l[0]!=="@").map(l=>l.slice()):null}catch(e){return null}}
+function scnTwo(x){try{if(!Array.isArray(x)||!x[0])return null;const du=typeof st3Du==="function"&&st3Du()&&x[2];return [st3Fill(du?x[2]:x[0]),st3Fill(x[1]||"")]}catch(e){return null}}
+function scnCard(cls,head,headEn,x){const g=typeof glossify==="function"?glossify(x[0]):esc(x[0]);return `<div class="scn-recap ${cls} no-sig"><div class="eyebrow">${head} <span class="en">${headEn}</span></div><div class="scn-de">${g}</div>${x[1]?st3En(x[1]):""}</div>`}
+function scnRecap(c){const o={prev:"",next:""};try{const p=scnTwo(c.prev),n=scnTwo(c.next);if(p)o.prev=scnCard("scn-prev","Was bisher geschah","previously",p);if(n)o.next=scnCard("scn-next pk-fade","Nächstes Mal","next time",n)}catch(e){}return o}
+(function(){
+// ---------------------------------------------------------------- 1. apply the registries (once, at load)
+try{
+  const FIELDS=["faust","clause","ort","stage","jung","prev","next"];
+  CHAPTERS.forEach(c=>{try{const n=c.n,s=SCN[n];
+    let L=(s&&Array.isArray(s.scene)&&s.scene.length?s.scene:c.scene).filter(scnOk).map(l=>l.slice());
+    (INS[n]||[]).slice().filter(x=>x&&Array.isArray(x.lines)).sort((a,b)=>String(a.pkg).localeCompare(String(b.pkg))||(a.ord||0)-(b.ord||0)).forEach(x=>{
+      const ls=x.lines.filter(scnOk).map(l=>l.slice());
+      if(x.at==="open"){L.splice(0,0,...ls);return}
+      const i=L.findIndex(l=>l[0]==="@"&&l[1]===x.at);if(i<0)L.push(...ls);else L.splice(i,0,...ls)});
+    const at={},out=[];L.forEach(l=>{if(l[0]==="@")at[l[1]]=out.length;else out.push(l)});
+    SCN_AT[n]=at;c.scene=out;if(s&&s.sober)c.sober=true;
+    const x=CHX[n];if(x)FIELDS.forEach(k=>{if(x[k]!=null)c[k]=x[k]})}catch(e){try{logError(e)}catch(x){}}});
+  Object.keys(BETX).forEach(b=>{if(Array.isArray(BETX[b]))BETT[b]=BETX[b]});
+  Object.keys(BOSX).forEach(b=>{if(BOSSES[b]&&BOSX[b]&&typeof BOSX[b]==="object")Object.assign(BOSSES[b],BOSX[b])});
+  if(Array.isArray(FINX.finale)&&STORY3[CHAPTERS.length])STORY3[CHAPTERS.length].finale=FINX.finale;
+}catch(e){try{logError(e)}catch(x){}}
+// ---------------------------------------------------------------- 2. what the reader plays: `after` coda, filters, sober flag, anchor positions in the played list
+try{const _sc=st3Scene;st3Scene=function(c){let L=_sc.apply(this,arguments);try{
+    const base=c.scene.length;const aft=scnWon(c)?scnAfter(c.n):null;
+    if(aft&&L.length>=base)L=L.slice(0,base).concat([["N","· · ·"]],aft,L.slice(base));           // scene · coda · (Bett vier) · (finale)
+    const sober=!!c.sober||L.length>base+(aft?aft.length+1:0);                                     // Bett vier or the finale is appended → sober reader
+    const hasIf=typeof sgFlat==="function";
+    const keep=l=>scnOk(l)&&l[0]!=="@"&&(hasIf||l[0]!=="IF")&&(l[0]!=="C"||(typeof CHOICES!=="undefined"&&!!CHOICES[l[1]])||(typeof CHOICES4!=="undefined"&&!!CHOICES4[l[1]]));
+    const at=SCN_AT[c.n]||{},pl={};Object.keys(at).forEach(k=>{let j=0;for(let i=0;i<at[k]&&i<L.length;i++)if(keep(L[i]))j++;pl[k]=j});SCN_AT_PLAY[c.n]=pl;
+    L=L.filter(keep);SCN_SOBER=sober;SCN_SOBER_N=c.n;SCN_SOBER_LEN=L.length}catch(e){}return L}}catch(e){}
+// ---------------------------------------------------------------- 3. the reader: sober flag set and cleared; ort, „Was bisher geschah", „Nächstes Mal"
+try{const _pl=st3Play;st3Play=function(o){let prev="";try{const h=document.documentElement;
+    const c=o&&o.c;const isCh=!!(c&&typeof o.title==="string"&&o.title.indexOf(`Kapitel ${c.n} · ${c.t}`)===0);
+    const fin=typeof STORY3!=="undefined"&&STORY3[CHAPTERS.length]&&o.lines===STORY3[CHAPTERS.length].finale;
+    const sober=(isCh&&SCN_SOBER&&SCN_SOBER_N===c.n&&o.lines&&o.lines.length===SCN_SOBER_LEN)||o.title==="Bett vier"||!!fin||!!(c&&c.sober&&isCh);
+    SCN_SOBER=false;SCN_SOBER_N=0;SCN_SOBER_LEN=-1;
+    if(sober){h.dataset.sober="1";SCN_SET=true}else{delete h.dataset.sober;SCN_SET=false}
+    const oc=o.onClose;o=Object.assign({},o,{onClose:function(){try{delete h.dataset.sober;SCN_SET=false}catch(e){}if(oc)return oc.apply(this,arguments)}});
+    if(isCh){if(c.ort&&typeof c.ort==="string")o.sub=(o.sub?o.sub+" · ":"")+c.ort;
+      const r=scnRecap(c);prev=r.prev;
+      if(r.next){const t=o.tail;o.tail=function(){return r.next+(t?t.apply(this,arguments):"")}}}}catch(e){}
+    const res=_pl.call(this,o);
+    try{if(prev){const box=document.querySelector("#fIn .st-read");if(box){const fig=box.querySelector("figure");if(fig)fig.insertAdjacentHTML("afterend",prev);else box.insertAdjacentHTML("afterbegin",prev)}}}catch(e){}
+    return res}}catch(e){}
+// a reader closed silently (Focus.close(true)) must not leave the page sober — watch the overlay instead of wrapping Focus.close
+try{const watch=()=>{const f=document.getElementById("focus");if(!f||typeof MutationObserver==="undefined")return false;
+    new MutationObserver(()=>{try{if(SCN_SET&&f.hidden){delete document.documentElement.dataset.sober;SCN_SET=false}}catch(e){}}).observe(f,{attributes:true,attributeFilter:["hidden"]});return true};
+  if(!watch())setTimeout(watch,0)}catch(e){}
+// ---------------------------------------------------------------- 4. after a won duel: the chapter's `after` coda, then Bett vier
+try{const _bt=st3Bett;st3Bett=function(id,then){const self=this,args=arguments;
+    try{const B=BOSSES[id];const c=B&&pkCh(B.ch);const aft=c&&c.n===B.ch?scnAfter(c.n):null;
+      if(aft)return st3Play({c,title:`Kapitel ${c.n} · Nach dem Duell`,sub:`${REALMS[c.r].n} · ${REALMS[c.r].de}`+(c.ort?" · "+c.ort:""),lines:aft,art:c.art,onClose:null,
+        done:{label:"Weiter",fn:function(){return _bt.apply(self,args)}}})}catch(e){}
+    return _bt.apply(self,args)}}catch(e){}
+// ---------------------------------------------------------------- 5. {FIRST}
+try{const _f=st3Fill;st3Fill=function(s){try{if(s!=null&&String(s).indexOf("{FIRST}")>=0)s=String(s).replace(/\{FIRST\}/g,scnFirst())}catch(e){}return _f.call(this,s)}}catch(e){}
+// ---------------------------------------------------------------- 6. styles
+try{const s=document.createElement("style");s.textContent=`
+.scn-recap{border-left:3px solid var(--line,#444);padding:.55rem .8rem;margin:.2rem 0;opacity:.82;font-family:var(--ui)}
+.scn-recap .eyebrow{font-size:.72rem;letter-spacing:.08em}
+.scn-recap .scn-de{font-family:var(--body);font-size:1rem;line-height:1.5;font-style:italic}
+.scn-recap.scn-next{border-left-color:var(--accent,#F08A3F);opacity:1}
+`;document.head.appendChild(s)}catch(e){}
+})();
+
+// ===== Mephisto · track S · c_s3.js (owner: s3) — the shelf „Berliner Bühne" (realm IV language material from v2/x_s3_berlin.js).
+// Four rooms: Berlinerisch fürs Ohr (text only, never read by TTS) · Couplets (listening via the existing TTS, gap fill) · Satire (reading + questions)
+// · Der Film (20 intertitles + order task). Opens from chapter 25 (P().ch>=25 or the pact finished); hidden before.
+// Tile: in the Werkstatt grid of the Pakt screen. 13.1: MOD.after("viewPakt","s3",…) (no function is reassigned). 13.0 fallback: wraps werkstattHTML
+// like c_verbs.js does (only when MOD does not exist).
+// State: S.s3b = {done:{<id>:1}, sc:{<id>:best%}} — ids o1…o30, c1…c4, s1…s3, film. Merge rule: done = union; sc = max per id. Device-independent.
+// Load: after v2/c_s2.js. Nothing here throws at load.
+var BERLIN=BERLIN||{};
+function s3St(){S.s3b=S.s3b||{};S.s3b.done=S.s3b.done||{};S.s3b.sc=S.s3b.sc||{};return S.s3b}
+function s3Open(){try{const p=P();return !!(p.signed&&((p.ch||1)>=25||p.done))}catch(e){return false}}
+function s3Done(id,sc){const s=s3St();s.done[id]=1;if(sc!=null)s.sc[id]=Math.max(s.sc[id]||0,sc);saveSoon()}
+function s3Count(pre,n){const d=s3St().done;let k=0;for(const id in d)if(id.indexOf(pre)===0&&(n==null||id!==n))k++;return k}
+function s3Du(){try{return typeof st3Du==="function"&&st3Du()}catch(e){return false}}
+function s3Shuf(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function s3Norm(s){return String(s||"").toLowerCase().replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/ß/g,"ss").replace(/[^a-z0-9]/g,"")}
+function s3Tile(){const n=Object.keys(s3St().done).length;const tot=(BERLIN.ohr||[]).length+(BERLIN.couplets||[]).length+(BERLIN.satire||[]).length+1;
+  return `<button data-act="s3Buhne" class="s3-tile"><b>Berliner Bühne</b><small>${n} / ${tot} · Berlinerisch · Couplets · Satire · Film</small></button>`}
+// ---------------------------------------------------------------- tile in the Werkstatt
+(function(){try{
+  if(typeof MOD!=="undefined"&&MOD&&typeof MOD.after==="function"){
+    MOD.after("viewPakt","s3",function(m){if(!s3Open())return;const g=(m||document).querySelector(".pk-werk .werk-grid");if(!g||g.querySelector('[data-act="s3Buhne"]'))return;g.insertAdjacentHTML("beforeend",s3Tile())})}
+  else if(typeof werkstattHTML==="function"){const _w=werkstattHTML;werkstattHTML=function(){const h=_w.apply(this,arguments);try{if(R.tab==="learn"||!s3Open())return h;return h.replace('<div class="werk-grid">','<div class="werk-grid">'+s3Tile())}catch(e){return h}}}
+}catch(e){try{logError(e)}catch(x){}}})();
+// ---------------------------------------------------------------- the shelf
+ACT.s3Buhne=()=>{const box=Focus.open({title:"Berliner Bühne",sub:"Berlin, November 1923 · B2"});const st=s3St();const fr=BERLIN.frame||["",""];
+  const room=(act,t,s,n,tot)=>`<button class="card" style="text-align:left;display:block" data-act="${act}"><div class="row between"><b style="font-family:var(--display);font-size:1.25rem">${esc(t)}</b><span class="chip">${n} / ${tot}</span></div><small class="muted ui">${esc(s)}</small></button>`;
+  box.innerHTML=`<div class="stack" style="max-width:720px;margin:0 auto"><div class="card orn">${pkSay([s3Du()&&fr[2]?fr[2]:fr[0],fr[1]])}</div>
+   ${room("s3Ohr","Berlinerisch fürs Ohr","30 Sätze, wie man sie auf der Trage hört – und wie man sie schreibt. Nur zum Verstehen.",s3Count("o"),(BERLIN.ohr||[]).length)}
+   ${room("s3Cps","Kabarett-Couplets","Vier Lieder zum Hören. Lücken füllen: Der Reim verrät das Wort.",s3Count("c"),(BERLIN.couplets||[]).length)}
+   ${room("s3Sats","Satire","Drei Texte zum Lesen – mit Fragen.",s3Count("s"),(BERLIN.satire||[]).length)}
+   ${room("s3Film","Der Film","„Das Kabinett der falschen Freunde“ – zwanzig Zwischentitel, danach die Reihenfolge.",st.done.film?1:0,1)}</div>`};
+// ---------------------------------------------------------------- 1. Berlinerisch (text only; no TTS on purpose)
+ACT.s3Ohr=()=>{const L=BERLIN.ohr||[];if(!L.length)return;const st=s3St();let order=s3Shuf(L.filter(x=>!st.done[x.id])).concat(s3Shuf(L.filter(x=>st.done[x.id])));let i=0,ok=0,seen=0;
+  const box=Focus.open({title:"Berlinerisch fürs Ohr",sub:BERLIN.tag||"",onClose:()=>ACT.s3Buhne()});
+  const rules=`<details class="card"><summary class="ui"><b>Die Lautregeln</b> <span class="muted">sound rules</span></summary><ul style="margin:.5rem 0 0 1.1rem">${(BERLIN.rules||[]).map(r=>`<li>${esc(r[0])} <span class="muted ui">· ${esc(r[1])}</span></li>`).join("")}</ul></details>`;
+  const draw=()=>{const x=order[i];Focus.progress({n:Math.min(order.length,10),i:Math.min(i,9)});
+    const opts=s3Shuf([x.std].concat(s3Shuf(L.filter(y=>y.id!==x.id)).slice(0,2).map(y=>y.std)));
+    box.innerHTML=`<div class="stack" style="max-width:640px;margin:0 auto">${i===0?rules:""}<div class="card orn"><div class="eyebrow">${esc(BERLIN.tag||"")}</div><div class="s3-b" style="font-family:var(--display);font-size:1.6rem;margin:.4rem 0">${esc(x.b)}</div><small class="muted ui">Was heißt das auf Standarddeutsch?</small></div>
+      <div class="stack s">${opts.map(o=>`<button class="st-opt s3-o" data-act="s3OhrPick" data-v="${esc(o)}">${esc(o)}</button>`).join("")}</div><div class="s3-why"></div></div>`;
+    Focus.foot(null);
+    ACT.s3OhrPick=el=>{if(box.querySelector(".s3-o[disabled]"))return;const right=el.dataset.v===x.std;seen++;if(right){ok++;s3Done(x.id)}
+      box.querySelectorAll(".s3-o").forEach(b=>{b.disabled=true;if(b.dataset.v===x.std)b.classList.add("ok");else if(b===el)b.classList.add("bad")});
+      box.querySelector(".s3-why").innerHTML=`<div class="card"><b>${right?"Richtig.":"Nicht ganz."}</b> ${esc(x.std)}<br><small class="muted ui">${esc(x.en)}</small>${x.ask?`<div style="margin-top:.5rem"><span class="eyebrow">Ihre Antwort als Ärztin/Arzt</span><div>${esc(x.ask)}</div></div>`:""}</div>`;
+      const last=i>=Math.min(order.length,10)-1;Focus.foot(`<button class="go" data-act="s3OhrNext">${last?"Fertig":"Weiter"}</button>`)};
+    ACT.s3OhrNext=()=>{const last=i>=Math.min(order.length,10)-1;if(last){Focus.progress(null);box.innerHTML=`<div class="stack" style="max-width:640px;margin:0 auto"><div class="card orn">${pkSay(ok===seen?["Fehlerfrei. Da kannste nich meckern – sagt man hier.","No mistakes. Can't complain — as they say here."]:[`${ok} von ${seen}. Der Mann auf der Trage wartet nicht.`,`${ok} of ${seen}. The man on the stretcher does not wait.`])}</div><small class="muted ui">${s3Count("o")} / ${L.length} Sätze sicher.</small></div>`;Focus.foot(`<button class="go" data-act="s3Buhne">Zur Bühne</button>`);return}i++;draw()}};
+  draw()};
+// ---------------------------------------------------------------- 2. Couplets: listen (TTS) and fill the gaps
+function s3Gaps(c){const out=[];let refrainDone=false;c.st.forEach((s,si)=>{if(s.r&&refrainDone)return;if(s.r)refrainDone=true;s.l.forEach((ln,li)=>{if(li%2!==1)return;const toks=ln.replace(/[^A-Za-zÄÖÜäöüß' ]+/g," ").trim().split(/\s+/);const w=(toks[toks.length-1]||"").replace(/^'+|'+$/g,"");if(w.length>=2&&ln.lastIndexOf(w)>=0)out.push({si,li,w})})});return out}
+function s3CpText(c){const R=c.st.find(x=>x.r);const v=c.st.filter(x=>!x.r);const parts=[];v.forEach((s,k)=>{parts.push(s.l.join(" "));if(R&&!(c.id==="c4"&&k===v.length-1))parts.push(R.l.join(" "))});return parts.join(" … ")}
+ACT.s3Cps=()=>{const box=Focus.open({title:"Kabarett-Couplets",sub:"Hören · Lücken füllen",onClose:()=>ACT.s3Buhne()});const st=s3St();
+  box.innerHTML=`<div class="stack" style="max-width:720px;margin:0 auto"><div class="card orn">${pkSay(["Im Kabarett singt man, was man in der Zeitung nicht schreiben darf. Hören Sie zu. Der Reim verrät Ihnen das fehlende Wort.","In cabaret they sing what may not be written in the newspaper. Listen. The rhyme gives away the missing word."])}</div>
+   ${(BERLIN.couplets||[]).map(c=>`<button class="card" style="text-align:left;display:block" data-act="s3Cp" data-id="${c.id}"><div class="row between"><b style="font-family:var(--display);font-size:1.25rem">${esc(c.t)}</b>${st.sc[c.id]!=null?`<span class="chip">${st.sc[c.id]} %</span>`:""}</div><small class="muted ui">${esc(c.who)} · Kapitel ${c.ch}</small></button>`).join("")}</div>`};
+ACT.s3Cp=el=>{const c=(BERLIN.couplets||[]).find(x=>x.id===el.dataset.id);if(!c)return;const gaps=s3Gaps(c);const key=(si,li)=>si+"_"+li;const G={};gaps.forEach((g,k)=>G[key(g.si,g.li)]=k);let refrainSeen=false;
+  const box=Focus.open({title:c.t,sub:c.who,onClose:()=>ACT.s3Cps()});
+  const stanza=(s,si)=>{if(s.r&&refrainSeen)return `<p class="muted ui" style="margin:.2rem 0"><i>Refrain</i></p>`;if(s.r)refrainSeen=true;
+    return `<div class="card" style="${s.r?"font-style:italic":""}">${s.r?`<div class="eyebrow">Refrain</div>`:""}${s.l.map((ln,li)=>{const k=G[key(si,li)];if(k==null)return `<div>${esc(ln)}</div>`;const w=gaps[k].w;const i=ln.lastIndexOf(w);
+      return `<div>${esc(ln.slice(0,i))}<input class="s3-gap" data-k="${k}" autocomplete="off" autocapitalize="off" spellcheck="false" size="${Math.max(4,w.length)}" style="width:${Math.max(4,w.length)+1}ch">${esc(ln.slice(i+w.length))}</div>`}).join("")}</div>`};
+  box.innerHTML=`<div class="stack" style="max-width:640px;margin:0 auto"><div class="row"><button class="sm" data-say="${esc(s3CpText(c))}">${ic("vol")} Anhören</button><small class="muted ui">Die Stimme liest das ganze Lied vor. Hören Sie die fehlenden Wörter heraus.</small></div>${c.st.map(stanza).join("")}
+    <div class="card stack s"><div class="eyebrow">Fragen zum Nachdenken <span class="en">questions to discuss or write about</span></div>${c.q.map(q=>`<div>${esc(q)}</div>`).join("")}</div><div class="s3-res"></div></div>`;
+  Focus.foot(`<button class="go" data-act="s3CpCheck">Prüfen</button>`);
+  ACT.s3CpCheck=()=>{let ok=0;box.querySelectorAll(".s3-gap").forEach(inp=>{const g=gaps[+inp.dataset.k];const r=s3Norm(inp.value)===s3Norm(g.w);if(r)ok++;inp.classList.toggle("ok",r);inp.classList.toggle("bad",!r);if(!r)inp.title=g.w});
+    const pc=Math.round(100*ok/Math.max(1,gaps.length));if(pc>=80)s3Done(c.id,pc);else{const s=s3St();s.sc[c.id]=Math.max(s.sc[c.id]||0,pc);saveSoon()}
+    box.querySelector(".s3-res").innerHTML=`<div class="card"><b>${ok} / ${gaps.length}</b> · ${pc} %${pc<100?`<br><small class="muted ui">Richtig wären: ${gaps.map(g=>esc(g.w)).join(" · ")}</small>`:""}</div>`;
+    Focus.foot(`<button class="go" data-act="s3Cps">Zurück</button>`)}};
+// ---------------------------------------------------------------- 3. Satire: read and answer
+ACT.s3Sats=()=>{const box=Focus.open({title:"Satire",sub:"Lesen · B2",onClose:()=>ACT.s3Buhne()});const st=s3St();
+  box.innerHTML=`<div class="stack" style="max-width:720px;margin:0 auto"><div class="card orn">${pkSay(["Ironie ist die Kunst, das Gegenteil zu sagen und trotzdem verstanden zu werden. Für Ausländer die letzte Prüfung. Für Beamte die erste.","Irony is the art of saying the opposite and still being understood. For foreigners the last examination. For officials the first."])}</div>
+   ${(BERLIN.satire||[]).map(s=>`<button class="card" style="text-align:left;display:block" data-act="s3Sat" data-id="${s.id}"><div class="row between"><b style="font-family:var(--display);font-size:1.25rem">${esc(s.t)}</b>${st.done[s.id]?`<span class="chip">✓</span>`:""}</div><small class="muted ui">${esc(s.genre)}</small></button>`).join("")}</div>`};
+ACT.s3Sat=el=>{const s=(BERLIN.satire||[]).find(x=>x.id===el.dataset.id);if(!s)return;const box=Focus.open({title:s.t,sub:s.genre,onClose:()=>ACT.s3Sats()});const got={};
+  box.innerHTML=`<div class="stack" style="max-width:640px;margin:0 auto"><div class="card orn" style="font-family:var(--body);font-size:1.08rem;line-height:1.6">${s.text.map(p=>`<p style="margin:.4rem 0">${typeof glossify==="function"?glossify(p):esc(p)}</p>`).join("")}</div>
+   ${s.q.map((q,k)=>{const o=s3Shuf(q[1].map((t,j)=>({t,j})));return `<div class="card stack s" data-q="${k}"><b>${esc(q[0])}</b>${o.map(x=>`<button class="st-opt s3-sq" data-act="s3SatPick" data-q="${k}" data-j="${x.j}">${esc(x.t)}</button>`).join("")}</div>`}).join("")}
+   <div class="card"><div class="eyebrow">Zum Schreiben <span class="en">writing prompt</span></div>${esc(s.open)}</div></div>`;
+  ACT.s3SatPick=b=>{const k=+b.dataset.q,j=+b.dataset.j;const card=box.querySelector(`[data-q="${k}"].card`);if(!card||card.dataset.done)return;card.dataset.done="1";const right=j===s.q[k][2];got[k]=right;
+    card.querySelectorAll(".s3-sq").forEach(x=>{x.disabled=true;if(+x.dataset.j===s.q[k][2])x.classList.add("ok");else if(x===b)x.classList.add("bad")});
+    if(Object.keys(got).length===s.q.length){const n=Object.values(got).filter(Boolean).length;const pc=Math.round(100*n/s.q.length);if(n===s.q.length)s3Done(s.id,pc);else{const z=s3St();z.sc[s.id]=Math.max(z.sc[s.id]||0,pc);saveSoon()}
+      Focus.foot(`<span class="ui">${n} / ${s.q.length}</span><button class="go" data-act="s3Sats">Zurück</button>`)}}};
+// ---------------------------------------------------------------- 4. The film: intertitles, then the order task
+ACT.s3Film=()=>{const T=BERLIN.titel||[];if(!T.length)return;let i=0;const box=Focus.open({title:"Das Kabinett der falschen Freunde",sub:"ein Film in sechs Akten",onClose:()=>ACT.s3Buhne()});
+  const card=()=>{const t=T[i];Focus.progress({n:T.length,i});box.innerHTML=`<div class="stack" style="max-width:640px;margin:0 auto"><div class="s3-title" style="background:#000;color:#f2efe6;border:3px double #f2efe6;padding:2.2rem 1.4rem;text-align:center;font-family:var(--display);font-size:1.45rem;line-height:1.35;clip-path:circle(75% at 50% 50%);animation:s3iris .7s ease-out"><div style="font-size:.8rem;letter-spacing:.2em;opacity:.7;margin-bottom:.6rem">${t[0]}. AKT</div>${esc(t[1])}</div><small class="muted ui">${esc(t[2])}</small></div>`;
+    Focus.foot(`<button class="go" data-act="s3FilmNext">${i<T.length-1?"Weiter":"Zur Reihenfolge"}</button>`)};
+  const order=()=>{Focus.progress(null);const ids=(BERLIN.order||[]).slice();let pos=0;const pick=s3Shuf(ids);
+    box.innerHTML=`<div class="stack" style="max-width:640px;margin:0 auto"><div class="card orn">${pkSay(["Fünf Zwischentitel sind durcheinandergeraten. Tippen Sie sie in der richtigen Reihenfolge an.","Five intertitles have got mixed up. Tap them in the right order."])}</div><div class="stack s">${pick.map(n=>`<button class="st-opt s3-ord" data-act="s3FilmOrd" data-n="${n}">${esc(T[n-1][1])}</button>`).join("")}</div><div class="s3-res"></div></div>`;Focus.foot(null);
+    let err=0;ACT.s3FilmOrd=b=>{if(b.disabled)return;const n=+b.dataset.n;if(n===ids[pos]){pos++;b.disabled=true;b.classList.add("ok");b.insertAdjacentHTML("afterbegin",`<b>${pos}. </b>`);
+        if(pos===ids.length){s3Done("film",Math.max(0,100-20*err));box.querySelector(".s3-res").innerHTML=`<div class="card">${pkSay(err?[`Richtig – nach ${err} Fehlgriff${err>1?"en":""}. Auch Caligari hat geübt.`,`Correct — after ${err} wrong pick${err>1?"s":""}. Even Caligari practised.`]:["Fehlerfrei. Sie haben den Film verstanden, ohne dass jemand gesprochen hat.","No mistakes. You understood the film without anyone speaking."])}</div>`;Focus.foot(`<button class="go" data-act="s3Buhne">Zur Bühne</button>`)}}
+      else{err++;b.classList.add("bad");setTimeout(()=>b.classList.remove("bad"),600)}}};
+  ACT.s3FilmNext=()=>{if(i<T.length-1){i++;card()}else order()};card()};
+(function(){try{if(document.getElementById("s3css"))return;const st=document.createElement("style");st.id="s3css";
+  st.textContent="@keyframes s3iris{from{clip-path:circle(0% at 50% 50%)}to{clip-path:circle(75% at 50% 50%)}}.s3-gap{font:inherit;border:0;border-bottom:2px solid var(--accent,#e8772e);background:transparent;color:inherit;padding:0 .15rem;margin:0 .1rem}.s3-gap.ok{border-color:#3a8f5a}.s3-gap.bad{border-color:#b33}.s3-o.ok,.s3-sq.ok,.s3-ord.ok{outline:2px solid #3a8f5a}.s3-o.bad,.s3-sq.bad,.s3-ord.bad{outline:2px solid #b33}";
+  document.head.appendChild(st)}catch(e){}})();
+
 // ===== Mephisto 12.5.1 · Wolke: Drive sync that never asks "which one?" and never destroys.
 // Record-level, deterministic merge (merge(a,b) == merge(b,a)); settings by per-key timestamps (S._ts); reviews by review time;
 // reset / replace by epoch (S._epoch); read failures abort (never overwrite what we could not read); twins merged before trashing;
@@ -4329,6 +4514,7 @@ function mergeCore(L,R){
     else if(k==="gruft"){const o={};for(const n of new Set([...Object.keys(a),...Object.keys(b)])){const x=a[n],y=b[n];o[n]=!x||!y?(x||y):{ok:Math.max(x.ok||0,y.ok||0),miss:Math.max(x.miss||0,y.miss||0)}}out[k]=o}
     else if(k==="palace"){const o={};for(const n of new Set([...Object.keys(a),...Object.keys(b)])){const x=a[n],y=b[n];o[n]=!x||!y?(x||y):Object.assign({},pick(x,y),{ok:Math.max(x.ok||0,y.ok||0),miss:Math.max(x.miss||0,y.miss||0)})}out[k]=o}
     else if(k==="rezi"||k==="badges"||k==="bossWins"){const o={};for(const n of new Set([...Object.keys(a),...Object.keys(b)])){const x=a[n],y=b[n];o[n]=!x||!y?(x||y):((x.best||x.acc||0)!==(y.best||y.acc||0)?((x.best||x.acc||0)>(y.best||y.acc||0)?x:y):pick(x,y))}out[k]=o}
+    else if(k==="s3b"){out[k]={done:Object.assign({},b.done,a.done),sc:(()=>{const o=Object.assign({},b.sc);for(const x in (a.sc||{}))o[x]=Math.max(o[x]||0,a.sc[x]||0);return o})()}}
     else if(k==="bib"){const o={};for(const n of new Set([...Object.keys(a),...Object.keys(b)])){const x=a[n]||{},y=b[n]||{};o[n]=Object.assign({},pick(x,y),{done:Object.assign({},y.done,x.done),pg:Object.assign({},y.pg,x.pg)})}out[k]=o}
     else if(k==="custom"){const m=new Map();[...b,...a].forEach(c=>{const id=c.de;m.set(id,m.has(id)?pick(m.get(id),c):c)});const seen=new Set();const arr=[];a.forEach(c=>{if(!seen.has(c.de)){arr.push(m.get(c.de));seen.add(c.de)}});b.forEach(c=>{if(!seen.has(c.de)){arr.push(m.get(c.de));seen.add(c.de)}});out[k]=arr}
     else if(Array.isArray(a)&&Array.isArray(b)){const seen=new Map();[...a,...b].forEach(x=>seen.set(J(x),x));const m=[...seen.values()];m.sort((p,q)=>{const kp=String((p&&(p.at||p.date))||""),kq=String((q&&(q.at||q.date))||"");return kp!==kq?kp.localeCompare(kq):J(p).localeCompare(J(q))});out[k]=m.slice(-3000)}
