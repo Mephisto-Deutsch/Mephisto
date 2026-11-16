@@ -3,9 +3,9 @@
    - single download: "./" is not a second copy; files that did not change between versions are not fetched again;
    - resumable: every verified file is kept at once, so an interrupted install continues where it stopped;
    - atomic: the new version only takes over when every file is stored and matches its SHA-256 (a stale CDN copy fails and is retried later). */
-const VERSION = "13.3.0-9bc2c65a5d";
+const VERSION = "13.4.0-68252d778f";
 const FILES = {
-"index.html": "afb656108c7149388d21a3ef82aaacbe5b715b4ee5fb46a17583d284ae47777b",
+"index.html": "cbf84950468057d705404c5bdcf33ba5f2b29e62db4eafb36daf304f56cd246b",
 "manifest.webmanifest": "d573eb33cf31c814060c21e4f4cb29abf24b12f9ab8950b4ca18aabd1c360cd9",
 "fonts.css": "8d483729ffa0c8054319a0ab4223a52671c7471c86e678358d990a13b24fcd39",
 "icons/apple-touch-icon.png": "3911a4362fc845fbaf7c9fcc664ef3a538a6e3050a7dd7ad20f1435eb99fd0e7",
@@ -21,11 +21,13 @@ const FILES = {
 "fonts/sourceserif4-italic.woff": "65cb81b09f72ccd03e756b200d2c08bdd4e8a30e6634a59dc5310e43cba9857e",
 "fonts/sourceserif4.woff": "0375575b7d682774f40208171de11fd99a042c083fdd17b925721455ea21278f",
 "fonts/unifraktur.woff": "961e1cfdcf923c87df0dbf6215a32d3f02fa40b2f330e04c4b6dc90f842cfe35",
-"js/app.js": "9b635dee5354906eafbab7b2aff21c20272759275ed7ecbee3c0092417c0414a",
+"js/app.js": "f11c1d9f0445e358c85116d8a2d7f1102c0b1aa404b1ddae74af3e02c3ff3e06",
 "js/data-b2.js": "f1a561e5277a177631eb4ecfda8c324e5daa36f1bddfc5ec779ff06d5f90900a",
-"js/data-base.js": "cae3f8573acff65789b802ba06aa9aa33a36d5ee4ab110043329ca7090315dad",
+"js/data-base.js": "ba8d146f92a885e0d18c1eae0423afeb972cd4ebdb65631bdc9e976bfac1f129",
 "js/data-bib.js": "dc6d0bf4d328c70f9abe260f5cc1abc2661f376283a6ab71b8d88feb036994a7",
 "js/data-fix.js": "72c37f9b910ac55c00acae4288e34bee4396f37610e2248d58d7ca20cf8379f6",
+"js/data-integ.js": "b5f455b9108b86899aad27beca98b5ed32287f4042e86a9db8debd24bca75142",
+"js/data-l4.js": "b42778ca03961f4d1c62645b5a9107e0532441d9baf53beca8da8a0d0745a7c7",
 "js/data-media.js": "07a5088b8e81c3f7271264c63f2f6baea8471d042d3faaa992ce6734c2cdbb38",
 "js/data-more.js": "9f7a29cec486f2b553f150f77817a5db9588c1023c0d1fe1418ffb39bc58014e",
 "js/data-story.js": "f43d6ce3745e33d218103cfb4bf48d8e853abfb28988da06fe25b7794afdc0c9",

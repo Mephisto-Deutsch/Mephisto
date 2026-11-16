@@ -1101,7 +1101,7 @@ ACT.copyYuzu=()=>{const p=yuzuPack();copyText(JSON.stringify(p),$(".bk-txt"));to
 ACT.reset=()=>{const v=($(".rs-in")||{}).value;if(v!=="LÖSCHEN")return toast("Tippe LÖSCHEN zur Bestätigung");lsSet("mephisto_before_reset",JSON.stringify(S));S=fresh();saveNow();buildDict();applyPrefs();R.tab="home";toast("Zurückgesetzt. Eine Kopie liegt unter „mephisto_before_reset“.");rerender()};
 
 // ================= PHONE FEATURES (v10): speech check, Artikel-Blitz, numbers, terms, undo, haptics, coach, PWA =================
-const APP_VERSION="13.3.0";
+const APP_VERSION="13.4.0";
 const IS_PWA=!!window.MEPHISTO_PWA;
 const IS_STANDALONE=(()=>{try{return matchMedia("(display-mode: standalone)").matches||navigator.standalone===true}catch(e){return false}})();
 const IS_IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
@@ -5053,6 +5053,1260 @@ function plateHTML(id,ctx,o){try{o=o||{};const a=plateMeta(id);if(!a)return "";c
 function plateCredits(){try{const R={I:1,II:2,III:3,IV:4,V:5};return Object.keys(PAKT_ART).map(k=>{const a=PAKT_ART[k];return{id:k,u:a.u,t:a.t,a:a.a,y:a.y||"",src:a.src||"",scan:a.scan||"",lic:a.lic||"",r:a.r}})
   .sort((x,y)=>(R[x.r]||9)-(R[y.r]||9)||String(x.t).localeCompare(String(y.t),"de"))}catch(e){return []}}
 
+// ===== Mephisto · track I · c_i1_seam.js — the reader dispatcher RD, the task-line registry TL, story conditions IQ (owner: i1).
+// Place (13.1 modules.json): ["c_i1_seam","story"] after ["c_final","story"] and after ["c_s2","story"] when s2 is merged (RD works in either order).
+// Contract: PLAN-I §1 R2 and §2.6. API in build/i1/API.txt.
+//
+// One around-hook for the chapter reader. Nobody else reassigns st3Play, st3Scene, st3Line or ACT.st3Pick.
+//   RD.pass(tag, ord, fn(lines, c, ctx))   ord 10 s2 · 20 i5/i6 · 30 s4 · 40 i1.back · 90 RD (cleanup, built in). fn may mutate `lines` or return a new array.
+//   RD.kind(t, {render(line,cur,c,api)→html, wait(line,api)→bool, act?, foot?(line,api)→html, has?(line)→bool})   renders every line whose line[0]===t
+//   RD.resolve(lines)                         the waiting line is finished: splice `lines` after it and advance
+//   TL.reg(prefix, {card(line,c)→html, open(box,id,done,api), state(id)→{pass,grey,best,max}, wait?(line)→bool})   handlers of ["T",id]
+//   IQ.cond(name) / IQ.reg(ns, fn(rest,name))  read-only conditions for s4 (tk. bv. gate. lv.)
+// With no pass and no kind registered by anyone, st3Play/st3Scene/st3Line behave exactly as 13.0 (the original functions are called with the
+// original arguments; tests/i1_node.js checks all 40 chapters).
+// How it works: the 13.0 reader (st3Play) copies o.lines with o.lines.map(...) and keeps the copy in a closure. RD hands it, for that one call,
+// an array whose map() returns RD's own list, so RD can splice lines into the running reader; it renders each line through st3Line (wrapped)
+// and gets control after each draw through st3Cue (wrapped). o.lines keeps its identity and length for every inner wrapper (s2's sober test).
+// Hooks used (MOD.around, listed in MANIFEST): st3Play, st3Scene, st3Line, st3Cue. ACT.pkNext is guarded per read (it is re-created per read by 13.0).
+// No saved state. Nothing here throws at load.
+const RD=(function(){
+  const passes=[],kinds={},stat={reads:0,bypass:0,active:0,resolved:0,errors:[]};
+  let active=null,seq=0;
+  const W=window;
+  function err(e,where){try{stat.errors.push((where||"")+": "+String(e&&e.message||e).slice(0,160));if(stat.errors.length>20)stat.errors.shift();if(typeof logError==="function")logError({message:"RD "+where+": "+(e&&e.message||e)})}catch(x){}}
+  function isLine(l){return Array.isArray(l)&&typeof l[0]==="string"&&l[0].length>0}
+  function eqLine(a,b){try{return JSON.stringify(a)===JSON.stringify(b)}catch(e){return false}}
+  // ---------------------------------------------------------------- registration
+  function pass(tag,ord,fn){if(typeof tag==="number"&&typeof ord==="string"){const t=ord;ord=tag;tag=t}   // tolerate (ord,tag,fn)
+    if(typeof fn!=="function")return false;const i=passes.findIndex(p=>p.tag===tag);const rec={tag:String(tag),ord:+ord||50,fn,n:passes.length};
+    if(i>=0){rec.n=passes[i].n;passes[i]=rec}else passes.push(rec);passes.sort((a,b)=>a.ord-b.ord||a.n-b.n);return true}
+  function kind(t,h){if(!t||!h||typeof h!=="object")return false;kinds[t]=h;
+    try{if(h.act&&typeof h.act==="object")Object.keys(h.act).forEach(nm=>{const f=h.act[nm];if(typeof f!=="function")return;ACT[nm]=function(el){try{return f(el,active?active.cur:null,api())}catch(e){err(e,"act:"+nm)}}})}catch(e){err(e,"kind:"+t)}
+    return true}
+  function own(t){return t==="_"||t==="T"||!!kinds[t]}
+  function anyOwn(L){for(let i=0;i<L.length;i++){const l=L[i];if(isLine(l)&&(l[0]==="T"||l[0]==="_"||l[0]==="@"||kinds[l[0]]))return true}return false}
+  // ---------------------------------------------------------------- anchors and passes
+  // what kind of read this is and where its parts are; markers ["@",name] are put into the list so passes can insert before them
+  const LAST=new WeakMap();   // st3Scene result → chapter
+  function bossOf(c){try{return Object.keys(BOSSES).find(k=>BOSSES[k].ch===c.n)||""}catch(e){return ""}}
+  function readKind(o){const c=o.c||(typeof pkCh==="function"?pkCh():null);let k="other";
+    try{if(LAST.has(o.lines))k="chapter";else if(o.title==="Bett vier")k="bett";
+      else if(typeof STORY3!=="undefined"&&STORY3[CHAPTERS.length]&&o.lines===STORY3[CHAPTERS.length].finale)k="finale";
+      else if(typeof o.title==="string"&&/· Nach dem Duell$/.test(o.title))k="after"}catch(e){}
+    return {c,kind:k}}
+  function sceneEnd(c,L){try{const sc=c.scene||[];let i=0;for(let j=0;j<sc.length&&i<L.length;j++){if(eqLine(L[i],sc[j]))i++}return i}catch(e){return L.length}}
+  function markers(c,kind,L){const M=[];   // [index,name] — inserted from the back so indices stay valid
+    try{const n=L.length;
+      if(kind==="chapter"){const end=sceneEnd(c,L);
+        let at=null;try{if(typeof scnAt==="function"){const has=["cast","task","pay"].some(a=>scnAt(c.n,a,true)>=0||scnAt(c.n,a)>=0);if(has){at={};["cast","task","pay"].forEach(a=>{let v=scnAt(c.n,a,true);if(v<0)v=scnAt(c.n,a);at[a]=v<0?end:Math.min(v,end)})}}}catch(e){}
+        if(!at)at={cast:end,task:end,pay:end};
+        M.push([at.cast,"cast"],[at.task,"task"],[at.pay,"pay"],[end,"scene_end"]);
+        const b=bossOf(c);let bi=-1,fi=-1;
+        try{if(b&&typeof BETT!=="undefined"&&BETT[b]){const s=new Set(BETT[b]);bi=L.findIndex(l=>s.has(l))}}catch(e){}
+        try{const fin=typeof STORY3!=="undefined"&&STORY3[CHAPTERS.length]&&STORY3[CHAPTERS.length].finale;if(c.n===CHAPTERS.length&&fin){const s=new Set(fin);fi=L.findIndex(l=>s.has(l))}}catch(e){}
+        const sep=i=>i>0&&isLine(L[i-1])&&L[i-1][0]==="N"&&L[i-1][1]==="· · ·"?i-1:i;
+        if(bi>=0){M.push([sep(bi),"bett"]);M.push([fi>=0?sep(fi):n,"bett_end"])}
+        if(fi>=0)M.push([sep(fi),"finale"])}
+      else if(kind==="bett"){M.push([0,"bett"],[n,"bett_end"])}
+      else if(kind==="finale"){M.push([0,"finale"])}
+      M.push([n,"end"])}catch(e){err(e,"markers")}
+    const ord={cast:1,task:2,pay:3,scene_end:4,bett:5,bett_end:6,finale:7,end:8};
+    M.sort((a,b)=>b[0]-a[0]||ord[b[1]]-ord[a[1]]);M.forEach(([i,nm])=>L.splice(Math.max(0,Math.min(i,L.length)),0,["@",nm]));return L}
+  function knownT(id){return !!tlFor(id)}
+  function knownC(id){try{if(kinds.C&&typeof kinds.C.has==="function")return !!kinds.C.has(["C",id]);if(kinds.C)return true}catch(e){}
+    return (typeof CHOICES!=="undefined"&&!!CHOICES[id])||(typeof CHOICES4!=="undefined"&&!!CHOICES4[id])}
+  function clean(L){return L.filter(l=>isLine(l)&&l[0]!=="@"&&(l[0]!=="T"||knownT(l[1]))&&(l[0]!=="C"||knownC(l[1]))&&(l[0]!=="IF"||typeof sgFlat==="function"||!!kinds.IF))}
+  function ctxFor(c,kind,o,L){return {c,n:c&&c.n,kind,boss:c?bossOf(c):"",title:o&&o.title||"",reread:(function(){try{return !!c&&c.n<P().ch}catch(e){return false}})(),
+    lines:L,at(name){return L.findIndex(l=>l[0]==="@"&&l[1]===name)},
+    insert(name,lines){const ls=(lines||[]).filter(isLine).map(l=>l.slice());let i=L.findIndex(l=>l[0]==="@"&&l[1]===name);if(i<0)i=L.findIndex(l=>l[0]==="@"&&l[1]==="end");if(i<0)i=L.length;L.splice(i,0,...ls);return i}}}
+  // run every pass; returns {lines, changed}
+  function build(c,kind,src,o){const L0=src.map(l=>Array.isArray(l)?l.slice():l);
+    if(!passes.length&&!anyOwn(L0))return {lines:L0,changed:false};
+    let L=markers(c,kind,L0.slice());const ctx=ctxFor(c,kind,o,L);
+    for(const p of passes){try{ctx.lines=L;const r=p.fn(L,c,ctx);if(Array.isArray(r))L=r}catch(e){err(e,"pass:"+p.tag)}}
+    L=clean(L);
+    const changed=L.length!==src.length||L.some((l,i)=>!eqLine(l,src[i]));return {lines:L,changed}}
+  // ---------------------------------------------------------------- waiting
+  function tlFor(id){id=String(id||"");let best=null,bl=-1;for(const k in TLH){if(id.indexOf(k)===0&&k.length>bl&&/^\d/.test(id.slice(k.length)||"0")){best=TLH[k];bl=k.length}}return best}
+  function tState(id){const h=tlFor(id);try{return h&&typeof h.state==="function"?(h.state(id)||{}):{}}catch(e){err(e,"state:"+id);return {}}}
+  function waits(l){if(!isLine(l))return false;if(active&&active.done.has(l))return false;const t=l[0];
+    try{if(t==="T"){const h=tlFor(l[1]);if(!h)return false;if(typeof h.wait==="function")return !!h.wait(l);const s=tState(l[1]);return !(s.pass||s.grey)}
+      if(t==="_")return false;const k=kinds[t];if(k&&typeof k.wait==="function")return !!k.wait(l,api())}catch(e){err(e,"wait:"+t)}
+    return false}
+  function api(){return {line:active&&active.cur,c:active&&active.c,kind:active&&active.kind,resolve:RD.resolve,foot:html=>{try{Focus.foot(html)}catch(e){}},waits}}
+  // ---------------------------------------------------------------- rendering
+  const STY_ID="rd-sty";
+  function style(){try{if(document.getElementById&&document.getElementById(STY_ID))return;const s=document.createElement("style");s.id=STY_ID;s.textContent=`
+.rd-t{border-left:3px solid var(--accent,#F08A3F)}
+.rd-t .rd-st{font-family:var(--ui);font-size:.82rem;margin-top:.35rem}
+.rd-t .rd-st.ok{color:var(--ok,#4a8)}.rd-t .rd-st.grey{color:var(--muted,#888)}
+.rd-t .rd-box:empty{display:none}.rd-t .rd-box{margin-top:.6rem}`;document.head.appendChild(s)}catch(e){}}
+  function tCard(l,cur,c){const id=String(l[1]||"");const h=tlFor(id);if(!h)return "";const f=cur?" pk-fade":"";let inner="";
+    try{inner=typeof h.card==="function"?(h.card(l,c)||""):""}catch(e){err(e,"card:"+id)}
+    if(!inner)inner=`<div class="eyebrow">Aufgabe <span class="en">task</span></div><p class="ui" style="margin:.3rem 0">${esc(id)}</p>`;
+    const s=tState(id);const w=cur&&waits(l);
+    const stamp=s.pass?`<div class="rd-st ok">${typeof ic==="function"?ic("check"):""} bestanden <span class="en">passed</span>${s.max?` · ${+s.best||0}/${+s.max}`:""}</div>`:s.grey?`<div class="rd-st grey">§ 6 · grau <span class="en">grey</span></div>`:"";
+    const go=w?`<div class="row" style="margin-top:.5rem"><button class="go sm" data-act="rdOpen" data-id="${esc(id)}">Aufgabe beginnen <span class="en">start</span></button></div>`:"";
+    return `<div class="card rd-t${f}" data-rd="T" data-rd-id="${esc(id)}">${inner}${stamp}${go}<div class="rd-box"></div></div>`}
+  function render(l,cur,c){const t=l[0];if(t==="_"||t==="@")return "";if(t==="T")return tCard(l,cur,c);
+    const k=kinds[t];if(k&&typeof k.render==="function"&&(typeof k.has!=="function"||k.has(l))){try{return String(k.render(l,cur,c,api())||"")}catch(e){err(e,"render:"+t);return ""}}
+    return null}
+  function footWait(l){const k=kinds[l[0]];try{if(k&&typeof k.foot==="function"){const h=k.foot(l,api());if(h!=null)return h}}catch(e){}
+    if(l[0]==="T")return `<small class="muted ui">Erst die Aufgabe. <span class="en">The task first.</span></small>`;
+    return `<small class="muted ui">Wähle eine Antwort.</small>`}
+  // ---------------------------------------------------------------- the running reader
+  function idx(){return active?active.held.indexOf(active.cur):-1}
+  function stale(){try{if(!active)return true;const box=document.querySelector("#fIn");return !box||(typeof Focus!=="undefined"&&Focus.isOpen&&!Focus.isOpen())}catch(e){return true}}
+  function next(){try{if(active&&active.next)active.next()}catch(e){err(e,"next")}}
+  function resolve(lines){try{if(!active||!active.cur)return false;const a=active,l=a.cur;if(a.done.has(l))return false;a.done.add(l);stat.resolved++;
+      let ins=Array.isArray(lines)?clean(lines.filter(isLine).map(x=>x.slice())):[];
+      const i=a.held.indexOf(l);if(i<0)return false;
+      if(ins.length){a.held.splice(i+1,0,...ins);next();return true}
+      if(i>=a.held.length-1){a.held.splice(i+1,0,["_"]);next();return true}
+      next();return true}catch(e){err(e,"resolve");return false}}
+  function open(el){try{if(!active)return;const id=el&&el.dataset?el.dataset.id:"";const l=active.cur;if(!l||l[0]!=="T"||String(l[1])!==id||!waits(l))return;
+      const h=tlFor(id);if(!h||typeof h.open!=="function")return;const card=el.closest?el.closest(".rd-t"):null;const box=card&&card.querySelector?card.querySelector(".rd-box"):null;
+      try{const row=el.closest(".row");if(row)row.remove()}catch(e){}
+      const mine=active;let once=false;
+      const done=function(r){if(once)return;once=true;try{if(active!==mine||mine.cur!==l)return;r=r||{};try{if(typeof EV!=="undefined"&&EV.emit)EV.emit("reader.task",{id,pass:!!r.pass,grey:!!r.grey,p:r.p,max:r.max,ch:mine.c&&mine.c.n})}catch(x){}
+        resolve(r.lines||[])}catch(e){err(e,"done:"+id)}};
+      h.open(box||document.querySelector("#fIn"),id,done,api())}catch(e){err(e,"open")}}
+  // ---------------------------------------------------------------- the four hooks
+  function install(){
+    if(typeof MOD==="undefined"||typeof MOD.around!=="function"){err("no MOD.around","install");return false}
+    // st3Scene: unchanged result; remember it so st3Play knows a chapter read
+    MOD.around("st3Scene","i1",function(orig,c){const L=orig(c);try{if(Array.isArray(L))LAST.set(L,c)}catch(e){}return L});
+    // st3Play: passes, kinds, waiting
+    MOD.around("st3Play","i1",function(orig,o){stat.reads++;let held=null,info=null;
+      try{if(o&&Array.isArray(o.lines)){info=readKind(o);const b=build(info.c,info.kind,o.lines,o);if(b.changed||anyOwn(b.lines))held=b.lines}}catch(e){err(e,"build");held=null}
+      if(!held){active=null;stat.bypass++;return orig(o)}
+      stat.active++;style();
+      const src=o.lines;const me={id:++seq,o,c:info.c,kind:info.kind,held,cur:null,done:new WeakSet(),next:null};active=me;
+      let r;try{Object.defineProperty(src,"map",{value:function(){return held},configurable:true,writable:true,enumerable:false})}catch(e){err(e,"map");active=null;return orig(o)}
+      try{r=orig(o)}finally{try{delete src.map}catch(e){}}
+      try{if(active===me){const inner=ACT.pkNext;me.next=inner;ACT.pkNext=function(){try{if(active===me&&me.cur&&waits(me.cur))return}catch(e){}return inner.apply(this,arguments)};
+          ACT.rdOpen=open;fixFoot()}}catch(e){err(e,"guard")}
+      return r});
+    // st3Line: line kinds
+    MOD.around("st3Line","i1",function(orig,ln,cur,c){try{if(isLine(ln)&&own(ln[0])){const h=render(ln,cur,c);if(h!=null)return h}}catch(e){err(e,"line")}return orig(ln,cur,c)});
+    // st3Cue: called once at the end of every draw with the current line → the footer of a waiting line
+    MOD.around("st3Cue","i1",function(orig,cur){try{if(active&&active.held.indexOf(cur)>=0){active.cur=cur;fixFoot()}}catch(e){err(e,"cue")}
+      if(cur&&(cur[0]==="T"||cur[0]==="_"))return;return orig(cur)});
+    return true}
+  // a waiting line gets the waiting footer; an own-kind line that does not wait gets Weiter/the done button even where 13.0 thought it waits (C with l[2]==null)
+  function fixFoot(){try{const a=active;if(!a||!a.cur)return;const l=a.cur;if(!own(l[0]))return;if(waits(l)){Focus.foot(footWait(l));return}
+      if(l[0]==="C"&&l[2]==null){const i=a.held.indexOf(l);if(i>=a.held.length-1)a.held.splice(i+1,0,["_"]);Focus.foot(`<button class="go" data-act="pkNext">Weiter</button>`)}}catch(e){err(e,"foot")}}
+  // ---------------------------------------------------------------- public
+  const RD={pass,kind,resolve,stat,
+    passes:()=>passes.map(p=>[p.ord,p.tag]),kinds:()=>Object.keys(kinds),
+    // the list a chapter read would play now (after every pass), without opening anything
+    lines(c){try{c=c||pkCh();const L=st3Scene(c);const info={c,kind:"chapter"};return build(c,info.kind,L,{c,title:`Kapitel ${c.n} · ${c.t}`}).lines}catch(e){err(e,"lines");return []}},
+    build(c,kind,src,o){return build(c,kind||"other",src||[],o||{c}).lines},
+    active:()=>active?{kind:active.kind,n:active.c&&active.c.n,i:idx(),len:active.held.length,cur:active.cur,waiting:!!(active.cur&&waits(active.cur))}:null,
+    waits,isLine,clean,
+    _install:install,_stale:stale};
+  return RD})();
+// ---------------------------------------------------------------- TL: handlers of ["T",id] lines (data side: i5 "t", i6 "bv", i4 "sp")
+const TLH={};
+const TL={reg(prefix,h){if(!prefix||!h||typeof h!=="object")return false;TLH[String(prefix)]=h;return true},
+  get(id){id=String(id||"");let best=null,bl=-1;for(const k in TLH)if(id.indexOf(k)===0&&k.length>bl&&/^\d/.test(id.slice(k.length)||"0")){best=TLH[k];bl=k.length}return best},
+  state(id){const h=TL.get(id);try{return h&&h.state?(h.state(id)||{}):{}}catch(e){return {}}},
+  prefixes:()=>Object.keys(TLH)};
+// ---------------------------------------------------------------- IQ: read-only conditions for s4 (sgCond): IQ.cond("tk.t07.pass") …
+const IQ=(function(){const NS={};
+  function dig(o,path){let v=o;for(const k of path){if(v==null)return undefined;v=v[k]}return v}
+  function P_(){try{return P()}catch(e){return {}}}
+  NS.tk=function(rest){const p=P_(),tk=p.tk||{};
+    if(rest[0]==="flag")return dig(tk.flag||tk.flags||{},rest.slice(1));
+    const id=rest[0];const st=TL.state(id);const f=rest[1];
+    if(f&&st&&st[f]!==undefined)return st[f];const r=tk[id];if(!f)return r?!!(r.pass||r.grey):false;return r?r[f]:undefined};
+  NS.bv=function(rest){const p=P_(),bv=p.bv||{};
+    if(rest[0]==="tier"){try{if(typeof bvFateTier==="function")return bvFateTier()}catch(e){}return bv.tier}
+    const id=rest[0],f=rest[1];const st=TL.state(id);if(f&&st&&st[f]!==undefined)return st[f];const r=bv[id];if(!f)return r?!!r.pass:false;return r?r[f]:undefined};
+  NS.gate=function(rest){try{if(typeof GATE!=="undefined"&&GATE.state){const n=+rest[0];const s=GATE.state(n)||{};return rest[1]?s[rest[1]]:s}}catch(e){}
+    try{if(rest[1]==="sealed"||rest.length===1)return !!(P_().sealed||{})[+rest[0]]}catch(e){}return undefined};
+  NS.lv=function(rest){try{if(!rest.length)return typeof learnerLv==="function"?learnerLv():undefined;if(typeof cefr==="function"){const x=cefr()[rest[0]];return x?(rest[1]?x[rest[1]]:x.lv):undefined}}catch(e){}return undefined};
+  return {cond(name){try{const parts=String(name||"").split(".");const f=NS[parts[0]];return f?f(parts.slice(1),name):undefined}catch(e){return undefined}},
+    reg(ns,fn){if(ns&&typeof fn==="function"){NS[ns]=fn;return true}return false},spaces:()=>Object.keys(NS)}})();
+try{RD._install()}catch(e){try{logError(e)}catch(x){}}
+
+window.LX=window.LX||{acts:{},order:[],feeds:[],arounds:[]};
+// ===== Mephisto · l4 · Gedächtnis: one FSRS-style memory per item (S.mem), fitted to the learner's own reviews; format ladder
+// (recognise → cloze → type with article) on ONE card; leeches with a repair sheet; error queue with trap sentences; grammar cards
+// scheduled like words. S.cards stays the mirror: after every review the legacy fields (ease,int,reps,lapses,due) are rewritten,
+// so every old reader keeps working and removing this file loses nothing. Interfaces: PLAN-L §2.4. Loads after c_final, before c_cloud.
+window.lxAround=window.lxAround||function(n,tag,impl){const o=window[n];if(typeof o!=="function"||o.__mod)return false; // never on a MOD hook
+  const f=function(){try{return impl.call(this,o,arguments)}catch(e){try{logError({message:"AROUND "+n+"/"+tag+": "+(e&&e.message||e)})}catch(x){}return o.apply(this,arguments)}};
+  f.__around=tag;window[n]=f;LX.arounds.push([n,tag]);return true};
+LX.ev=LX.ev||function(key,ok,flags,sec){try{return typeof evLog==="function"&&evLog(key,ok,{f:flags||0,sec:sec||0})}catch(e){return false}};
+
+// ---------------------------------------------------------------- 1. pure model (no state, no DOM; tested in Node)
+const L4F=(function(){
+  // FSRS-4.5 default weights w0–w16 (from memory: FACTS TO CHECK) + w17,w18 = FSRS-5 same-day (short-term) defaults.
+  const W0=[0.4872,1.4003,3.7145,13.8206,5.1618,1.2298,0.8975,0.031,1.6474,0.1367,1.0461,2.1072,0.0793,0.3246,1.587,0.2272,2.8755,0.51655,0.6621];
+  const LO=[0.1,0.1,0.1,0.1,1,0.1,0.1,0,0,0,0.01,0.1,0.01,0.01,0.01,0,1,0,0];
+  const HI=[100,100,100,100,10,5,5,0.75,4.5,0.8,3.5,5,0.25,0.9,4,1,6,2,2];
+  const DECAY=-0.5,FACTOR=19/81,MAXI=365,REC=0.6; // REC: a self-rated recognition counts 60 % of a typed success (PLAN-L: production rewarded without a 2nd card)
+  const FMT={rec:1,cloze:2,prod:4};
+  const cl=(x,a,b)=>x<a?a:x>b?b:x;
+  const R=(t,s)=>Math.pow(1+FACTOR*Math.max(0,t)/Math.max(0.01,s),DECAY);          // recall probability after t days at stability s
+  const ivlRaw=(s,ret)=>s/FACTOR*(Math.pow(ret,1/DECAY)-1);                          // R(ivlRaw)=ret exactly
+  const ivl=(s,ret)=>cl(Math.round(ivlRaw(s,ret)),1,MAXI);
+  const d0=(w,g)=>cl(w[4]-(g-3)*w[5],1,10);
+  // st = {s,d,n} (n = reviews so far) or null for a new item; g 1..4; el = days since last review; f = format code (1 rec, 2 cloze, 4 prod)
+  function step(w,st,g,el,f){
+    if(!st||!st.n){let s=w[g-1];if(f===1&&g>1)s*=REC;return {s:cl(s,0.1,36500),d:d0(w,g)}}
+    let d=st.d-w[6]*(g-3);d=w[7]*d0(w,3)+(1-w[7])*d;d=cl(d,1,10);let s=st.s;
+    if(el<=0){s=s*Math.exp(w[17]*(g-3+w[18]))}
+    else{const r=R(el,s);
+      if(g===1){s=Math.min(s,w[11]*Math.pow(d,-w[12])*(Math.pow(s+1,w[13])-1)*Math.exp(w[14]*(1-r)))}
+      else{let inc=Math.exp(w[8])*(11-d)*Math.pow(s,-w[9])*(Math.exp(w[10]*(1-r))-1);if(g===2)inc*=w[15];if(g===4)inc*=w[16];if(f===1)inc*=REC;s=s*(1+inc)}}
+    return {s:cl(s,0.1,36500),d}}
+  // grade from the card runner's q (0 Nochmal, 1 Schwer, 2 Gut, 3 Leicht) and the format: typed → 1/2/3, self-rated → 1..4
+  const grade=(q,fmt)=>fmt==="rec"?cl((q|0)+1,1,4):(q>=2?3:q===1?2:1);
+  const fuzz=(i,rnd)=>i<=4?i:cl(Math.round(i*(0.95+(rnd||Math.random)()*0.1)),1,MAXI);
+  // log rows [day, idx, el, g, f, sec] → per item sequences
+  function seqs(log){const by=new Map();for(const r of log){if(!Array.isArray(r))continue;let a=by.get(r[1]);if(!a){a=[];by.set(r[1],a)}a.push(r)}
+    const out=[];by.forEach(a=>{a.sort((x,y)=>x[0]-y[0]);out.push(a)});return out}
+  // mean log-loss of recall predictions (reviews with el>0 after the first) under weights w
+  function loss(w,sq){let L=0,N=0;for(const a of sq){let st=null,last=0;for(const r of a){const day=r[0],g=r[3],f=r[4]||1;const el=st?day-last:0;
+        if(st&&st.n&&el>0){const p=cl(R(el,st.s),1e-4,1-1e-4);L-=g>1?Math.log(p):Math.log(1-p);N++}
+        const ns=step(w,st,g,el,f);st={s:ns.s,d:ns.d,n:(st?st.n:0)+1};last=day}}return {loss:N?L/N:0,n:N}}
+  // gradient descent (Adam, central differences) on log-loss; keeps the old weights if the loss does not fall
+  function fitter(log,w0,opt){opt=opt||{};const iters=opt.iters||80,t0=Date.now();const sq=seqs(log);const base=loss(w0,sq);const few=base.n<50;
+    let w=w0.slice(),best=w0.slice(),bestL=base.loss,cur=base.loss,it=0;const m=new Array(19).fill(0),v=new Array(19).fill(0);const lr=opt.lr||0.04,b1=0.9,b2=0.999;
+    return {next(){if(few||it>=iters)return false;const g=new Array(19).fill(0);   // forward differences: 20 loss evaluations per iteration
+        for(let k=0;k<19;k++){const h=1e-3*Math.max(1,Math.abs(w[k]));const a=w.slice();a[k]=cl(w[k]+h,LO[k],HI[k]);const dk=a[k]-w[k];g[k]=dk>0?(loss(a,sq).loss-cur)/dk:0}
+        for(let k=0;k<19;k++){m[k]=b1*m[k]+(1-b1)*g[k];v[k]=b2*v[k]+(1-b2)*g[k]*g[k];const mh=m[k]/(1-Math.pow(b1,it+1)),vh=v[k]/(1-Math.pow(b2,it+1));
+          w[k]=cl(w[k]-lr*Math.max(0.05,Math.abs(w[k]))*mh/(Math.sqrt(vh)+1e-8),LO[k],HI[k])}
+        cur=loss(w,sq).loss;if(cur<bestL){bestL=cur;best=w.slice()}it++;return it<iters},
+      result(){const ok=!few&&bestL<base.loss-1e-4;return {w:ok?best.map(x=>Math.round(x*1e4)/1e4):w0.slice(),loss0:base.loss,loss1:ok?bestL:base.loss,n:base.n,ok,iters:it,ms:Date.now()-t0}}}}
+  function fit(log,w0,opt){opt=opt||{};const t0=Date.now(),budget=opt.ms||1800;const f=fitter(log,w0,opt);let lastT=0;for(;;){const t1=Date.now();if(t1-t0+lastT*1.2>budget)break;const more=f.next();lastT=Date.now()-t1;if(!more)break}return f.result()}
+  // expected reviews per day: every due review succeeds with pOk (measured recall, default = target) or fails, costs a relearn answer and
+  // comes back soon (both branches followed, tiny branches folded into the main one). items = [[s,d,last,n,u]]; `unit` = one new card.
+  function walk(w,ret,pOk,cnt,today,days,s,d,last,n,u,wt,depth){let guard=0;
+    while(u<today+days&&guard++<30){const dd=Math.max(u,today),k=dd-today,el=dd-last,f=n<2?1:4;cnt[k]+=wt;const pf=1-pOk;
+      if(pf>0){cnt[k]+=wt*pf;if(wt*pf>=0.02&&depth<8){const nf=step(w,n?{s,d,n}:null,1,el,f);const nr=step(w,{s:nf.s,d:nf.d,n:n+1},3,0,f);walk(w,ret,pOk,cnt,today,days,nr.s,nr.d,dd,n+2,dd+ivl(nr.s,ret),wt*pf,depth+1);wt*=pOk}}
+      const ns=step(w,n?{s,d,n}:null,3,el,f);s=ns.s;d=ns.d;n++;last=dd;u=dd+ivl(s,ret)}}
+  function forecast(items,w,ret,today,days,newPerDay,pOk){pOk=pOk==null?ret:cl(pOk,0.5,0.99);const cnt=new Array(days).fill(0),fresh=new Array(days).fill(0),unit=new Array(days).fill(0);
+    for(const e of items)walk(w,ret,pOk,cnt,today,days,e[0],e[1],e[2],e[3],e[4],1,0);
+    walk(w,ret,pOk,unit,0,days,0,5,0,0,0,1,0);
+    for(let k=0;k<days;k++)for(let j=0;j<=k;j++)fresh[k]+=unit[k-j]*newPerDay;
+    return {rev:cnt,fresh,unit}}
+  // new cards per day that keep the mean of the next 14 days at or under `share` of the budget. opt.recentMin = mean card minutes of the
+  // last 7 days (measured): if the real load is higher than the forecast, the real load counts.
+  function newBudget(items,w,ret,today,budgetMin,spc,opt){opt=opt||{};const days=opt.days||14,share=opt.share||0.4,max=opt.max||30;
+    const f=forecast(items,w,ret,today,days,1,opt.pOk);let base=f.rev.reduce((a,b)=>a+b,0)*spc/60;if(opt.recentMin>0)base=Math.max(base,0.85*opt.recentMin*days);
+    let unitMin=0;for(let k=0;k<days;k++){for(let j=0;j<=k;j++)unitMin+=f.unit[k-j]}unitMin=(unitMin*spc+days*spc*0.5)/60; // + the longer first look at a new card
+    const room=share*budgetMin*days-base;return cl(Math.floor(room/Math.max(0.01,unitMin)),0,max)}
+  return {W0,LO,HI,DECAY,FACTOR,MAXI,REC,FMT,R,ivl,ivlRaw,d0,step,grade,fuzz,seqs,loss,fitter,fit,forecast,newBudget,cl}})();
+if(typeof module!=="undefined"&&module.exports)module.exports.L4F=L4F;
+
+// ---------------------------------------------------------------- 2. state, day index, migration, mirror
+const L4={v:1,EPOCH:"2026-01-01",PEND:new Map(),U:[],raw:null,qt:0,rt:0,memSeg:false,adoptSig:null,zc:new Map(),GAP:[1,3,7,21]};
+const l4p2=n=>String(n).padStart(2,"0");
+function l4Day(k){k=k||(typeof todayKey==="function"?todayKey():new Date().toISOString().slice(0,10));const [y,m,d]=String(k).slice(0,10).split("-").map(Number);return Math.round((Date.UTC(y,m-1,d)-Date.UTC(2026,0,1))/864e5)}
+function l4Key(n){const t=new Date(Date.UTC(2026,0,1)+n*864e5);return t.getUTCFullYear()+"-"+l4p2(t.getUTCMonth()+1)+"-"+l4p2(t.getUTCDate())}
+const l4r2=x=>Math.round(x*100)/100;
+function l4Fresh(){return {v:1,ret:0.88,rt:"",w:null,fit:"",fl:null,c:{},x:{},log:[],ids:[],q:[]}}
+// S.mem = {v,ret,rt,w,fit,fl,c:{id:[s,d,last,n,l,f,u]},x:{"p:<id>":1},log:[[day,idx,el,g,f,sec]],ids:[…],q:[pending grammar ids]}
+// c tuple: s stability (days), d difficulty 1–10, last day index, n reviews, l lapses, f bits (1 rec, 2 cloze, 4 prod ≥ twice, 8 relearning, 16 prod once), u due day index
+function l4M(){if(typeof S==="undefined"||!S)return l4Fresh();let m=S.mem;if(!m||typeof m!=="object"||Array.isArray(m)||m.v!==1){m=S.mem=Object.assign(l4Fresh(),m&&typeof m==="object"&&!Array.isArray(m)?m:{},{v:1})}
+  if(typeof m.ret!=="number"||!(m.ret>=0.8&&m.ret<=0.95))m.ret=0.88;["c","x"].forEach(k=>{if(!m[k]||typeof m[k]!=="object"||Array.isArray(m[k]))m[k]={}});["log","ids","q"].forEach(k=>{if(!Array.isArray(m[k]))m[k]=[]});
+  if(m.w&&(!Array.isArray(m.w)||m.w.length!==19||m.w.some(x=>typeof x!=="number"||!isFinite(x))))m.w=null;return m}
+function l4W(){const m=l4M();return m.w||L4F.W0}
+function l4Errq(){if(typeof S==="undefined")return [];if(!Array.isArray(S.errq))S.errq=[];return S.errq}
+function l4Leech(){if(typeof S==="undefined")return {};if(!S.leech||typeof S.leech!=="object"||Array.isArray(S.leech))S.leech={};return S.leech}
+const l4IsVirt=k=>/^(eq|eqt|z):/.test(k);
+function l4Kind(id){return id.startsWith("w:")?"w":id.startsWith("s:")?"satz":id.startsWith("gc:")?"gc":id.startsWith("c:")?"c":id.startsWith("eq")?"eq":"x"}
+function l4FromLegacy(id,c){const int=Math.max(0,+c.int||0),reps=+c.reps||0,lapses=+c.lapses||0,ease=+c.ease||2.5;let u=l4Day(/^\d{4}-\d\d-\d\d/.test(c.due||"")?c.due:undefined);if(!isFinite(u))u=l4Day();
+  const s=reps===0?0.5:Math.max(0.5,int);const d=L4F.cl(10-5*(ease-1.3)/1.2,1,10);const n=reps+lapses;return [l4r2(s),l4r2(d),u-int,n,lapses,(n>0?1:0)|(reps===0&&n>0?8:0),u]}
+// once per state (idempotent): every S.cards entry with a catalogue card gets a memory; p: production cards fold into their word
+function l4Adopt(force){if(typeof S==="undefined"||!S||!S.cards)return 0;const m=l4M();const keys=Object.keys(S.cards);const sig=keys.length;
+  if(!force&&L4.adoptSig&&L4.adoptSig[0]===S&&L4.adoptSig[1]===S.cards&&L4.adoptSig[2]===sig&&L4.adoptSig[3]===m)return 0;let n=0;
+  for(const k of keys){if(k.startsWith("p:")||l4IsVirt(k))continue;const c=S.cards[k];if(!c||typeof c!=="object")continue;const e=m.c[k];
+    if(!e){if(typeof card==="function"&&!card(k))continue;m.c[k]=l4FromLegacy(k,c);n++;continue}
+    // reconcile: the mirror was changed by someone else (other device without the merge rule, a reset, an old file)
+    const du=l4Day(c.due);if(isFinite(du)&&(du!==e[6]||(+c.int||0)!==e[6]-e[2])){const ld=typeof c.last==="string"&&/^\d{4}-\d\d-\d\d/.test(c.last)?l4Day(c.last.slice(0,10)):-1e9;
+      if(ld>e[2]||((+c.reps||0)===0&&(+c.lapses||0)===0&&(+c.int||0)===0&&e[3]>0)){const ne=l4FromLegacy(k,c);ne[1]=e[1];m.c[k]=ne;n++}}}
+  for(const k of keys){if(!k.startsWith("p:")||m.x[k])continue;const id=k.slice(2);const e=m.c[id];if(!e)continue;const p=S.cards[k];
+    e[3]+=(+p.reps||0)+(+p.lapses||0);e[4]+=(+p.lapses||0);if((+p.reps||0)>=2)e[5]|=4|16;const pu=l4Day(p.due);if(isFinite(pu)&&pu<e[6]){e[6]=pu;if(e[2]>pu)e[2]=pu}m.x[k]=1;n++}
+  for(const id in m.c){if(!S.cards[id])delete m.c[id]}
+  L4.adoptSig=[S,S.cards,Object.keys(S.cards).length,m];return n}
+function l4Ease(d){return l4r2(L4F.cl(1.3+(10-d)*1.2/5,1.3,3))}
+// write the legacy fields of S.cards[id] from the memory (in place, so other wrappers' fields survive)
+function l4Mirror(id,e){let c=S.cards[id];if(!c||typeof c!=="object"){c=S.cards[id]={ease:2.5,int:0,reps:0,lapses:0,due:l4Key(e[6])}}
+  c.int=Math.max(0,e[6]-e[2]);c.due=l4Key(e[6]);c.lapses=e[4];c.ease=l4Ease(e[1]);if(e[5]&8)c.reps=0;else if(!(c.reps>0))c.reps=Math.max(1,e[3]-e[4]);return c}
+function l4Idx(id){const m=l4M();if(!L4.ix||L4.ix.m!==m||L4.ix.n!==m.ids.length){L4.ix={m,n:m.ids.length,map:new Map(m.ids.map((x,i)=>[x,i]))}}let i=L4.ix.map.get(id);if(i==null){i=m.ids.length;m.ids.push(id);L4.ix.map.set(id,i);L4.ix.n=m.ids.length}return i}
+function l4Suspended(id,day){const L=l4Leech()[id];return !!(L&&!L.fixed)}
+
+// ---------------------------------------------------------------- 3. API (PLAN-L §2.4)
+function memGet(id){const e=l4M().c[id];if(!e)return null;const day=l4Day();return {s:e[0],d:e[1],last:e[2],n:e[3],l:e[4],f:e[5],u:e[6],R:e[3]?L4F.R(day-e[2],e[0]):0,due:l4Key(e[6]),leech:l4Suspended(id)}}
+function memR(id,day){const e=l4M().c[id];if(!e||!e[3])return 0;return L4F.R((day==null?l4Day():day)-e[2],e[0])}
+function memDue(day){l4Adopt();const m=l4M();day=day==null?l4Day():day;const out=[];for(const id in m.c){const e=m.c[id];if(e[6]>day||l4Suspended(id))continue;out.push([id,e[5]&8?-1:e[3]?L4F.R(day-e[2],e[0])/m.ret:0.5])}
+  out.sort((a,b)=>a[1]-b[1]||(a[0]<b[0]?-1:1));return out.map(x=>x[0])}
+function l4CanCloze(id){return !!l4Cloze(id)}
+function memFormat(id){const e=l4M().c[id];if(!e||e[3]<2||e[5]&8)return id.startsWith("gc:")?"prod":"rec";if(id.startsWith("gc:"))return "prod";if(!id.startsWith("w:"))return "rec";
+  const cz=l4CanCloze(id);if(!(e[5]&2)&&cz)return "cloze";if(!(e[5]&4))return "prod";return (e[3]%2&&cz)?"cloze":"prod"}
+function l4Item(id,isNew){if(id.startsWith("eq"))return {key:id,id,mode:"prod",isNew:false};const f=isNew?"rec":memFormat(id);L4.PEND.set(id,f);
+  return f==="cloze"?{key:id,id:"z:"+id,mode:"prod",isNew:!!isNew}:{key:id,id,mode:f==="rec"?"rec":"prod",isNew:!!isNew}}
+function l4SecPerCard(){const log=l4M().log;const a=[];for(let i=log.length-1;i>=0&&a.length<300;i--){const s=log[i][5];if(s>0&&s<=120)a.push(s)}if(a.length<20)return 10;a.sort((x,y)=>x-y);return a[a.length>>1]}
+function memForecast(days,newPerDay){const m=l4M();l4Adopt();const day=l4Day();days=days||14;const items=[];for(const id in m.c){if(l4Suspended(id))continue;const e=m.c[id];items.push([e[0],e[1],e[2],e[3],e[6]])}
+  const r30=l4Ret30();const f=L4F.forecast(items,l4W(),m.ret,day,days,newPerDay==null?(S.newPerDay||0):newPerDay,r30==null?undefined:r30);const spc=l4SecPerCard();
+  return f.rev.map((r,i)=>({day:l4Key(day+i),reviews:r+Math.round(f.fresh[i]),min:Math.round((r*spc+f.fresh[i]*spc)/6)/10}))}
+function memNewBudget(budgetMin){const m=l4M();l4Adopt();const items=[];for(const id in m.c){if(l4Suspended(id))continue;const e=m.c[id];items.push([e[0],e[1],e[2],e[3],e[6]])}
+  return L4F.newBudget(items,l4W(),m.ret,l4Day(),budgetMin||(S&&S.minutes)||40,l4SecPerCard(),{pOk:l4Ret30()==null?undefined:l4Ret30(),recentMin:l4RecentMin()})}
+function l4RecentMin(){const log=l4M().log,day=l4Day();let sec=0,n=0;const days=new Set();for(let i=log.length-1;i>=0;i--){const r=log[i];if(day-r[0]>7)break;if(r[0]>=day)continue;days.add(r[0]);n++;sec+=r[5]>0&&r[5]<=120?r[5]:10}return days.size>=3?sec/60/7:0}
+function l4Ret30(){const log=l4M().log,day=l4Day();let n=0,ok=0;for(const r of log){if(day-r[0]>30||!(r[2]>0))continue;n++;if(r[3]>1)ok++}return n>=10?ok/n:null}
+function memStats(){const m=l4M();l4Adopt();let seen=0,young=0,mature=0,fresh=0,relearn=0;for(const id in m.c){const e=m.c[id];if(!e[3]){fresh++;continue}seen++;if(e[5]&8)relearn++;if(e[0]>=21)mature++;else young++}
+  const lee=Object.entries(l4Leech()).filter(([id,L])=>!L.fixed&&m.c[id]).length;return {seen,young,mature,fresh,relearn,ret30:l4Ret30(),target:m.ret,leeches:lee,secPerCard:l4SecPerCard(),fit:m.fit||"",reviews:m.log.length}}
+function memAdd(id){if(typeof S==="undefined"||!id)return false;const m=l4M();if(m.c[id])return false;const day=l4Day();m.c[id]=[0.5,5,day,0,0,0,day];if(!S.cards[id])S.cards[id]={ease:2.5,int:0,reps:0,lapses:0,due:l4Key(day)};L4.adoptSig=null;saveSoon();return true}
+// queue for l5's blocks (kinds ⊂ w, satz, gc, eq, c); ready for cardRunner
+function memQueue(o){o=o||{};const kinds=o.kinds||["w","satz","c"];const spc=l4SecPerCard();const max=o.min?Math.max(1,Math.round(o.min*60/spc)):(o.max||40);L4.qt=Date.now();
+  const due=memDue().filter(id=>kinds.includes(l4Kind(id))&&(typeof card!=="function"||card(id))).slice(0,max);let q=due.map(id=>l4Item(id,false));
+  if(kinds.includes("eq"))q=q.concat(l4ErrqItems(Math.max(1,Math.round((o.min||3)/1.5))));
+  const nm=o.newMax==null?0:o.newMax;if(nm>0&&typeof newPool==="function"){try{const pool=newPool().filter(c=>kinds.includes(l4Kind(c.id))).slice(0,nm);q=q.concat(pool.map(c=>l4Item(c.id,true)))}catch(e){}}
+  return l4NoTwoLessons(q.slice(0,Math.max(max,q.length)))}
+function l4NoTwoLessons(q){const L=x=>String(x.id).startsWith("gc:")?String(x.id).split(":")[1]:null;for(let i=1;i<q.length;i++){if(L(q[i])&&L(q[i])===L(q[i-1])){const j=q.findIndex((x,k)=>k>i&&L(x)!==L(q[i]));if(j>0){const t=q[i];q[i]=q[j];q[j]=t}}}return q}
+
+// ---------------------------------------------------------------- 4. reviewing: memRate (called by the rate around)
+function l4Sec(){const now=Date.now();const from=Math.max(L4.rt||0,L4.qt||0);L4.rt=now;const s=Math.round((now-from)/1000);return from&&s>0&&s<=120?s:0}
+function memRate(id,g,fmt,sec){const m=l4M();const day=l4Day();const prev=m.c[id]?m.c[id].slice():null;const fc=L4F.FMT[fmt]||1;
+  const st=prev&&prev[3]?{s:prev[0],d:prev[1],n:prev[3]}:null;const el=prev&&prev[3]?Math.max(0,day-prev[2]):0;
+  const ns=L4F.step(l4W(),st,g,el,fc);let f=prev?prev[5]:0;const n=(prev?prev[3]:0)+1;let l=prev?prev[4]:0;
+  if(g===1){if(prev&&prev[3]&&!(f&8))l++;f|=8}else{f&=~8;if(fc===1)f|=1;if(fc===2)f|=2;if(fc===4){if(f&16)f|=4;f|=16}}
+  let u;if(g===1)u=day;else{let i=L4F.ivl(ns.s,m.ret);i=L4F.fuzz(i);u=day+i}
+  const e=[l4r2(ns.s),l4r2(ns.d),day,n,l,f,u];m.c[id]=e;const row=[day,l4Idx(id),el,g,fc,sec==null?0:sec];m.log.push(row);if(m.log.length>2500)m.log.splice(0,m.log.length-2500);
+  return {e,prev,row,int:u-day,due:l4Key(u)}}
+// what the runner's grade buttons will give (days), without changing anything
+function l4Preview(id,q,fmt){const m=l4M();const e=m.c[id];const day=l4Day();const g=L4F.grade(q,fmt||"rec");if(g===1)return 0;const st=e&&e[3]?{s:e[0],d:e[1],n:e[3]}:null;
+  const ns=L4F.step(l4W(),st,g,st?Math.max(0,day-e[2]):0,L4F.FMT[fmt||"rec"]);return L4F.ivl(ns.s,m.ret)}
+
+// leeches: l ≥ 4 → out of the queue until repaired
+function l4LeechCheck(id,e){if(!id.startsWith("w:")&&!id.startsWith("s:")&&!id.startsWith("c:"))return false;const L=l4Leech();const cur=L[id];const l0=cur?(cur.l0||4):0;
+  if(e[4]>=4&&(!cur||(cur.fixed&&e[4]>=l0+4))){L[id]={since:typeof todayKey==="function"?todayKey():l4Key(l4Day()),fixed:"",l0:e[4]};
+    try{const c=card(id);toast("„"+(c?c.de:id)+"“ ist ein Blutegel: viermal vergessen. Reparatur unter Ich → Gedächtnis.",4200)}catch(x){}return true}return false}
+
+// ---------------------------------------------------------------- 5. error queue (S.errq) and trap sentences
+const L4_ETYPES={v2:"Verb an Position 2",sein:"Perfekt mit sein",seit:"seit + Dativ",vend:"Verb am Ende im Nebensatz",genus:"Artikel und Genus",zu:"zu · zum · zur",wechsel:"Wechselpräpositionen",adj:"Adjektivendungen",sep:"Trennbare Verben",neg:"nicht oder kein",modal:"Modalverb + Infinitiv",sie:"Sie großgeschrieben",komma:"Komma vor dem Nebensatz",obj:"Zwei Objekte: Reihenfolge",kasus:"Kasus",konj:"Konjugation",spell:"Rechtschreibung",wort:"Wortwahl",reg:"Register",sonst:"Sonstiges"};
+function l4Hash(s){let h=2166136261;s=String(s);for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0).toString(36)}
+const l4N=s=>String(s||"").trim().replace(/\s+/g," ");
+// app error types (ERR_TYPES) and the text → one of the trap types
+function l4Type(e){const ty=String(e.type||""),o=String(e.original||e.bad||""),f=String(e.fix||e.good||""),t=(o+" "+f).toLowerCase();if(L4_ETYPES[ty]&&ty===ty.toLowerCase())return ty;
+  const sub=/\b(weil|dass|ob|wenn|als|bevor|bis|obwohl|sobald|damit|nachdem)\b/;
+  if(ty==="Artikel/Genus")return "genus";if(ty==="Adjektivendung")return "adj";
+  if(ty==="Nebensatz")return (f.match(/,/g)||[]).length>(o.match(/,/g)||[]).length?"komma":"vend";
+  if(ty==="Wortstellung"){if(sub.test(t))return "vend";if(/\b(mir|dir|ihm|ihr|ihnen|uns|euch)\b/.test(t)&&/\b(es|ihn|sie)\b/.test(t))return "obj";if(/\b(muss|kann|will|soll|darf|möchte|müssen|können|wollen|sollen|dürfen)\b/.test(t))return "modal";if(/\bnicht\b/.test(t))return "neg";return "v2"}
+  if(ty==="Kasus"||ty==="Präposition"){if(/\bseit\b/.test(t))return "seit";if(/\bzu[mr]?\b|nach hause/.test(t))return "zu";if(/\b(in|im|ins|an|am|ans|auf|unter|über|vor|hinter|neben|zwischen)\b/.test(t))return "wechsel";return "kasus"}
+  if(ty==="Konjugation"){if(/\b(bin|bist|ist|sind|seid)\b/.test(f)&&/\b(habe|hast|hat|haben|habt)\b/.test(o))return "sein";if(/\b(ge\w+|\w+ge\w+)\b/.test(o)&&/\b(ein|aus|an|auf|zu|mit|vor|ab)ge/.test(f))return "sep";return "konj"}
+  if(ty==="Rechtschreibung"){if(/\b(sie|ihnen|ihr\w*)\b/.test(o)&&/\b(Sie|Ihnen|Ihr\w*)\b/.test(f))return "sie";if((f.match(/,/g)||[]).length>(o.match(/,/g)||[]).length)return "komma";return "spell"}
+  if(/\b(kein|keine|keinen|nicht)\b/.test(t))return "neg";if(ty==="Wortwahl")return "wort";if(ty==="Register")return "reg";return "sonst"}
+function errqAdd(x){if(typeof S==="undefined"||!x)return null;const bad=l4N(x.bad||x.original),good=l4N(x.good||x.fix);if(!bad||!good||bad===good||good.length>160)return null;
+  const q=l4Errq();const day=l4Day();const k=l4Hash(bad.toLowerCase()+"→"+good.toLowerCase());let it=q.find(i=>i.k===k);
+  if(it){it.n=(it.n||1)+1;it.h=(it.h||[]).concat([day]).slice(-8);if(it.done){it.done=0;it.ok=0;it.s=0;it.last=day}}
+  else{const type=L4_ETYPES[x.type]&&x.type===String(x.type).toLowerCase()?x.type:l4Type(x);it={k,type,bad,good,rule:String(x.rule||x.why||"").slice(0,200),src:String(x.src||"").slice(0,20),made:day,n:1,ok:0,s:0,last:day,h:[day]};q.push(it)}
+  if(q.length>200){q.sort((a,b)=>(a.done?0:1)-(b.done?0:1)||a.last-b.last);q.splice(0,q.length-200)}
+  if(typeof saveSoon==="function")saveSoon();return it}
+const l4EqDue=it=>it.last+L4.GAP[Math.min(3,it.s||0)];
+function errqDue(day){day=day==null?l4Day():day;return l4Errq().filter(it=>!it.done&&l4EqDue(it)<=day).sort((a,b)=>l4EqDue(a)-l4EqDue(b)||(a.k<b.k?-1:1))}
+function errqTop(n,days){n=n||5;days=days||30;const day=l4Day();const now={},before={};l4Errq().forEach(it=>{(it.h||[it.made]).forEach(d=>{if(day-d<days)now[it.type]=(now[it.type]||0)+1;else if(day-d<2*days)before[it.type]=(before[it.type]||0)+1})});
+  return Object.keys(now).sort((a,b)=>now[b]-now[a]||(a<b?-1:1)).slice(0,n).map(t=>({type:t,name:L4_ETYPES[t]||t,rule:(typeof L4_TRAP_TYPES!=="undefined"&&L4_TRAP_TYPES[t]||{}).en||"",n:now[t],trend:now[t]-(before[t]||0),open:l4Errq().filter(i=>i.type===t&&!i.done).length}))}
+function l4Traps(type){if(typeof L4_TRAPS==="undefined")return [];const lv=typeof learnerLv==="function"?(()=>{try{return learnerLv()}catch(e){return 1}})():1;const LVS=["A1","A2","B1","B2","C1"];
+  const all=L4_TRAPS.map((r,i)=>[r,i]).filter(([r])=>r[0]===type);const fit=all.filter(([r])=>LVS.indexOf(r[1])<=lv+1);return fit.length?fit:all}
+function l4TrapFor(it){const list=l4Traps(it.type);if(!list.length)return null;const j=(parseInt(it.k,36)+(it.n||0)+(it.ok||0)+(it.s||0))%list.length;return list[j]}
+function l4ErrqItems(max){const out=[];errqDue().slice(0,max||2).forEach(it=>{out.push({key:"eq:"+it.k,id:"eq:"+it.k,mode:"prod",isNew:false});const t=l4TrapFor(it);if(t)out.push({key:"eqt:"+it.k+":"+t[1],id:"eqt:"+it.k+":"+t[1],mode:"prod",isNew:false})});return out}
+// strict check for the two traps normT cannot see (commas, capitals of Sie): uses the raw text captured from the runner's input
+function l4Strict(raw,good,type){if(!raw||(type!=="komma"&&type!=="sie"))return "";const tok=s=>String(s).trim().replace(/[.!?]+$/,"").replace(/\s*,\s*/g,", ").split(/\s+/).filter(Boolean);const A=tok(raw),B=tok(good);if(A.length!==B.length)return "";
+  for(let i=0;i<B.length;i++){const a=A[i],b=B[i];if(type==="komma"&&/,$/.test(b)!==/,$/.test(a))return /,$/.test(b)?"Komma fehlt nach „"+b.replace(/,$/,"")+"“.":"Kein Komma nach „"+a.replace(/,$/,"")+"“.";
+    if(type==="sie"&&i>0&&/^(sie|ihnen|ihr\w*)$/i.test(b.replace(/,$/,""))&&a[0]!==b[0]&&a[0].toLowerCase()===b[0].toLowerCase())return b[0]===b[0].toUpperCase()?"Höfliches „"+b.replace(/,$/,"")+"“ wird großgeschrieben.":"„"+b.replace(/,$/,"")+"“ (sie = she/they) wird kleingeschrieben."}return ""}
+function l4ErrqRate(key,q){const isT=key.startsWith("eqt:");const k=key.split(":")[1];const it=l4Errq().find(i=>i.k===k);if(!it)return null;const day=l4Day();const prev=Object.assign({},it,{h:(it.h||[]).slice()});
+  let good=it.good;if(isT){const t=(typeof L4_TRAPS!=="undefined")?L4_TRAPS[+key.split(":")[2]]:null;if(t)good=t[3]}
+  const raw=L4.raw&&Date.now()-L4.raw.t<600000?L4.raw.v:"";const why=q>=1?l4Strict(raw,good,it.type):"";if(why){q=0;try{toast(why+" Zählt diesmal nicht.",3800)}catch(e){}}
+  LX.ev("eq:"+it.type,q>=2,isT?2:1,0);
+  if(isT){it.tr=(it.tr||0)+1;if(q>=2)it.tok=(it.tok||0)+1}
+  else if(q>=2){if(!it.ok){it.ok=1;it.okd=day}else if(day-(it.okd||day)>=7){it.ok=2;it.done=day}it.s=Math.min(3,(it.s||0)+1);it.last=day}
+  else{it.ok=0;it.okd=0;it.s=0;it.last=day}
+  return {prev,it}}
+// virtual cards: z:<id> cloze of a word, eq:<k> own mistake, eqt:<k>:<trap index> fresh sentence with the same trap
+function l4Cloze(id){if(L4.zc.has(id))return L4.zc.get(id);let out=null;try{const c=typeof CATALOG!=="undefined"?CATALOG.get(id):null;
+    if(c&&c.ex&&(c.kind==="word"||id.startsWith("w:"))){const lem=String(c.de).replace(/^(der|die|das|sich) /,"").trim();if(lem&&!/\s/.test(lem)&&lem.length>=3){const lw=lem.toLowerCase();const toks=String(c.ex).split(/(\s+)/);
+        const clean=t=>t.replace(/^[„"'(«‚]+|[.,!?;:“"')»‘…]+$/g,"");let hit=-1;for(let i=0;i<toks.length;i++){if(clean(toks[i]).toLowerCase()===lw){hit=i;break}}
+        if(hit<0){const stem=lw.replace(/(en|n|e)$/,"");if(stem.length>=4)for(let i=0;i<toks.length;i++){const t=clean(toks[i]).toLowerCase();if(t.startsWith(stem)&&t.length<=lw.length+3&&t.length>=stem.length){hit=i;break}}}
+        if(hit>=0){const ans=clean(toks[hit]);const blank=toks.slice();blank[hit]=toks[hit].replace(ans,"＿＿＿");out={sent:blank.join(""),ans,en:c.en}}}}}catch(e){out=null}
+  L4.zc.set(id,out);return out}
+function l4Card(id){if(id.startsWith("z:")){const base=id.slice(2);const z=l4Cloze(base);const c=typeof CATALOG!=="undefined"?CATALOG.get(base):null;if(!z||!c)return null;
+    return {id,de:z.ans,en:"Lücke: "+z.sent+"  ("+z.en+")",ex:"",tag:c.tag,kind:"cloze",level:c.level,base}}
+  if(id.startsWith("eqt:")){const p=id.split(":");const it=l4Errq().find(i=>i.k===p[1]);const t=typeof L4_TRAPS!=="undefined"?L4_TRAPS[+p[2]]:null;if(!t)return null;
+    return {id,de:t[3],en:"Gleiche Falle, neuer Satz – schreib ihn richtig: „"+t[2]+"“ · "+t[4],ex:"",tag:"fehler",kind:"fehler",level:t[1],etype:it?it.type:t[0]}}
+  if(id.startsWith("eq:")){const it=l4Errq().find(i=>i.k===id.slice(3));if(!it)return null;
+    return {id,de:it.good,en:"Dein Fehler – schreib es richtig: „"+it.bad+"“"+(it.rule?" · "+it.rule:""),ex:"",tag:"fehler",kind:"fehler",etype:it.type}}
+  return null}
+
+// ---------------------------------------------------------------- 6. undo: the runner restores S.cards[key]; we restore S.mem to match
+function l4UndoCheck(){if(L4.inRate||!L4.U.length||typeof S==="undefined")return;const now=Date.now();
+  for(let i=L4.U.length-1;i>=0;i--){const u=L4.U[i];if(now-u.t>8000||u.S!==S){L4.U.splice(i,1);continue}
+    const undone=u.transient?(S.newToday!==u.nt&&S.cards===u.cards):(S.cards===u.cards&&S.cards[u.key]!==u.ref);
+    if(!undone)continue;L4.U.splice(i,1);const m=l4M();
+    if(u.eq){const q=l4Errq();const j=q.findIndex(x=>x.k===u.eq.k);if(j>=0)q[j]=u.eq}
+    else{if(u.prev)m.c[u.id]=u.prev;else delete m.c[u.id];if(u.leech!==undefined){const L=l4Leech();if(u.leech)L[u.id]=u.leech;else delete L[u.id]}}
+    if(u.row){const j=m.log.lastIndexOf(u.row);if(j>=0)m.log.splice(j,1)}
+    if(!u.transient&&S.cards[u.key]&&m.c[u.id]&&u.id===u.key){}}}
+
+// ---------------------------------------------------------------- 7. the around changes (declared in MANIFEST; integrator → MOD.around)
+(function(){if(typeof S==="undefined"||typeof rate!=="function")return;
+  try{l4M();l4Adopt(true);if(!Array.isArray(S.errq))S.errq=[];else{const m=new Map();S.errq.forEach(it=>{if(!it||!it.k)return;const o=m.get(it.k);if(!o||(it.last||0)>(o.last||0)||((it.last||0)===(o.last||0)&&(it.n||0)>(o.n||0)))m.set(it.k,Object.assign({},it,{n:Math.max(it.n||1,o?o.n||1:1)}));});S.errq=[...m.values()]}l4Leech()}catch(e){try{logError({message:"l4 init: "+(e&&e.message||e)})}catch(x){}}
+  lxAround("card","l4",function(o,a){const id=a[0];if(typeof id==="string"&&(id.charCodeAt(0)===122||id.charCodeAt(0)===101)&&/^(z|eq|eqt):/.test(id))return l4Card(id);return o.apply(this,a)});
+  lxAround("rate","l4",function(o,a){const key=String(a[0]),q=+a[1]||0;l4UndoCheck();const sec=l4Sec();
+    if(key.startsWith("eq:")||key.startsWith("eqt:")){const r=l4ErrqRate(key,q);const day=l4Day();const it=r&&r.it;const gap=it?(it.done?0:L4.GAP[Math.min(3,it.s||0)]):0;
+      S.cards[key]={ease:2.5,int:gap,reps:q>0?1:0,lapses:0,due:l4Key(day+gap)};const ref=S.cards[key];setTimeout(()=>{try{if(S.cards[key]===ref)delete S.cards[key]}catch(e){}},0);
+      if(r)L4.U.push({t:Date.now(),S,cards:S.cards,key,id:key,transient:true,nt:S.newToday,eq:r.prev});try{logDay("err")}catch(e){}if(typeof saveSoon==="function")saveSoon();return}
+    let id=key,fmt;if(key.startsWith("p:")){id=key.slice(2);fmt="prod"}else fmt=L4.PEND.get(key)||(key.startsWith("gc:")?"prod":"rec");
+    L4.U=L4.U.filter(u=>u.key!==id);let r0;L4.inRate=true;try{r0=o.apply(this,[id].concat([].slice.call(a,1)))}finally{L4.inRate=false}   // legacy side effects (log, mrev/mok, other wrappers); its interval is overwritten below
+    if(!S.cards[id])return r0;const leechBefore=l4Leech()[id]?Object.assign({},l4Leech()[id]):null;
+    const g=L4F.grade(q,fmt);const r=memRate(id,g,fmt,sec);const c=l4Mirror(id,r.e);
+    const lc=l4LeechCheck(id,r.e);L4.U.push({t:Date.now(),S,cards:S.cards,key:id,id,ref:c,prev:r.prev,row:r.row,leech:lc?leechBefore:undefined});if(L4.U.length>20)L4.U.shift();
+    if(/^(w|s|c):/.test(id))LX.ev("v:"+id+":"+(fmt==="rec"?"rec":"prod"),g>1,fmt==="cloze"?2:0,sec);
+    if(!S.mem.fit&&S.mem.log.length===1000)l4RefitSoon();return r0});
+  lxAround("previewInt","l4",function(o,a){const key=String(a[0]);if(key.startsWith("p:")||l4IsVirt(key))return o.apply(this,a);return l4Preview(key,+a[1]||0,L4.PEND.get(key)||"rec")});
+  lxAround("isDue","l4",function(o,a){const key=String(a[0]);if(key.startsWith("p:")&&l4M().x[key])return false;const e=l4M().c[key];if(!e)return o.apply(this,a);return e[6]<=l4Day()&&!l4Suspended(key)});
+  lxAround("dueKeys","l4",function(o,a){return memDue().filter(id=>typeof card!=="function"||card(id))});
+  lxAround("prodPool","l4",function(o,a){return []});
+  lxAround("newPool","l4",function(o,a){const tag=a[0];const out=o.apply(this,a);if(tag||!out.length)return out;const n=out.length;const m=l4M();
+    const ok=c=>c&&!S.cards[c.id]&&!m.c[c.id]&&(c.kind!=="satz"||S.unlocked[c.id]||String(c.id).startsWith("gc:"));const seen=new Set();const res=[];const push=c=>{if(res.length<n&&ok(c)&&!seen.has(c.id)){seen.add(c.id);res.push(c)}};
+    try{if(typeof preToday==="function")(preToday()||[]).forEach(x=>push(card(typeof x==="string"?x:x&&x.id)))}catch(e){}
+    try{(LX.feeds||[]).forEach(fn=>{try{(fn()||[]).forEach(id=>push(card(id)))}catch(e){}})}catch(e){}
+    out.filter(c=>c.kind!=="word").forEach(push);
+    let cap=4;try{cap=Math.min(4,(typeof learnerLv==="function"?learnerLv():(typeof levelCap==="function"?levelCap()-1:3))+1)}catch(e){}
+    const lvOf=c=>typeof c.lv==="number"?c.lv:(typeof LV==="function"?LV(c.level||"B1"):2);const words=[];let i=0;const pos=new Map(out.map((c,j)=>[c.id,j]));
+    (typeof allCards==="function"?allCards():[]).forEach(c=>{i++;if(c.kind!=="word"||!ok(c))return;const lv=lvOf(c);if(lv>cap)return;words.push([lv,typeof c.rank==="number"?c.rank:1e9,pos.has(c.id)?pos.get(c.id):1e6+i,c])});
+    words.sort((x,y)=>x[0]-y[0]||x[1]-y[1]||x[2]-y[2]);words.forEach(w=>push(w[3]));out.forEach(push);return res});
+  lxAround("buildQueue","l4",function(o,a){const opt=a[0]||{};const q=o.apply(this,a);L4.qt=Date.now();const rank=new Map();memDue().forEach((id,i)=>rank.set(id,i));
+    const rev=[],add=[];q.forEach(it=>{if(String(it.key).startsWith("p:"))return;(it.isNew?add:rev).push(it)});
+    const R2=rev.map(it=>{if(String(it.key).startsWith("gc:")){L4.PEND.set(it.key,"prod");return it}const n=l4Item(it.key,false);return Object.assign({},it,{id:n.id,mode:n.mode})});
+    R2.sort((x,y)=>(rank.has(x.key)?rank.get(x.key):1e9)-(rank.has(y.key)?rank.get(y.key):1e9));add.forEach(it=>{if(!String(it.key).startsWith("gc:"))L4.PEND.set(it.key,"rec")});
+    let out=[];let ai=0;R2.forEach((x,i)=>{out.push(x);if(i%3===2&&ai<add.length)out.push(add[ai++])});while(ai<add.length)out.push(add[ai++]);
+    if(!opt.tag&&opt.due!==false&&typeof planToday!=="function"){const eq=l4ErrqItems(2);if(eq.length)out.splice(Math.min(out.length,5),0,...eq)}
+    return l4NoTwoLessons(out)});
+  lxAround("mastered","l4",function(o,a){return Object.keys(S.cards).filter(k=>!k.startsWith("p:")&&!/^(gc|eq|eqt):/.test(k)&&S.cards[k].int>=21&&S.cards[k].reps>0).length});
+  lxAround("knownWords","l4",function(o,a){if(a.length)return o.apply(this,a);return Object.keys(S.cards).filter(k=>!k.startsWith("p:")&&!/^(gc|eq|eqt):/.test(k)&&S.cards[k].reps>0).length});
+  // hooks (MOD.after): errors → queue; lessons → grammar cards; undo watch; Gedächtnis; settings
+  try{MOD.after("addErrors","l4",function(list,src){(list||[]).forEach(e=>{if(e&&e.original&&e.fix)errqAdd({type:e.type,bad:e.original,good:e.fix,rule:e.why||"",src:src||""})})})}catch(e){}
+  try{MOD.after("completeLesson","l4",function(id,score){l4GramRelease(id,score)})}catch(e){}
+  try{MOD.after("saveSoon","l4",function(){l4UndoCheck()})}catch(e){}
+  try{MOD.after("viewMe","l4",l4ViewMe)}catch(e){}
+  try{MOD.after("meSettings","l4",l4Settings)}catch(e){}
+  if(typeof document!=="undefined"){document.addEventListener("click",e=>{const b=e.target&&e.target.closest&&e.target.closest(".cr-chk");if(b){const i=document.querySelector(".cr-in");if(i)L4.raw={v:i.value,t:Date.now()}}},true);
+    document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target&&e.target.classList&&e.target.classList.contains("cr-in"))L4.raw={v:e.target.value,t:Date.now()}},true)}
+  setTimeout(()=>{try{if(typeof MERGE_RULES==="object"&&MERGE_RULES){MERGE_RULES.mem=l4MergeMem;MERGE_RULES.errq=l4MergeErrq;MERGE_RULES.leech=l4MergeLeech}}catch(e){}},0);
+  setTimeout(()=>{try{l4GramDaily()}catch(e){}try{if(l4RefitDue())l4RefitSoon()}catch(e){}},9000);
+})();
+
+// ---------------------------------------------------------------- 8. grammar cards: L2's GRAM_CARDS released 2 a day after the lesson
+// With L2's c_l2.js present L2 releases them through newPool (its own daily budget) and l4 only schedules them; without it l4 releases.
+function l4GramRelease(id,score){if(typeof gramCardsFor!=="function"||typeof l2SyncCards==="function"||(score!=null&&score<60))return;const m=l4M();
+  let list=[];try{list=gramCardsFor(id)||[]}catch(e){}list.forEach(c=>{const gid=c&&c.id;if(gid&&!m.c[gid]&&!m.q.includes(gid))m.q.push(gid)});l4GramDaily()}
+function l4GramDaily(){const m=l4M();if(!m.q.length||typeof S==="undefined")return 0;const t=typeof todayKey==="function"?todayKey():"";if(m.qd===t&&(m.qn||0)>=2)return 0;if(m.qd!==t){m.qd=t;m.qn=0}
+  let n=0;while(m.q.length&&m.qn<2){const id=m.q.shift();if(m.c[id])continue;if(typeof card==="function"&&!card(id)&&typeof CATALOG!=="undefined"){continue}memAdd(id);m.qn++;n++}return n}
+
+// ---------------------------------------------------------------- 9. refit: monthly, after 1,000 reviews, in idle time
+function l4RefitDue(){const m=l4M();if(m.log.length<1000)return false;if(!m.fit)return true;const t=typeof todayKey==="function"?todayKey():l4Key(l4Day());return l4Day(t)-l4Day(m.fit)>=30}
+function l4RefitDone(r){const m=l4M();if(r.ok)m.w=r.w;m.fit=typeof todayKey==="function"?todayKey():l4Key(l4Day());m.fl=[Math.round(r.loss0*1e4)/1e4,Math.round(r.loss1*1e4)/1e4,r.n,r.ok?1:0];if(typeof saveSoon==="function")saveSoon();return r}
+function l4Refit(){const m=l4M();const r=L4F.fit(m.log,m.w||L4F.W0,{ms:1800});if(r.ok)m.w=r.w;m.fit=typeof todayKey==="function"?todayKey():l4Key(l4Day());m.fl=[Math.round(r.loss0*1e4)/1e4,Math.round(r.loss1*1e4)/1e4,r.n,r.ok?1:0];if(typeof saveSoon==="function")saveSoon();return r}
+// in the background: one gradient step per idle slice (≈ 20 loss evaluations), so the screen never stalls
+function l4RefitSoon(){if(L4.fitting)return;const m=l4M();let f;try{f=L4F.fitter(m.log.slice(),m.w||L4F.W0,{iters:80})}catch(e){return}L4.fitting=true;const t0=Date.now();
+  const slice=dl=>{try{let more=true;const end=Date.now()+(dl&&dl.timeRemaining?Math.max(8,dl.timeRemaining()):30);do{more=f.next()}while(more&&Date.now()<end);
+      if(more&&Date.now()-t0<300000)return later();L4.fitting=false;l4RefitDone(f.result())}catch(e){L4.fitting=false;try{logError({message:"l4 refit: "+(e&&e.message||e)})}catch(x){}}};
+  const later=()=>typeof requestIdleCallback==="function"?requestIdleCallback(slice,{timeout:5000}):setTimeout(slice,200);later()}
+
+// ---------------------------------------------------------------- 10. merge rules (commutative, associative, idempotent) — registered into P2's MERGE_RULES
+const l4J=x=>{try{return JSON.stringify(x)}catch(e){return ""}};
+function l4MergeMem(a,b){if(!a||typeof a!=="object")return b;if(!b||typeof b!=="object")return a;const A=Object.assign(l4Fresh(),a),B=Object.assign(l4Fresh(),b);const out=l4Fresh();
+  const rw=(A.rt||"")!==(B.rt||"")?((A.rt||"")>(B.rt||"")?A:B):(l4J([A.ret,A.rt])>=l4J([B.ret,B.rt])?A:B);out.ret=rw.ret;out.rt=rw.rt||"";
+  const fw=(A.fit||"")!==(B.fit||"")?((A.fit||"")>(B.fit||"")?A:B):(l4J([A.w,A.fl])>=l4J([B.w,B.fl])?A:B);out.w=fw.w||null;out.fit=fw.fit||"";out.fl=fw.fl||null;
+  const ids=new Set([...Object.keys(A.c||{}),...Object.keys(B.c||{})]);[...ids].sort().forEach(id=>{const x=(A.c||{})[id],y=(B.c||{})[id];if(!x||!y){out.c[id]=x||y;return}
+    out.c[id]=x[2]!==y[2]?(x[2]>y[2]?x:y):x[3]!==y[3]?(x[3]>y[3]?x:y):(l4J(x)>=l4J(y)?x:y)});
+  [...new Set([...Object.keys(A.x||{}),...Object.keys(B.x||{})])].sort().forEach(k=>out.x[k]=1);
+  const rows=new Map();const add=(M)=>{const ids=M.ids||[];(M.log||[]).forEach(r=>{if(!Array.isArray(r))return;const id=ids[r[1]];if(id==null)return;const k=r[0]+"|"+id+"|"+r[3]+"|"+r[5];const v=[r[0],id,r[2],r[3],r[4],r[5]];const o=rows.get(k);if(!o||l4J(v)>l4J(o))rows.set(k,v)})};add(A);add(B);
+  let L=[...rows.values()].sort((p,q)=>p[0]-q[0]||(p[1]<q[1]?-1:p[1]>q[1]?1:0)||p[3]-q[3]||p[5]-q[5]||p[2]-q[2]||p[4]-q[4]);if(L.length>2500)L=L.slice(L.length-2500);
+  const used=[...new Set(L.map(r=>r[1]))].sort();const ix=new Map(used.map((x,i)=>[x,i]));out.ids=used;out.log=L.map(r=>[r[0],ix.get(r[1]),r[2],r[3],r[4],r[5]]);
+  out.q=[...new Set([...(A.q||[]),...(B.q||[])])].filter(id=>!out.c[id]).sort();
+  const qd=(A.qd||"")!==(B.qd||"")?((A.qd||"")>(B.qd||"")?A:B):((A.qn||0)>=(B.qn||0)?A:B);if(qd.qd){out.qd=qd.qd;out.qn=qd.qn||0}
+  return out}
+function l4MergeErrq(a,b){if(!Array.isArray(a))return b;if(!Array.isArray(b))return a;const m=new Map();const core=x=>l4J(Object.assign({},x,{n:0,h:0}));
+  [...a,...b].forEach(it=>{if(!it||!it.k)return;const o=m.get(it.k);if(!o){m.set(it.k,Object.assign({},it,{n:it.n||1,h:[...new Set(it.h||[])].sort((x,y)=>x-y).slice(-8)}));return}
+    const nw=(it.last||0)!==(o.last||0)?((it.last||0)>(o.last||0)?it:o):(core(it)>=core(o)?it:o);const h=[...new Set([...(it.h||[]),...(o.h||[])])].sort((x,y)=>x-y).slice(-8);
+    m.set(it.k,Object.assign({},nw,{n:Math.max(it.n||1,o.n||1),h}))});
+  let out=[...m.values()].sort((x,y)=>x.k<y.k?-1:x.k>y.k?1:0);if(out.length>200){const keep=new Set(out.slice().sort((x,y)=>(x.done?0:1)-(y.done?0:1)||(x.last||0)-(y.last||0)||(x.k<y.k?-1:1)).slice(out.length-200).map(x=>x.k));out=out.filter(x=>keep.has(x.k))}return out}
+function l4MergeLeech(a,b){if(!a||typeof a!=="object")return b;if(!b||typeof b!=="object")return a;const out={};[...new Set([...Object.keys(a),...Object.keys(b)])].sort().forEach(id=>{const x=a[id],y=b[id];if(!x||!y){out[id]=x||y;return}
+    out[id]=(x.since||"")!==(y.since||"")?((x.since||"")>(y.since||"")?x:y):(!!x.fixed!==!!y.fixed?(x.fixed?x:y):(l4J(x)>=l4J(y)?x:y))});return out}
+
+// ---------------------------------------------------------------- 11. screens: Ich → Gedächtnis, leech repair, error drills, settings
+function l4ViewMe(m){try{const seg=m.querySelector(".seg");if(!seg)return;if(!seg.querySelector("[data-act=l4Mem]")){const b=document.createElement("button");b.dataset.act="l4Mem";b.textContent="Gedächtnis";seg.appendChild(b)}
+  seg.querySelectorAll("button").forEach(b=>{if(b.dataset.act!=="l4Mem")b.addEventListener("click",()=>{L4.memSeg=false})});if(!L4.memSeg)return;
+  seg.querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.act==="l4Mem"));const h=m.querySelector(".head h1");if(h)h.textContent="Gedächtnis";const el=m.querySelector(".me-in");if(el)l4MemView(el)}catch(e){try{logError({message:"l4 viewMe: "+(e&&e.message||e)})}catch(x){}}}
+if(typeof ACT!=="undefined"){ACT.l4Mem=()=>{L4.memSeg=true;if(typeof meSeg!=="undefined"&&meSeg!=="fort")meSeg="fort";rerender()};
+  ACT.l4Repair=el=>l4RepairSheet(el.dataset.id);ACT.l4Drill=()=>l4DrillRun();ACT.l4Refit=()=>{const r=l4Refit();toast(r.ok?"Parameter angepasst: Vorhersagefehler "+r.loss0.toFixed(3)+" → "+r.loss1.toFixed(3):"Keine Verbesserung – die bisherigen Parameter bleiben.",4200);rerender()}}
+function l4Dial(target,meas){const r=40,C=2*Math.PI*r;const p=meas==null?0:Math.max(0,Math.min(1,meas));const ta=(target-0.5)/0.5;const ang=-Math.PI/2+2*Math.PI*Math.max(0,Math.min(1,target));
+  const tx=50+r*Math.cos(ang),ty=50+r*Math.sin(ang);void ta;
+  return `<svg viewBox="0 0 100 100" width="120" height="120" role="img" aria-label="Behalten: Ziel ${Math.round(target*100)} %, gemessen ${meas==null?"–":Math.round(meas*100)+" %"}"><circle cx="50" cy="50" r="${r}" fill="none" stroke="var(--sunk)" stroke-width="10"/><circle cx="50" cy="50" r="${r}" fill="none" stroke="${meas!=null&&meas>=target-0.03?"var(--good)":"var(--accent)"}" stroke-width="10" stroke-dasharray="${(C*p).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 50 50)" stroke-linecap="round"/><circle cx="${tx.toFixed(1)}" cy="${ty.toFixed(1)}" r="4" fill="var(--fg)"/><text x="50" y="49" text-anchor="middle" font-size="18" font-weight="700" fill="var(--fg)" style="font-family:var(--ui)">${meas==null?"–":Math.round(meas*100)+"%"}</text><text x="50" y="65" text-anchor="middle" font-size="9" fill="var(--fg)" opacity=".7" style="font-family:var(--ui)">Ziel ${Math.round(target*100)}%</text></svg>`}
+function l4MemView(el){const st=memStats();const fc=memForecast(14);const mx=Math.max(1,...fc.map(f=>f.min));const L=l4Leech();const m=l4M();const fmtD=k=>typeof fmtDate==="function"?fmtDate(k):k;
+  const lee=Object.entries(L).filter(([id,x])=>!x.fixed&&m.c[id]).map(([id,x])=>{const c=card(id);return c?`<div class="li" style="cursor:default"><span class="t"><b>${esc(c.de)}</b><small>${esc(c.en)} · seit ${fmtD(x.since)} · ${m.c[id][4]}× vergessen</small></span><button class="sm" data-act="l4Repair" data-id="${esc(id)}">Reparieren</button></div>`:""}).join("");
+  const top=errqTop(5,30);const due=errqDue().length;const open=l4Errq().filter(i=>!i.done).length;const closed=l4Errq().filter(i=>i.done).length;const nb=memNewBudget(S.minutes||40);
+  const gcDue=memDue().filter(id=>id.startsWith("gc:")).length;const gcAll=Object.keys(m.c).filter(id=>id.startsWith("gc:")).length;const left=Math.max(0,1000-m.log.length);
+  el.innerHTML=`<div class="card stack s l4-mem"><div class="row" style="gap:1rem;align-items:center;flex-wrap:wrap">${l4Dial(m.ret,st.ret30)}<div class="stack s" style="flex:1;min-width:180px"><h3>Behalten</h3><p class="ui" style="margin:0">Ziel <b>${Math.round(m.ret*100)} %</b> · gemessen <b>${st.ret30==null?"–":Math.round(st.ret30*100)+" %"}</b> <span class="muted">(letzte 30 Tage)</span></p>
+    <p class="muted ui" style="font-size:.85rem;margin:0">${m.fit?(m.fl&&m.fl[3]?"Parameter zuletzt an deine Antworten angepasst am "+fmtD(m.fit)+".":"Zuletzt geprüft am "+fmtD(m.fit)+": die Standardwerte passen noch am besten."):"Standardwerte. Angepasst wird nach 1.000 Wiederholungen"+(left?" (noch "+left+")":"")+", dann monatlich."}</p>${m.log.length>=300?`<button class="sm ghost" data-act="l4Refit" style="justify-self:start">Jetzt anpassen</button>`:""}</div></div></div>
+   <div class="stats"><div class="stat"><b>${st.fresh}</b><span>neu im Deck</span></div><div class="stat"><b>${st.young}</b><span>jung (&lt; 21 T)</span></div><div class="stat o"><b>${st.mature}</b><span>gefestigt</span></div></div>
+   <div class="stats"><div class="stat"><b>${st.relearn}</b><span>neu lernen</span></div><div class="stat"><b>${st.leeches}</b><span>Blutegel</span></div><div class="stat"><b>${st.secPerCard} s</b><span>pro Karte</span></div></div>
+   <div class="card stack s"><h3>Die nächsten 14 Tage</h3><div class="trend l4-fc" style="height:80px">${fc.map(f=>`<i style="height:${Math.max(4,Math.round(100*f.min/mx))}%" title="${fmtD(f.day)}: ${f.reviews} Karten · ${String(f.min).replace(".",",")} Min."></i>`).join("")}</div>
+    <p class="ui" style="font-size:.9rem;margin:0">Heute ${fc[0].reviews} Karten (≈ ${Math.round(fc[0].min)} Min.) · morgen ${fc[1].reviews} (≈ ${Math.round(fc[1].min)} Min.) · Ø 14 Tage ${Math.round(fc.reduce((a,f)=>a+f.min,0)/14)} Min. am Tag, mit ${S.newPerDay||0} neuen Karten täglich.</p>
+    <p class="muted ui" style="font-size:.82rem;margin:0">Bei ${S.minutes||40} Minuten am Tag tragen die Wiederholungen ${nb} neue Karten pro Tag, ohne mehr als 40 % der Zeit zu fressen.</p></div>
+   <div class="card stack s"><h3>Blutegel</h3>${lee?`<p class="muted ui" style="font-size:.85rem;margin:0">Viermal vergessen: aus der Runde genommen, bis du sie reparierst. Danach kommen sie am nächsten Tag zurück.</p><div class="list">${lee}</div>`:`<p class="muted" style="margin:0">Keine. Karten, die du viermal vergisst, landen hier.</p>`}</div>
+   <div class="card stack s"><h3>Fehler, die du noch machst</h3>${top.length?`<div class="list">${top.map(t=>`<div class="li" style="cursor:default"><span class="t"><b>${esc(t.name)}</b><small>${esc(t.rule)}</small></span><span class="pill ${t.trend>0?"bad":t.trend<0?"good":"o"}">${t.n}× ${t.trend>0?"↑":t.trend<0?"↓":"="}</span></div>`).join("")}</div>`:`<p class="muted" style="margin:0">Noch keine gesammelten Fehler. Sie kommen aus dem Schreibcoach, dem Tutor und falschen Artikeln auf Karten.</p>`}
+    <p class="muted ui" style="font-size:.85rem;margin:0">${open} offen · ${closed} erledigt (zweimal richtig, mindestens 7 Tage auseinander) · ${due} heute fällig</p>${due?`<button class="primary sm" data-act="l4Drill" style="justify-self:start">Fehler üben (${due})</button>`:""}</div>
+   ${gcAll?`<div class="card stack s"><h3>Grammatik im Deck</h3><p class="ui" style="margin:0">${gcAll} Grammatikkarten · ${gcDue} heute fällig${m.q.length?" · "+m.q.length+" warten auf Freigabe (2 pro Tag)":""}</p></div>`:""}`}
+function l4DrillRun(){const q=l4ErrqItems(10);if(!q.length){toast("Heute ist kein Fehler fällig.");return}L4.qt=Date.now();cardRunner(Focus.open({title:"Fehler üben",sub:"dein Satz, dann die gleiche Falle neu"}),q,{standalone:true,onDone:()=>{}})}
+function l4Neighbour(id){const c=card(id);if(!c)return null;const lem=String(c.de).replace(/^(der|die|das) /,"").toLowerCase();const g=typeof genderOf==="function"?genderOf(c.de):null;let best=null,bd=1e9;
+  const pool=Object.keys(S.cards).filter(k=>k!==id&&k.startsWith("w:")).map(k=>card(k)).filter(Boolean);(pool.length>30?pool:(typeof allCards==="function"?allCards().filter(x=>x.kind==="word"&&x.id!==id):pool)).forEach(x=>{const l2=String(x.de).replace(/^(der|die|das) /,"").toLowerCase();if(l2===lem)return;
+    const d=typeof lev==="function"?lev(lem,l2):99;const sc=d+(Math.abs(l2.length-lem.length)>3?3:0);if(sc<bd&&d<=Math.max(2,Math.floor(lem.length/3))){bd=sc;best=x}});return best}
+function l4RepairClozes(id){const c=card(id);const out=[];if(!c)return out;const z=l4Cloze(id);if(z)out.push({q:z.sent,a:z.ans,hint:c.en});
+  const lem=String(c.de).replace(/^(der|die|das) /,"");const g=typeof genderOf==="function"?genderOf(c.de):null;
+  if(g)out.push({q:"＿＿＿ "+lem+" ("+c.en+")",a:g,hint:"der, die oder das?"});if(c.pl&&c.pl!=="-")out.push({q:"Plural: die ＿＿＿ ("+c.en+")",a:String(c.pl).replace(/^die /,""),hint:"Mehrzahl"});
+  try{const lw=lem.toLowerCase();if(out.length<3&&lw.length>=4)for(const x of (typeof allCards==="function"?allCards():[])){if(out.length>=3)break;if(x.id===id||!x.ex)continue;const toks=String(x.ex).split(/(\s+)/);const i=toks.findIndex(t=>t.replace(/[.,!?;:„“"]/g,"").toLowerCase()===lw);if(i<0)continue;const ans=toks[i].replace(/[.,!?;:„“"]/g,"");const b=toks.slice();b[i]=toks[i].replace(ans,"＿＿＿");out.push({q:b.join(""),a:ans,hint:c.en})}}catch(e){}
+  if(out.length<3)out.push({q:"Auf Deutsch: "+c.en,a:c.de,hint:g?"mit Artikel":""});while(out.length<3)out.push({q:"Noch einmal, auswendig: "+c.en,a:c.de,hint:""});return out.slice(0,3)}
+function l4RepairSheet(id){const c=card(id);if(!c)return;const nb=l4Neighbour(id);const cz=l4RepairClozes(id);const L=l4Leech()[id]||{};let mn="";try{const x=typeof mnemoFor==="function"?mnemoFor(c.de):null;if(x)mn=x.m||x.t||x.text||""}catch(e){}
+  const box=Focus.open({title:"Reparatur",sub:c.de});box.innerHTML=`<div class="stack l4-rep"><div class="card stack s"><div class="eyebrow">Blutegel <span class="en">a word that keeps slipping</span></div><div style="font-size:1.4rem">${typeof deHTML==="function"?deHTML(c.de):esc(c.de)}</div><div class="tr">${esc(c.en)}</div>${c.ex?`<div class="ex">${esc(c.ex)}</div>`:""}${typeof cardMeta==="function"?cardMeta(c):""}<button class="sm ghost" data-say="${esc(c.de)}" style="justify-self:start">${typeof ic==="function"?ic("vol"):""} Anhören</button></div>
+  ${nb?`<div class="card stack s"><h3>Nicht verwechseln</h3><div class="row" style="gap:1rem;flex-wrap:wrap"><div><b>${typeof deHTML==="function"?deHTML(c.de):esc(c.de)}</b><div class="muted">${esc(c.en)}</div></div><div><b>${typeof deHTML==="function"?deHTML(nb.de):esc(nb.de)}</b><div class="muted">${esc(nb.en)}</div></div></div></div>`:""}
+  <div class="card stack s"><h3>Drei Lücken</h3>${cz.map((z,i)=>`<div class="stack s l4-cz" data-i="${i}"><div>${esc(z.q)}</div>${z.hint?`<small class="muted ui">${esc(z.hint)}</small>`:""}<div class="typed"><input class="l4-in" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="sm l4-ok">Prüfen</button></div><div class="l4-v ui" style="font-size:.9rem"></div></div>`).join("")}</div>
+  <div class="card stack s"><h3>Deine Eselsbrücke</h3><textarea class="l4-mn" placeholder="Ein Bild, ein Klang, ein Satz – was dir hilft.">${esc(L.mn||"")}</textarea>${mn?`<small class="muted ui">Vorschlag: ${esc(mn)}</small>`:""}</div>
+  <button class="primary l4-done" disabled>Repariert – morgen wieder in der Runde</button></div>`;
+  const okd=new Set();const upd=()=>{const t=box.querySelector(".l4-mn").value.trim();box.querySelector(".l4-done").disabled=!(okd.size>=cz.length&&t.length>=3)};
+  box.querySelectorAll(".l4-cz").forEach(row=>{const i=+row.dataset.i,z=cz[i];const inp=row.querySelector(".l4-in"),v=row.querySelector(".l4-v");const chk=()=>{const g=typeof gradeTyped==="function"?gradeTyped(inp.value,z.a):{q:inp.value.trim()===z.a?2:0,msg:""};
+      if(g.q>=2){okd.add(i);v.innerHTML=`<span class="ok">Richtig.</span>`}else{v.innerHTML=`<span class="no">Lösung: <b>${esc(z.a)}</b> – tipp es noch einmal.</span>`;inp.value=""}LX.ev("v:"+id+":prod",g.q>=2,4,0);upd()};
+    row.querySelector(".l4-ok").onclick=chk;inp.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();chk()}})});
+  box.querySelector(".l4-mn").addEventListener("input",upd);
+  box.querySelector(".l4-done").onclick=()=>{const m=l4M();const day=l4Day();const e=m.c[id];const Lr=l4Leech();Lr[id]=Object.assign({},Lr[id]||{since:todayKey(),l0:e?e[4]:4},{fixed:todayKey(),mn:box.querySelector(".l4-mn").value.trim().slice(0,300)});
+    if(e){e[0]=Math.max(1,Math.min(e[0],2));e[5]&=~8;e[2]=day;e[6]=day+1;l4Mirror(id,e)}if(typeof logEvent==="function")logEvent("cards","Blutegel repariert: "+c.de);saveSoon();toast("Repariert. Morgen kommt die Karte wieder.");Focus.close()}}
+function l4Settings(el){try{if(el.querySelector(".l4-set"))return;const m=l4M();const d=document.createElement("div");d.className="card stack s l4-set";
+  d.innerHTML=`<h3>Gedächtnis</h3><label class="f">Ziel beim Behalten: <span class="l4-rv">${Math.round(m.ret*100)} %</span><input type="range" min="0.80" max="0.95" step="0.01" value="${m.ret}" class="l4-r" style="padding:0;min-height:32px"></label><small class="muted ui">Höher heißt: kürzere Abstände, mehr Wiederholungen am Tag. 88 % ist ein guter Kompromiss (Standard). Gilt ab der nächsten Wiederholung jeder Karte.</small>`;
+  const list=el.querySelector(".list");if(list&&list.parentNode===el)el.insertBefore(d,list.nextSibling);else el.appendChild(d);
+  const r=d.querySelector(".l4-r");r.oninput=()=>{const v=Math.round(+r.value*100)/100;d.querySelector(".l4-rv").textContent=Math.round(v*100)+" %"};r.onchange=()=>{const mm=l4M();mm.ret=L4F.cl(Math.round(+r.value*100)/100,0.8,0.95);mm.rt=new Date().toISOString();saveSoon();toast("Gespeichert")}}catch(e){try{logError({message:"l4 settings: "+(e&&e.message||e)})}catch(x){}}}
+
+// ===== Mephisto · i2 · One progression (PLAN-I R4, §2.3): the chapter is the only clock.
+// SYLLABUS (v2/x_i2_syl.js) binds every lesson, word slot, input, clinical item, task and station to one chapter; P().ch stays the only
+// stored position. Level comes from i3 (learnerLv), seals from i4 (pkGate); this file derives the week, says what today must teach and
+// binds the 13.0 content (lesson weeks, chapter lessons, boss pools, WEEKS) to the syllabus once at load.
+// Declared replacements (PLAN-I §2.1): weekNumber (reassigned: it is a `let` in c_core, not a window function), and MOD.around on
+// pickLesson, newPool, pickInput, pickOutput, pickCulture — active only while l5's planToday() is absent. Everything else: MOD.after.
+// State: S.syl = {mig, ld:{lessonId:[yyyy-mm-dd ≤ 6]}} — ld written here (lesson days ≥ 80 %), mig owned by i4. Merge: MERGE_RULES.syl.
+window.LX=window.LX||{acts:{},order:[],feeds:[],arounds:[]};
+if(typeof LX.reg!=="function")LX.reg=function(a){LX.acts[a.id]=a;if(!LX.order.includes(a.id))LX.order.push(a.id)};
+const I2={err:[],LES:80,DAYS:2,bound:0,words:0,cache:{}};
+function i2Try(name,f,dflt){try{return f()}catch(e){I2.err.push(name+": "+(e&&e.message||e));try{if(typeof logError==="function")logError({message:"i2 "+name+": "+(e&&e.message||e)})}catch(x){}return dflt}}
+const i2Ok=()=>typeof SYLLABUS!=="undefined"&&Array.isArray(SYLLABUS)&&SYLLABUS.length===40;
+const i2N=n=>Math.max(1,Math.min(40,+n||(typeof P==="function"?P().ch:1)||1));
+const i2Row=n=>SYLLABUS[i2N(n)-1];
+const i2Les=id=>{try{return lessonById(id)}catch(e){return null}};
+function i2Syl(){if(!S.syl||typeof S.syl!=="object")S.syl={};if(!S.syl.ld||typeof S.syl.ld!=="object")S.syl.ld={};return S.syl}
+const i2Today=()=>typeof todayKey==="function"?todayKey():new Date().toISOString().slice(0,10);
+const i2Start=n=>{let d=0;for(let i=0;i<i2N(n)-1;i++)d+=SYLLABUS[i].d;return d};               // nominal day offset of chapter n
+const i2WeekOf=n=>Math.max(1,Math.min(40,Math.floor(i2Start(n)/7)+1));
+
+// ---------- word slots → card ids (exact id, lemma map, form without article, I2's own cards)
+function i2WordIndex(){if(I2.cache.idx)return I2.cache.idx;const bare=new Map();
+  try{CATALOG.forEach((c,id)=>{if(!c||!c.de)return;const k=String(c.de).replace(/^(der|die|das|sich) /,"");if(!bare.has(k)&&(c.kind==="word"||!c.kind))bare.set(k,id)})}catch(e){}
+  return I2.cache.idx=bare}
+function i2Slot(w){const F=typeof I2_FORMS!=="undefined"?I2_FORMS:{};if(Object.prototype.hasOwnProperty.call(F,w)){const id=F[w];return id&&CATALOG.has(id)?id:null}
+  const id="w:"+w;if(CATALOG.has(id))return id;const b=i2WordIndex().get(String(w).replace(/^(der|die|das|sich) /,""));return b||null}
+
+// ---------- PROG (PLAN-I §2.3)
+const PROG={
+  cur(){return i2N(typeof P==="function"?P().ch:1)},
+  row(n){return i2Ok()?i2Row(n):null},
+  realm(n){return Math.floor((i2N(n)-1)/8)},
+  lv(n){return ["A1","A2","B1","B2","C1"][PROG.realm(n)]},
+  lessons(n){return i2Ok()?i2Row(n).g.filter(id=>!!i2Les(id)):[]},
+  words(n){n=i2N(n);if(!i2Ok())return [];const k="w"+n;if(I2.cache[k])return I2.cache[k];const out=[];
+    i2Row(n).w.forEach(w=>{const id=i2Slot(w);if(id&&!out.includes(id))out.push(id)});return I2.cache[k]=out},
+  days(id){const L=(S.lessons||{})[id];const d=(i2Syl().ld[id]||[]).length;if(d)return d;if(!L||(L.best||0)<I2.LES)return 0;return (L.n||0)>=2?2:1}, // migration rule R4
+  done(id){const L=(S.lessons||{})[id];return !!L&&(L.best||0)>=I2.LES&&PROG.days(id)>=I2.DAYS},
+  week(){if(!i2Ok())return 1;return Math.min(typeof WEEKS!=="undefined"&&WEEKS.length||40,i2WeekOf(PROG.cur()))},
+  start(n){return i2Start(n)},
+  totalDays(){return i2Ok()?SYLLABUS.reduce((s,r)=>s+r.d,0):280},
+  wordState(n){const ids=PROG.words(n);let intro=0;ids.forEach(id=>{if(i2Known(id))intro++});return {n:ids.length,intro}},
+  today(){return i2Try("today",i2TodayPlan,{ch:PROG.cur(),lessons:[],words:[],input:null,clinic:null,station:null,task:null,write:null,probe:false,why:""})},
+  forecast(){return i2Try("forecast",i2Forecast,{pace:1,b2Date:null,fspDate:null,late:false})},
+  lint(){return i2Try("lint",i2Lint,["lint failed"])}};
+window.PROG=PROG;
+function i2Known(id){try{if(typeof memGet==="function"){const m=memGet(id);if(m)return true}}catch(e){}const c=(S.cards||{})[id];return !!c&&((c.reps||0)>0||(c.int||0)>0||!!c.due)}
+function i2HeardOk(id){return (((S.hoeren||{})[id])||0)>=80}
+function i2Read(id){return !!(S.read||{})[id]}
+function i2LessonPick(r){const t=i2Today();const ids=r.g.concat(r.kl.ids||[],r.al||[]).filter(id=>!!i2Les(id));
+  const fresh=ids.filter(id=>!(S.lessons||{})[id]);const open=ids.filter(id=>{const L=(S.lessons||{})[id];return L&&!PROG.done(id)&&L.last!==t});
+  const out=fresh.concat(open);if(out.length)return {ids:out,why:fresh.length?"neu in diesem Kapitel":"noch nicht an zwei Tagen ab 80 %"};
+  const rv=(r.rv||[]).filter(id=>i2Les(id)&&(S.lessons||{})[id]&&((S.lessons[id].best||0)<I2.LES||(S.lessons[id].due||"9")<=t));
+  if(rv.length)return {ids:rv,why:"Wiederholung, die das Kapitel verlangt"};
+  const ex=((r.kl||{}).extra||[]).filter(id=>i2Les(id)&&!(S.lessons||{})[id]);if(ex.length)return {ids:ex,why:"Zusatz des Kapitels"};
+  return {ids:[],why:""}}
+function i2TodayPlan(){const n=PROG.cur(),r=i2Row(n),p=typeof P==="function"?P():{};const pick=i2LessonPick(r);
+  const gating=new Set(r.g);const lessons=pick.ids.filter(id=>gating.has(id)||!(r.kl.ids||[]).includes(id)).slice(0,2);
+  const clinic=(r.kl.ids||[]).concat(r.al||[]).find(id=>i2Les(id)&&((((S.lessons||{})[id])||{}).best||0)<I2.LES)||null;
+  const words=PROG.words(n).filter(id=>!i2Known(id));
+  let input=null;const h=(r.h||[]).find(id=>typeof HOEREN!=="undefined"&&HOEREN.some(x=>x.id===id)&&!i2HeardOk(id));if(h)input={kind:"hoeren",id:h};
+  if(!input){const t=(r.tx||[]).find(id=>typeof TEXTS!=="undefined"&&TEXTS.some(x=>x.id===id)&&!i2Read(id));if(t)input={kind:"text",id:t}}
+  if(!input){const f=(r.lit||[]).filter(x=>x.startsWith("faust:")).map(x=>x.slice(6)).find(id=>typeof FAUST!=="undefined"&&FAUST.some(x=>x.id===id)&&!i2Read(id));if(f)input={kind:"faust",id:f}}
+  // station: the newest station of a passed chapter that is not passed yet (i6 owns stations; null without it)
+  let station=null;if(typeof bvOpen==="function"||typeof BVE!=="undefined"){for(let k=n-1;k>=1&&!station;k--){const b=SYLLABUS[k-1].bv;if(!b)continue;let pass=false;try{pass=typeof bvBest==="function"?!!(bvBest(b)||{}).pass:!!(((p.bv||{})[b])||{}).pass}catch(e){}if(!pass)station=b}}
+  // task: i5/i6 own the chapter task; without them the TASKS writing prompt of the row is offered (write)
+  let task=null;const tk=r.ta&&r.ta.tk;if(tk){let has=false,pass=false;try{if(/^bv/.test(tk))has=typeof bvOpen==="function";else has=typeof tkById==="function"&&!!tkById(tk);const st=((p.tk||{})[tk])||((p.bv||{})[tk])||{};pass=!!(st.pass||st.grey)}catch(e){}if(has&&!pass)task=tk}
+  let write=null;const ti=typeof TASKS!=="undefined"?TASKS.findIndex(t=>t.t===(r.ta||{}).t):-1;if(ti>=0){const d=(S.taskDone||{})[TASKS[ti].t];if(!(d&&d>=(p.chStart||"")))write=ti}
+  let probe=false;try{if(typeof pkGate==="function"&&typeof CHAPTERS!=="undefined"){const g=pkGate(CHAPTERS[n-1]);const it=(g&&g.items)||[];const pr=it.filter(i=>/probe/.test(i.k||""));if(pr.length&&pr.some(i=>!i.ok))probe=it.filter(i=>!/probe/.test(i.k||"")&&!i.opt).every(i=>i.ok)}}catch(e){}
+  const L=lessons[0]&&i2Les(lessons[0]);
+  const why=L?`Kapitel ${n}: „${L.title}“ – ${pick.why}`:words.length?`Kapitel ${n}: ${words.length} Wörter des Kapitels sind noch neu`:input?`Kapitel ${n}: Hören und Lesen des Kapitels`:`Kapitel ${n}: alles Material ist begonnen; jetzt zählt die Wiederholung`;
+  return {ch:n,lessons,words,input,clinic,station,task,write,probe,why}}
+function i2Forecast(){const p=P(),n=PROG.cur(),t=i2Today();const from=p.date||S.startDate||t;let used=0;try{used=Math.max(0,diffDays(from,t))}catch(e){}
+  const nomDone=i2Start(n);let inCh=0;try{inCh=Math.max(0,diffDays(p.chStart||t,t))}catch(e){}
+  const pace=nomDone>=14?Math.max(.5,Math.min(4,(used-inCh)/nomDone)):1;
+  const left=k=>{let d=Math.max(0,i2Row(n).d-inCh);for(let i=n;i<k;i++)d+=SYLLABUS[i].d;return n>k?0:d};
+  const dt=k=>n>k?null:addDays(t,Math.round(left(k)*pace));const b2Date=dt(32),fspDate=dt(40);
+  let late=false,exam=null;try{const e=typeof examCountdown==="function"?examCountdown("fsp"):null;if(e&&e.date&&fspDate&&fspDate>e.date){late=true;exam=e.date}}catch(x){}
+  return {pace:Math.round(pace*100)/100,b2Date,fspDate,late,exam}}
+function i2Lint(){const E=[];if(!i2Ok())return ["SYLLABUS missing or not 40 rows"];const cnt={};
+  SYLLABUS.forEach((r,i)=>{if(r.n!==i+1)E.push("row "+i+" has n "+r.n);r.g.forEach(id=>cnt[id]=(cnt[id]||0)+1)});
+  (typeof GRAMMAR!=="undefined"?GRAMMAR:[]).forEach(g=>{if(!cnt[g.id])E.push("lesson "+g.id+" not bound");else if(cnt[g.id]>1)E.push("lesson "+g.id+" bound "+cnt[g.id]+"×")});
+  return E}
+
+// ---------- lesson days ≥ 80 % (S.syl.ld) — from i1's EV when present, and after completeLesson (idempotent: one entry per day)
+function i2LogDay(id,score){if(!id||!(score>=I2.LES))return;const s=i2Syl();const t=i2Today();const a=(s.ld[id]=s.ld[id]||[]);if(!a.includes(t)){a.push(t);a.sort();while(a.length>6)a.shift();try{saveSoon()}catch(e){}}}
+i2Try("hookComplete",()=>{if(typeof completeLesson==="function")MOD.after("completeLesson","i2",function(id,score){i2LogDay(id,+score)})});
+setTimeout(()=>i2Try("ev",()=>{if(window.EV&&typeof EV.on==="function")EV.on("lesson.finish",d=>{d=d||{};i2LogDay(d.id||d.ref||d.lesson,+(d.score!=null?d.score:d.pct!=null?d.pct:d.p))})}),0);
+// merge: ld union per id (newest 6), mig max — commutative, associative, idempotent
+function i2MergeSyl(a,b){a=a||{};b=b||{};const o={ld:{}};const m=Math.max(+a.mig||0,+b.mig||0);if(m)o.mig=m;
+  const la=a.ld||{},lb=b.ld||{};new Set([...Object.keys(la),...Object.keys(lb)]).forEach(id=>{o.ld[id]=[...new Set([...(la[id]||[]),...(lb[id]||[])])].sort().slice(-6)});
+  for(const k of Object.keys(a))if(!(k in o)&&k!=="ld")o[k]=a[k];for(const k of Object.keys(b))if(!(k in o)&&k!=="ld")o[k]=b[k];return o}
+setTimeout(()=>{try{if(typeof MERGE_RULES!=="undefined")MERGE_RULES.syl=i2MergeSyl}catch(e){}},0);
+i2Try("reset",()=>{if(typeof RESET_GROUPS!=="undefined"&&RESET_GROUPS.lessons&&!RESET_GROUPS.lessons.k.includes("syl"))RESET_GROUPS.lessons.k.push("syl")});
+
+// ---------- binding at load: lesson weeks, chapter lessons, boss pools, WEEKS lists, TOTAL_DAYS, task levels, word slots
+function i2Bind(){if(!i2Ok())return;
+  SYLLABUS.forEach(r=>{const w=i2WeekOf(r.n);
+    r.g.concat(r.kl.ids||[],r.kl.extra||[],r.al||[]).forEach(id=>{const L=i2Les(id);if(L){L.week=w;L.sylCh=r.n;I2.bound++}});
+    (r.h||[]).forEach(id=>{const h=typeof HOEREN!=="undefined"&&HOEREN.find(x=>x.id===id);if(h){h.week=w;h.sylCh=r.n}});
+    (r.tx||[]).forEach(id=>{const t=typeof TEXTS!=="undefined"&&TEXTS.find(x=>x.id===id);if(t){t.week=w;t.sylCh=r.n}});
+    (r.lit||[]).filter(x=>x.startsWith("faust:")).forEach(x=>{const f=typeof FAUST!=="undefined"&&FAUST.find(y=>y.id===x.slice(6));if(f){f.week=w;f.sylCh=r.n}});
+    const c=typeof CHAPTERS!=="undefined"&&CHAPTERS[r.n-1];if(c&&!c.boss){const ls=r.g.filter(id=>i2Les(id));c.lessons=ls;if(ls.length)c.lesson=ls[0];c.syl=r.n}});
+  if(typeof BOSS_GR!=="undefined"){const B={hexe:1,golem:2,pudel:3,caligari:4,kommission:5};for(const k in B){const ids=SYLLABUS.filter(r=>r.realm===B[k]).flatMap(r=>r.g).filter(id=>typeof GRAMMAR!=="undefined"&&GRAMMAR.some(g=>g.id===id));if(ids.length)BOSS_GR[k]=ids}}
+  if(typeof WEEKS!=="undefined"&&typeof WEEKS_SYL!=="undefined"&&WEEKS_SYL&&WEEKS_SYL.length===40){WEEKS.length=0;WEEKS_SYL.forEach(w=>WEEKS.push(JSON.parse(JSON.stringify(w))))}
+  try{TOTAL_DAYS=PROG.totalDays()}catch(e){}
+  if(typeof TASK_LV!=="undefined"&&typeof TASKS!=="undefined")TASKS.forEach(t=>{if(t&&t.lv!=null&&TASK_LV[t.t]==null)TASK_LV[t.t]=t.lv});
+  if(typeof I2_WORDS!=="undefined"){let n=0;I2_WORDS.forEach(w=>{const id="w:"+w.de;if(CATALOG.has(id))return;
+    CATALOG.set(id,{id,de:w.de,en:w.en,type:w.type==="phrase"?"phrase":w.type||"word",ex:w.ex||"",exEn:w.exEn||"",tag:w.theme||"kapitel",kind:"word",pl:w.pl||"",info:w.info||"",level:w.level,syn:"",src:"i2",ch:w.ch});n++});
+    I2.words=n;I2.cache={};if(n&&typeof buildDict==="function")try{buildDict()}catch(e){}}}
+i2Try("bind",i2Bind);
+
+// ---------- the week: display only (declared replacement; weekNumber is a `let` of c_core, so it is reassigned, old one kept as fallback)
+const _i2WeekNumber=weekNumber;
+weekNumber=function(){try{if(i2Ok()&&typeof P==="function"&&P().signed)return PROG.week()}catch(e){}return _i2WeekNumber()};
+
+// ---------- what the 13.0 session picks — only while l5's plan is absent (MOD.around, declared in MANIFEST)
+const i2Active=()=>typeof planToday!=="function"&&i2Ok()&&typeof P==="function"&&P().signed;
+i2Try("around",()=>{
+  MOD.around("pickLesson","i2",function(orig){if(!i2Active())return orig();try{const p=i2LessonPick(i2Row());if(p.ids.length)return p.ids[0];const due=typeof lessonsDue==="function"?lessonsDue():[];if(due.length)return due.sort((a,b)=>(S.lessons[a].best||0)-(S.lessons[b].best||0))[0]}catch(e){}return orig()});
+  MOD.around("newPool","i2",function(orig,tag){const base=orig(tag);if(tag||!i2Active()||!Array.isArray(base)||!base.length)return base;
+    try{const want=PROG.words().filter(id=>!(S.cards||{})[id]&&!i2Known(id));if(!want.length)return base;const set=new Set(want);const first=want.map(id=>typeof card==="function"?card(id):CATALOG.get(id)).filter(Boolean);
+      return first.concat(base.filter(c=>!set.has(c.id))).slice(0,base.length)}catch(e){return base}});
+  MOD.around("pickInput","i2",function(orig){if(!i2Active())return orig();try{const t=i2TodayPlan();if(t.input&&t.input.kind!=="faust")return {kind:t.input.kind,id:t.input.id};if(t.input)return {kind:"faust",id:t.input.id}}catch(e){}return orig()});
+  MOD.around("pickOutput","i2",function(orig){if(!i2Active())return orig();try{const t=i2TodayPlan();if(t.write!=null)return {kind:"task",id:t.write}}catch(e){}return orig()});
+  MOD.around("pickCulture","i2",function(orig){if(!i2Active())return orig();try{const k=(i2Row().ku||[]).find(i=>!(S.kultur||{})[i]);if(k!=null&&typeof KULTUR!=="undefined"&&KULTUR[k])return {idx:k}}catch(e){}return orig()})});
+
+// ---------- l5 providers (PLAN-L §2.2) and the new-card feed (PLAN-L §2.4)
+i2Try("lx",()=>{
+  const chTitle=n=>{try{return CHAPTERS[n-1].t}catch(e){return "Kapitel "+n}};
+  LX.reg({id:"i.lesson",skill:"lesen",pocket:false,next(ctx){if(!i2Ok())return null;const t=PROG.today();const id=t.lessons[0];const L=id&&i2Les(id);if(!L)return null;
+      return {ref:id,title:("Lektion · "+L.title).slice(0,60),lv:PROG.realm(),min:10,why:t.why}},
+    run(el,ref,done){const L=i2Les(ref);if(!L){done({ok:0,n:0,right:0,sec:0});return}const t0=Date.now();lessonView(el,L,{session:true,onDone:r=>{const sc=typeof r==="number"?r/100:r&&typeof r==="object"?(r.score!=null?r.score/100:r.pct!=null?r.pct/100:1):1;done({ok:Math.max(0,Math.min(1,sc)),n:1,right:sc>=.8?1:0,sec:Math.round((Date.now()-t0)/1000)})}})}});
+  LX.reg({id:"i.clinic",skill:"klinik",pocket:false,next(ctx){if(!i2Ok())return null;const t=PROG.today();const L=t.clinic&&i2Les(t.clinic);if(!L)return null;
+      return {ref:t.clinic,title:("Klinik · "+L.title).slice(0,60),lv:PROG.realm(),min:8,why:"Klinik des Kapitels "+t.ch}},
+    run(el,ref,done){const L=i2Les(ref);if(!L){done({ok:0,n:0,right:0,sec:0});return}const t0=Date.now();lessonView(el,L,{session:true,onDone:()=>done({ok:1,n:1,right:1,sec:Math.round((Date.now()-t0)/1000)})})}});
+  LX.reg({id:"i.input",skill:"hoeren",pocket:true,next(ctx){if(!i2Ok())return null;const t=PROG.today();const i=t.input;if(!i)return null;
+      const item=i.kind==="hoeren"?HOEREN.find(x=>x.id===i.id):(i.kind==="faust"?FAUST:TEXTS).find(x=>x.id===i.id);if(!item)return null;
+      return {ref:i.kind+":"+i.id,title:((i.kind==="hoeren"?"Hören · ":"Lesen · ")+(item.title||"")).slice(0,60),lv:PROG.realm(),min:i.kind==="hoeren"?6:8,why:"Text des Kapitels "+t.ch}},
+    run(el,ref,done){const [k,id]=String(ref).split(":");const t0=Date.now();const fin=()=>done({ok:1,n:1,right:1,sec:Math.round((Date.now()-t0)/1000)});
+      if(k==="hoeren"){const h=HOEREN.find(x=>x.id===id);if(h)return hoerenRunner(el,h,{onDone:fin})}else{const it=(k==="faust"?FAUST:TEXTS).find(x=>x.id===id);if(it)return readerView(el,it,{onDone:fin})}done({ok:0,n:0,right:0,sec:0})}});
+  LX.reg({id:"i.task",skill:"schreiben",pocket:false,next(ctx){if(!i2Ok())return null;const t=PROG.today();if(t.write==null)return null;const T=TASKS[t.write];
+      return {ref:String(t.write),title:("Aufgabe · "+T.t).slice(0,60),lv:PROG.realm(),min:12,why:"Aufgabe des Kapitels "+t.ch}},
+    run(el,ref,done){const T=TASKS[+ref];if(!T){done({ok:0,n:0,right:0,sec:0});return}const t0=Date.now();freeText(el,T,{onDone:()=>done({ok:1,n:1,right:1,sec:Math.round((Date.now()-t0)/1000)})})}});
+  if(Array.isArray(LX.feeds)&&!LX.feeds.some(f=>f&&f.__i2)){const f=()=>{try{return i2Ok()?PROG.words().filter(id=>!i2Known(id)):[]}catch(e){return []}};f.__i2=1;LX.feeds.push(f)}});
+
+// ---------- screens: Home banner, sidebar, Pakt "Der Weg" (course map), "Wo lerne ich das?"
+const I2_REALM=["Schwarzwald","Prag","Fausts Studierzimmer","Berlin","Brocken und Anatomisches Theater"];
+const I2_ROMAN=["I","II","III","IV","V"];
+function i2Css(){if(document.getElementById("i2css"))return;const s=document.createElement("style");s.id="i2css";
+  s.textContent=`.i2-weg .i2-pace{font-size:.85rem}.i2-band{margin:.4rem 0}.i2-seals{display:flex;flex-wrap:wrap;gap:.3rem}.i2-seals button{min-width:2.3rem;padding:.3rem .45rem;font-variant-numeric:tabular-nums}
+  .i2-seals button.done{border-color:var(--good,#3a7)}.i2-seals button.cur{border-color:var(--accent,#E2651C);font-weight:700}.i2-seals button.boss{font-style:italic}
+  .i2-m{display:grid;grid-template-columns:1fr auto;gap:.15rem .6rem;font-size:.85rem}.i2-m b{font-variant-numeric:tabular-nums}`;
+  (document.head||document.documentElement).appendChild(s)}
+function i2Realm(n){const r=PROG.realm(n);const lv=PROG.lv(n);let reached=null;try{const won=(S.realmDone||{})[r+1]||(S.realmDone||{})[I2_ROMAN[r]];if(won)reached=won}catch(e){}
+  return reached?`Reich ${I2_ROMAN[r]} · ${lv} erreicht am ${fmtDate(reached)}`:`Reich ${I2_ROMAN[r]} · ${I2_REALM[r]} · Ziel ${lv}`}
+function i2Banner(){const n=PROG.cur(),w=PROG.week();const f=PROG.forecast();
+  const pace=f.fspDate?`Bei diesem Tempo: ${f.b2Date?"B2 am "+fmtDate(f.b2Date)+" · ":""}Fachsprachprüfung am ${fmtDate(f.fspDate)}.`:"";
+  const late=f.late?`<div class="tch-merke i2-late" style="font-size:.85rem">${esc("Ihr Tempo reicht für den "+fmtDate(f.fspDate)+". Ihre Prüfung ist am "+fmtDate(f.exam)+". Einer von beiden Terminen lügt. Zehn Minuten mehr am Tag, und es ist nicht meiner.")}<div class="en">Your pace gets you there on ${fmtDate(f.fspDate)}. Your exam is on ${fmtDate(f.exam)}. One of those dates is lying. Ten more minutes a day and it isn't mine.</div></div>`:"";
+  const t=PROG.today();
+  return `<div class="card stack s i2-weg"><div class="row between"><div class="eyebrow">${esc(i2Realm(n))}</div><button class="sm ghost" data-act="i2Weg">Der Weg</button></div>
+    <b class="i2-pos">Kapitel ${n} von 40 · Pensum Woche ${w}</b>${pace?`<div class="muted ui i2-pace">${esc(pace)}</div>`:""}${t.why?`<div class="ui" style="font-size:.85rem">Heute: ${esc(t.why)}</div>`:""}${late}</div>`}
+i2Try("home",()=>MOD.after("viewHome","i2",function(m){if(!i2Ok()||!P().signed||!m||m.querySelector(".i2-weg"))return;i2Css();const hero=m.querySelector(".hero");const d=document.createElement("div");d.innerHTML=i2Banner();const el=d.firstElementChild;
+  if(hero&&hero.insertAdjacentElement)hero.insertAdjacentElement("afterend",el);else{const v=m.querySelector(".view")||m;v.insertBefore?v.insertBefore(el,v.firstChild):v.appendChild(el)}}));
+i2Try("chrome",()=>MOD.after("chrome","i2",function(){if(!i2Ok()||!P().signed)return;const sw=$("#sideWeek");const e=sw&&sw.querySelector(".eyebrow");if(e)e.textContent=`Kapitel ${PROG.cur()} von 40 · Pensum Woche ${PROG.week()} von ${WEEKS.length}`}));
+function i2Meters(n){const r=i2Row(n);const ls=PROG.lessons(n);const okL=ls.filter(id=>PROG.done(id)).length;const ws=PROG.wordState(n);
+  const h=(r.h||[]).filter(id=>typeof HOEREN!=="undefined"&&HOEREN.some(x=>x.id===id));const hOk=h.filter(i2HeardOk).length;const k=(r.kl.ids||[]).filter(i2Les);const kOk=k.filter(id=>((S.lessons||{})[id]||{}).best>=I2.LES).length;
+  const ti=typeof TASKS!=="undefined"?TASKS.find(t=>t.t===r.ta.t):null;const td=ti&&(S.taskDone||{})[ti.t];
+  const row=(a,b)=>`<span>${a}</span><b>${b}</b>`;
+  return `<div class="i2-m">${row("Lektionen ab 80 % an zwei Tagen",okL+" / "+ls.length)}${row("Wörter des Kapitels begonnen",ws.intro+" / "+ws.n)}${h.length?row("Hören ab 80 %",hOk+" / "+h.length):""}${k.length?row("Klinik ab 80 %",kOk+" / "+k.length):""}${ti?row("Aufgabe „"+esc(ti.t)+"“",td?"erledigt":"offen"):""}</div>`}
+function i2RowHTML(n){const r=i2Row(n);const c=(typeof CHAPTERS!=="undefined"&&CHAPTERS[n-1])||{};const p=P();const sealed=n<p.ch||!!(p.sealed||{})[n];
+  const les=PROG.lessons(n).map(id=>`<button class="li" data-act="i2Lesson" data-id="${esc(id)}"><span class="t"><b>${esc(i2Les(id).title)}</b><small>${esc(i2Les(id).level||"")} · ${PROG.done(id)?"gesichert":"offen"}</small></span></button>`).join("");
+  const missing=r.g.filter(id=>!i2Les(id));
+  return `<div class="row between"><div class="eyebrow">Kapitel ${n} · ${esc(PROG.lv(n))}${r.boss?" · Reichsprobe":""}</div><button class="icon ghost" data-act="closeSheet">${ic("x")}</button></div>
+   <h3 class="xp-h">${esc(c.t||"")}</h3><div class="xp-body stack s"><p><b>Kann-Beschreibung:</b> ${esc(r.can)}</p>${i2Meters(n)}
+   ${les?`<div class="eyebrow">Lektionen</div><div class="list">${les}</div>`:""}${missing.length?`<small class="muted ui">Noch nicht im Kurs: ${esc(missing.join(", "))}</small>`:""}
+   <p><b>Siegelprobe:</b> ${esc(r.pr)}</p>${sealed?`<p><b>Szene:</b> ${esc(r.sc.p)}</p><p><b>Klinik:</b> ${esc(r.kl.de)}</p>`:`<small class="muted ui">Szene und Klinik zeigen sich, wenn das Kapitel gesiegelt ist.</small>`}
+   ${r.bv?`<small class="muted ui">Nach dem Siegel öffnet sich eine Station am Bett.</small>`:""}</div>`}
+function i2WegHTML(){const p=P();const f=PROG.forecast();
+  const bands=[0,1,2,3,4].map(rz=>`<div class="i2-band"><div class="eyebrow">${esc(i2Realm(rz*8+1))}</div><div class="i2-seals">${SYLLABUS.slice(rz*8,rz*8+8).map(r=>{const st=r.n<p.ch||(p.sealed||{})[r.n]?"done":r.n===p.ch?"cur":"";return `<button class="sm ghost ${st}${r.boss?" boss":""}" data-act="i2Row" data-n="${r.n}" title="${esc(((CHAPTERS[r.n-1]||{}).t)||"")}">${r.n}</button>`}).join("")}</div></div>`).join("");
+  return `<div class="card stack s i2-map"><div class="row between"><div class="eyebrow">Der Weg · Geschichte und Lehrplan</div><button class="sm ghost" data-act="i2Exam">Wo lerne ich das?</button></div>
+   <b>Kapitel ${PROG.cur()} von 40 · Pensum Woche ${PROG.week()} von ${WEEKS.length}</b>${f.fspDate?`<small class="muted ui">Bei diesem Tempo: ${f.b2Date?"B2 am "+fmtDate(f.b2Date)+" · ":""}Fachsprachprüfung am ${fmtDate(f.fspDate)}</small>`:""}${bands}</div>`}
+i2Try("pakt",()=>MOD.after("viewPakt","i2",function(m){if(!i2Ok()||!P().signed||!m||m.querySelector(".i2-map"))return;i2Css();const v=m.querySelector(".view")||m;const d=document.createElement("div");d.innerHTML=i2WegHTML();
+  const after=v.querySelectorAll?v.querySelectorAll(":scope > .card")[1]:null;if(after&&after.insertAdjacentElement)after.insertAdjacentElement("afterend",d.firstElementChild);else v.appendChild(d.firstElementChild)}));
+function i2Sheet(html){const sh=$("#sheet"),inn=$("#sheetIn");if(!sh||!inn)return;inn.innerHTML=html;sh.hidden=false}
+ACT.i2Row=el=>i2Try("row",()=>i2Sheet(i2RowHTML(+el.dataset.n)));
+ACT.i2Weg=()=>i2Try("weg",()=>i2Sheet(`<div class="row between"><div class="eyebrow">Der Weg</div><button class="icon ghost" data-act="closeSheet">${ic("x")}</button></div>`+i2WegHTML()+i2RowHTML(PROG.cur()).replace(/^[\s\S]*?<h3/,"<h3")));
+ACT.i2Lesson=el=>i2Try("lesson",()=>{closeSheet();const L=i2Les(el.dataset.id);if(!L)return;const box=Focus.open({title:L.title});lessonView(box,L,{})});
+ACT.i2Exam=()=>i2Try("exam",()=>{const M=typeof EXAM_MAP!=="undefined"?EXAM_MAP:[];const cur=PROG.cur();
+  i2Sheet(`<div class="row between"><div class="eyebrow">Wo lerne ich das?</div><button class="icon ghost" data-act="closeSheet">${ic("x")}</button></div><h3 class="xp-h">Die zwei Prüfungen, rückwärts gelesen</h3>
+   <div class="xp-body stack s">${M.map(x=>`<div class="ph ${x.ch.includes(cur)?"cur":""}"><b>${esc(x.de)}</b><small>Geübt in Kapitel ${x.ch.join(", ")} · zuerst unter Zeit in Kapitel ${x.first}</small><div class="muted ui">${esc(x.proof)}${x.g.length?" · Lektionen: "+esc(x.g.filter(i2Les).map(id=>i2Les(id).title).join(", ")):""}</div></div>`).join("")}
+   <small class="muted ui">Prüfungsformate nach bestem Wissen; bitte die aktuelle Prüfungsordnung prüfen.</small></div>`)});
+
+// ===== c_i3.js · package i3 (PLAN-I §2.4) · evidence log, can-do status, CEFR estimate with a band, honest numbers.
+// Source: beta r8 I6-assessment §4.1, 4.3, 4.6–4.8, 4.10, 4.11 (I6's EV flag constant is EVF here; window.EV is i1's event bus).
+// Declared replacements (MOD.around, each keeps signature + return shape and falls back to the old function on error):
+//   learnerLv wordsLv knownWords enMode levelEstimate pkSoul b2Ready zeugnis      + ACT.readiness (handler replaced, old one kept as fallback)
+// State: S.ev S.evSeen S.evAgg S.cdTest (PLAN-I §2.7) + S.i3 {st,lv,enTap,cal,ovr,said} (small; merge rules registered at the end of this file).
+// Nothing here throws at load. Every call into another package is guarded.
+
+// ---------------------------------------------------------------- 1. evidence log  S.ev row = [day, key, ok, flags, sec]
+const EVF={FIRST:1,SELF:2,OVR:4,TEST:8,HELP:16,ASR:32,RATED:64,MC3:128,NEW:256};
+const EV_EPOCH="2026-01-01",EV_MAX=14000,EV_KEEP=150;
+function evDay(k){return diffDays(EV_EPOCH,k||todayKey())}
+function evHash(s){let h=5381;s=String(s);for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))>>>0;return h.toString(36)}
+function evCounted(r){return !!(r&&(r[3]&EVF.FIRST)&&!(r[3]&(EVF.OVR|EVF.HELP)))}
+function i3S(){if(!S.i3||typeof S.i3!=="object")S.i3={};const x=S.i3;x.enTap=x.enTap||{shown:0,tapped:0};x.cal=x.cal||[];x.said=x.said||{};return x}
+let I3_DUP={k:"",ok:-1,t:0},I3_LASTROW=null;
+// evLog(key, ok 0…1, {f,sec})  — also accepts LX.ev's positional form evLog(key, ok, flags, sec)
+function evLog(key,ok,o,sec){try{
+  if(typeof key!=="string"||key.indexOf(":")<1)return null;if(o==null||typeof o!=="object")o={f:+o||0,sec:+sec||0};
+  let v=typeof ok==="boolean"?(ok?1:0):+ok;if(!isFinite(v))v=0;v=Math.max(0,Math.min(1,Math.round(100*v)/100));
+  const now=Date.now();if(I3_DUP.k===key&&I3_DUP.ok===v&&now-I3_DUP.t<1500)return null;I3_DUP={k:key,ok:v,t:now};   // the same answer reported twice (EV + LX.ev)
+  S.ev=Array.isArray(S.ev)?S.ev:[];S.evSeen=S.evSeen&&typeof S.evSeen==="object"?S.evSeen:{};const d=evDay();let f=(+o.f||0)&~(EVF.FIRST|EVF.NEW),today=false;
+  for(let i=S.ev.length-1;i>=0&&S.ev[i][0]===d;i--)if(S.ev[i][1]===key){today=true;break}
+  if(!today)f|=EVF.FIRST;if(S.evSeen[key]==null){f|=EVF.NEW;S.evSeen[key]=d}
+  const row=[d,key,v,f,Math.max(0,Math.min(3600,Math.round(+o.sec||0)))];S.ev.push(row);I3_LASTROW={row,t:now};
+  if(S.ev.length>EV_MAX||(S.ev[0]&&S.ev[0][0]<d-EV_KEEP))evCompact();I3_IX=null;CD_CACHE=null;saveSoon();return row}catch(e){try{logError(e)}catch(x){}return null}}
+// rows older than 150 days fold into S.evAgg[key]=[n,right,lastDay,days,lastOk,firstOk,firstDay] (counted rows only; first* = the first-ever attempt)
+function evCompact(){const cut=evDay()-EV_KEEP;S.evAgg=S.evAgg&&typeof S.evAgg==="object"?S.evAgg:{};const ev=(S.ev||[]).slice().sort((a,b)=>a[0]-b[0]);
+  let over=Math.max(0,ev.filter(r=>r[0]>=cut).length-EV_MAX);const keep=[];   // older than 150 days, or the oldest overflow beyond 14 000 rows → folded, never lost
+  ev.forEach(r=>{let old=r[0]<cut;if(!old&&over>0){over--;old=true}if(!old)return keep.push(r);if(!evCounted(r))return;
+    const a=S.evAgg[r[1]]||(S.evAgg[r[1]]=[0,0,0,0,0,0,1e6]);if(a.length<7)a.push(0,1e6);a[0]++;if(r[2]>=.6)a[1]++;if(r[0]!==a[2])a[3]++;a[2]=Math.max(a[2],r[0]);a[4]=r[2];if(r[3]&EVF.NEW&&r[0]<=a[6]){a[5]=r[2];a[6]=r[0]}});
+  S.ev=keep;I3_IX=null;CD_CACHE=null}
+// mark the latest row of a source as "Ich hatte recht" (override): counted neither for nor against (I6 D17)
+function evMarkOvr(prefix){const L=I3_LASTROW;const x=i3S();const wk=i3Week();if(!x.ovr||x.ovr.w!==wk)x.ovr={w:wk,n:0};x.ovr.n++;
+  if(L&&Date.now()-L.t<8000&&(!prefix||L.row[1].indexOf(prefix)===0)){L.row[3]|=EVF.OVR;L.row[2]=1;CD_CACHE=null;saveSoon()}else I3_OVR_PENDING=Date.now();
+  if(x.ovr.n>=3&&x.said.ovr!==todayKey()){x.said.ovr=todayKey();i3Toast("override",{n:x.ovr.n})}}
+let I3_OVR_PENDING=0;
+function i3Week(){const t=todayKey();const [y,m,d]=t.split("-").map(Number);const wd=(new Date(y,m-1,d).getDay()+6)%7;return addDays(t,-wd)}
+// row index by source prefix (rebuilt when the log changes)
+let I3_AX=null;function aggKeys(src){const A=S.evAgg||{};const n=Object.keys(A).length;if(!I3_AX||I3_AX.ref!==A||I3_AX.n!==n){const by={};for(const k in A){const s=k.slice(0,k.indexOf(":"));(by[s]=by[s]||[]).push(k)}I3_AX={ref:A,n,by}}return I3_AX.by[src==="wq"?"wq":src]||[]}
+let I3_IX=null;function evIndex(){const ev=S.ev||[];if(I3_IX&&I3_IX.ref===ev&&I3_IX.len===ev.length)return I3_IX;const by={};ev.forEach((r,i)=>{const s=String(r[1]).slice(0,String(r[1]).indexOf(":"));(by[s]=by[s]||[]).push(i)});I3_IX={ref:ev,len:ev.length,by};return I3_IX}
+
+// ---------------------------------------------------------------- 2. does a row belong to a requirement?
+const ABBR_SETS={dosis:["1-0-1","1-0-0","0-0-1","b. B.","p. o.","i. v.","s. c.","Tbl.","Tr.","Supp.","mg","ml"]};
+let TERM_RANK=null;function termRank(){if(TERM_RANK)return TERM_RANK;TERM_RANK={};try{const L={A2:0,B1:1,B2:2,C1:3};(FSP_TERMS.terms||[]).map((t,i)=>[t,i]).sort((a,b)=>(L[a[0].level]??2)-(L[b[0].level]??2)||a[1]-b[1]).forEach(([t],i)=>TERM_RANK[t.fach]=i)}catch(e){}return TERM_RANK}
+function i3Card(id){try{return card(id)}catch(e){return null}}
+const I3_MEMO=new WeakMap();
+function evMatch(q,key){let m=I3_MEMO.get(q);if(!m){m=new Map();I3_MEMO.set(q,m)}let v=m.get(key);if(v===undefined){try{v=evMatch0(q,key)}catch(e){v=false}m.set(key,v)}return v}
+function evMatch0(q,key){const p=key.split(":"),src=p[0],sel=q.sel;if(q.src==="wq")return src==="wq";if(src!==q.src)return false;
+  switch(src){
+    case "g":return sel.includes(p[1])&&(!q.cr||p[2]!=="mc");
+    case "sp":return !/^\d+$/.test(p[1])&&sel.includes(p[1]);     // sp:<prompt> speaking · sp:<chapter>:<item> is i4's Siegelprobe (never a speaking row)
+    case "h":case "r":case "s":case "k":case "m":case "ct":case "d":case "x":case "z":case "zh":return sel.includes(p[1]);
+    case "tk":return sel.includes(p[1])&&p[2]==="done";
+    case "bv":return sel.includes(p[1])&&p[2]==="tot";
+    case "w":return sel.includes(key.slice(2));
+    case "v":{const c=i3Card(key.slice(2).replace(/:(rec|prod)$/,""));if(!c)return false;const mode=/:rec$/.test(key)?"rec":"prod";if((sel.mode||"prod")!==mode)return false;
+      return sel.ids?sel.ids.includes(c.de):(sel.tag.includes(c.tag)&&sel.lv.includes(c.level))}
+    case "ge":case "pl":{const c=i3Card(key.slice(3));return !!c&&sel.lv.includes(c.level)}
+    case "st":{const v=(typeof STARK!=="undefined"?STARK:[]).find(x=>x[0]===p[1]);return !!v&&sel.lv.includes(v[5])}
+    case "t":{const rk=termRank()[p[1]];if(rk==null||rk>=sel.top)return false;if(sel.dir!=="both"&&p[2]!==sel.dir)return false;return !sel.typed||p[3]==="typed"}
+    case "ab":return sel.set==="klinik"?true:(ABBR_SETS[sel.set]||[]).includes(p[1]);
+    case "q":return sel.rub?sel.rub.includes(p[2]):sel.lv.includes(p[1]);   // q:<level>:<rubric>:<id>
+    case "f":return p[2]===sel.part;
+    default:return true}}   // rs, cz, cl: whole bank
+// threshold for "right" per row
+function evThr(q,r){switch(q.src){case "x":return .6;case "bv":return .6;case "wq":return 1;
+  case "f":return (q.sel.min>1?q.sel.min/9:q.sel.min)-.001;
+  case "sp":return r&&(r[3]&EVF.SELF)?(calMean()>2?.999:.66):.8;    // self-rated 0–3 scale stored as n/3; with a calibration bias above +2 only "3" counts (I6 §4.11)
+  default:return .999}}
+function reqActive(q){if(!q.need)return true;try{if(q.need==="TASKS40"){if(typeof TASKS40==="undefined")return false;const L=Array.isArray(TASKS40)?TASKS40:Object.values(TASKS40);return !L.length||L.some(t=>t&&q.sel.includes(t.id))}
+  if(q.need==="BVE")return typeof BVE!=="undefined"}catch(e){}return false}
+
+// ---------------------------------------------------------------- 3. requirement and can-do status
+const I3_RETEST=14;
+const I3_PERROW=new Set(["w","wq","sp","bv","tk"]);
+const CD_SPAN=[0,4,5,7,7,10],CD_FADE=[0,60,60,75,90,90];   // per level: days the evidence must span · days without evidence until a secured can-do fades
+function reqEval(q){
+  if(q.src==="sh"){const n=typeof shadowItems==="function"?shadowItems().length:0;return {src:q.src,n:0,need:0,acc:1,days:1,ok:n===0,part:n?0:1,self:false,last:null,first:null,any:false,ix:[],answers:0,needAcc:1,needDays:1}}
+  const ev=S.ev||[],IX=evIndex(),cand=q.src==="wq"?(IX.by.wq||[]):(IX.by[q.src]||[]);const d0=evDay()-60;
+  const latest={},days=new Set(),ix=[];let first=null,last=null,rows=[];
+  const prev=q.first?{}:null;   // first:1 — the first-ever attempt counts, and again a re-test at least 14 days after the last contact (small fixed pools must not lock anyone out)
+  for(const i of cand){const r=ev[i];if(!evMatch(q,r[1]))continue;if(prev){const pd=prev[r[1]];prev[r[1]]=r[0];if(!(r[3]&EVF.NEW)&&!(pd!=null&&r[0]-pd>=I3_RETEST))continue}if(!evCounted(r))continue;if(q.rated&&!(r[3]&EVF.RATED))continue;rows.push(r);if(r[0]>=d0&&!(r[3]&EVF.SELF))ix.push(i)}
+  const prevOk={},cnt={};rows.forEach(r=>{cnt[r[1]]=(cnt[r[1]]||0)+1;if(latest[r[1]])prevOk[r[1]]=latest[r[1]][2]>=evThr(q,latest[r[1]]);latest[r[1]]=r;if(r[2]>=evThr(q,r)){days.add(r[0]);if(first==null||r[0]<first)first=r[0];if(last==null||r[0]>last)last=r[0]}});
+  // single-key sources (a writing task, text quality, a speaking prompt, a station, a task): n = right answers on different days; else distinct items whose latest answer is right
+  const perRow=I3_PERROW.has(q.src);let n=perRow?rows.filter(r=>r[2]>=evThr(q,r)).length:Object.values(latest).filter(r=>r[2]>=evThr(q,r)||prevOk[r[1]]===true&&cnt[r[1]]>=3).length;   // one slip after a right answer is tolerated once an item has 3 answers
+  if(!q.rated&&S.evAgg)for(const k of aggKeys(q.src)){if((!perRow&&latest[k])||!evMatch(q,k))continue;const a=S.evAgg[k];if(q.first){if(a[6]<1e6&&a[5]>=evThr(q,null)){n++;days.add(a[6]);if(first==null||a[6]<first)first=a[6];if(last==null||a[6]>last)last=a[6]}continue}
+    if(perRow?a[1]>0:a[4]>=evThr(q,null)){n+=perRow?a[1]:1;days.add(a[2]);if(first==null||a[2]<first)first=a[2];if(last==null||a[2]>last)last=a[2]}}
+  const tail=rows.slice(-(perRow?Math.max(2,q.n):Math.max(20,q.n)));let acc=tail.length?tail.reduce((s,r)=>{const v=r[2]>=evThr(q,r)?1:0;return s+(r[3]&EVF.MC3?Math.max(0,(v-1/3)*1.5):v)},0)/tail.length:0;
+  if(!tail.length&&S.evAgg){let an=0,ar=0;for(const k of aggKeys(q.src)){if(!evMatch(q,k))continue;const a=S.evAgg[k];if(q.first){if(a[6]<1e6){an++;ar+=a[5]>=evThr(q,null)?1:0}}else{an+=a[0];ar+=a[1]}}if(an)acc=ar/an}   // only folded rows left: their hit rate
+  const self=rows.length>0&&rows.every(r=>r[3]&EVF.SELF)&&!rows.some(r=>r[3]&EVF.ASR);
+  const ok=n>=q.n&&acc>=q.acc-1e-9&&days.size>=q.days;
+  return {src:q.src,n,need:q.n,acc,needAcc:q.acc,days:days.size,needDays:q.days,ok,self,first,last,ix,answers:rows.length,
+    part:Math.min(1,(Math.min(1,n/Math.max(1,q.n))+Math.min(1,acc/Math.max(.01,q.acc))+Math.min(1,days.size/Math.max(1,q.days)))/3),any:rows.length>0}}
+// status: 0 offen · 1 begonnen · 2 gezeigt (noch nicht über genug Tage) · 2.5 verblasst · 3 gesichert
+function cdEval(c){const ev=c.ev||[];const P0=ev.map((q,i)=>reqActive(q)?Object.assign(reqEval(q),{i,q}):null);
+  P0.forEach(p=>{if(!p||p.q.alt==null)return;const k=p.q.alt;const b=P0[k];if(b&&!b.ok&&p.ok){P0[k]=Object.assign({},p,{i:k,q:b.q,via:p.q.src})}});   // an alternative replaces ev[k] when it holds
+  const parts=P0.filter(p=>p&&p.q.alt==null);const all=parts.length>0&&parts.every(p=>p.ok);
+  const firsts=parts.map(p=>p.first).filter(x=>x!=null),lasts=parts.map(p=>p.last).filter(x=>x!=null);
+  const span=firsts.length?Math.max(...lasts)-Math.min(...firsts):0;const last=lasts.length?Math.max(...lasts):null;const selfOnly=parts.length>0&&parts.every(p=>p.self);const self=parts.some(p=>p.self);
+  const tested=(S.cdTest||{})[c.id];   // {d, by:"cp"|"place"|"mig"} — set by a passed level test (cp → secured) or placement/migration (→ gezeigt)
+  let st=0;if(P0.some(p=>p&&p.any))st=1;if(all)st=2;if(all&&span>=CD_SPAN[c.lv]&&!selfOnly)st=3;
+  if(tested&&st<3)st=Math.max(st,tested.by==="cp"?3:2);
+  const td=tested?(typeof tested.d==="number"?tested.d:evDay(String(tested.d||todayKey()).slice(0,10))):-1e9;
+  const ref=Math.max(last==null?-1e9:last,td);if(st===3&&evDay()-ref>CD_FADE[c.lv])st=2.5;
+  const cram=all&&span===0&&parts.length>0;
+  return {id:c.id,st,self,selfOnly,span,needSpan:CD_SPAN[c.lv],last,parts,cram,tested:tested||null,pct:parts.length?Math.round(100*parts.reduce((a,p)=>a+p.part,0)/parts.length):0}}
+let CD_CACHE=null;
+function cdSig(){const ev=S.ev||[];return [todayKey(),ev.length,ev.length?ev[ev.length-1][1]:"",Object.keys(S.cdTest||{}).length,S.place&&S.place.date||"",typeof TASKS40,typeof BVE,calMean()>2?1:0,Object.keys(S.evAgg||{}).length].join("|")}
+function cdAll(){const ref=S.ev,sig=cdSig();if(CD_CACHE&&CD_CACHE.ref===ref&&CD_CACHE.sig===sig)return CD_CACHE.m;const m={};
+  (typeof CANDO!=="undefined"?CANDO:[]).forEach(c=>{try{m[c.id]=cdEval(c)}catch(e){m[c.id]={id:c.id,st:0,parts:[],pct:0,self:false}}});CD_CACHE={ref,sig,m};CEFR_CACHE=null;try{i3Changes(m)}catch(e){}return m}
+const CD_W=st=>st>=3?1:st===2.5?.85:st===2?.5:st===1?.1:0;
+const CD_NAME={0:"offen",1:"begonnen",2:"gezeigt",2.5:"verblasst",3:"gesichert"},CD_NAME_EN={0:"open",1:"started",2:"shown",2.5:"fading",3:"secured"};
+function cdStatus(id){const e=cdAll()[id];return e?e.st:0}
+function cdOfChapter(n){const A=cdAll();return (typeof CANDO!=="undefined"?CANDO:[]).filter(c=>c.ch===+n).map(c=>({id:c.id,st:A[c.id].st,pct:A[c.id].pct,self:A[c.id].self,de:c.de,en:c.en,sk:c.sk,lv:c.lv}))}
+const CD_QUOTA=[16,20,21,23,18],ROMAN=["I","II","III","IV","V"];
+function cdRealm(r){let i=typeof r==="string"?ROMAN.indexOf(r):+r;if(!(i>=0&&i<5))i=0;const A=cdAll();const L=CANDO.filter(c=>c.lv===i+1);
+  const secured=L.filter(c=>A[c.id].st===3).length,faded=L.filter(c=>A[c.id].st===2.5).length,shown=L.filter(c=>A[c.id].st===2).length;
+  return {realm:ROMAN[i],lv:i+1,secured,faded,shown,need:CD_QUOTA[i],total:L.length,ok:secured>=CD_QUOTA[i]}}
+// status changes → EV "cando.change" + Mephisto's "secured" line (one per session at most); stored as one character per can-do
+function i3Changes(m){const x=i3S();const code=s=>s===2.5?"5":String(s);const now=CANDO.map(c=>code(m[c.id].st)).join("");const old=x.st||"";if(old===now)return;x.st=now;if(!old){try{const cc=cefr();x.lv=SKILLS.map(k=>cc[k].lv).join("")}catch(e){}saveSoon();return}
+  const dec=ch=>ch==="5"?2.5:+ch;const ups=[];CANDO.forEach((c,i)=>{const a=dec(old[i]||"0"),b=dec(now[i]);if(a===b)return;i3Emit("cando.change",{id:c.id,from:a,to:b});if(b===3&&a<3)ups.push(c)});
+  try{const cc=cefr();const lv=SKILLS.map(k=>cc[k].lv).join("");const ol=x.lv||"";if(ol)SKILLS.forEach((k,i)=>{if(+lv[i]>+(ol[i]||0))i3Emit("level.up",{skill:k,lv:+lv[i],name:LVN5[+lv[i]]})});x.lv=lv}catch(e){}
+  if(ups.length&&!I3_SAID_SECURED){I3_SAID_SECURED=1;const c=ups[0];setTimeout(()=>i3Toast("secured",{t:c.de,n:m[c.id].parts.reduce((a,p)=>Math.max(a,p.days),0)}),1200)}saveSoon()}
+let I3_SAID_SECURED=0;
+function i3Emit(n,d){try{if(window.EV&&typeof EV.emit==="function")setTimeout(()=>{try{EV.emit(n,d)}catch(e){}},0)}catch(e){}}
+
+// item pools: what a requirement can draw (I6 §4.3 section 11; also for i4's Siegelprobe, checkpoints and placement)
+function evPool(q){try{return evPool0(q)}catch(e){return []}}
+function evPool0(q){const sel=q.sel,out=[],Q=(src,arr,qs)=>sel.forEach(id=>{const x=(arr||[]).find(a=>a.id===id);if(x)(x[qs]||[]).forEach((it,i)=>out.push({key:`${src}:${id}:${i}`,src,ref:id,i,cr:false,mc:(it.o||it.opts||[]).length}))});
+  switch(q.src){
+    case "g":sel.forEach(id=>{const L=GRAMMAR.find(g=>g.id===id);(L&&L.ex||[]).forEach(e=>{if(q.cr&&e.type==="mc")return;out.push({key:`g:${id}:${e.type}:${evHash(e.q||(e.words||[]).join(" "))}`,src:"g",ref:id,ex:e,cr:e.type!=="mc",mc:e.type==="mc"?e.o.length:0})})});break;
+    case "h":Q("h",HOEREN,"questions");break;case "r":Q("r",TEXTS,"questions");break;case "s":Q("s",SCENES,"quiz");break;case "k":Q("k",KOMPASS,"quiz");break;
+    case "m":Q("m",(typeof MEDL!=="undefined"?MEDL:[]).concat(typeof ALLTAG!=="undefined"?ALLTAG:[]),"quiz");break;
+    case "v":allCards().filter(c=>c.kind!=="satz"&&(sel.ids?sel.ids.includes(c.de):sel.tag.includes(c.tag)&&sel.lv.includes(c.level))).forEach(c=>out.push({key:`v:${c.id}:${sel.mode||"prod"}`,src:"v",ref:c.id,cr:(sel.mode||"prod")==="prod",mc:sel.mode==="rec"?3:0}));break;
+    case "ge":allCards().filter(c=>/^(der|die|das) [A-ZÄÖÜ][^\s]+$/.test(c.de)&&sel.lv.includes(c.level)).forEach(c=>out.push({key:"ge:"+c.id,src:"ge",ref:c.id,cr:false,mc:3}));break;
+    case "pl":allCards().filter(c=>c.pl&&/^(der|die|das) /.test(c.de)&&sel.lv.includes(c.level)).forEach(c=>out.push({key:"pl:"+c.id,src:"pl",ref:c.id,cr:true}));break;
+    case "st":STARK.filter(v=>sel.lv.includes(v[5])).forEach(v=>out.push({key:"st:"+v[0],src:"st",ref:v[0],cr:true}));break;
+    case "t":{const rk=termRank();(FSP_TERMS.terms||[]).filter(t=>rk[t.fach]<sel.top).forEach(t=>(sel.dir==="both"?["F>L","L>F"]:[sel.dir]).forEach(d=>out.push({key:`t:${t.fach}:${d}:typed`,src:"t",ref:t.fach,dir:d,cr:true})))}break;
+    case "ab":(sel.set==="klinik"?(FSP_TERMS.abbr||[]).map(a=>a.abbr||a[0]):ABBR_SETS[sel.set]||[]).forEach(a=>out.push({key:"ab:"+a,src:"ab",ref:a,cr:true}));break;
+    case "cz":(typeof CASES!=="undefined"?CASES:[]).forEach((c,i)=>out.push({key:"cz:"+i,src:"cz",i,cr:false,mc:3}));break;
+    case "cl":(typeof CLOZE!=="undefined"?CLOZE:[]).forEach((c,i)=>out.push({key:"cl:"+i,src:"cl",i,cr:true}));break;
+    case "rs":(typeof RESPOND!=="undefined"?RESPOND:[]).forEach((c,i)=>out.push({key:"rs:"+i,src:"rs",i,cr:false,mc:c[1].length}));break;
+    case "ct":sel.forEach(id=>{const T=TEXTS.find(t=>t.id===id);if(!T)return;const c=ctest(T.paras.map(p=>p.de).join(" "),20);c.gaps.forEach(g=>out.push({key:`ct:${id}:${g.i}`,src:"ct",ref:id,gap:g,cr:true}))});break;
+    case "q":QPROMPTS.filter(p=>sel.rub?sel.rub.includes(p.rub):sel.lv.includes(p.lv)).forEach(p=>out.push({key:`q:${p.lv}:${p.rub}:${p.id}`,src:"q",ref:p.id,cr:true}));break;
+    case "tk":case "bv":sel.forEach(id=>out.push({key:`${q.src}:${id}:${q.src==="tk"?"done":"tot"}`,src:q.src,ref:id,cr:true}));break;
+    case "z":case "zh":sel.forEach(kind=>{for(let i=0;i<12;i++)out.push({key:`${q.src}:${kind}:#${i}`,src:q.src,kind,gen:true,cr:true})});break}
+  return out}
+// C-test from any library text: first sentence whole, then the second half of every second word is removed (I6 §4.9; the runner is i4's)
+function ctest(text,nGaps){const sents=String(text).split(/(?<=[.!?])\s+/);const out=[sents[0]],gaps=[];let k=0;
+  sents.slice(1).join(" ").split(/\s+/).forEach(w=>{const m=/^([„"(]*)([A-Za-zÄÖÜäöüß]+)(.*)$/.exec(w);k++;if(!m||m[2].length<2||k%2||gaps.length>=(nGaps||20)){out.push(w);return}
+    const keep=Math.floor(m[2].length/2);gaps.push({i:gaps.length,stem:m[2].slice(0,keep),ans:m[2].slice(keep)});out.push(m[1]+m[2].slice(0,keep)+"{"+(gaps.length-1)+"}"+m[3])});
+  return {html:out.join(" "),gaps}}
+// ---------------------------------------------------------------- 4. CEFR estimate per skill, with a band
+const LVN5=["unter A1","A1","A2","B1","B2","C1"],SKILLS=["H","L","S","P","I","M"],SK_NAME={H:"Hören",L:"Lesen",S:"Schreiben",P:"Sprechen",I:"Interaktion",M:"Mediation"},SK_EN={H:"listening",L:"reading",S:"writing",P:"speaking",I:"interaction",M:"mediation"};
+let CEFR_CACHE=null;
+function cefr(){const A=cdAll();if(CEFR_CACHE&&CEFR_CACHE.m===A)return CEFR_CACHE.v;const out={};const ev=S.ev||[];
+  SKILLS.forEach(sk=>{const sc=[0,0,0,0,0,0];let self=false;const ixs=new Set();
+    for(let L=1;L<=5;L++){const C=CANDO.filter(c=>c.sk===sk&&c.lv===L);sc[L]=C.reduce((a,c)=>a+CD_W(A[c.id].st),0)/Math.max(1,C.length);
+      C.forEach(c=>{const e=A[c.id];if(e.st>=2&&e.self)self=true;(e.parts||[]).forEach(p=>(p.ix||[]).forEach(i=>ixs.add(i)))})}
+    let lv=0;while(lv<5&&sc[lv+1]>=.8)lv++;
+    const days=new Set();ixs.forEach(i=>{if(ev[i])days.add(ev[i][0])});const n=ixs.size;
+    let src="gemessen";const pl=(S.place||{}).lv;if(n<25&&pl&&pl[sk]!=null&&+pl[sk]>lv){lv=Math.min(5,+pl[sk]);src="Einstufung"}
+    const conf=n>=60&&days.size>=6?"hoch":n>=25&&days.size>=3?"mittel":"niedrig";const pct=lv<5?Math.round(100*sc[lv+1]):100;
+    const lo=conf==="hoch"?lv:Math.max(0,lv-(conf==="niedrig"||(lv>0&&sc[lv]<.9)?1:0)),hi=conf==="hoch"?lv:Math.min(5,lv+(conf==="niedrig"||pct>=50?1:0));
+    const selfP=self&&(sk==="P"||sk==="I");
+    out[sk]={lv,name:LVN5[lv],next:LVN5[Math.min(5,lv+1)],pct,lo,hi,band:lo===hi?LVN5[lv]:LVN5[lo]+"–"+LVN5[hi],conf,n,days:days.size,self:selfP,src:selfP&&sk==="P"?"selbst bestätigt":src,sc}});
+  const m=k=>out[k].lv;out.rez=Math.min(m("H"),m("L"));out.prod=Math.min(m("S"),m("I"));out.all=Math.min(m("H"),m("L"),m("S"),m("I"));
+  out.lo=Math.min(...["H","L","S","I"].map(k=>out[k].lo));out.hi=Math.min(...["H","L","S","I"].map(k=>out[k].hi));
+  out.conf=["H","L","S","I"].some(k=>out[k].conf==="niedrig")?"niedrig":["H","L","S","I"].some(k=>out[k].conf==="mittel")?"mittel":"hoch";
+  out.band=out.lo===out.hi?LVN5[out.all]:LVN5[out.lo]+"–"+LVN5[out.hi];
+  out.label=LVN5[out.all]+(out.all<5?" → "+LVN5[out.all+1]:"");CEFR_CACHE={m:A,v:out};return out}
+function cefrBand(x){return x.lo===x.hi?LVN5[x.lv]:LVN5[x.lo]+"–"+LVN5[x.hi]}
+// PLAN-I R4: learnerLv = max(highest realm whose level test is passed, placement). 0 = working on A1 … 4 = working on C1. Content gating reads it.
+function i3ProofLv(){let best=0;const cp=S.cp;
+  if(cp&&typeof cp==="object"&&Object.keys(cp).length){const ids=["cpA1","cpA2","cpB1","cpB2","cpC1"];
+    for(let i=0;i<5;i++){const e=cp[ids[i]]||cp[ROMAN[i]]||cp[i+1];if(e&&(e.pass||e.passed||e.done||(e.written&&e.duel)))best=i+1}}
+  else{try{const se=P().sealed||{};CHAPTERS.forEach(c=>{if(c.boss&&se[c.n])best=Math.max(best,ROMAN.indexOf(c.r)+1)})}catch(e){}}   // legacy: no level tests yet → a sealed boss chapter counts
+  if(S.realmDone&&typeof S.realmDone==="object")ROMAN.forEach((r,i)=>{if(S.realmDone[r]||S.realmDone[i+1])best=Math.max(best,i+1)});
+  return best}
+function i3PlaceLv(){const pl=S.place&&S.place.lv;if(!pl||typeof pl!=="object")return 0;const v=["L","H","S"].map(k=>pl[k]).filter(x=>x!=null).map(Number);return v.length?Math.min(...v):0}
+function i3LearnerLv(){return Math.max(0,Math.min(4,Math.max(i3ProofLv(),i3PlaceLv())))}
+// a word is known when it is a word (not a sentence), has survived a week and was not failed last time (l4's memory model when loaded)
+function i3KnownWords(lvl){const ok=(k,s)=>{const c=i3Card(k);return !!c&&c.kind!=="satz"&&(!lvl||c.level===lvl)};
+  if(typeof memGet==="function"){try{if(typeof l4Adopt==="function")l4Adopt()}catch(e){}let n=0;Object.keys(S.cards||{}).forEach(k=>{if(k.startsWith("p:"))return;const g=memGet(k);if(g&&g.s>=7&&(S.cards[k]||{}).lq!==0&&ok(k))n++});return n}   // integrator 13.4: adopt S.cards into l4 memory first; keep the lq rule
+  return Object.keys(S.cards||{}).filter(k=>{if(k.startsWith("p:"))return false;const s=S.cards[k];if(!s||!(s.int>=7)||s.lq===0)return false;return ok(k)}).length}
+// vocabulary estimate: known words × hit rate of the last 40 probed words of that level (typed or three-choice, v: rows); .8 assumed until 20 probes exist
+function vocabSize(){const out={n:0,by:{},probed:false};const rows=(S.ev||[]).filter(r=>r[1].startsWith("v:")&&evCounted(r));
+  ["A1","A2","B1","B2","C1"].forEach(L=>{const R0=rows.filter(r=>(i3Card(r[1].slice(2).replace(/:(rec|prod)$/,""))||{}).level===L).slice(-40);
+    const rate=R0.length>=20?R0.reduce((a,r)=>a+(r[2]>=.999?1:0),0)/R0.length:null;if(rate!=null)out.probed=true;const k=i3KnownWords(L);out.by[L]={known:k,probe:rate,n:Math.round(k*(rate==null?.8:rate))};out.n+=out.by[L].n});return out}
+function i3WordsLv(){const v=vocabSize().n;return v<600?0:v<1300?1:v<2400?2:v<4000?3:4}   // display only
+function gramSecure(id){const rows=(S.ev||[]).filter(r=>evCounted(r)&&r[1].startsWith("g:"+id+":"));const by={};rows.forEach(r=>{(by[r[0]]=by[r[0]]||[]).push(r[2])});
+  const good=Object.keys(by).map(Number).filter(d=>by[d].length>=6&&by[d].reduce((a,b)=>a+b,0)/by[d].length>=.8).sort((a,b)=>a-b);return good.length>=2&&good[good.length-1]-good[0]>=3}
+// levelEstimate in its old shape for old callers (wegHTML, hub, readiness): built from cefr(), never from card counts
+function i3LevelEstimate(){const c=cefr();const L4=["H","L","S","I"];const prog={},tot={};LEVELS.forEach((L,i)=>{prog[L]={p:Math.min(...L4.map(k=>c[k].sc[i+1]))}});
+  try{CATALOG.forEach(x=>{if(x.kind==="word"&&x.level)tot[x.level]=(tot[x.level]||0)+1})}catch(e){}
+  const reached=c.all?LVN5[c.all]:"A0",next=LVN5[Math.min(5,c.all+1)];
+  return {stufe:LVN5[Math.max(1,Math.min(5,c.all+1))],reached,next,pct:Math.round(100*((prog[next]||{p:1}).p)),prog,tot,self:false,band:c.band,conf:c.conf,lo:c.lo,hi:c.hi,src:"i3"}}
+// English under Mephisto's lines: by reading level and by how often it is still opened
+function i3EnMode(){const m=S.enMode||"auto";if(m!=="auto")return m;let L=0;try{L=cefr().L.lv}catch(e){}const t=i3S().enTap;
+  if(L<1)return "show";if(L===1)return t.shown>=40&&t.tapped/t.shown<.3?"tap":"show";return "tap"}
+
+// ---------------------------------------------------------------- 5. soul = what you can do, not pages turned (PLAN-I R7)
+function soulParts(){const A=cdAll();const n=s=>CANDO.filter(c=>A[c.id].st===s).length;return {gesichert:n(3),verblasst:n(2.5),gezeigt:n(2),begonnen:n(1),offen:n(0),total:CANDO.length}}
+function i3Debt(){try{if(typeof ECON!=="undefined"&&ECON&&typeof ECON.open==="function"){const o=ECON.open();return typeof o==="number"?o:Array.isArray(o)?o.length:(o&&o.n)||0}}catch(e){}try{return +P().debt||0}catch(e){return 0}}
+function soulReal(){const p=P(),A=cdAll();const got=CANDO.reduce((a,c)=>a+CD_W(A[c.id].st),0);let sealed=0;try{sealed=Object.keys(p.sealed||{}).length}catch(e){}
+  const raw=100*got/CANDO.length,floor=.8*100*sealed/Math.max(1,(typeof CHAPTERS!=="undefined"?CHAPTERS.length:40));
+  return Math.max(0,Math.min(100,Math.max(raw,floor)-(p.done?0:.5*i3Debt())))}
+function soulInfo(){const s=soulReal(),q=soulParts();let sealed=0;try{sealed=Object.keys(P().sealed||{}).length}catch(e){}const raw=100*CANDO.reduce((a,c)=>a+CD_W(cdAll()[c.id].st),0)/CANDO.length;
+  return Object.assign({soul:s,raw,floorOn:s>raw+1e-9&&sealed>0,debt:i3Debt(),sealed},q)}
+const i3Pct=v=>(Math.round(v*10)/10).toFixed(1).replace(".",",");
+
+// ---------------------------------------------------------------- 6. B2 readiness (I6 §4.7, l9's simulation rows)
+// A module is measurable after 2 timed attempts on material never seen before in the last 45 days; Schreiben/Sprechen only when marked by someone else.
+function i3ExamRows(){const R0=(S.examRes||[]).filter(r=>r&&r.ex==="goethe");const seen=new Set(),out=[];
+  R0.forEach(r=>{const k=r.sim?("sim|"+r.m+"|"+(r.set!=null?r.set:r.date)):("old|"+r.id);const fresh=!seen.has(k);seen.add(k);out.push(Object.assign({},r,{fresh}))});return out}
+function i3B2Ready(){const C=cefr(),A=cdAll(),MAP={Lesen:"L",Hören:"H",Schreiben:"S",Sprechen:"P"};const d0=addDays(todayKey(),-45);const rows=i3ExamRows();
+  const mods=Object.keys(MAP).map(m=>{const prod=m==="Schreiben"||m==="Sprechen";const R0=rows.filter(r=>r.m===m);
+    const ok=R0.filter(r=>r.date>=d0&&r.fresh&&(r.sim||r.mock)&&(!prod||(r.by&&r.by!=="self"))&&r.pct!=null);
+    const selfR=R0.filter(r=>prod&&(!r.by||r.by==="self")&&r.pct!=null).slice(-3);const selfPct=selfR.length?Math.round(selfR.reduce((a,r)=>a+r.pct,0)/selfR.length):null;
+    const cd=CANDO.filter(c=>c.lv===4&&(c.sk===MAP[m]||(m==="Sprechen"&&c.sk==="I")));const cdp=cd.reduce((a,c)=>a+CD_W(A[c.id].st),0)/Math.max(1,cd.length);
+    const base={m,n:ok.length,tries:R0.length,cd:Math.round(100*cdp),self:selfPct};
+    if(ok.length<2)return Object.assign(base,{pct:null,lo:null,hi:null,state:"nicht messbar",why:prod?"noch keine zwei fremd bewerteten "+(m==="Schreiben"?"Texte":"Gespräche"):"noch keine zwei Prüfungsteile mit neuem Material unter Zeit"});
+    const mean=ok.reduce((a,r)=>a+r.pct,0)/ok.length,pct=Math.round(.7*mean+.3*100*cdp),half=Math.round(18/Math.sqrt(ok.length));
+    const lo=Math.max(0,pct-half),hi=Math.min(100,pct+half);return Object.assign(base,{pct,lo,hi,state:lo>=60?"prüfungsreif":hi>=60?"an der Grenze":"unter der Grenze",why:ok.length+" Teile unter Zeit, neues Material"})});
+  const ready=mods.every(x=>x.state==="prüfungsreif");const cdn=typeof examCountdown==="function"?examCountdown("goethe"):null;const vs=vocabSize();
+  let b2tot=1027;try{b2tot=CATALOG?[...CATALOG.values()].filter(x=>x.kind==="word"&&x.level==="B2").length||1027:1027}catch(e){}
+  const G=(typeof GRAMMAR!=="undefined"?GRAMMAR:[]).filter(g=>g.level==="B2");
+  return {mods,ready,state:ready?"prüfungsreif":mods.some(x=>x.pct==null)?"nicht messbar":mods.some(x=>x.state==="unter der Grenze")?"unter der Grenze":"an der Grenze",
+    level:C,cd:cdn,vs,b2words:b2tot,voc:Math.round(100*Math.min(1,vs.by.B2.n/Math.max(1,b2tot))),gram:Math.round(100*G.filter(g=>gramSecure(g.id)).length/Math.max(1,G.length)),gramN:G.filter(g=>gramSecure(g.id)).length,gramT:G.length,src:"i3"}}
+
+// ---------------------------------------------------------------- 7. weekly Zeugnis: Fleiß and Leistung (I6 §4.8). note = fleiss for old callers.
+const Z_KEY=x=>x>=.92?1:x>=.81?2:x>=.67?3:x>=.5?4:x>=.3?5:6;   // German school key, pass line at half (from memory; schools differ)
+function i3Zeugnis(endKey){const days=weekRange(endKey),since=P().date||"";let min=0,act=0,shift=0,rev=0,okc=0,nw=0,wr=0,fix=0;const d1=evDay(days[0]),d2=evDay(days[6]);
+  const evDays={};(S.ev||[]).forEach(r=>{if(r[0]>=d1&&r[0]<=d2&&evCounted(r))evDays[r[0]]=(evDays[r[0]]||0)+1});
+  days.forEach(d=>{if(since&&d<since)return;const m=typeof minutesOn==="function"?minutesOn(d):0,L=(S.log||{})[d]||{};rev+=L.rev||0;okc+=L.ok||0;nw+=L.new||0;wr+=L.write||0;fix+=L.les||0;
+    const work=(L.rev||0)+(L.les||0)+(L.write||0)+(L.listen||0)+(L.read||0)+(L.drill||0)+(L.pocket||0)+(L.exam||0)>0||(evDays[evDay(d)]||0)>=10;if(work){act++;min+=m}if(S.shifts&&S.shifts[d])shift++});
+  const rows=(S.ev||[]).filter(r=>r[0]>=d1&&r[0]<=d2&&evCounted(r)&&!(r[3]&EVF.SELF));const lacc=rows.length?rows.reduce((a,r)=>a+(r[2]>=.6?1:0),0)/rows.length:null;
+  const nd=Math.max(1,days.filter(d=>!since||d>=since).length),goalDays=Math.min(6,nd),goalMin=(S.minutes||60)*Math.max(0,goalDays-shift)+20*Math.min(shift,goalDays);
+  const f=.5*Math.min(1,act/goalDays)+.5*Math.min(1,min/Math.max(1,goalMin));
+  const A=cdAll();const won=CANDO.filter(c=>A[c.id].st>=3&&A[c.id].last!=null&&A[c.id].last>=d1&&A[c.id].last<=d2).length;
+  const young=!P().date||diffDays(P().date,todayKey())<7;const fleiss=young&&!act?0:Z_KEY(f),leistung=rows.length>=30?Z_KEY(lacc):0;
+  let gest=0;try{gest=Math.max(0,dueKeys().length-revCap())}catch(e){}
+  return {from:days[0],to:days[6],min,act,shift,rev,acc:rev?Math.round(100*okc/rev):0,nw,wr,fix,n:rows.length,lacc:lacc==null?null:Math.round(100*lacc),won,gest,fleiss,leistung,note:fleiss,f:Math.round(100*f),src:"i3"}}
+function i3ZeugnisHTML(z,extra){const du=P().du===true;const NN=typeof NOTE_NAME!=="undefined"?NOTE_NAME:["","sehr gut","gut","befriedigend","ausreichend","mangelhaft","ungenügend"];
+  if(!z.fleiss)return `<div class="card stack s zeugnis i3z"><div class="eyebrow">Zeugnis <span class="en">weekly report card</span></div><p class="ui" style="margin:0">Das erste Zeugnis kommt nach Ihrer ersten vollen Woche. <span class="en">your first report card comes after a full week</span></p></div>`;
+  const ln=z.leistung?null:i3Line("noMark",{f:z.fleiss});
+  return `<div class="card orn stack s zeugnis i3z"><div class="eyebrow">Zeugnis · ${fmtDate(z.from)} – ${fmtDate(z.to)} <span class="en">weekly report card · two marks</span></div>
+   <div class="i3z-marks"><div><span class="z-note n${z.fleiss}">${z.fleiss}</span><b>Fleiß</b><small>${NN[z.fleiss]||""} · Tage und Minuten mit echter Arbeit <span class="en">effort</span></small></div>
+   <div><span class="z-note ${z.leistung?"n"+z.leistung:""}">${z.leistung||"–"}</span><b>Leistung</b><small>${z.leistung?(NN[z.leistung]||"")+" · "+z.lacc+" % beim ersten Versuch":"keine Note: weniger als 30 geprüfte Antworten"} <span class="en">achievement, machine-scored first attempts</span></small></div></div>
+   <div class="z-grid"><div><b>${z.act}/7</b><span>Tage mit Arbeit</span></div><div><b>${z.min}</b><span>Minuten</span></div><div><b>${z.n}</b><span>geprüfte Antworten</span></div><div><b>${z.lacc==null?"–":z.lacc+" %"}</b><span>beim ersten Versuch</span></div><div><b>${z.won}</b><span>Fähigkeiten gesichert</span></div><div><b>${z.gest}</b><span>Karten gestundet</span></div></div>
+   ${ln?pkSay(ln):""}<p class="small muted ui" style="margin:0">In Deutschland: 1 ist die beste Note, 6 die schlechteste. Ein Tag zählt nur, wenn etwas beantwortet, gelesen, geschrieben oder gehört wurde – ein offener Tab zählt nicht. <span class="en">1 best, 6 worst; an open tab is not work</span></p>${extra||""}</div>`}
+
+// ---------------------------------------------------------------- 8. item report (I6 §4.10) and calibration (I6 §4.11)
+function itemReport(){const by={};(S.ev||[]).forEach(r=>{const a=by[r[1]]||(by[r[1]]={n:0,ok:0,ovr:0,newOk:null,sec:[],flip:0,last:null});if(r[3]&EVF.OVR){a.ovr++;return}if(!evCounted(r))return;
+    a.n++;const ok=r[2]>=.999;if(ok)a.ok++;if(r[3]&EVF.NEW)a.newOk=ok;if(a.last===true&&!ok)a.flip++;a.last=ok;a.sec.push(r[4])});
+  const out={date:todayKey(),items:Object.keys(by).length,key:[],easy:[],unstable:[],slow:[]};for(const k in by){const a=by[k];if(a.ovr>=2)out.key.push(k);
+    if(a.n>=3&&a.ok===a.n&&a.newOk===true)out.easy.push(k);if(a.n>=5&&a.flip>=2)out.unstable.push(k);
+    const s=a.sec.slice().sort((x,y)=>x-y);const md=s[Math.floor(s.length/2)]||0;if(a.n>=3&&md>40)out.slow.push(k)}return out}
+// calibration: before a Siegelprobe or level test the learner guesses his score (i4 calls calHTML / calValue / calRecord)
+function calMean(){try{const c=(S.i3&&S.i3.cal)||[];const L=c.slice(-5);return L.length?L.reduce((a,x)=>a+(x.g-x.r),0)/L.length:0}catch(e){return 0}}
+function calRecord(kind,id,guess,right,N){const x=i3S();const g=Math.max(0,Math.round(+guess||0)),r=Math.max(0,Math.round(+right||0));x.cal.push({d:todayKey(),k:String(kind||"probe")+":"+String(id==null?"":id),g,r,N:+N||0});x.cal=x.cal.slice(-20);saveSoon();
+  const k=Math.abs(g-r)<=1?"calNear":g-r>=3?"calOver":r-g>=3?"calUnder":null;return k?i3Line(k,{g,r}):null}
+function calHTML(N){N=+N||12;const g=Math.round(N*.7);return `<div class="card stack s i3cal" data-n="${N}"><div class="eyebrow">Vorher: Ihre Schätzung <span class="en">calibration</span></div><p class="ui" style="margin:0">Wie viele von ${N} schaffen Sie? <span class="en">how many of ${N} will you get right?</span></p>
+  <div class="row" style="gap:.5rem;align-items:center"><button class="sm ghost" data-act="calStep" data-d="-1">−</button><b class="i3cal-v" data-v="${g}">${g}</b><button class="sm ghost" data-act="calStep" data-d="1">+</button></div></div>`}
+function calValue(box){const b=box&&box.querySelector?box.querySelector(".i3cal-v"):null;return b?+b.dataset.v:null}
+ACT.calStep=el=>{const box=el.closest(".i3cal");if(!box)return;const N=+box.dataset.n||12;const b=box.querySelector(".i3cal-v");const v=Math.max(0,Math.min(N,(+b.dataset.v||0)+(+el.dataset.d||0)));b.dataset.v=v;b.textContent=v};
+function calLabel(){const c=(S.i3&&S.i3.cal)||[];if(c.length<2)return null;const m=calMean();const s=(m>=0?"+":"")+(Math.round(m*10)/10).toFixed(1).replace(".",",");
+  return s+(m>1.5?" (Sie überschätzen sich)":m<-1.5?" (Sie unterschätzen sich)":" (Sie kennen sich)")}
+
+// ---------------------------------------------------------------- 9. Mephisto's lines (MEPH_ASSESS, s5 format [sie,en,du,lv,flags])
+function i3Fill(s,v){return String(s).replace(/\{(\w+)\}/g,(m,k)=>v&&v[k]!=null?v[k]:m)}
+function i3Line(k,v){try{const B=typeof MEPH_ASSESS!=="undefined"?MEPH_ASSESS[k]:null;if(!B||!B.length)return null;const l=B[0];const du=(()=>{try{return P().du===true}catch(e){return false}})();
+  return [i3Fill(du&&l[2]?l[2]:l[0],v),i3Fill(l[1],v)]}catch(e){return null}}
+function i3Sober(){try{return document.documentElement.dataset.sober==="1"}catch(e){return false}}
+function i3Toast(k,v){try{if(i3Sober())return;const l=i3Line(k,v);if(!l)return;if(typeof mephToast==="function"){const B=MEPH_ASSESS[k][0];mephToast([l[0],l[1],l[0],B[3]||"B1",B[4]||""],"meph");return}if(typeof toast==="function")toast(l[0],4200)}catch(e){}}
+function pkSayA(k,vars){const l=i3Line(k,vars);return l&&typeof pkSay==="function"?pkSay(l):""}
+
+// ---------------------------------------------------------------- 10. evidence from i1's event bus (EV) — inside setTimeout, because c_i1_ev loads late
+function i3EvKey(d){if(!d||typeof d!=="object")return null;if(typeof d.evKey==="string")return d.evKey;if(d.src&&typeof d.key==="string"&&d.key.indexOf(d.src+":")===0&&d.key.split(":").length>=2)return d.key;return null}
+function i3Flags(d){return (+d.flags||0)|(d.test?EVF.TEST:0)|(d.help?EVF.HELP:0)|(d.self?EVF.SELF:0)|(d.rated?EVF.RATED:0)|(d.asr?EVF.ASR:0)}
+function i3Ok(d){return d.ok!=null?(d.ok===true?1:d.ok===false?0:+d.ok):d.p!=null&&d.max?d.p/d.max:d.pct!=null?d.pct/100:d.score!=null&&d.score<=1?d.score:null}
+function i3Pend(f){if(I3_OVR_PENDING&&Date.now()-I3_OVR_PENDING<8000){I3_OVR_PENDING=0;return f|EVF.OVR}return f}
+const I3_ON={
+  "card.answer":d=>{if(!d||!d.id)return;const sec=(+d.ms||0)/1000;if(d.prod){const ok=d.typed&&d.typed.q!=null?(d.typed.q===2?1:0):(+d.q>=2?1:0);evLog("v:"+d.id+":prod",ok,{f:i3Pend(0),sec})}
+    else evLog("c:"+d.id,+d.q>=2?1:0,{f:EVF.SELF,sec})},
+  "card.override":()=>evMarkOvr("v:"),"ex.override":()=>evMarkOvr(""),
+  "ex.answer":d=>{if(!d)return;const sec=(+d.ms||0)/1000,ok=d.ok?1:0;
+    if(d.src==="tk"){const id=d.id||d.task;if(id)evLog("tk:"+id+":"+(d.step!=null?d.step:evHash(d.q||"")),i3Ok(d)??ok,{f:i3Flags(d),sec});return}
+    if(d.src==="bv"){const id=d.id||d.station;if(id)evLog("bv:"+id+":"+(d.dim||evHash(d.q||"")),i3Ok(d)??ok,{f:i3Flags(d),sec});return}
+    const lid=d.lesson;if(!lid)return;const type=d.type||(d.kind==="quiz"?"mc":"x");let gram=/^g\d+$/.test(lid);try{if(typeof lessonKind==="function")gram=lessonKind(lid)==="grammatik"||gram}catch(e){}
+    const k=gram?"g:"+lid+":"+type+":"+evHash(d.q||d.want||""):"m:"+lid+":"+evHash(d.q||"");evLog(k,ok,{f:i3Pend((type==="mc"?EVF.MC3:0)|i3Flags(d)),sec})},
+  "genus.answer":d=>{if(!d||!d.noun)return;const id=i3Card(d.noun)?d.noun:i3Card("w:"+d.noun)?"w:"+d.noun:null;if(id)evLog("ge:"+id,d.ok?1:0,{f:d.choice===false?0:EVF.MC3})},
+  "plural.answer":d=>{if(!d||!d.de)return;const id=i3Card(d.de)?d.de:i3Card("w:"+d.de)?"w:"+d.de:null;if(id)evLog("pl:"+id,d.ok?1:0,{})},
+  "verb.answer":d=>{if(d&&d.inf)evLog("st:"+d.inf,d.ok?1:0,{})},
+  "exam.done":d=>{try{const R0=S.examRes||[];const r=R0[R0.length-1]||d||{};const id=r.id||d.id;if(!id)return;const t=((EXAMS[r.ex||d.ex]||{}).teile||[]).find(x=>x.id===id)||{};const prod=t.type==="write"||t.type==="speak"||/Schreiben|Sprechen/.test(r.m||"");
+    const seed=r.set!=null?r.set:r.seed!=null?r.seed:0;const f=((r.mock||r.sim)?EVF.TEST:0)|(prod?((r.by&&r.by!=="self")?EVF.RATED:EVF.SELF):0);if(r.pct!=null)evLog("x:"+id+":"+seed,(+r.pct)/100,{f})}catch(e){}},
+  "fsp.done":d=>{if(!d||!d.parts||typeof d.parts!=="object")return;const id=d.c||d.id||"fsp";["cov","doc","terms","p3","oa"].forEach(p=>{const v=d.parts[p];if(typeof v==="number"&&v>=0&&v<=1)evLog("f:"+id+":"+p,v,{f:EVF.TEST|(p==="oa"?EVF.SELF:0)})})},
+  "write.done":d=>{if(d&&d.title)evLog("w:"+d.title,d.ok?1:0,{f:(d.rated?EVF.RATED:0)|(d.self?EVF.SELF:0)})},
+  "task.done":d=>{if(d&&d.id)evLog("tk:"+d.id+":done",d.pass||d.grey?1:0,{f:d.grey&&!d.pass?EVF.SELF:0})},   // a grey (§ 6) pass is self-rated: shown, never secured alone
+  "station.done":d=>{if(!d||!d.id)return;const t=+d.tot;if(isFinite(t))evLog("bv:"+d.id+":tot",t>1?t/20:t,{f:d.strict?EVF.TEST:0})},
+  "listen.done":d=>{},
+};
+function i3Ingest(name,d){try{if(d&&Array.isArray(d.rows)){d.rows.forEach(r=>Array.isArray(r)&&evLog(r[0],r[1],{f:r[2]||0,sec:r[3]||0}));return}
+  const k=i3EvKey(d);if(k&&name!=="card.override"&&name!=="ex.override"){const ok=i3Ok(d);if(ok!=null){evLog(k,ok,{f:i3Pend(i3Flags(d)),sec:d.sec!=null?d.sec:(+d.ms||0)/1000});return}}
+  const h=I3_ON[name];if(h)h(d||{})}catch(e){try{logError({message:"i3 ingest "+name+": "+(e&&e.message||e)})}catch(x){}}}
+function i3Subscribe(){try{if(!window.EV||typeof EV.on!=="function"||EV.__i3)return false;EV.__i3=1;Object.keys(I3_ON).concat(["ev.row"]).forEach(n=>EV.on(n,d=>i3Ingest(n,d)));
+  EV.on("state.replaced",()=>{I3_IX=null;CD_CACHE=null;CEFR_CACHE=null});return true}catch(e){return false}}
+setTimeout(()=>{if(!i3Subscribe())setTimeout(i3Subscribe,1500)},0);
+// track L: LX.ev(key, ok, flags, sec) → evLog (PLAN-L §2.6) — the shared namespace is created here if no l-package did
+try{window.LX=window.LX||{acts:{},order:[],feeds:[],arounds:[]};if(typeof LX.ev!=="function")LX.ev=function(k,ok,f,sec){return evLog(k,ok,f,sec)}}catch(e){}
+
+// ---------------------------------------------------------------- 11. data the can-dos need (three phrase cards, ten writing tasks)
+(function(){try{(typeof CARDS_ASSESS!=="undefined"?CARDS_ASSESS:[]).forEach(v=>{const id="w:"+v.de;if(typeof CATALOG!=="undefined"&&!CATALOG.has(id))addCard({id,de:v.de,en:v.en,type:v.type,ex:v.ex||"",exEn:v.exEn||"",tag:v.theme,kind:"word",pl:"",info:"",level:v.level,syn:v.syn||"",src:"i3"})});
+  if(typeof TASKS!=="undefined"&&Array.isArray(TASKS))(typeof TASKS_ASSESS!=="undefined"?TASKS_ASSESS:[]).forEach(t=>{if(!TASKS.some(x=>x.t===t.t))TASKS.push(Object.assign({},t))});
+  if(typeof TASK_LV!=="undefined"&&typeof TASK_LV_ASSESS!=="undefined")for(const k in TASK_LV_ASSESS)if(TASK_LV[k]==null)TASK_LV[k]=TASK_LV_ASSESS[k]}catch(e){}})();
+// a text passes when it is long enough, covers every content point and stays under the error rate of its level (for P1's teachRender patch, I6 edit 6)
+const W_RULE=[{min:20,err:12},{min:35,err:10},{min:60,err:8},{min:100,err:6},{min:120,err:4}];
+function wPass(text,t,A,cOk,cN){const lv=Math.min(4,(typeof TASK_LV!=="undefined"?TASK_LV[(t||{}).t]:null)??2),words=(String(text).trim().match(/\S+/g)||[]).length,errs=((A&&A.F)||[]).filter(f=>f.key!=="len"&&f.key!=="punct").length;
+  const per100=words?100*errs/words:99;return {ok:words>=W_RULE[lv].min&&(cN==null||cOk===cN)&&per100<=W_RULE[lv].err,words,per100:Math.round(per100*10)/10,lv}}
+
+// ---------------------------------------------------------------- 12. declared replacements (MOD.around; old function = fallback)
+(function(){const A=(n,fn)=>{try{if(typeof window[n]==="function")MOD.around(n,"i3",function(orig,...a){try{return fn(orig,...a)}catch(e){try{logError({message:"i3 "+n+": "+(e&&e.message||e)})}catch(x){}return orig(...a)}})}catch(e){}};
+  A("learnerLv",()=>i3LearnerLv());
+  A("wordsLv",()=>i3WordsLv());
+  A("knownWords",(o,lvl)=>i3KnownWords(lvl));
+  A("enMode",()=>i3EnMode());
+  A("levelEstimate",(o)=>{const n=i3LevelEstimate();let b={};try{b=o()||{}}catch(e){}const prog={};for(const L of new Set([...Object.keys(b.prog||{}),...Object.keys(n.prog||{})]))prog[L]=Object.assign({},(b.prog||{})[L],(n.prog||{})[L]);return Object.assign({},b,n,{kn:b.kn||{},tot:n.tot||b.tot||{},prog})});   // integrator 13.4: keep the old fields (kn, prog.words/gram) — ACT.wortschatz reads e.kn
+  A("pkSoul",(o,...a)=>{try{if(P().done)return o(...a)}catch(e){}return soulReal()});    // after the pact: story screens keep 100 (c_story3); the real figure is shown beside it
+  A("b2Ready",()=>i3B2Ready());
+  A("zeugnis",(o,endKey)=>i3Zeugnis(endKey));
+  try{const _r=ACT.readiness;ACT.readiness=el=>{try{i3Readiness()}catch(e){try{logError(e)}catch(x){}if(_r)_r(el)}}}catch(e){}})();
+
+// ---------------------------------------------------------------- 13. screens
+(function(){try{if(typeof document==="undefined"||!document.createElement||document.getElementById("i3css"))return;const st=document.createElement("style");st.id="i3css";st.textContent=`
+.i3-parts{display:block;font:500 .78rem var(--ui,system-ui);color:var(--muted);background:none;border:0;padding:.25rem 0 0;text-align:left;cursor:pointer}
+.i3-parts b{color:var(--fg)}.i3-real{font:500 .8rem var(--ui,system-ui);color:var(--muted)}
+.i3-lv{display:grid;grid-template-columns:minmax(6.5rem,auto) minmax(4.5rem,auto) 1fr;gap:.35rem .6rem;align-items:center;font:500 .86rem var(--ui,system-ui)}
+.i3-lv .bar{height:.5rem;border-radius:.25rem;background:var(--sunk,rgba(127,127,127,.15));overflow:hidden;position:relative}.i3-lv .bar i{position:absolute;inset:0 auto 0 0;background:var(--accent)}
+.i3-lv .bar.self i{background:repeating-linear-gradient(45deg,var(--accent) 0 4px,transparent 4px 8px)}
+.i3-lv small{grid-column:1/-1;color:var(--muted);margin:-.2rem 0 .2rem}
+.i3-sk{display:flex;flex-wrap:wrap;gap:.3rem .7rem;font:500 .8rem var(--ui,system-ui);color:var(--muted)}.i3-sk b{color:var(--fg)}
+.i3-map{display:grid;gap:.9rem}.i3-realm h4{margin:.1rem 0 .35rem;font:600 .9rem var(--ui,system-ui)}
+.i3-row{display:grid;grid-template-columns:6rem 1fr;gap:.4rem;align-items:start;margin:.15rem 0}.i3-row>span{font:500 .78rem var(--ui,system-ui);color:var(--muted);padding-top:.35rem}
+.i3-cells{display:flex;flex-wrap:wrap;gap:.3rem}
+.i3-c{width:2.1rem;height:2.1rem;border-radius:.35rem;border:1px solid var(--line);background:var(--surface);font:600 .62rem var(--ui,system-ui);color:var(--muted);cursor:pointer;padding:0}
+.i3-c.s1{background:var(--sunk)}.i3-c.s2{background:var(--accent-soft,rgba(226,101,28,.25));color:var(--fg)}.i3-c.s3{background:var(--accent);color:var(--accent-ink,#fff);border-color:var(--accent)}
+.i3-c.s25{background:repeating-linear-gradient(135deg,var(--accent-soft,rgba(226,101,28,.25)) 0 5px,transparent 5px 10px);color:var(--fg)}
+.i3-leg{display:flex;flex-wrap:wrap;gap:.6rem;font:500 .75rem var(--ui,system-ui);color:var(--muted)}.i3-leg i{display:inline-block;width:.9rem;height:.9rem;border-radius:.2rem;vertical-align:-2px;margin-right:.25rem;border:1px solid var(--line)}
+.i3-req{border-top:1px solid var(--line);padding:.45rem 0;font:500 .86rem var(--ui,system-ui)}.i3-req .ok{color:var(--good,green)}
+.i3z-marks{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}.i3z-marks>div{display:grid;grid-template-columns:auto 1fr;gap:0 .6rem;align-items:center}
+.i3z-marks .z-note{grid-row:span 2;width:2.6rem;height:2.6rem;font-size:1.2rem}.i3z-marks small{color:var(--muted);font:500 .75rem var(--ui,system-ui)}
+.i3-rd td,.i3-rd th{padding:.3rem .4rem;text-align:left;font:500 .86rem var(--ui,system-ui);vertical-align:top}.i3-rd{border-collapse:collapse;width:100%}.i3-rd tr+tr td{border-top:1px solid var(--line)}
+.i3-q input{width:100%;font-size:1.05rem;padding:.55rem;border:1px solid var(--line);border-radius:.4rem;background:var(--surface);color:var(--fg)}
+@media (max-width:520px){.i3z-marks{grid-template-columns:1fr}.i3-row{grid-template-columns:1fr}.i3-row>span{padding:0}}`;document.head.appendChild(st)}catch(e){}})();
+function i3SoulStrip(){const s=soulInfo();return `${s.gesichert} gesichert${s.verblasst?` · ${s.verblasst} verblassen`:""}${s.gezeigt?` · ${s.gezeigt} gezeigt`:""}`}
+function i3LevelRows(c){c=c||cefr();return SKILLS.map(k=>{const x=c[k];const how=x.self&&k==="P"?"selbst bestätigt – nicht gemessen":x.src==="Einstufung"?"aus Einstufung · "+x.n+" eigene Antworten":k==="S"?"regelgeprüft · "+x.n+" Antworten an "+x.days+" Tagen":"gemessen · "+x.n+" Antworten an "+x.days+" Tagen";
+  return `<span>${SK_NAME[k]} <span class="en">${SK_EN[k]}</span></span><b>${x.band}${x.self&&k==="P"?" ?":""}</b><div class="bar${x.self?" self":""}" title="${x.pct} % zu ${x.next}"><i style="width:${x.lv>=5?100:x.pct}%"></i></div><small>${x.lv>=5?"C1 erreicht":x.pct+" % zu "+x.next} · ${how} · Sicherheit ${x.conf}</small>`}).join("")}
+function i3LevelCard(compact){const c=cefr();const thin=c.conf==="niedrig";const ln=thin?i3Line("levelThin",{band:c.band}):c.P.self?i3Line("levelSelf",{}):null;
+  return `<div class="card stack s i3-level"><div class="row between"><div><div class="eyebrow">Niveau nach Fertigkeiten <span class="en">level per skill, with how sure it is</span></div><h3 style="margin:.15rem 0 0">Gesamt: ${c.band} <small class="muted">· Sicherheit ${c.conf}</small></h3></div><button class="sm ghost" data-act="cdMap">Kann-Karte</button></div>
+   ${compact?`<div class="i3-sk">${SKILLS.map(k=>`<span>${SK_NAME[k]} <b>${c[k].band}${c[k].self&&k==="P"?" ?":""}</b></span>`).join("")}</div>`:`<div class="i3-lv">${i3LevelRows(c)}</div>`}
+   <p class="small muted ui" style="margin:0">Die schwächste gemessene Fertigkeit von Hören, Lesen, Schreiben und Interaktion zählt. Sprechen ohne Spracherkennung ist selbst bestätigt und senkt das Gesamtniveau nicht. Stand ${fmtDate(todayKey())}. <span class="en">weakest measured skill counts; a range means too little evidence</span></p>${ln?pkSay(ln):""}</div>`}
+ACT.i3Level=()=>{const box=Focus.open({title:"Niveau",sub:"nach Fertigkeiten · mit Unsicherheit"});box.innerHTML=`<div class="stack" style="max-width:720px;margin:0 auto">${i3LevelCard(false)}</div>`};
+// can-do map: five realms × six skills, one cell per can-do
+ACT.cdMap=()=>{const box=Focus.open({title:"Kann-Karte",sub:"120 Kann-Beschreibungen · A1 bis C1"});const A=cdAll(),s=soulInfo();
+  const leg=`<div class="i3-leg">${[[0,"offen"],[1,"begonnen"],[2,"gezeigt"],[2.5,"verblasst"],[3,"gesichert"]].map(([k,n])=>`<span><i class="i3-c s${String(k).replace(".","")}" style="width:.9rem;height:.9rem"></i>${n}</span>`).join("")}</div>`;
+  box.innerHTML=`<div class="stack" style="max-width:820px;margin:0 auto"><div class="card stack s"><div class="eyebrow">Seele <span class="en">soul = abilities proven and still fresh</span></div><h3 style="margin:0">${i3Pct(s.soul)} % · ${i3SoulStrip()}</h3>
+   <p class="small muted ui" style="margin:0">gesichert = alle Nachweise erfüllt, über ${CD_SPAN[1]}–${CD_SPAN[5]} Tage verteilt · gezeigt = erfüllt, aber noch nicht über genug Tage · verblasst = lange kein Nachweis mehr${s.floorOn?` · Untergrenze aus ${s.sealed} Siegeln aktiv`:""}${s.debt?` · −${i3Pct(.5*s.debt)} % für ${s.debt} Schuldschein${s.debt>1?"e":""}`:""}</p>${leg}${s.verblasst?pkSayA("faded",{n:s.verblasst}):s.gesichert===0?pkSayA("soulZero",{}):pkSayA("soul",{p:i3Pct(s.soul),g:s.gesichert})}</div>
+   <div class="i3-map">${ROMAN.map((r,i)=>{const R0=cdRealm(i);const realmName=(()=>{try{return REALMS[r].de||""}catch(e){return ""}})();
+     return `<div class="card i3-realm"><h4>Reich ${r} · ${LVN5[i+1]}${realmName?" · "+esc(realmName):""} <small class="muted">${R0.secured}/${R0.total} gesichert · nötig für die Reichsprüfung ${R0.need}</small></h4>
+     ${SKILLS.map(k=>{const C=CANDO.filter(c=>c.lv===i+1&&c.sk===k);if(!C.length)return "";return `<div class="i3-row"><span>${SK_NAME[k]}</span><div class="i3-cells">${C.map(c=>`<button class="i3-c s${String(A[c.id].st).replace(".","")}" data-act="cdOpen" data-id="${c.id}" title="${esc(c.de)} · ${CD_NAME[A[c.id].st]}" aria-label="${esc(c.id+" "+CD_NAME[A[c.id].st])}">${c.id.slice(3)}${c.med?"✚":""}</button>`).join("")}</div></div>`}).join("")}</div>`}).join("")}</div>
+   <p class="small muted ui">✚ = klinisch (Notaufnahme). Formulierung nach den GER-Kannbeschreibungen, frei bearbeitet. <span class="en">clinical marked ✚; wording adapted from the CEFR descriptors</span></p></div>`};
+const I3_SRC={g:"Grammatik-Übungen",v:"Wörter, getippt",c:"Karten, selbst bewertet",h:"Hörtexte, erster Versuch",r:"Lesetexte, erster Versuch",s:"Szenen",k:"Kompass",m:"Medizin- und Alltagslektionen",ct:"C-Test-Lücken",d:"Diktat",ge:"Artikel",pl:"Plural",st:"starke Verben",t:"Fachbegriffe",ab:"Abkürzungen",z:"Zahlen schreiben",zh:"Zahlen hören",q:"Fragen stellen",rs:"Antworten wählen",cz:"Fälle",cl:"Faust-Lücken",w:"Schreibaufgabe",wq:"Textqualität",x:"Prüfungsteil",f:"FSP-Simulation",sp:"Sprechen",sh:"Schatten",tk:"Kapitel-Aufgabe",bv:"Station Bett vier"};
+ACT.cdOpen=el=>{const id=el&&el.dataset?el.dataset.id:el;const c=CANDO.find(x=>x.id===id);if(!c)return;const e=cdAll()[id];const sh=$("#sheet"),inn=$("#sheetIn");if(!sh||!inn)return;
+  const fd=d=>d==null?"–":fmtDate(addDays(EV_EPOCH,d));
+  const reqs=e.parts.map(p=>{const q=p.q;const sel=Array.isArray(q.sel)?q.sel.join(", "):q.sel&&q.sel.tag?q.sel.tag.join(", ")+" · "+(q.sel.lv||[]).join("/"):q.sel&&q.sel.ids?q.sel.ids.length+" Redemittel":q.sel&&q.sel.part?"Teil "+q.sel.part:q.sel&&q.sel.rub?q.sel.rub.join(", "):"";
+    const kind=q.self||q.src==="sp"?"selbst bestätigt, wenn ohne Spracherkennung":q.src==="w"||q.src==="wq"?"regelgeprüft":q.rated?"fremd bewertet":"gemessen";
+    return `<div class="i3-req"><div class="row between"><b>${I3_SRC[p.via||q.src]||q.src}${p.via?" (statt "+(I3_SRC[q.src]||q.src)+")":""}</b><span class="${p.ok?"ok":"muted"}">${p.ok?"✓ erfüllt":Math.round(100*p.part)+" %"}</span></div>
+     <small class="muted">${esc(sel)} · ${p.n} von ${p.need} richtig · ${Math.round(100*p.acc)} % (nötig ${Math.round(100*p.needAcc)} %) · an ${p.days} von ${p.needDays} Tagen · zuletzt ${fd(p.last)} · ${kind}${q.first?" · nur der erste Versuch zählt (oder ein neuer nach 14 Tagen)":""}</small>
+     ${q.src==="q"?`<div><button class="sm" data-act="qDrill" data-sel="${esc(JSON.stringify(q.sel))}">Fragen üben</button></div>`:""}</div>`}).join("");
+  inn.innerHTML=`<div class="row between"><div class="eyebrow">${c.id} · ${LVN5[c.lv]} · ${SK_NAME[c.sk]}${c.med?" · klinisch":""}</div><button class="icon ghost" data-act="closeSheet">${typeof ic==="function"?ic("x"):"×"}</button></div>
+   <h3 class="xp-h">${esc(c.de)}</h3><p class="en" style="margin:0">${esc(c.en)}</p><p class="ui"><b>${CD_NAME[e.st]}</b> <span class="en">${CD_NAME_EN[e.st]}</span>${e.st>=2?` · Nachweise über ${e.span} von ${e.needSpan} Tagen`:""}${e.self?" · Sprechen selbst bestätigt":""}${e.tested?` · ${e.tested.by==="cp"?"in der Reichsprüfung bestanden":"aus Einstufung/Übernahme"}`:""}</p>
+   ${e.cram&&e.st===2?pkSayA("cram",{}):""}${reqs}`;sh.hidden=false};
+// "Fragen stellen": type the question a doctor asks; q:<lv>:<rub>:<id>
+ACT.qDrill=el=>{let sel={lv:["A1"]};try{if(el&&el.dataset&&el.dataset.sel)sel=JSON.parse(el.dataset.sel)}catch(e){}try{closeSheet()}catch(e){}
+  const pool=QPROMPTS.filter(p=>sel.rub?sel.rub.includes(p.rub):(sel.lv||["A1"]).includes(p.lv));const right=new Set((S.ev||[]).filter(r=>r[1].startsWith("q:")&&evCounted(r)&&r[2]>=.999).map(r=>r[1].split(":")[3]));
+  const items=pool.filter(p=>!right.has(p.id)).concat(pool.filter(p=>right.has(p.id))).slice(0,8);let i=0,ok=0,t0=Date.now();const box=Focus.open({title:"Fragen stellen",sub:"Sie-Form · Verb an die richtige Stelle"});
+  const draw=()=>{if(i>=items.length){box.innerHTML=`<div class="stack" style="max-width:640px;margin:0 auto"><div class="card stack s"><h3 style="margin:0">${ok} von ${items.length} richtig gefragt</h3><p class="ui muted" style="margin:0">Jede Antwort steht im Nachweis-Log; nur der erste Versuch des Tages zählt. <span class="en">each answer is logged; only today's first attempt counts</span></p><button class="go" data-act="cdMap">Zur Kann-Karte</button></div></div>`;return}
+    const p=items[i];const en=enMode()!=="tap"||cefr().I.lv<1;t0=Date.now();
+    box.innerHTML=`<div class="stack i3-q" style="max-width:640px;margin:0 auto"><div class="card stack s"><div class="eyebrow">${i+1} / ${items.length} · ${p.lv}</div><h3 style="margin:0">${esc(p.cue)}</h3>${en?"":`<small class="muted">Englische Hilfe aus – fragen Sie wie am Bett.</small>`}
+     <input class="i3-qin" autocomplete="off" autocapitalize="sentences" spellcheck="false" placeholder="Ihre Frage …" aria-label="Ihre Frage"><div class="row" style="gap:.5rem"><button class="go i3-qok">Prüfen</button></div><div class="i3-qfb"></div></div></div>`;
+    const inp=box.querySelector(".i3-qin"),fb=box.querySelector(".i3-qfb");try{inp.focus()}catch(e){}
+    const check=()=>{const v=normT(inp.value);if(!v)return;const good=p.re.test(v);evLog("q:"+p.lv+":"+p.rub+":"+p.id,good?1:0,{sec:(Date.now()-t0)/1000});if(good)ok++;try{SND.fx(good?"ok":"no")}catch(e){}
+      const l=i3Line(good?"qRight":"qWrong",{m:p.model});fb.innerHTML=`${good?`<p class="ui ok" style="margin:0">✓ ${esc(p.model)}</p>`:`<p class="ui" style="margin:0">Modell: <b>${esc(p.model)}</b></p>`}${l&&!i3Sober()?pkSay(l):""}<button class="sm i3-qnext">Weiter</button>`;
+      inp.disabled=true;box.querySelector(".i3-qok").remove();fb.querySelector(".i3-qnext").onclick=()=>{i++;draw()}};
+    box.querySelector(".i3-qok").onclick=check;inp.onkeydown=k=>{if(k.key==="Enter"){k.preventDefault();if(!inp.disabled)check();else{i++;draw()}}}};draw()};
+// readiness sheet (replaces ACT.readiness; same entry points: Home strip, rail)
+function i3Readiness(){const box=Focus.open({title:"Fortschritt",sub:"Seele · Niveau · Goethe B2 · Zeugnis"});const b=b2Ready(),s=soulInfo(),w=typeof patWords==="function"?patWords():null,z=zeugnis();
+  const st={"nicht messbar":"muted","unter der Grenze":"","an der Grenze":"","prüfungsreif":"ok"};const cal=calLabel();
+  const modRow=x=>`<tr><td><b>${x.m}</b></td><td>${x.pct==null?"nicht messbar":x.lo+"–"+x.hi+" %"}</td><td class="${st[x.state]||""}">${x.state}</td><td class="muted">${esc(x.why||"")}${x.self!=null?` · Selbsteinschätzung: ${x.self} % (zählt nicht)`:""}</td></tr>`;
+  const bl=b.mods.find(x=>x.pct==null)?i3Line("b2none",{}):b.ready?i3Line("b2ready",{}):(()=>{const low=b.mods.filter(x=>x.pct!=null).sort((a,c)=>a.hi-c.hi)[0];return low.state==="unter der Grenze"?i3Line("b2below",{m:low.m,pct:low.pct,hi:low.hi}):i3Line("b2border",{m:low.m,lo:low.lo,hi:low.hi})})();
+  const per=b.cd&&b.cd.days>0?Math.max(0,Math.ceil((b.b2words*.8-b.vs.by.B2.n)/Math.max(1,b.cd.days))):null;
+  box.innerHTML=`<div class="stack" style="max-width:760px;margin:0 auto">
+   <div class="card stack s"><div class="row between"><div class="eyebrow">Die Seele <span class="en">share of the 120 can-dos proven and still fresh</span></div><button class="sm ghost" data-act="cdMap">Kann-Karte</button></div>
+    <h3 style="margin:0">${i3Pct(s.soul)} % · ${i3SoulStrip()}</h3>${P().done?`<p class="i3-real" style="margin:0">Nach dem Pakt zeigt die Geschichte 100 %. Gemessen: ${i3Pct(s.soul)} %.</p>`:""}
+    <p class="small muted ui" style="margin:0">Kapitel ${P().ch} von ${CHAPTERS.length}. Die Seele zählt keine Seiten, sondern was Sie nachweislich können: gesichert 1, verblasst 0,85, gezeigt 0,5, begonnen 0,1 – geteilt durch 120${s.floorOn?`; nie unter 80 % des Anteils gesiegelter Kapitel (${s.sealed})`:""}${s.debt?`; −0,5 % je offener Schuldschein`:""}.</p>${P().done&&s.verblasst?pkSayA("soulPact",{n:s.verblasst}):pkSayA("soul",{p:i3Pct(s.soul),g:s.gesichert})}</div>
+   ${i3LevelCard(false)}
+   <div class="card stack s"><div class="row between"><div class="eyebrow">Goethe B2 <span class="en">readiness per module, with a band</span></div>${b.cd?`<span class="chip">in ${b.cd.days} Tagen · ${fmtDate(b.cd.date)}</span>`:`<button class="sm" data-act="setExams">Termin eintragen</button>`}</div>
+    <table class="i3-rd">${b.mods.map(modRow).join("")}</table>
+    <p class="small ui" style="margin:0">Wortschatz: ${b.vs.n} Wörter geschätzt${b.vs.probed?" (mit Stichprobe geprüft)":" (noch ohne Stichprobe: 80 % angenommen)"} · B2-Liste: ${b.voc} %${per!=null?` · etwa ${per} B2-Wörter pro Tag bis zum Termin`:""} · Grammatik B2: ${b.gramN} von ${b.gramT} Lektionen sicher</p>
+    <p class="small muted ui" style="margin:0">Messbar wird ein Modul nach zwei Prüfungsteilen mit neuem Material unter Zeit in den letzten 45 Tagen; Schreiben und Sprechen nur, wenn jemand anderes bewertet hat. Band ± 18/√n Punkte (grob, kein Konfidenzintervall). Bestehen: 60 % je Modul (Goethe-Regel, nicht geprüft). „Prüfungsreif“ erst, wenn das untere Ende überall ≥ 60 ist.</p>${bl?pkSay(bl):""}</div>
+   ${w?`<div class="card stack s"><div class="eyebrow">Wörter für Patienten <span class="en">symptoms, body, examination, treatment, emergency</span></div><p class="ui" style="margin:0"><b>${w.sure} von ${w.tot}</b> sicher · ${w.seen} gesehen <small class="muted">· „sicher“ = Intervall mindestens 7 Tage (Wiedererkennen, selbst bewertet)</small></p></div>`:""}
+   ${i3ZeugnisHTML(z)}
+   ${cal?`<div class="card stack s"><div class="eyebrow">Selbsteinschätzung <span class="en">calibration: your guess minus your result, last five tests</span></div><p class="ui" style="margin:0"><b>${cal}</b></p></div>`:""}
+   ${typeof yuzuCards==="function"?`<div class="card row between" style="gap:.6rem"><div><div class="eyebrow">Yuzu</div><small class="muted ui">Deine Fehler und hinzugefügten Wörter gehen jeden Montag in Yuzus Eingang${S.yzLast?` · zuletzt ${fmtDate(S.yzLast.date)}, ${S.yzLast.n} Wörter`:""}.</small></div><button class="sm" data-act="sendYuzu">Jetzt senden (${yuzuCards(14).length})</button></div>`:""}</div>`}
+// Home: soul strip, level line under the Weg card, two-mark Zeugnis; Pakt: soul parts; Ich: level card; settings: item report; Üben: Fragen stellen; rail
+(function(){if(typeof MOD==="undefined")return;
+  MOD.after("viewHome","i3",function(m){if(!m||!m.querySelector)return;
+    const ps=m.querySelector(".prog-strip span small");if(ps&&/Seele/.test(ps.textContent))ps.innerHTML=`Seele · ${i3SoulStrip()}`;
+    const weg=m.querySelector(".weg");if(weg&&!weg.querySelector(".i3-sk")){const c=cefr();const bars=weg.querySelector(".lvbars");const h=`<button class="i3-parts i3-sk" data-act="i3Level" style="display:flex">${SKILLS.map(k=>`<span>${SK_NAME[k]} <b>${c[k].band}${c[k].self&&k==="P"?" ?":""}</b></span>`).join("")}<span>· Sicherheit ${c.conf}</span></button>`;if(bars)bars.insertAdjacentHTML("afterend",h);else weg.insertAdjacentHTML("beforeend",h)}
+    m.querySelectorAll(".zeugnis:not(.i3z)").forEach(el=>{const btn=el.querySelector('[data-act="zeugnisSeen"]');const z=zeugnis();if(!z.fleiss)return;const tmp=document.createElement("div");tmp.innerHTML=i3ZeugnisHTML(z,btn?`<div class="row" style="justify-content:flex-end"><button class="sm ghost" data-act="zeugnisSeen">Gesehen</button></div>`:"");const n=tmp.firstElementChild||tmp.firstChild;if(n)el.replaceWith(n)})});
+  MOD.after("viewPakt","i3",function(m){if(!m||!m.querySelector)return;const ps=m.querySelector(".pk-soul");if(!ps||ps.parentNode.querySelector(".i3-parts"))return;const s=soulInfo();
+    ps.insertAdjacentHTML("afterend",`<button class="i3-parts" data-act="cdMap">${i3SoulStrip()} <span class="en">abilities proven · tap for the map</span></button>${P().done&&s.soul<99.95?`<div class="i3-real">Gemessen: ${i3Pct(s.soul)} %${s.verblasst?` · ${s.verblasst} verblassen`:""}</div>`:""}`)});
+  MOD.after("viewMe","i3",function(m){if(typeof meSeg==="undefined"||meSeg!=="fort"||!m||!m.querySelector)return;const inn=m.querySelector(".me-in");if(!inn||inn.querySelector(".i3-level"))return;inn.insertAdjacentHTML("afterbegin",i3LevelCard(true)+`<button class="card prog-strip i3-mestrip" data-act="readiness"><span><b>${i3Pct(soulInfo().soul)} %</b><small>Seele · ${i3SoulStrip()}</small></span><span><b>${(()=>{const z=zeugnis();return z.fleiss?z.fleiss+" / "+(z.leistung||"–"):"–"})()}</b><small>Fleiß / Leistung</small></span></button>`)});
+  MOD.after("meSettings","i3",function(el){if(!el||!el.insertAdjacentHTML||el.querySelector&&el.querySelector(".i3-rep"))return;const r=itemReport();
+    el.insertAdjacentHTML("beforeend",`<div class="card stack s i3-rep"><div class="eyebrow">Aufgaben-Bericht <span class="en">item report from your own answers</span></div><p class="small ui" style="margin:0">${r.items} Aufgaben im Log · ${r.key.length} mit Einspruch („Ich hatte recht“ ≥ 2) · ${r.easy.length} immer richtig · ${r.unstable.length} wackelig · ${r.slow.length} langsam</p><div class="row" style="gap:.5rem"><button class="sm ghost" data-act="i3RepExport">Bericht exportieren (JSON)</button></div></div>`)});
+  try{MOD.after("viewPractice","i3",function(m){if(!m||!m.querySelector||m.querySelector(".i3-qtile"))return;const t=m.querySelector(".tiles");if(t)t.insertAdjacentHTML("afterend",`<div class="tiles i3-qtile"><button class="tile" data-act="qDrill"><span class="ic">${typeof ic==="function"?ic("chat"):""}</span><span><b style="display:block">Fragen stellen</b><small>Anamnese-Fragen tippen · zählt für Kann-Beschreibungen</small></span></button></div>`)})}catch(e){}
+  try{MOD.after("chromeExtras","i3",function(){const rail=document.querySelector("#pakt-rail");if(!rail)return;rail.querySelectorAll(".rail-kv span").forEach(sp=>{if(sp.textContent==="Wochennote"){const b=sp.nextElementSibling;const z=zeugnis();sp.textContent="Fleiß / Leistung";if(b)b.textContent=z.fleiss?z.fleiss+" / "+(z.leistung||"–"):"nach Woche 1"}})})}catch(e){}})();
+ACT.i3RepExport=()=>{try{const r=itemReport();const blob=new Blob([JSON.stringify(r,null,1)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="mephisto-aufgaben-bericht-"+todayKey()+".json";document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}catch(e){toast("Export nicht möglich")}};
+// English tap counter for enMode (lines shown vs. English opened)
+(function(){try{if(typeof document==="undefined"||!document.addEventListener)return;document.addEventListener("click",e=>{try{const en=e.target&&e.target.closest&&e.target.closest(".pk-say .en");if(en){const t=i3S().enTap;t.tapped++;saveSoon()}}catch(x){}},true);
+  if(typeof MutationObserver!=="undefined"&&document.body)new MutationObserver(ms=>{try{let n=0;ms.forEach(m=>m.addedNodes&&m.addedNodes.forEach(x=>{if(x.nodeType===1){if(x.matches&&x.matches(".pk-say"))n++;else if(x.querySelectorAll)n+=x.querySelectorAll(".pk-say .en").length}}));if(n){const t=i3S().enTap;t.shown+=n;if(t.shown>200){t.shown=Math.round(t.shown/2);t.tapped=Math.round(t.tapped/2)}}}catch(x){}}).observe(document.body,{childList:true,subtree:true})}catch(e){}})();
+
+// ---------------------------------------------------------------- 14. merge rules (PLAN-I §2.7) — commutative, associative, idempotent (tests/i3_node.js, 3 000 random triples)
+function i3RowCmp(a,b){return a[0]-b[0]||(a[1]<b[1]?-1:a[1]>b[1]?1:0)||a[4]-b[4]||a[2]-b[2]||a[3]-b[3]}
+function i3MergeEv(a,b){const m=new Map();[a,b].forEach(L=>(Array.isArray(L)?L:[]).forEach(r=>{if(!Array.isArray(r)||r.length<5)return;const k=r[0]+"|"+r[1]+"|"+r[4];const o=m.get(k);if(!o||i3RowCmp(r,o)>0)m.set(k,r)}));
+  return [...m.values()].sort(i3RowCmp).slice(-EV_MAX)}
+function i3MergeMin(a,b){const o=Object.assign({},a||{});for(const k in (b||{}))o[k]=o[k]==null?b[k]:Math.min(o[k],b[k]);return o}
+function i3MergeAgg(a,b){const o={};for(const k of new Set([...Object.keys(a||{}),...Object.keys(b||{})])){const x=(a||{})[k],y=(b||{})[k];if(!x||!y){o[k]=(x||y).slice();continue}
+  const m=x.slice(0,5).map((v,i)=>Math.max(v,y[i]==null?v:y[i]));const fx=x[6]==null?1e6:x[6],fy=y[6]==null?1e6:y[6];if(x.length>5||y.length>5){const f=fx<fy?x:fy<fx?y:null;m.push(f?f[5]||0:Math.max(x[5]||0,y[5]||0),Math.min(fx,fy))}o[k]=m}return o}
+const I3_BY={cp:3,place:2,mig:1};
+function i3MergeCdTest(a,b){const o={};for(const k of new Set([...Object.keys(a||{}),...Object.keys(b||{})])){const x=(a||{})[k],y=(b||{})[k];if(!x||!y){o[k]=x||y;continue}
+  const dx=String(x.d),dy=String(y.d);o[k]=dx>dy?x:dy>dx?y:((I3_BY[x.by]||0)>=(I3_BY[y.by]||0)?x:y)}return o}
+function i3MergeI3(a,b){a=a||{};b=b||{};const st=(x,y)=>{x=x||"";y=y||"";const n=Math.max(x.length,y.length);let s="";const v=c=>c==="5"?2.5:+c||0;for(let i=0;i<n;i++){const p=x[i]||"0",q=y[i]||"0";s+=v(p)>=v(q)?p:q}return s};
+  const cal=new Map();[a.cal,b.cal].forEach(L=>(L||[]).forEach(c=>{const k=c.d+"|"+c.k+"|"+c.g+"|"+c.r+"|"+c.N;const o=cal.get(k);if(!o)cal.set(k,c)}));
+  const said=Object.assign({},a.said||{});for(const k in (b.said||{}))said[k]=(said[k]||"")>=(b.said[k]||"")?said[k]:b.said[k];
+  const ovr=!a.ovr?b.ovr:!b.ovr?a.ovr:a.ovr.w!==b.ovr.w?(a.ovr.w>b.ovr.w?a.ovr:b.ovr):{w:a.ovr.w,n:Math.max(a.ovr.n,b.ovr.n)};
+  const t1=a.enTap||{},t2=b.enTap||{};
+  const o={st:st(a.st,b.st),lv:st(a.lv,b.lv),enTap:{shown:Math.max(t1.shown||0,t2.shown||0),tapped:Math.max(t1.tapped||0,t2.tapped||0)},cal:[...cal.values()].sort((x,y)=>(x.d+"|"+x.k+"|"+x.g+"|"+x.r+"|"+x.N)<(y.d+"|"+y.k+"|"+y.g+"|"+y.r+"|"+y.N)?-1:1).slice(-20),said};if(ovr)o.ovr=ovr;return o}
+setTimeout(()=>{try{if(typeof MERGE_RULES!=="undefined"){MERGE_RULES.ev=(a,b)=>i3MergeEv(a,b);MERGE_RULES.evSeen=(a,b)=>i3MergeMin(a,b);MERGE_RULES.evAgg=(a,b)=>i3MergeAgg(a,b);MERGE_RULES.cdTest=(a,b)=>i3MergeCdTest(a,b);MERGE_RULES.i3=(a,b)=>i3MergeI3(a,b)}}catch(e){}},0);
+
+// ===== Mephisto · track I · c_i1_pre.js — Vorwissen: the next chapter's words enter the new-card queue before the chapter opens (owner: i1).
+// Source: beta r8 I3 §6.4 (c_preteach.js), with PLAN-I i1 step 4: canon lists (x_i1_pre.js, generated by tools/gen_preteach.js), new arm rule,
+// feed through preToday() (l4/PLAN-L §2.4 reads it first; while l4's memQueue is absent, newPool is adapted here by one MOD.around).
+// Place (13.1 modules.json): ["c_i1_pre","learn"] after the L-track logic and the i2–i4 files, before ["c_cloud","core"]. Data: v2/x_i1_pre.js in pack js/data-integ.js.
+// Arm rule: the list for chapter n+1 is armed while chapter n is open, as soon as
+//   (a) the chapter has been open on ≥ minDays−3 calendar days (minDays 5/5/6/6/7 by realm, PLAN-I R5 (6)), or
+//   (b) the chapter's gate is at least half ticked (pkGate(c).items, ok share ≥ 50 %), or
+//   (c) 13.0 gate without day counts: chSess ≥ need−3.
+// Nothing is armed before the signature (chapter 1 is read at the signing).
+// Feed: preToday() → up to PRE_PER_DAY ids a day, more when the chapter can open soon (all words are introduced at least one day before the
+// earliest opening, so each is met twice before the chapter is read). Inside the day's new-card allowance; outside the level cap.
+// State S.pre={ch, ids:[≤10 card ids], from:"yyyy-mm-dd", seen:{id:"yyyy-mm-dd"}} · merge: preMerge (higher ch wins; seen union, earlier date).
+// The chapter reader shows „Vor dem Lesen" (the words not yet met) as an RD pass at the top of a first read (ord 45; no change when every word is known).
+const PRE_MAX=10,PRE_PER_DAY=4;
+const PRE_MINDAYS=[5,5,6,6,7];
+function preState(){try{if(!S.pre||typeof S.pre!=="object"||Array.isArray(S.pre))S.pre={ch:0,ids:[],from:"",seen:{}};if(!Array.isArray(S.pre.ids))S.pre.ids=[];if(!S.pre.seen||typeof S.pre.seen!=="object")S.pre.seen={};return S.pre}catch(e){return {ch:0,ids:[],from:"",seen:{}}}}
+function preHas(id){try{return typeof CATALOG!=="undefined"&&CATALOG.has(id)}catch(e){return false}}
+function preList(ch){try{const all=(typeof PRETEACH!=="undefined"&&PRETEACH[ch])||[];return all.filter(id=>preHas(id)&&!(S.cards||{})[id]).slice(0,PRE_MAX)}catch(e){return []}}
+function preRealm(n){let r=NaN;try{if(typeof PROG!=="undefined"&&PROG.realm)r=+PROG.realm(n)}catch(e){}if(!isFinite(r))r=Math.floor(((+n||1)-1)/8);return Math.max(0,Math.min(4,r))}
+function preDays(a,b){try{return Math.round((new Date(b)-new Date(a))/864e5)}catch(e){return 0}}
+// how many calendar days the current chapter has been open (1 on the day it opened)
+function preOpenDays(p){try{const t=todayKey();const s=p.chStart||p.date||t;return Math.max(1,preDays(s,t)+1)}catch(e){return 1}}
+// days left until the chapter can open at the earliest (≥ 1)
+function preLeft(p){try{const md=PRE_MINDAYS[preRealm(p.ch||1)];const g=preGate(p);let left=md-preOpenDays(p)+1;if(g&&g.need>0&&g.chSess!=null)left=Math.min(left,Math.max(1,g.need-g.chSess));return Math.max(1,left)}catch(e){return 1}}
+function preGate(p){try{if(typeof pkGate!=="function")return null;const g=pkGate(pkCh())||{};const it=Array.isArray(g.items)?g.items:[];return {share:it.length?it.filter(x=>x&&x.ok).length/it.length:0,need:+g.need||0,chSess:+(p.chSess||0)}}catch(e){return null}}
+function preShouldArm(p){try{const md=PRE_MINDAYS[preRealm(p.ch||1)];if(preOpenDays(p)>=md-3)return "days";const g=preGate(p);if(g&&g.share>=.5)return "gate";
+    const need=g&&g.need?g.need:(typeof PK_SESS!=="undefined"?PK_SESS:4);if((+p.chSess||0)>=Math.max(1,need-3))return "sessions";return ""}catch(e){return ""}}
+function preArm(force){try{const p=P();const st=preState();let next;
+    if(!p.signed)return false;next=(p.ch||1)+1;if(p.done||next>CHAPTERS.length)return false;
+    if(st.ch===next)return true;
+    const why=force?"force":preShouldArm(p);if(!why)return false;
+    st.ch=next;st.ids=preList(next);st.from=todayKey();st.seen={};st.why=why;saveSoon();
+    try{if(st.ids.length&&typeof logEvent==="function")logEvent("pre",`Vorwissen für Kapitel ${next}: ${st.ids.length} Wörter`)}catch(e){}
+    try{if(window.EV)EV.emit("pre.armed",{ch:next,n:st.ids.length,why})}catch(e){}
+    return true}catch(e){try{logError(e)}catch(x){}return false}}
+// ids to introduce today (the array also carries .ch and .why); stamps `seen` for words that arrived in the deck
+function preToday(){const out=[];try{preArm();const st=preState();const t=todayKey();out.ch=st.ch;out.why=st.why||"";
+    let ch=false;st.ids.forEach(id=>{if((S.cards||{})[id]&&!st.seen[id]){st.seen[id]=t;ch=true}});if(ch)saveSoon();
+    const todo=st.ids.filter(id=>!(S.cards||{})[id]&&preHas(id));if(!todo.length)return out;
+    const done=Object.keys(st.seen).filter(k=>st.seen[k]===t).length;
+    let per=PRE_PER_DAY;try{const p=P();if(p.signed&&st.ch===(p.ch||1)+1){const left=preLeft(p);per=Math.max(PRE_PER_DAY,Math.ceil((todo.length+done)/Math.max(1,left-1)))}}catch(e){}
+    todo.slice(0,Math.max(0,per-done)).forEach(id=>out.push(id))}catch(e){try{logError(e)}catch(x){}}return out}
+// merge (PLAN-I §2.7): higher ch wins; seen union, earlier date; equal ch → ids of the side with more ids (tie: lexicographic), from = earlier
+function preMerge(a,b){const ok=x=>x&&typeof x==="object"&&!Array.isArray(x);if(!ok(a))return ok(b)?b:a;if(!ok(b))return a;
+  const ca=+a.ch||0,cb=+b.ch||0;let w;
+  if(ca!==cb)w=ca>cb?a:b;else{const ia=JSON.stringify(a.ids||[]),ib=JSON.stringify(b.ids||[]);w=(a.ids||[]).length!==(b.ids||[]).length?((a.ids||[]).length>(b.ids||[]).length?a:b):(ia>=ib?a:b)}
+  const o={ch:+w.ch||0,ids:(w.ids||[]).slice(),from:"",seen:{}};const fr=[a,b].filter(x=>(+x.ch||0)===o.ch).map(x=>x.from||"").filter(Boolean).sort();o.from=fr[0]||w.from||"";
+  const wy=[a,b].filter(x=>(+x.ch||0)===o.ch&&x.why).map(x=>String(x.why)).sort();if(wy.length)o.why=wy[0];
+  [a,b].forEach(x=>{if((+x.ch||0)!==o.ch)return;const s=x.seen||{};Object.keys(s).forEach(id=>{const d=String(s[id]);if(!o.seen[id]||d<o.seen[id])o.seen[id]=d})});
+  const ks=Object.keys(o.seen).sort(),sd={};ks.forEach(k=>sd[k]=o.seen[k]);o.seen=sd;return o}
+window.preMerge=preMerge;
+// the list shown before reading: words of this chapter's pre-teach list that the learner has not met yet
+function preCardHTML(ch){try{const st=preState();const ids=(st.ch===ch&&st.ids.length?st.ids:((typeof PRETEACH!=="undefined"&&PRETEACH[ch])||[]).slice(0,PRE_MAX)).filter(id=>preHas(id));
+    const open=ids.filter(id=>{const k=(S.cards||{})[id];return !k||!(k.reps>0)});if(!open.length)return "";
+    return `<div class="card pre-list"><div class="eyebrow">Vor dem Lesen <span class="en">${open.length} words of this chapter you have not practised yet</span></div><div class="list">${open.map(id=>{const c=CATALOG.get(id);const k=(S.cards||{})[id];
+      return `<div class="li" data-act="preAdd" data-id="${esc(id)}"><span class="t"><b>${typeof deHTML==="function"?deHTML(c.de):esc(c.de)}</b>${c.pl&&c.pl!=="–"?` <small class="muted">${esc(c.pl)}</small>`:""} <small>${esc(c.en||"")}</small></span><span class="pill ${k?"good":"o"}">${k?"im Deck":"neu"}</span></div>`}).join("")}</div></div>`}catch(e){return ""}}
+window.preCardHTML=preCardHTML;
+ACT.preAdd=el=>{try{const id=el.dataset.id;if(!preHas(id))return;if(!S.cards[id]){S.cards[id]=newState();try{introducedNew(false)}catch(e){}saveSoon()}const c=CATALOG.get(id);if(c&&typeof showGloss==="function")showGloss(String(c.de).replace(/^(der|die|das) /,""),null);
+  const li=el.closest&&el.closest(".li");if(li){const pl=li.querySelector(".pill");if(pl){pl.className="pill good";pl.textContent="im Deck"}}}catch(e){try{logError(e)}catch(x){}}};
+(function(){
+  // new-card order while l4 is absent: today's pre-teach ids go first, inside the day's allowance (shift days and backlog throttles still apply)
+  try{if(typeof MOD!=="undefined"&&MOD.around&&typeof newPool==="function")MOD.around("newPool","i1",function(orig,tag){const base=orig(tag);
+    try{if(tag||typeof memQueue==="function")return base;resetNewToday();const left=Math.max(0,typeof newAllowance==="function"?newAllowance():S.newPerDay-S.newToday.n);if(!left)return base;
+      const pri=preToday().slice(0,left).map(id=>CATALOG.get(id)).filter(Boolean);if(!pri.length)return base;const ids=new Set(pri.map(c=>c.id));
+      return pri.concat(base.filter(c=>!ids.has(c.id))).slice(0,Math.max(base.length,pri.length))}catch(e){return base}})}catch(e){try{logError(e)}catch(x){}}
+  // „Vor dem Lesen" at the top of the current chapter's first read (not on re-reads, not in sober chapters)
+  try{if(typeof RD!=="undefined"&&RD.pass)RD.pass("i1.pre",45,function(L,c,ctx){try{if(!ctx||ctx.kind!=="chapter"||c.sober||ctx.reread)return;const h=preCardHTML(c.n);if(h)L.splice(0,0,["PRE",c.n])}catch(e){}});
+    if(typeof RD!=="undefined"&&RD.kind)RD.kind("PRE",{render:(l,cur)=>{const h=preCardHTML(+l[1]);return h?(cur?h.replace('class="card pre-list"','class="card pre-list pk-fade"'):h):""},wait:()=>false})}catch(e){}
+  // arm after every counted day and every rollover (EV loads later: subscribe in a timer)
+  setTimeout(function(){try{if(window.EV){EV.on("day.counted",()=>preArm());EV.on("day.rollover",()=>preArm());EV.on("chapter.unlocked",()=>preArm());EV.on("session.finish",()=>preArm())}}catch(e){}},0);
+})();
+
 // ===== Mephisto · P2 · what the learner sees of the store: the "Sicherungen" list, restore, reset — nothing is replaced or deleted without a verified copy.
 // Loaded after c_final.js and before c_cloud.js. Hooks: MOD.after("meData") (c_views.js). REPLACES restoreFrom (c_views.js) and wraps ACT.reset (c_v126.js) — see MANIFEST.
 try{STORE.onAdopt(why=>{if(why==="load"||why==="takeover"||why==="sync"){try{applyPrefs();buildDict()}catch(e){}try{if(STORE.st.booted&&!(typeof Focus!=="undefined"&&Focus.isOpen()))rerender()}catch(e){}}})}catch(e){}
@@ -5321,6 +6575,670 @@ MOD.after("chrome","p2store",function(){try{const tc0=$("#topChips");if(tc0&&STO
 ["restoreText","restoreSnap"].forEach(k=>{const f=ACT[k];if(typeof f!=="function")return;ACT[k]=async function(){const g=S.google?Object.assign({},S.google):null;const r=await f.apply(this,arguments);try{if(r===false)return r;if(g&&!S.google)S.google=g;markEpoch();TS_LAST=null;saveNow()}catch(e){}return r}});
 
 try{STORE.onStatus(()=>{try{const tc=$("#topChips");if(!tc)return;const c=tc.querySelector(".p2-unsaved");if(STORE.st.unsaved&&!c)tc.insertAdjacentHTML("afterbegin",`<button class="chip p2-unsaved" data-act="meData" title="Der letzte Speicherversuch ist fehlgeschlagen">⚠ nicht gespeichert</button>`);else if(!STORE.st.unsaved&&c)c.remove()}catch(e){}})}catch(e){}
+
+// ===== Mephisto · track I · c_i1_ev.js — event bus (EV), hooks that only watch, learner model (LM, stored in S.lm), story templates (lmFill). Owner: i1.
+// Source: beta r8 I9 c_events.js, adapted to the 13.1 layout (PLAN-I i1 step 2–3):
+//  · every hook on a global function goes through MOD.around(name,"i1",…) (v2/c_mod.js); the list is in MANIFEST ("hooks"). Methods of ACT/Focus/SND
+//    are observed by wrapping the property (DOM-reader fallbacks only, retired by the one-line emits in PATCHES.txt).
+//  · merge: MERGE_RULES.lm / PAKT_RULES when c_cloud has them (registered in setTimeout 0), otherwise a MOD.around on mergeCore (same rule, epoch-aware).
+//  · answer payloads carry {src,ref,key,flags} (flags = EVF bits) so i3 can write evLog without touching P1 files.
+//  · day start (I9 proposal 9): EV "day.rollover" is also emitted once per day at boot; dayStart() runs pkCheckDebt/timeEggs there.
+//  · proposal 5 (return scene) = RD pass "i1.back" (ord 40); proposal 6 (duel log S.duels) only while i7's Duel is absent.
+//  · the greeting replacement runs only when s5's voice engine (vcPick) is absent; s5 may call LM.line() itself.
+// Build order: AFTER c_cloud, BEFORE c_boot. Everything lives in one IIFE; published as window.EV / LM / lmFill / lmCan / EVF.
+// (13.1) No hook changes what the wrapped function does or returns, except the declared ones: st3Fill/pkSay (tokens), pkGreet (without s5), snack (undo observer).
+// Nothing here throws at load.
+(function(){
+var W=window;
+var now=function(){return Date.now()};
+var isO=function(x){return !!x&&typeof x==="object"&&!Array.isArray(x)};
+var has=function(n){return typeof W[n]==="function"};
+var keysOf=function(o){return isO(o)?Object.keys(o):[]};
+// evidence flags (PLAN-I §2.2; I6's EV constant renamed EVF). Defined here only if i3 has not defined them.
+var EVF=W.EVF||{FIRST:1,SELF:2,OVR:4,TEST:8,HELP:16,ASR:32,RATED:64,MC3:128,NEW:256};try{if(!W.EVF)W.EVF=EVF}catch(e){}
+function hashQ(q){q=String(q||"").replace(/\s+/g," ").trim();try{if(typeof W.evHash==="function")return W.evHash(q)}catch(e){}var h=5381;for(var i=0;i<q.length;i++)h=((h*33)^q.charCodeAt(i))>>>0;return h.toString(36)}
+var num=function(x){x=+x;return isFinite(x)?x:0};
+// ---------------------------------------------------------------- 1. the bus
+var EV={_h:{},_w:{},_miss:[],_err:[],_ring:[],_depth:0,debug:false,
+  on:function(name,fn){if(typeof fn!=="function")return function(){};(EV._h[name]=EV._h[name]||[]).push(fn);return function(){EV.off(name,fn)}},
+  once:function(name,fn){var off=EV.on(name,function(d,n){off();return fn(d,n)});return off},
+  off:function(name,fn){var L=EV._h[name];if(!L)return;var i=L.indexOf(fn);if(i>=0)L.splice(i,1)},
+  emit:function(name,data){if(EV._depth>6)return 0;EV._depth++;var n=0;
+    try{data=data||{};EV._ring.push([name,now()]);if(EV._ring.length>80)EV._ring.shift();if(EV.debug&&W.console)console.log("[EV]",name,data);
+      var L=(EV._h[name]||[]).slice().concat((EV._h["*"]||[]).slice());
+      for(var i=0;i<L.length;i++){try{L[i](data,name);n++}catch(e){EV.fail(e,"handler:"+name)}}}
+    catch(e){EV.fail(e,"emit:"+name)}finally{EV._depth--}return n},
+  fail:function(e,where){try{EV._err.push({at:new Date().toISOString(),where:where,m:String(e&&e.message||e).slice(0,200)});if(EV._err.length>20)EV._err.shift();if(EV.debug&&W.console)console.warn("[EV]",where,e)}catch(x){}},
+  recent:function(){return EV._ring.slice()}};
+// wrap a global function declaration (they are properties of window). before() may return a value handed to after().
+function viaMod(name,body){try{if(typeof MOD!=="undefined"&&MOD&&typeof MOD.around==="function"){MOD.around(name,"i1",function(orig){var a=Array.prototype.slice.call(arguments,1);return body(this,function(){return orig.apply(null,arguments)},a)});return true}}catch(e){EV.fail(e,"mod:"+name)}return false}
+function wrapG(name,before,after){var f=W[name];if(typeof f!=="function"){EV._miss.push(name);return false}
+  var rec={orig:f,calls:0,fn:null,mod:false};
+  var body=function(self,inner,args){var b;rec.calls++;if(before){try{b=before.apply(self,args)}catch(e){EV.fail(e,"before:"+name)}}
+    var r=inner.apply(self,args);if(after){try{after.call(self,r,args,b)}catch(e){EV.fail(e,"after:"+name)}}return r};
+  if(viaMod(name,body))rec.mod=true;else{var w=function(){return body(this,f,arguments)};w.__ev=name;W[name]=w}
+  rec.fn=W[name];EV._w[name]=rec;return true}
+// change arguments or result: fn(inner,args) must call inner(...) exactly once and return its result (or a changed one)
+function aroundG(name,fn){var f=W[name];if(typeof f!=="function"){EV._miss.push(name);return false}
+  var rec={orig:f,calls:0,fn:null,mod:false};
+  var body=function(self,inner,args){rec.calls++;return fn.call(self,function(){return inner.apply(self,arguments)},Array.prototype.slice.call(args))};
+  if(viaMod(name,body))rec.mod=true;else{var w=function(){return body(this,f,arguments)};w.__ev=name;W[name]=w}
+  rec.fn=W[name];EV._w[name]=rec;return true}
+// wrap a method of a const object (ACT, Focus, SND)
+function wrapO(obj,label,key,before,after){var f=obj&&obj[key];if(typeof f!=="function"){EV._miss.push(label+"."+key);return false}
+  var rec={orig:f,calls:0,fn:null};
+  var w=function(){var b;rec.calls++;if(before){try{b=before.apply(this,arguments)}catch(e){EV.fail(e,"before:"+label+"."+key)}}
+    var r=f.apply(this,arguments);if(after){try{after.call(this,r,arguments,b)}catch(e){EV.fail(e,"after:"+label+"."+key)}}return r};
+  w.__ev=label+"."+key;rec.fn=w;obj[key]=w;EV._w[label+"."+key]=rec;return true}
+function preMerge(a,b){try{return typeof W.preMerge==="function"?W.preMerge(a,b):(isO(a)?a:b)}catch(e){return isO(a)?a:b}}
+var micro=function(fn){try{Promise.resolve().then(function(){try{fn()}catch(e){EV.fail(e,"micro")}})}catch(e){setTimeout(fn,0)}};
+// ---------------------------------------------------------------- 2. context: which runner is on screen, what was clicked or typed last
+var CTX={kind:null,el:null,lesson:null,id:null,t0:0,last:0};
+// direct emits (PATCHES.txt) retire the DOM readers: a DOM reading is dropped when the runner itself emitted within 400 ms
+var DIRECT={};EV.on("*",function(d,n){try{if(!d||d.dom)return;if(n==="ex.answer"||n==="boss.answer")DIRECT[n]=now();if((n==="boss.won"||n==="boss.lost")&&CTX.kind==="boss")CTX.ended=1}catch(e){}});
+var LASTCLICK={t:0,act:"",text:"",cls:""},LASTTYPED=null,LASTANS=null,LASTACT="",IN_GRADE=0;
+function setCtx(kind,el,extra){CTX={kind:kind,el:el||null,lesson:null,id:null,t0:now(),last:now()};if(extra)for(var k in extra)CTX[k]=extra[k]}
+function live(el){try{return !!el&&(el.isConnected!==false)&&(!W.document||!document.body||!document.body.contains||document.body.contains(el))}catch(e){return false}}
+function dtAns(){var t=now(),d=t-(CTX.last||t);CTX.last=t;return d>=250&&d<=90000?d:0}
+function txt(el){return el?String(el.textContent||"").replace(/\s+/g," ").trim():""}
+function btnTxt(b){if(!b)return "";var k=b.querySelector?b.querySelector(".k"):null;var s=txt(b);if(k){var ks=txt(k);if(s.indexOf(ks)===0)s=s.slice(ks.length).trim()}return s}
+function spellWhy(msg){var m=String(msg||""),o=[];if(m.indexOf("spell-note")<0&&m.indexOf("Rechtschreibung")<0)return o;var w=(/achte auf ([^<]*)/.exec(m)||["",""])[1].replace("Groß- und Kleinschreibung","");if(/ß/.test(w))o.push("ss");if(/Umlaute/.test(m))o.push("um");if(/Bindestrich/.test(m))o.push("hy");if(/Groß- und Kleinschreibung/.test(m))o.push("cap");return o}
+// ---------------------------------------------------------------- 3. hooks on functions (transient facts: answers, typed text, timing)
+function installWrappers(){
+  // 3.1 cards: rate() is the one place every card answer passes (session, extra round, Bußrunde, pocket round)
+  wrapG("rate",function(key){var c=S.cards&&S.cards[key];return c?{int:c.int,reps:c.reps,lapses:c.lapses,ease:c.ease}:null},
+    function(r,a,prev){var key=String(a[0]),q=+a[1],id=key.replace(/^p:/,""),c=S.cards[key]||{},cd=has("card")?card(id):null;
+      var ty=null;if(LASTTYPED&&cd&&LASTTYPED.want===cd.de&&now()-LASTTYPED.t<300000)ty=LASTTYPED;LASTTYPED=null;
+      var d={key:key,id:id,prod:key.indexOf("p:")===0,q:q,ok:q>=2,wasNew:!prev||!prev.reps&&!prev.lapses&&!prev.int,lapse:q===0&&!!prev&&prev.reps>0,
+        prev:prev,int:c.int||0,lapses:c.lapses||0,de:cd?cd.de:"",en:cd?cd.en:"",ms:CTX.kind==="cards"?dtAns():0,typed:ty,hour:new Date().getHours(),day:todayKey()};
+      d.src=ty?"v":"c";d.ref=id;d.key=ty?"v:"+id+":prod":"c:"+key;d.ok=ty?ty.q>=2:q>=2;d.flags=ty?0:EVF.SELF;d.t0=now();LASTANS=d;EV.emit("card.answer",d)});
+  // typed answers: got, want, verdict, article error, spelling categories
+  wrapG("gradeTyped",function(){IN_GRADE++},function(r,a){IN_GRADE=Math.max(0,IN_GRADE-1);if(!r)return;var msg=String(r.msg||"");
+    var d={got:String(a[0]==null?"":a[0]),want:String(a[1]==null?"":a[1]),q:r.q,art:!!r.art,noArticle:/mit Artikel/.test(msg),typo:/Tippfehler/.test(msg),empty:/Keine Antwort/.test(msg),spell:spellWhy(msg),t:now()};
+    if(d.art){var m=/^\s*(der|die|das|den|dem|des)\s/i.exec(d.got);d.gotArt=m?m[1].toLowerCase():"";d.wantArt=has("genderOf")?genderOf(d.want):""}
+    LASTTYPED=d;EV.emit("typed",d)});
+  // spelling note shown outside gradeTyped (grammar exercises that were otherwise right)
+  wrapG("spellNote",null,function(r,a){if(IN_GRADE||!r)return;var w=spellWhy(r);if(w.length)EV.emit("spell",{got:String(a[0]||""),want:String((a[1]||[])[0]||""),spell:w})});
+  // undo of a card answer: the snack bar carries the undo closure
+  aroundG("snack",function(inner,a){var fn=a[2];try{if(a[1]==="Rückgängig"&&typeof fn==="function"&&LASTANS&&now()-LASTANS.t0<50){var ans=LASTANS;a[2]=function(){var r=fn.apply(this,arguments);try{EV.emit("card.undo",ans)}catch(e){EV.fail(e,"undo")}return r}}}catch(e){a[2]=fn}
+    return inner.apply(null,a)});
+  // a round of cards
+  aroundG("cardRunner",function(inner,a){var el=a[0],queue=a[1],o=a[2],o2=o;
+      try{if(!(o&&o.__ev)){o2=Object.assign({},o||{});o2.__ev=1;var od=o2.onDone,t0=now(),n=(queue||[]).length;
+          o2.onDone=function(r){try{EV.emit("cards.round",{n:r&&r.n||0,ok:r&&r.ok||0,missed:r&&r.missed||0,queued:n,ms:now()-t0,standalone:!!o2.standalone})}catch(e){EV.fail(e,"cards.round")}if(od)return od.apply(this,arguments)}}
+        setCtx("cards",el);EV.emit("cards.start",{queued:(queue||[]).length})}catch(e){EV.fail(e,"cardRunner");o2=o}
+      a[2]=o2;return inner.apply(null,a)});
+  // 3.2 exercises: gramRunner / quizRunner keep each answer in a closure. fb(ok) is called once per answer by both; the DOM of the
+  //     runner still shows the question, the option picked and the solution when the micro-task runs.
+  // which lesson a set of exercises belongs to: by the exercise objects themselves (pickEx hands out the lesson's own objects), never by
+  // data-lesson on an ancestor — #fIn keeps that attribute from the lesson shown before (see defect D1 of the I9 report)
+  function lessonOfItems(items){try{if(!items||!items.length)return {id:"",mixed:false};if(items[0]._l){var m=false;for(var i=1;i<items.length;i++)if(items[i]._l!==items[0]._l){m=true;break}return {id:m?"":items[0]._l,mixed:m}}
+      var pools=[typeof GRAMMAR!=="undefined"?GRAMMAR:[],typeof MEDL!=="undefined"?MEDL:[],typeof ALLTAG!=="undefined"?ALLTAG:[]];
+      for(var p=0;p<pools.length;p++)for(var j=0;j<pools[p].length;j++){var L=pools[p][j];if((L.ex&&L.ex.indexOf(items[0])>=0)||(L.quiz&&L.quiz.indexOf(items[0])>=0))return {id:L.id,mixed:false}}}catch(e){}return {id:"",mixed:false}}
+  function runnerWrap(name,kind){aroundG(name,function(inner,a){var el=a[0],items=a[1],o=a[2],o2=o;
+      try{var lo=lessonOfItems(items),lid=lo.id||(o&&o.lesson)||"";
+        if(!(o&&o.__ev)){o2=Object.assign({},o||{});o2.__ev=1;var od=o2.onDone,n=(items||[]).length;
+          o2.onDone=function(sc){try{EV.emit("ex.round",{kind:kind,lesson:lid||"",mixed:lo.mixed,score:+sc||0,n:n,src:kind==="gram"?"g":(o&&o.src)||"m",ref:lid||(o&&o.ref)||""})}catch(e){EV.fail(e,"ex.round")}if(od)return od.apply(this,arguments)}}
+        setCtx(kind,el,{lesson:lid,mixed:lo.mixed,src:o&&o.src||"",ref:o&&o.ref||""})}catch(e){EV.fail(e,name);o2=o}
+      a[2]=o2;return inner.apply(null,a)})}
+  runnerWrap("gramRunner","gram");runnerWrap("quizRunner","quiz");
+  function readExercise(c,ok,ms){if(now()-(DIRECT["ex.answer"]||0)<400)return;var el=c.el;if(!live(el))return;var q=el.querySelector(".q")||el;var stem=txt(q.querySelector(".stem"));var eb=txt(q.querySelector(".eyebrow"));
+    var type=/Wähle/.test(eb)?"mc":/Lücke/.test(eb)?"gap":/Satz bauen/.test(eb)?"order":/Umformen/.test(eb)?"transform":/Fehler/.test(eb)?"fix":c.kind==="quiz"?"mc":"";
+    var given="",want="";var wr=q.querySelector(".opts button.wrong"),ri=q.querySelector(".opts button.right");
+    if(wr||ri){given=btnTxt(wr||ri);want=btnTxt(ri)}
+    else{var inp=q.querySelector(".gr-in");if(inp)given=String(inp.value||"").trim();var line=q.querySelectorAll?q.querySelectorAll(".gr-line .gr-tok"):[];if(!inp&&line.length)given=Array.prototype.map.call(line,function(b){return txt(b)}).join(" ").replace(/\s+([.,!?;:])/g,"$1");
+      var ans=q.querySelector(".gr-ans");want=ans?txt(ans):given}
+    var lid=c.mixed?((el.dataset&&el.dataset.lesson)||""):(c.lesson||"");   // mixed pools (Stufenprüfung): gramRunner writes each exercise's own lesson (e._l) to el.dataset.lesson
+    var src0=c.kind==="gram"?"g":(c.src||"m"),ref0=lid||c.ref||"";EV.emit("ex.answer",{kind:c.kind,lesson:lid,type:type,q:stem.slice(0,160),ok:!!ok,given:given.slice(0,120),want:want.slice(0,120),ms:ms,hour:new Date().getHours(),day:todayKey(),src:src0,ref:ref0,key:src0+":"+(ref0||"x")+":"+(type||"mc")+":"+hashQ(stem),flags:(type==="mc"?EVF.MC3:0),dom:true})}
+  wrapG("fb",null,function(r,a){var ok=!!a[0],c=CTX;if((c.kind==="gram"||c.kind==="quiz")&&live(c.el)){var ms=dtAns();micro(function(){readExercise(c,ok,ms)})}else if(c.kind!=="cards")EV.emit("answer.other",{ok:ok,ctx:c.kind||"",act:LASTACT})});
+  // 3.3 choke points of the core
+  wrapG("completeLesson",function(id){var L=S.lessons&&S.lessons[id];return L?{best:L.best||0,n:L.n||0}:null},
+    function(r,a,prev){var id=a[0],L=(S.lessons||{})[id]||{},LL=has("lessonById")?lessonById(id):null;
+      EV.emit("lesson.finish",{id:id,score:+a[1]||0,best:L.best||0,prevBest:prev?prev.best:null,n:L.n||1,first:!prev,passedNow:(+a[1]||0)>=60&&(!prev||prev.best<60),title:LL?LL.title||LL.t||id:id,kind:has("lessonKind")?lessonKind(id):"",due:L.due||""})});
+  wrapG("logDay",null,function(r,a){EV.emit("log",{field:a[0],n:a[1]==null?1:a[1],day:todayKey()})});
+  wrapG("logEvent",null,function(r,a){var d={type:a[0],text:String(a[1]||""),val:a[2]==null?null:a[2],day:todayKey()};EV.emit("journal",d);EV.emit("result."+a[0],d)});
+  wrapG("addErrors",null,function(r,a){var L=(a[0]||[]).map(function(e){return {type:e.type||"",original:String(e.original||""),fix:String(e.fix||""),why:String(e.why||"")}});if(L.length)EV.emit("errors",{list:L,src:a[1]||""})});
+  wrapG("introducedNew",null,function(r,a){EV.emit("card.new",{prod:!!a[0],day:todayKey()})});
+  // 3.4 session
+  wrapG("openSession",function(){var T=S.today;return {resumed:!!(T&&T.date===todayKey()&&T.started)}},function(r,a,b){var T=S.today||{};EV.emit("session.start",{date:T.date,resumed:!!(b&&b.resumed),steps:(T.steps||[]).map(function(s){return s.t}),shift:!!T.shift,minutes:T.minutes||0,at:typeof a[0]==="number"?a[0]:null})});
+  wrapG("finishSession",function(){var T=S.today;return {was:!!(T&&T.finished)}},function(r,a,b){var T=S.today;if(!T||!T.finished||(b&&b.was))return;
+    var st=T.steps||[];EV.emit("session.finish",{date:T.date,steps:st.length,done:st.filter(function(s){return s.done&&!s.skipped}).length,skipped:st.filter(function(s){return s.skipped}).map(function(s){return s.t}),cards:(T.stats||{}).cards||0,ok:(T.stats||{}).ok||0,minutes:has("minutesOn")?minutesOn(todayKey()):0,ms:T.started?now()-T.started:0,shift:!!T.shift,hour:new Date().getHours()})});
+  if(typeof ACT!=="undefined"){
+    wrapO(ACT,"ACT","stepSkip",function(){var T=S.today;if(T&&T.steps&&T.steps[T.idx])EV.emit("session.skip",{t:T.steps[T.idx].t,idx:T.idx,of:T.steps.length})});
+    wrapO(ACT,"ACT","stepNext",function(){var T=S.today;if(T&&T.steps&&T.steps[T.idx])EV.emit("session.step",{t:T.steps[T.idx].t,idx:T.idx,of:T.steps.length,done:!!T.steps[T.idx].done,skipped:!!T.steps[T.idx].skipped})});
+    wrapO(ACT,"ACT","loreRead",function(el){try{EV.emit("lore.open",{id:el&&el.dataset&&el.dataset.id})}catch(e){}})}
+  // 3.5 story
+  wrapG("pkRead",null,function(r,a){var p=P();EV.emit("chapter.open",{n:+a[0]||p.ch,current:p.ch,reread:(+a[0]||p.ch)<p.ch})});
+  wrapG("bossDuel",null,function(r,a){var id=a[0];if(typeof BOSSES==="undefined"||!BOSSES[id])return;setCtx("boss",W.document?document.querySelector("#fIn"):null,{id:id,hits:0,miss:0});EV.emit("boss.start",{id:id,won:!!((S.bossWins||{})[id]),tries:0})});
+  if(typeof SND!=="undefined")wrapO(SND,"SND","fx",null,function(r,a){var n=a[0];if(CTX.kind!=="boss"||(n!=="ok"&&n!=="no"))return;var c=CTX,ok=n==="ok",ms=dtAns(),click=LASTCLICK;if(ok)c.hits++;else c.miss++;
+    micro(function(){if(now()-(DIRECT["boss.answer"]||0)<400)return;var box=c.el&&live(c.el)?c.el:(W.document?document.querySelector("#fIn"):null);if(!box)return;var qq=box.querySelector(".duel-qq"),bu=box.querySelector(".duel-built"),why=box.querySelector(".duel-why b"),inp=box.querySelector(".duel-in");
+      var genus=!!box.querySelector(".duel-opts.genus");var given=inp?String(inp.value||"").trim():bu?txt(bu):(now()-click.t<3000?click.text:"");var whyT=txt(box.querySelector(".duel-why"));
+      EV.emit("boss.answer",{id:c.id,ok:ok,q:txt(qq).slice(0,160),given:String(given).slice(0,120),want:ok?String(given).slice(0,120):txt(why).slice(0,120),timeout:/Zeit abgelaufen/.test(whyT),genus:genus,ms:ms,hour:new Date().getHours(),day:todayKey(),src:"du",ref:c.id,key:"du:"+c.id+":"+hashQ(txt(qq)),flags:genus?EVF.MC3:0,dom:true})})});
+  if(typeof Focus!=="undefined"){
+    wrapO(Focus,"Focus","open",null,function(r,a){var o=a[0]||{};CTX={kind:null,el:null,lesson:null,id:null,t0:now(),last:now()};EV.emit("focus.open",{title:String(o.title||""),sub:String(o.sub||""),act:LASTACT})});
+    wrapO(Focus,"Focus","close",function(){var t="";try{t=txt(document.querySelector("#fTitle"))}catch(e){}try{HOLD={sk:"",t:0};var sk=skillNow();HOLD={sk:sk,t:now()}}catch(e){}return {t:t,boss:CTX.kind==="boss"?CTX:null}},function(r,a,b){if(b&&b.boss&&!b.boss.ended)EV.emit("boss.left",{id:b.boss.id,hits:b.boss.hits,miss:b.boss.miss});CTX={kind:null,el:null,lesson:null,id:null,t0:0,last:0};EV.emit("focus.close",{title:b?b.t:"",silent:!!a[0]});scanSoon()});
+    wrapO(Focus,"Focus","foot",null,function(r,a){var h=a[0];if(CTX.kind!=="boss"||typeof h!=="string"||CTX.ended)return;var c=CTX;
+      if(h.indexOf('data-act="pkGoPakt"')>=0){c.ended=1;EV.emit("boss.won",{id:c.id,hits:c.hits,miss:c.miss,acc:((S.bossWins||{})[c.id]||{}).acc,dom:true})}
+      else if(h.indexOf('data-act="pkDuel"')>=0){c.ended=1;EV.emit("boss.lost",{id:c.id,hits:c.hits,miss:c.miss,dom:true})}})}
+  wrapG("pocketDone",function(k){var p=S.pocket;return {had:!!(p&&p.date===todayKey()&&p.done&&p.done[k])}},function(r,a,b){if(b&&b.had)return;var p=S.pocket||{};EV.emit("pocket.round",{k:a[0],n:keysOf(p.done).length,counted:!!p.counted})});
+  wrapG("go",null,function(r,a){EV.emit("tab",{tab:(typeof R!=="undefined"&&R.tab)||a[0],arg:a[1]||null})});
+  // 3.6 sync
+  aroundG("cloudSync",function(inner,a){var before=S,p=inner.apply(null,a);
+      try{Promise.resolve(p).then(function(){try{var st=typeof CL!=="undefined"?CL:{};if(st.running)return;EV.emit("sync.done",{replaced:S!==before,status:st.status||"",err:st.err||""});scan()}catch(e){EV.fail(e,"sync.done")}},function(){})}catch(e){EV.fail(e,"cloudSync")}
+      return p});
+  // 3.7 the state watcher runs just before every save (saveSoon → 250 ms → saveNow), so whatever LM writes is in the same save
+  wrapG("saveNow",function(){scan()},null);
+  // 3.8 the learner model is merged field by field, never "newest file wins"
+  // MERGE_RULES.lm (13.1 integration) when present; otherwise the same rule as an around on mergeCore (epoch-aware, as I9)
+  setTimeout(function(){try{if(typeof MERGE_RULES!=="undefined"&&MERGE_RULES&&typeof MERGE_RULES==="object"){MERGE_RULES.lm=function(a,b){return LM.merge(a,b)};MERGE_RULES.pre=function(a,b){return preMerge(a,b)};EV._rules="MERGE_RULES";return}}catch(e){EV.fail(e,"rules")}
+    aroundG("mergeCore",function(inner,a){var L=a[0],R0=a[1],out=inner.apply(null,a);
+      try{if(out&&L&&R0){if(L.lm||R0.lm){var eL=L._epoch||"",eR=R0._epoch||"";if(eL===eR)out.lm=LM.merge(L.lm,R0.lm);else out.lm=(eL>eR?L:R0).lm;
+          var gL=(L._epochs||{}).cards||"",gR=(R0._epochs||{}).cards||"";if(gL!==gR)out.lm=(gL>gR?L:R0).lm;if(out.lm===undefined)delete out.lm}
+        if(L.pre||R0.pre){var m=preMerge(L.pre,R0.pre);if(m)out.pre=m}}}catch(e){EV.fail(e,"mergeCore")}
+      return out});EV._rules="mergeCore"},0);
+  try{if(typeof RESET_GROUPS!=="undefined"&&RESET_GROUPS.cards&&RESET_GROUPS.cards.k.indexOf("lm")<0)RESET_GROUPS.cards.k.push("lm")}catch(e){}
+  // 3.9 clicks: every data-act passes the one delegated listener in c_ui.js; capture phase sees it first and never stops it
+  if(W.document&&document.addEventListener)document.addEventListener("click",function(e){try{var t=e.target;if(!t||!t.closest)return;var b=t.closest("button,[data-act],[data-go]");if(!b)return;
+      var a=b.closest("[data-act]");var act=a?a.dataset.act:"";LASTCLICK={t:now(),act:act,text:btnTxt(b).slice(0,120),cls:String(b.className||"")};
+      if(act){LASTACT=act;EV.emit("act",{act:act,id:a.dataset.id||a.dataset.n||a.dataset.k||"",text:LASTCLICK.text})}
+      if(b.classList.contains("cr-right"))EV.emit("card.override",{});else if(b.classList.contains("cr-skip"))EV.emit("card.giveup",{});else if(b.classList.contains("gr-mine"))EV.emit("ex.override",{});
+      if(act==="pkReadDone"){var ti=txt(document.querySelector("#fTitle"));var m=/^Kapitel (\d+)/.exec(ti);if(m)EV.emit("chapter.read",{n:+m[1],title:ti});else if(/^Bett vier/.test(ti))EV.emit("bett.read.done",{})}}catch(x){EV.fail(x,"click")}},true)}
+// ---------------------------------------------------------------- 4. the state watcher (state transitions, whoever caused them)
+var PREV=null,SCAN_T=null,SCANNING=false,HOLD={sk:"",t:0};
+function cm(o){var r={};if(isO(o))for(var k in o){var v=o[k]||{};r[k]=[num(v.ok),num(v.miss),v.wrong||""]}return r}
+function snap(){var p=isO(S.pakt)?S.pakt:{},t=todayKey(),T=S.today,pk=S.pocket;
+  return {S:S,day:t,signed:!!p.signed,ch:p.ch||1,sealed:keysOf(p.sealed),debt:num(p.debt),paid:num(p.paid),done:p.done||"",du:p.du,duAsked:p.duAsked||"",counted:p.counted||"",chSess:num(p.chSess),
+    bett:keysOf(p.bett),choices:Object.assign({},p.choices||{}),verw:num(p.verw),eggs:keysOf(S.eggs),lore:keysOf(S.loreSeen),kab:keysOf(S.kab),boss:Object.assign({},S.bossWins||{}),badges:keysOf(S.badges),
+    shift:!!(S.shifts&&S.shifts[t]),pocket:pk&&pk.date===t?keysOf(pk.done).length:0,omenN:num(S.omenN),fspN:(S.fsp||[]).length,examN:(S.examRes||[]).length,corrN:(S.corrections||[]).length,simN:(S.sims||[]).length,ovN:(S.overrides||[]).length,
+    hoeren:Object.assign({},S.hoeren||{}),kompass:keysOf(S.kompass),bibW:num(S.bibWords),palace:cm(S.palace),gruft:cm(S.gruft),stark:cm(S.stark),fin:!!(T&&T.date===t&&T.finished),sec:num(((S.log||{})[t]||{}).sec),cardsN:keysOf(S.cards).length}}
+function added(a,b){var s={},o=[];for(var i=0;i<a.length;i++)s[a[i]]=1;for(var j=0;j<b.length;j++)if(!s[b[j]])o.push(b[j]);return o}
+function cmDiff(a,b,fn){for(var k in b){var p=a[k]||[0,0,""],q=b[k];if(q[0]>p[0])fn(k,true,q);if(q[1]>p[1])fn(k,false,q)}}
+function scanSoon(){clearTimeout(SCAN_T);SCAN_T=setTimeout(scan,300)}
+function scan(){if(SCANNING)return;SCANNING=true;try{var n=snap(),o=PREV;PREV=n;
+    if(!o){EV.emit("state.ready",{});return}
+    if(o.S!==n.S){EV.emit("state.replaced",{});return}            // sync merge, restore, reset of everything: new baseline, no story events
+    if(o.day!==n.day){EV.emit("day.rollover",{from:o.day,to:n.day});absenceCheck()}
+    if(!o.signed&&n.signed)EV.emit("pact.signed",{name:(S.pakt||{}).name||""});
+    added(o.sealed,n.sealed).forEach(function(k){EV.emit("chapter.sealed",{n:+k,next:n.ch,date:(S.pakt.sealed||{})[k]})});
+    if(n.ch>o.ch){EV.emit("chapter.unlocked",{n:n.ch});try{var r0=pkCh(o.ch).r,r1=pkCh(n.ch).r;if(r0!==r1)EV.emit("realm.enter",{r:r1,from:r0})}catch(e){}}
+    if(n.debt>o.debt)EV.emit("debt.added",{n:n.debt-o.debt,total:n.debt,peak:num((S.pakt||{}).debtPeak)});
+    if(n.paid>o.paid)EV.emit("debt.paid",{n:n.paid-o.paid,left:n.debt,paid:n.paid});
+    if(!o.done&&n.done)EV.emit("pact.done",{date:n.done});
+    if(o.du!==n.du&&n.duAsked)EV.emit("du.changed",{du:n.du===true});
+    if(o.counted!==n.counted&&n.counted===n.day)EV.emit("day.counted",{chSess:n.chSess,ch:n.ch});
+    added(o.bett,n.bett).forEach(function(k){EV.emit("bett.read",{id:k})});
+    for(var c in n.choices)if(o.choices[c]!==n.choices[c])EV.emit("choice.made",{id:c,k:n.choices[c]});
+    if(n.verw>o.verw)EV.emit("choice.lingered",{n:n.verw});
+    added(o.eggs,n.eggs).forEach(function(k){EV.emit("secret.found",{id:k,n:n.eggs.length,of:typeof EGGS!=="undefined"?keysOf(EGGS).length:0})});
+    added(o.lore,n.lore).forEach(function(k){EV.emit("lore.read",{id:k,n:n.lore.length,first:o.lore.length===0})});
+    var kb=added(o.kab,n.kab);if(kb.length)EV.emit("kab.granted",{ids:kb});
+    for(var b in n.boss){var x=o.boss[b],y=n.boss[b];if(!x||x.d!==y.d||x.acc!==y.acc)EV.emit("boss.recorded",{id:b,acc:y.acc,date:y.d,first:!x})}
+    added(o.badges,n.badges).forEach(function(k){EV.emit("badge.won",{level:k})});
+    if(o.shift!==n.shift)EV.emit(n.shift?"shift.on":"shift.off",{day:n.day});
+    if(n.pocket>o.pocket&&o.day===n.day)EV.emit("pocket.count",{n:n.pocket});
+    if(n.omenN>o.omenN)EV.emit("omen.solved",{n:n.omenN});
+    if(n.fspN>o.fspN){var f=S.fsp[S.fsp.length-1]||{};EV.emit("fsp.done",{c:f.c,score:f.score,parts:f.parts||null,src:"f",ref:f.c||"",key:"f:"+(f.c||"")+":oa",ok:num(f.score)/100,flags:EVF.TEST|EVF.SELF})}
+    if(n.examN>o.examN){var e2=S.examRes[S.examRes.length-1]||{};EV.emit("exam.done",{ex:e2.ex,m:e2.m,pct:e2.pct,mock:!!e2.mock,id:e2.id,sim:!!e2.sim,src:"x",ref:e2.id||"",key:"x:"+(e2.id||e2.ex||"")+":0",ok:num(e2.pct)/100,flags:e2.mock?EVF.TEST:0})}
+    if(n.corrN>o.corrN){var c2=S.corrections[S.corrections.length-1]||{};EV.emit("write.done",{ok:!!c2.ok,self:!!c2.self,n:c2.n==null?null:c2.n,src:"w",ref:c2.t||"",key:"w:"+(c2.t||"frei"),flags:c2.self?EVF.SELF:EVF.RATED})}
+    if(n.simN>o.simN){var s2=S.sims[S.sims.length-1]||{};EV.emit("sim.done",{sim:s2.sim,g:s2.g,r:s2.r,c:s2.c})}
+    if(n.ovN>o.ovN)EV.emit("ex.overridden",{n:n.ovN-o.ovN});
+    for(var h in n.hoeren)if(n.hoeren[h]!==o.hoeren[h])EV.emit("listen.done",{id:h,best:n.hoeren[h],first:o.hoeren[h]==null,src:"h",ref:h,key:"h:"+h,ok:num(n.hoeren[h])/100,flags:EVF.MC3});
+    added(o.kompass,n.kompass).forEach(function(k){EV.emit("kompass.done",{id:k,score:((S.kompass||{})[k]||{}).score})});
+    if(n.bibW>o.bibW)EV.emit("book.chapter",{words:n.bibW-o.bibW,total:n.bibW});
+    cmDiff(o.palace,n.palace,function(k,ok,q){EV.emit("genus.answer",{noun:k,ok:ok,want:((S.palace||{})[k]||{}).g||"",got:ok?"":q[2],src:"ge",from:"palace",ref:k,key:"ge:"+k,flags:0})});
+    cmDiff(o.gruft,n.gruft,function(k,ok){EV.emit("plural.answer",{de:k,ok:ok,src:"pl",ref:k,key:"pl:"+k,flags:0})});
+    cmDiff(o.stark,n.stark,function(k,ok){EV.emit("verb.answer",{inf:k,ok:ok,src:"st",ref:k,key:"st:"+k,flags:0})});
+    if(n.sec>o.sec&&o.day===n.day)EV.emit("study.time",{sec:Math.min(200,n.sec-o.sec),skill:skillNow()});
+    if(n.cardsN<o.cardsN)EV.emit("cards.removed",{n:o.cardsN-n.cardsN});
+  }catch(e){EV.fail(e,"scan")}finally{SCANNING=false}}
+function lastActiveBefore(t){var ks=keysOf(S.log).filter(function(k){return k<t&&S.log[k]&&S.log[k].act}).sort();return ks.length?ks[ks.length-1]:""}
+function absenceCheck(){try{var t=todayKey();if(has("lsGet")&&lsGet("mephisto_ev_abs")===t)return;var last=lastActiveBefore(t);if(!last)return;var gap=diffDays(last,t)-1;if(has("lsSet"))lsSet("mephisto_ev_abs",t);
+    if(gap>=1){var sh=0;for(var i=1;i<=gap;i++)if(S.shifts&&S.shifts[addDays(last,i)])sh++;EV.emit("absence.detected",{days:gap,last:last,shiftDays:sh,debt:num((S.pakt||{}).debt)})}}catch(e){EV.fail(e,"absence")}}
+// which skill is being practised right now: V cards, G grammar and drills, R reading, L listening, W writing, S speaking, O other
+var ACT_SKILL=[[/^(hoeren|hoer|listen|dict|numbers|zahl)/i,"L"],[/^(bib|reader|read|kompass|chronik|lore|pkRead|lit|poem|text|faust)/i,"R"],[/^(fsp|sim|speak|shadow|talk|rezi|pocketShadow)/i,"S"],[/^(write|free|task|media|brief|coach|teach|xl)/i,"W"],[/^(cards|pocketCards|pkPay|extraRound|blitz)/i,"V"],[/^(gram|web|boss|pkDuel|duel|palace|pocketPalace|gruft|stark|drill|lab|terms|omen|pocketOmen|pkLesson|lesson)/i,"G"]];
+function skillNow(){try{if(HOLD.sk&&now()-HOLD.t<1500)return HOLD.sk;if(typeof Focus==="undefined"||!Focus.isOpen())return "O";if(CTX.kind==="cards")return "V";if(CTX.kind==="boss"||CTX.kind==="gram"||CTX.kind==="quiz")return "G";
+    var sm=W.document?document.querySelector("#fTitle small"):null;var T=S.today;
+    if(sm&&/Schritt \d+ von/.test(txt(sm))&&T&&T.steps&&T.steps[T.idx]){var s=T.steps[T.idx],k=(s.ref||{}).kind||"";
+      if(s.t==="review")return "V";if(s.t==="learn")return "G";if(s.t==="culture")return "R";if(s.t==="fluency")return k==="dict"?"L":"S";
+      if(s.t==="output")return k==="fsp"||k==="sim"?"S":"W";
+      if(k==="exam"){var te=has("examTeil")?examTeil(s.ref.ex,s.ref.id):null;var m=te?te.m:"";return m==="Hören"?"L":m==="Schreiben"?"W":m==="Sprechen"?"S":"R"}
+      if(s.t==="input")return k==="hoeren"||k==="dialog"||k==="kino"?"L":"R"}
+    for(var i=0;i<ACT_SKILL.length;i++)if(ACT_SKILL[i][0].test(LASTACT))return ACT_SKILL[i][1];
+    var ti=txt(document.querySelector("#fTitle"));if(/Hören|Diktat/.test(ti))return "L";if(/Kapitel|Chronik|Bibliothek|Text/.test(ti))return "R";if(/Schreib|Brief/.test(ti))return "W";if(/FSP|Sprech|Schatten/.test(ti))return "S";if(/Karten|Bußrunde|Taschenrunde/.test(ti))return "V";
+    return "O"}catch(e){return "O"}}
+// ---------------------------------------------------------------- 5. the learner model
+// S.lm = {v:1,t0:installDay,k:{cardKey:[wrong,right,lastWrongDay,ms/100]},x:{"want|got":[n,lastDay,kind]},l:{lessonId:[ewma‰,answers,right,lastDay,rounds,lastScore,firstPassDay]},
+//         g:{der:[n,wrong],die:[..],das:[..],m:{"der>die":n}},sp:{n,cap,ss,um,hy,typo,noart},h:[48 ints: answers,ok per hour],d:{dayNum:{dev:[18 ints]}},
+//         sn:{dayNum:[known,mastered,lessons60,ch,lv,acc30,ms30,min]},ex:{skip,giveup,over,undo,debtAdd,debtPaid,shiftOn,late,left},bs:[bestRun,dayNum],bd:[bestDayStreak,dayNum]}
+var EPOCH="2026-01-01",DN={},TEST=null,RUN=0,UNDO=null,GEN=0,CACHE={},PRN=0;
+var D_ANS=0,D_OK=1,D_TS=2,D_TN=3,D_NEW=4,D_LAP=5,D_V=6,D_G=7,D_R=8,D_L=9,D_W=10,D_S=11,D_O=12,D_FIRST=13,D_LAST=14,D_RUN=15,D_XA=16,D_XO=17,D_LEN=18;
+var SK_IDX={V:D_V,G:D_G,R:D_R,L:D_L,W:D_W,S:D_S,O:D_O};
+var SK_DE={V:"Karten",G:"Grammatik",R:"Lesen",L:"Hören",W:"Schreiben",S:"Sprechen",O:"Sonstiges"},SK_EN={V:"cards",G:"grammar",R:"reading",L:"listening",W:"writing",S:"speaking",O:"other"};
+function ST(){return TEST?TEST.S:S}
+function dn(key){if(DN[key]!=null)return DN[key];var v=diffDays(EPOCH,key);DN[key]=v;return v}
+function dk(n){return addDays(EPOCH,+n)}
+function today(){return TEST&&TEST.day?TEST.day:todayKey()}
+function dev(){if(TEST)return TEST.dev||"t";try{return has("devId")?devId():"d0"}catch(e){return "d0"}}
+function blank(){return {v:1,t0:dn(today()),k:{},x:{},l:{},g:{der:[0,0],die:[0,0],das:[0,0],m:{}},sp:{n:0,cap:0,ss:0,um:0,hy:0,typo:0,noart:0},h:[],d:{},sn:{},ex:{},bs:[0,0],bd:[0,0]}}
+function fix(m){var b=blank();if(!isO(m)||m.v!==1)return b;["k","x","l","d","sn","ex"].forEach(function(f){if(!isO(m[f]))m[f]={}});if(!isO(m.g))m.g=b.g;["der","die","das"].forEach(function(a){if(!Array.isArray(m.g[a]))m.g[a]=[0,0]});if(!isO(m.g.m))m.g.m={};
+  if(!isO(m.sp))m.sp=b.sp;if(!Array.isArray(m.h))m.h=[];if(!Array.isArray(m.bs))m.bs=[0,0];if(!Array.isArray(m.bd))m.bd=[0,0];if(typeof m.t0!=="number")m.t0=b.t0;return m}
+function M(){var s=ST();if(!isO(s.lm)||s.lm.v!==1||!isO(s.lm.k)||!isO(s.lm.d)){var fresh0=!isO(s.lm);s.lm=fix(s.lm);if(fresh0&&!TEST){try{backfill(s.lm)}catch(e){EV.fail(e,"backfill")}}}return s.lm}
+function bucket(m,day){var d=dn(day||today());var o=m.d[d]=m.d[d]||{};var id=dev();var a=o[id];if(!a){a=o[id]=[];for(var i=0;i<D_LEN;i++)a.push(0)}return a}
+function touch(){GEN++;CACHE={}}
+function stableKey(key){key=String(key).replace(/^p:/,"");if(/^c:\d+$/.test(key)){var c=(ST().custom||[])[+key.slice(2)];return c&&c.de?"cde:"+c.de:key}return key}
+function cardOfKey(k){try{if(k.indexOf("cde:")===0){var de=k.slice(4),L=ST().custom||[];for(var i=0;i<L.length;i++)if(L[i]&&L[i].de===de)return card("c:"+i);return {id:k,de:de,en:""}}var c0=has("card")?card(k):null;return c0||(TEST?{id:k,de:k.replace(/^w:/,""),en:""}:null)}catch(e){return null}}
+function pairKey(want,got){var n=function(s){return String(s||"").replace(/\s+/g," ").replace(/\|/g,"/").trim().slice(0,48)};var a=n(want),b=n(got);return a&&b&&a!==b?a+"|"+b:""}
+function addPair(m,want,got,kind){var k=pairKey(want,got);if(!k)return;var e=m.x[k]=m.x[k]||[0,0,kind||"t"];e[0]++;e[1]=dn(today());var ks=Object.keys(m.x);
+  if(ks.length>320){ks.sort(function(p,q){return (m.x[p][0]-m.x[q][0])||(m.x[p][1]-m.x[q][1])||(p<q?-1:1)});for(var i=0;i<ks.length-280;i++)delete m.x[ks[i]]}}
+function addArticle(m,want,got,ok){if(!m.g[want])return;m.g[want][0]++;if(!ok){m.g[want][1]++;if(got&&got!==want&&/^(der|die|das)$/.test(got)){var k=want+">"+got;m.g.m[k]=(m.g.m[k]||0)+1}}}
+function addHour(m,hour,ok){var h=m.h;while(h.length<48)h.push(0);h[2*hour]++;if(ok)h[2*hour+1]++}
+function addLesson(m,id,ok){if(!id)return;var e=m.l[id]=m.l[id]||[ok?1000:0,0,0,0,0,-1,0];var a=e[1]<6?1/(e[1]+1):0.15;e[0]=Math.round(e[0]+a*((ok?1000:0)-e[0]));e[1]++;if(ok)e[2]++;e[3]=dn(today())}
+function stamp(a,ms){var d=new Date();var mi=(TEST&&TEST.min!=null?TEST.min:d.getHours()*60+d.getMinutes())+1;if(!a[D_FIRST]||mi<a[D_FIRST])a[D_FIRST]=mi;if(mi>a[D_LAST])a[D_LAST]=mi;if(ms){a[D_TS]+=Math.round(ms/100);a[D_TN]++}}
+function runUp(m,a,ok){if(ok){RUN++;if(RUN>a[D_RUN])a[D_RUN]=RUN;if(RUN>m.bs[0])m.bs=[RUN,dn(today())]}else RUN=0}
+function pruneCards(m){var ks=Object.keys(m.k);if(ks.length<=1600)return;ks.sort(function(p,q){var a=m.k[p],b=m.k[q];return (a[0]*3-a[1])-(b[0]*3-b[1])||(a[2]-b[2])||(p<q?-1:1)});for(var i=0;i<ks.length-1400;i++)delete m.k[ks[i]]}
+function pruneDays(m){var cut=dn(today())-400;for(var d in m.d)if(+d<cut)delete m.d[d];var sk=Object.keys(m.sn).map(Number).sort(function(a,b){return a-b});while(sk.length>80)delete m.sn[sk.shift()]}
+var ON={
+  cardAnswer:function(d){var m=M(),k=stableKey(d.key),a=bucket(m),hour=d.hour==null?new Date().getHours():d.hour,ok=d.q>=2;
+    var pk=m.k[k]?m.k[k].slice():null,pa=a.slice(),ph=m.h.slice(),pbs=m.bs.slice(),prun=RUN,psp=Object.assign({},m.sp),pg=JSON.stringify(m.g),px=null,pxk="";
+    if(d.q===0||m.k[k]){var e=m.k[k]=m.k[k]||[0,0,0,0];if(d.q===0){e[0]++;e[2]=dn(today())}else e[1]++;if(d.ms)e[3]=e[3]?Math.round(e[3]*.7+d.ms/100*.3):Math.round(d.ms/100)}
+    a[D_ANS]++;if(ok)a[D_OK]++;if(d.lapse)a[D_LAP]++;stamp(a,d.ms);addHour(m,hour,ok);runUp(m,a,ok);
+    var ty=d.typed;if(ty){m.sp.n++;(ty.spell||[]).forEach(function(s){m.sp[s]=(m.sp[s]||0)+1});if(ty.typo)m.sp.typo++;if(ty.noArticle)m.sp.noart++;
+      var wa=has("genderOf")?genderOf(ty.want):null;if(wa&&!ty.noArticle&&!ty.empty)addArticle(m,wa,ty.gotArt||"",!ty.art);
+      if(ty.q<2&&ty.got&&!ty.empty){pxk=pairKey(ty.want,ty.got);px=pxk&&m.x[pxk]?m.x[pxk].slice():null;addPair(m,ty.want,ty.got,ty.art?"a":"t")}}
+    UNDO={key:d.key,fn:function(){if(pk)m.k[k]=pk;else delete m.k[k];var b=bucket(m);for(var i=0;i<D_LEN;i++)b[i]=pa[i];m.h=ph;m.bs=pbs;RUN=prun;m.sp=psp;m.g=JSON.parse(pg);if(pxk){if(px)m.x[pxk]=px;else delete m.x[pxk]}}};
+    if((++PRN&63)===0)pruneCards(m);touch()},
+  cardUndo:function(d){var m=M();if(UNDO&&d&&UNDO.key===d.key){UNDO.fn();UNDO=null}m.ex.undo=(m.ex.undo||0)+1;touch()},
+  cardNew:function(d){if(d&&d.prod)return;var m=M();bucket(m)[D_NEW]++;touch()},
+  exAnswer:function(d){var m=M(),a=bucket(m);a[D_XA]++;if(d.ok)a[D_XO]++;stamp(a,d.ms);addHour(m,d.hour==null?new Date().getHours():d.hour,d.ok);runUp(m,a,d.ok);addLesson(m,d.lesson,d.ok);
+    if(!d.ok&&d.given&&d.want){addPair(m,d.want,d.given,d.type==="mc"?"m":"g");if(/^(der|die|das)$/.test(d.want)&&/^(der|die|das)$/.test(d.given))addArticle(m,d.want,d.given,false)}
+    else if(d.ok&&/^(der|die|das)$/.test(d.want||""))addArticle(m,d.want,d.want,true);touch()},
+  bossAnswer:function(d){var m=M(),a=bucket(m);a[D_XA]++;if(d.ok)a[D_XO]++;stamp(a,d.ms);addHour(m,d.hour==null?new Date().getHours():d.hour,d.ok);runUp(m,a,d.ok);
+    if(d.genus&&/^(der|die|das)$/.test(d.want||"")){addArticle(m,d.want,d.given,d.ok);if(!d.ok&&d.q&&/^(der|die|das)$/.test(d.given||""))addPair(m,d.want+" "+d.q,d.given+" "+d.q,"a")}
+    else if(!d.ok&&d.given&&d.want&&!d.timeout)addPair(m,d.want,d.given,"b");touch()},
+  genus:function(d){var m=M();if(/^(der|die|das)$/.test(d.want||"")){addArticle(m,d.want,d.got,d.ok);if(!d.ok&&d.got)addPair(m,d.want+" "+d.noun,d.got+" "+d.noun,"a")}touch()},
+  spell:function(d){var m=M();m.sp.n++;(d.spell||[]).forEach(function(s){m.sp[s]=(m.sp[s]||0)+1});touch()},
+  errors:function(d){var m=M();(d.list||[]).forEach(function(e){if(d.src==="typed")return;if(e.original&&e.fix&&e.fix.length<60&&e.original.length<60)addPair(m,e.fix,e.original,"w");
+      if(e.type==="Artikel/Genus"){var a=/^(der|die|das)\s/.exec(e.fix||""),b=/^(der|die|das)\s/.exec(e.original||"");if(a&&b&&a[1]!==b[1])addArticle(m,a[1],b[1],false)}
+      if(e.type==="Rechtschreibung"&&e.fix.toLowerCase()===e.original.toLowerCase()&&e.fix!==e.original)m.sp.cap=(m.sp.cap||0)+1});touch()},
+  lessonFinish:function(d){var m=M();var e=m.l[d.id]=m.l[d.id]||[Math.round(d.score*10),0,0,0,0,-1,0];if(e[1]<4)e[0]=Math.round(e[1]?(e[0]+d.score*10)/2:d.score*10);e[3]=dn(today());e[4]++;e[5]=Math.round(d.score);if(d.score>=60&&!e[6])e[6]=dn(today());touch()},
+  exRound:function(d){if(!d.lesson)return;var m=M();var e=m.l[d.lesson]=m.l[d.lesson]||[Math.round(d.score*10),0,0,0,0,-1,0];e[3]=dn(today());e[5]=Math.round(d.score);touch()},
+  time:function(d){var m=M(),a=bucket(m);a[SK_IDX[d.skill]||D_O]+=Math.max(0,Math.min(200,Math.round(d.sec)));stamp(a,0);touch()},
+  count:function(k,n){var m=M();m.ex[k]=(m.ex[k]||0)+(n||1);touch()},
+  day:function(){var m=M();try{var s=!TEST&&has("streak")?streak():0;if(s>m.bd[0])m.bd=[s,dn(today())]}catch(e){}snapshot(m,false);pruneDays(m);touch()}};
+function lessons60(){var n=0,L=ST().lessons||{};for(var id in L)if((L[id].best||0)>=60)n++;return n}
+function counts(){var C=ST().cards||{},kn=0,ma=0;for(var k in C){if(k.indexOf("p:")===0)continue;var c=C[k];if(c.reps>0)kn++;if(c.int>=21)ma++}return [kn,ma]}
+function snapshot(m,force){var d=dn(today());var ks=Object.keys(m.sn).map(Number);var last=ks.length?Math.max.apply(null,ks):-99;if(!force&&d-last<7)return;
+  var c=counts(),w=LM.window(30),p=isO(ST().pakt)?ST().pakt:{};var lv=0;try{lv=!TEST&&has("learnerLv")?learnerLv():0}catch(e){}
+  m.sn[d]=[c[0],c[1],lessons60(),p.ch||1,lv,w.ans+w.xa?Math.round(1000*(w.ok+w.xo)/(w.ans+w.xa)):0,w.tn?Math.round(w.ts/w.tn):0,Math.round(w.sec/60)]}
+// first run: seed the model from what the app already stores, so the story has something to say on day one
+function backfill(m){var s=ST(),t=dn(today());m.t0=t;
+  for(var key in (s.cards||{})){var c=s.cards[key];if(c&&c.lapses>0){var k=stableKey(key);var e=m.k[k]=m.k[k]||[0,0,0,0];e[0]+=c.lapses;e[1]+=c.reps||0;var ld=c.last?dn(String(c.last).slice(0,10)):t-30;if(ld>e[2])e[2]=ld}}
+  for(var day in (s.log||{})){var L=s.log[day];if(!isO(L)||!/^\d{4}-\d\d-\d\d$/.test(day)||day>=today())continue;var a=[];for(var i=0;i<D_LEN;i++)a.push(0);a[D_ANS]=num(L.rev);a[D_OK]=num(L.ok);a[D_NEW]=num(L.new);a[D_O]=num(L.sec)+60*num(L.min);var o={};o._=a;m.d[dn(day)]=o}
+  for(var n in (s.palace||{})){var p=s.palace[n]||{};if(!m.g[p.g])continue;m.g[p.g][0]+=num(p.ok)+num(p.miss);m.g[p.g][1]+=num(p.miss);if(p.miss&&p.wrong&&p.wrong!==p.g){var mk=p.g+">"+p.wrong;m.g.m[mk]=(m.g.m[mk]||0)+1;addPair(m,p.g+" "+n,p.wrong+" "+n,"a")}}
+  (s.mistakes||[]).slice(-200).forEach(function(x){var r=String(x.text||"").match(/\{\{c1::(.+?)\}\}\s*\(nicht:\s*(.+?)\)\s*$/);if(r&&r[1].length<60&&r[2].length<60)addPair(m,r[1],r[2],x.src==="typed"?"a":"w")});
+  for(var id in (s.lessons||{})){var Ls=s.lessons[id];var sc=Ls.lastScore!=null?Ls.lastScore:Ls.best||0;m.l[id]=[Math.round(sc*10),0,0,Ls.last?dn(Ls.last):t,Ls.n||1,Math.round(sc),(Ls.best||0)>=60?(Ls.last?dn(Ls.last):t):0]}
+  m.ex.over=(s.overrides||[]).length;snapshot(m,true)}
+// merge two models: every rule is commutative, associative and idempotent (max, min, union, or a deterministic winner)
+function mx(a,b){a=Array.isArray(a)?a:[];b=Array.isArray(b)?b:[];var n=Math.max(a.length,b.length),o=[];for(var i=0;i<n;i++)o.push(Math.max(num(a[i]),num(b[i])));return o}
+function sortKeys(o){var r={};Object.keys(o).sort().forEach(function(k){r[k]=o[k]});return r}
+function jmax(a,b){var x=JSON.stringify(a),y=JSON.stringify(b);return x>=y?a:b}
+function mergeLM(A,B){if(!isO(A)||A.v!==1)return isO(B)?B:A;if(!isO(B)||B.v!==1)return A;A=fix(JSON.parse(JSON.stringify(A)));B=fix(JSON.parse(JSON.stringify(B)));var o=blank(),k;
+  o.t0=Math.min(A.t0,B.t0);
+  for(k in A.k)o.k[k]=A.k[k];for(k in B.k)o.k[k]=o.k[k]?mx(o.k[k],B.k[k]):B.k[k];
+  for(k in A.x)o.x[k]=A.x[k];for(k in B.x){var p=o.x[k],q=B.x[k];o.x[k]=p?[Math.max(num(p[0]),num(q[0])),Math.max(num(p[1]),num(q[1])),String(p[2])>=String(q[2])?p[2]:q[2]]:q}
+  // lessons: ewma, lastDay and lastScore travel together from the record with the larger (lastDay, ewma, lastScore) — a total order, so the
+  // rule is associative (13.0 I9 used the merged answer count as a tie-break, which is not); counts max; first pass = earliest non-zero
+  for(k in A.l)o.l[k]=A.l[k];for(k in B.l){var x=o.l[k],y=B.l[k];if(!x){o.l[k]=y;continue}var kx=[num(x[3]),num(x[0]),num(x[5])],ky=[num(y[3]),num(y[0]),num(y[5])];
+    var nw=kx[0]!==ky[0]?(kx[0]>ky[0]?x:y):kx[1]!==ky[1]?(kx[1]>ky[1]?x:y):(kx[2]>=ky[2]?x:y);
+    var fp=Math.min(num(x[6])||1e9,num(y[6])||1e9);o.l[k]=[num(nw[0]),Math.max(num(x[1]),num(y[1])),Math.max(num(x[2]),num(y[2])),num(nw[3]),Math.max(num(x[4]),num(y[4])),num(nw[5]),fp===1e9?0:fp]}
+  ["der","die","das"].forEach(function(a){o.g[a]=mx(A.g[a],B.g[a])});for(k in A.g.m)o.g.m[k]=num(A.g.m[k]);for(k in B.g.m)o.g.m[k]=Math.max(num(o.g.m[k]),num(B.g.m[k]));
+  for(k in A.sp)o.sp[k]=num(A.sp[k]);for(k in B.sp)o.sp[k]=Math.max(num(o.sp[k]),num(B.sp[k]));
+  for(k in A.ex)o.ex[k]=num(A.ex[k]);for(k in B.ex)o.ex[k]=Math.max(num(o.ex[k]),num(B.ex[k]));
+  o.h=mx(A.h,B.h);
+  [A.d,B.d].forEach(function(D){for(var d in D){var t=o.d[d]=o.d[d]||{};for(var id in D[d]){var cur=t[id],inc=D[d][id];if(!cur){t[id]=inc.slice();continue}var f1=num(cur[D_FIRST]),f2=num(inc[D_FIRST]);var r=mx(cur,inc);r[D_FIRST]=f1&&f2?Math.min(f1,f2):(f1||f2);t[id]=r}}});
+  for(k in A.sn)o.sn[k]=A.sn[k];for(k in B.sn)o.sn[k]=o.sn[k]?mx(o.sn[k],B.sn[k]):B.sn[k];
+  var bw=function(p,q){p=Array.isArray(p)?p:[0,0];q=Array.isArray(q)?q:[0,0];return num(p[0])!==num(q[0])?(num(p[0])>num(q[0])?p:q):(num(p[1])<=num(q[1])?p:q)};o.bs=bw(A.bs,B.bs).slice(0,2);o.bd=bw(A.bd,B.bd).slice(0,2);
+  var du={};[A.du,B.du].forEach(function(D){(Array.isArray(D)?D:[]).forEach(function(r){if(isO(r))du[JSON.stringify([r.date,r.id,r.r,num(r.hits),num(r.miss)])]=r})});var dk2=Object.keys(du).sort();if(dk2.length)o.du=dk2.slice(-200).map(function(k){return du[k]});
+  ["k","x","l","sp","ex","sn","d"].forEach(function(f){o[f]=sortKeys(o[f])});o.g.m=sortKeys(o.g.m);for(k in o.d)o.d[k]=sortKeys(o.d[k]);
+  return o}
+// ---------------------------------------------------------------- 6. accessors (read-only; safe to call from any story code at any time)
+function memo(k,fn){if(CACHE[k]&&CACHE[k][0]===GEN&&!TEST)return CACHE[k][1];var v=fn();CACHE[k]=[GEN,v];return v}
+function dayRow(m,d){var o=m.d[d];if(!o)return null;var a=[];for(var i=0;i<D_LEN;i++)a.push(0);var f=0;for(var id in o){var b=o[id];for(var j=0;j<D_LEN;j++){if(j===D_FIRST){if(b[j]&&(!f||b[j]<f))f=b[j]}else if(j===D_LAST||j===D_RUN)a[j]=Math.max(a[j],num(b[j]));else a[j]+=num(b[j])}}a[D_FIRST]=f;return a}
+function logOf(key){var L=(ST().log||{})[key];return isO(L)?L:null}
+var LM={cfg:{greet:true,greetEvery:2},
+  merge:mergeLM,
+  model:function(){return M()},
+  // totals over a window of days ending today (offset 0) or ending `back` days ago
+  window:function(days,back){var m=M(),t=dn(today())-(back||0),o={days:days,ans:0,ok:0,xa:0,xo:0,ts:0,tn:0,newc:0,lap:0,sec:0,active:0,sk:{V:0,G:0,R:0,L:0,W:0,S:0,O:0}};
+    for(var d=t-days+1;d<=t;d++){var a=dayRow(m,d);var L=logOf(dk(d));if(!a){if(L&&L.act){o.active++;o.ans+=num(L.rev);o.ok+=num(L.ok);o.newc+=num(L.new);o.sec+=num(L.sec)+60*num(L.min);o.sk.O+=num(L.sec)+60*num(L.min)}continue}
+      o.ans+=a[D_ANS];o.ok+=a[D_OK];o.xa+=a[D_XA];o.xo+=a[D_XO];o.ts+=a[D_TS];o.tn+=a[D_TN];o.newc+=a[D_NEW];o.lap+=a[D_LAP];var s=0;for(var k in SK_IDX){o.sk[k]+=a[SK_IDX[k]];s+=a[SK_IDX[k]]}
+      var ls=L?num(L.sec)+60*num(L.min):0;if(ls>s){o.sk.O+=ls-s;s=ls}o.sec+=s;if(a[D_ANS]+a[D_XA]>0||s>=300||(L&&L.act))o.active++}
+    o.acc=o.ans+o.xa?Math.round(100*(o.ok+o.xo)/(o.ans+o.xa)):null;o.secPerAnswer=o.tn?Math.round(o.ts/o.tn)/10:null;o.min=Math.round(o.sec/60);return o},
+  // ---- words
+  nemeses:function(n){return memo("nem"+(n||20),function(){var m=M(),C=ST().cards||{},t=dn(today()),L=[];for(var k in m.k){var e=m.k[k];var w=e[0];if(w<2)continue;var c=cardOfKey(k);if(!c||!c.de)continue;
+        var st=C[c.id]||{};if((st.int||0)>=60)continue;var sc=w*2-e[1]*.5+Math.max(0,3-(t-e[2])/10);L.push({key:k,id:c.id,de:c.de,en:c.en||"",wrong:w,right:e[1],lastWrong:e[2]?dk(e[2]):"",daysAgo:e[2]?t-e[2]:null,sec:e[3]?e[3]/10:null,score:Math.round(sc*10)/10})}
+      L.sort(function(a,b){return b.score-a.score||(a.key<b.key?-1:1)});return L.slice(0,n||20)})},
+  nemesisWord:function(){var L=LM.nemeses(20);return L.length?L[0]:null},
+  slowestWord:function(){var m=M(),best=null;for(var k in m.k){var e=m.k[k];if(e[3]&&(!best||e[3]>best[1]))best=[k,e[3]]}if(!best)return null;var c=cardOfKey(best[0]);return c?{de:c.de,en:c.en||"",sec:best[1]/10}:null},
+  // ---- lessons
+  lessons:function(){return memo("les",function(){var m=M(),t=dn(today()),L=[];for(var id in m.l){var e=m.l[id];var LL=has("lessonById")?lessonById(id):null;if(!LL&&!TEST)continue;var acc=e[1]>=4?e[0]/10:(e[5]>=0?e[5]:e[0]/10);
+        L.push({id:id,title:LL?LL.title||LL.t||id:id,acc:Math.round(acc),answers:e[1],right:e[2],rounds:e[4],last:e[3]?dk(e[3]):"",daysAgo:e[3]?t-e[3]:null,lastScore:e[5]>=0?e[5]:null,firstPass:e[6]?dk(e[6]):"",solid:e[1]>=8||e[4]>=2})}
+      return L})},
+  weakLessons:function(n){var L=LM.lessons().filter(function(x){return x.answers>=4||x.rounds>=1});L.sort(function(a,b){return a.acc-b.acc||(b.answers-a.answers)||(a.id<b.id?-1:1)});return L.slice(0,n||5)},
+  weakLesson:function(){var L=LM.weakLessons(1);return L.length&&L[0].acc<85?L[0]:null},
+  strongLesson:function(){var L=LM.lessons().filter(function(x){return x.solid});L.sort(function(a,b){return b.acc-a.acc||(b.answers-a.answers)||(a.id<b.id?-1:1)});return L.length&&L[0].acc>=85?L[0]:null},
+  newLessons:function(days){var t=dn(today());return LM.lessons().filter(function(x){return x.firstPass&&t-dn(x.firstPass)<=(days||30)&&dn(x.firstPass)>M().t0})},
+  // ---- confusion pairs
+  confusions:function(n,kind){var m=M(),L=[];for(var k in m.x){var e=m.x[k];if(kind&&e[2]!==kind)continue;var i=k.indexOf("|");L.push({want:k.slice(0,i),got:k.slice(i+1),n:e[0],last:dk(e[1]),daysAgo:dn(today())-e[1],kind:e[2]})}
+    L.sort(function(a,b){return b.n-a.n||a.daysAgo-b.daysAgo||(a.want<b.want?-1:1)});return L.slice(0,n||10)},
+  topConfusion:function(){var L=LM.confusions(40).filter(function(x){return x.n>=2&&x.daysAgo<=30&&x.want.length<=40&&x.got.length<=40});return L.length?L[0]:null},
+  healedConfusion:function(){var L=LM.confusions(80).filter(function(x){return x.n>=3&&x.daysAgo>=21});return L.length?L[0]:null},
+  // ---- articles and spelling
+  articles:function(){var g=M().g,o={n:0,wrong:0,by:{}};["der","die","das"].forEach(function(a){var e=g[a]||[0,0];o.n+=e[0];o.wrong+=e[1];o.by[a]={n:e[0],wrong:e[1],rate:e[0]?Math.round(100*e[1]/e[0]):null}});
+    o.rate=o.n?Math.round(100*o.wrong/o.n):null;var w=null;["der","die","das"].forEach(function(a){var b=o.by[a];if(b.n>=5&&b.rate!=null&&(!w||b.rate>o.by[w].rate))w=a});o.weak=w&&o.by[w].rate>=15?w:null;
+    var bp=null;for(var k in g.m)if(!bp||g.m[k]>g.m[bp]||(g.m[k]===g.m[bp]&&k<bp))bp=k;o.pair=bp&&g.m[bp]>=2?{want:bp.split(">")[0],got:bp.split(">")[1],n:g.m[bp]}:null;
+    if(o.weak&&!(o.pair&&o.pair.want===o.weak)){var b2=null;for(var k2 in g.m)if(k2.indexOf(o.weak+">")===0&&(!b2||g.m[k2]>g.m[b2]))b2=k2;o.weakGot=b2?b2.split(">")[1]:null}else o.weakGot=o.pair&&o.weak?o.pair.got:null;return o},
+  weakArticle:function(){return LM.articles().weak},
+  spelling:function(){var s=M().sp,n=s.n||0;var r=function(x){return n>=10?Math.round(100*(s[x]||0)/n):null};return {n:n,cap:s.cap||0,ss:s.ss||0,um:s.um||0,hy:s.hy||0,typo:s.typo||0,noArticle:s.noart||0,capRate:r("cap"),ssRate:r("ss"),umRate:r("um"),worst:["cap","ss","um"].sort(function(a,b){return (s[b]||0)-(s[a]||0)})[0]}},
+  // ---- speed, streaks, hours
+  speed:function(){var a=LM.window(14),b=LM.window(30,30);return {now:a.secPerAnswer,then:b.secPerAnswer,faster:a.secPerAnswer!=null&&b.secPerAnswer!=null?a.secPerAnswer<b.secPerAnswer*.9:null,slower:a.secPerAnswer!=null&&b.secPerAnswer!=null?a.secPerAnswer>b.secPerAnswer*1.15:null}},
+  avgSeconds:function(days){return LM.window(days||30).secPerAnswer},
+  bestStreak:function(){var m=M();var cur=0;try{cur=!TEST&&has("streak")?streak():0}catch(e){}var bd=m.bd[0]>=cur?m.bd:[cur,dn(today())];return {answers:m.bs[0],answersDay:m.bs[1]?dk(m.bs[1]):"",days:bd[0],daysDay:bd[1]?dk(bd[1]):"",current:cur,run:RUN}},
+  timeOfDay:function(){var h=M().h,tot=0,pk=-1,ba=-1,bacc=0;for(var i=0;i<24;i++){var n=num(h[2*i]);tot+=n;if(n>0&&(pk<0||n>num(h[2*pk])))pk=i;if(n>=20){var ac=num(h[2*i+1])/n;if(ac>bacc){bacc=ac;ba=i}}}
+    var band=function(a,b){var s=0;for(var i=a;i<b;i++)s+=num(h[2*(i%24)]);return s};var B={night:band(22,29),morning:band(5,12),afternoon:band(12,17),evening:band(17,22)};var top="evening";for(var k in B)if(B[k]>B[top])top=k;
+    return {n:tot,peakHour:pk<0?null:pk,bestHour:ba<0?null:ba,bestAcc:ba<0?null:Math.round(bacc*100),band:tot>=30?top:null,share:tot?Math.round(100*B[top]/tot):null,bands:B,nightShare:tot?Math.round(100*B.night/tot):0}},
+  // ---- presence
+  absence:function(){var s=ST(),t=today(),L=s.log||{},act=function(k){return !!(L[k]&&L[k].act)};
+    var missed=function(a,b){var n=0,g=diffDays(a,b)-1;for(var j=1;j<=g;j++)if(!(s.shifts&&s.shifts[addDays(a,j)]))n++;return n};   // days between two active days, shift days not counted
+    var ks=keysOf(L).filter(function(k){return k<=t&&act(k)}).sort(),last=ks.length?ks[ks.length-1]:"";var cur=last&&last!==t?missed(last,t):0,longest=0,count=0,lastGap=0,lastGapEnd="";
+    for(var i=1;i<ks.length;i++){var g=missed(ks[i-1],ks[i]);if(g>=1){count++;if(g>longest)longest=g;lastGap=g;lastGapEnd=ks[i]}}
+    var back=lastGapEnd&&lastGapEnd===t?lastGap:0;return {days:cur,last:last,returned:back,longest:Math.max(longest,cur),count:count,lastGap:lastGap,lastGapEnd:lastGapEnd}},
+  shiftRatio:function(days){var s=ST(),t=today(),n=days||30,sh=0,st=0,act=0;for(var i=0;i<n;i++){var k=addDays(t,-i);var a=!!((s.log||{})[k]&&s.log[k].act);if(a)act++;if(s.shifts&&s.shifts[k]){sh++;if(a)st++}}return {days:n,shift:sh,shiftStudied:st,shiftZero:sh-st,active:act,ratio:Math.round(100*sh/n),kept:sh?Math.round(100*st/sh):null}},
+  skills:function(days){var w=LM.window(days||30),o={days:w.days,min:{},share:{}},tot=0,k;for(k in w.sk){o.min[k]=Math.round(w.sk[k]/60);tot+=w.sk[k]}for(k in w.sk)o.share[k]=tot?Math.round(100*w.sk[k]/tot):0;
+    var four=["R","L","W","S"];var known=four.reduce(function(a,x){return a+w.sk[x]},0);o.known=known>=600;o.weakest=four.slice().sort(function(a,b){return w.sk[a]-w.sk[b]||(a<b?-1:1)})[0];o.strongest=four.slice().sort(function(a,b){return w.sk[b]-w.sk[a]||(a<b?-1:1)})[0];
+    var m=M(),t=dn(today()),since=null;for(var d=t;d>t-120;d--){var a=dayRow(m,d);if(a&&a[SK_IDX[o.weakest]]>=60){since=t-d;break}}o.weakestDaysAgo=since;return o},
+  wordsPerWeek:function(n){n=n||8;var m=M(),t=dn(today()),o=[];for(var w=n-1;w>=0;w--){var s=0;for(var d=t-7*w-6;d<=t-7*w;d++){var a=dayRow(m,d);if(a)s+=a[D_NEW];else{var L=logOf(dk(d));if(L)s+=num(L.new)}}o.push(s)}return o},
+  weekWords:function(){var m=M(),t=dn(today()),p=today().split("-").map(Number),wd=(new Date(p[0],p[1]-1,p[2]).getDay()+6)%7;   // calendar weeks, Monday first
+    var sum=function(a,b){var s=0;for(var d=a;d<=b;d++){var r=dayRow(m,d);if(r)s+=r[D_NEW];else{var L=logOf(dk(d));if(L)s+=num(L.new)}}return s};return {cur:sum(t-wd,t),last:sum(t-wd-7,t-wd-1),weekday:wd}},
+  trend30:function(){var m=M(),t=dn(today()),acc=[],min=[],ans=[];for(var d=t-29;d<=t;d++){var a=dayRow(m,d),L=logOf(dk(d));var n=a?a[D_ANS]+a[D_XA]:L?num(L.rev):0,k=a?a[D_OK]+a[D_XO]:L?num(L.ok):0;var s=0;if(a)for(var q in SK_IDX)s+=a[SK_IDX[q]];if(L)s=Math.max(s,num(L.sec)+60*num(L.min));acc.push(n?Math.round(100*k/n):null);min.push(Math.round(s/60));ans.push(n)}
+    var slope=function(v){var xs=[],ys=[];v.forEach(function(y,i){if(y!=null){xs.push(i);ys.push(y)}});var n=xs.length;if(n<5)return null;var mx0=xs.reduce(function(a,b){return a+b},0)/n,my=ys.reduce(function(a,b){return a+b},0)/n,sxy=0,sxx=0;for(var i=0;i<n;i++){sxy+=(xs[i]-mx0)*(ys[i]-my);sxx+=(xs[i]-mx0)*(xs[i]-mx0)}return sxx?Math.round(1000*sxy/sxx)/1000:0};
+    var sa=slope(acc),sm=slope(min);var a1=LM.window(15),a0=LM.window(15,15);return {acc:acc,min:min,ans:ans,slopeAcc:sa,slopeMin:sm,accNow:a1.acc,accBefore:a0.acc,minNow:a1.min,minBefore:a0.min,dir:sm==null?null:sm>.3?"up":sm<-.3?"down":"flat"}},
+  // ---- progress since a date / in the last 30 days
+  snapAt:function(dayKey){var m=M(),t=dn(dayKey),best=null;for(var k in m.sn){var d=+k;if(d<=t&&(best==null||d>best))best=d}if(best==null){for(var k2 in m.sn){var d2=+k2;if(best==null||d2<best)best=d2}}return best==null?null:{day:dk(best),v:m.sn[best]}},
+  since:function(dateKey){var s=ST(),t=today();if(!dateKey)dateKey=(s.pakt||{}).date||s.startDate||t;var c=counts(),sp=LM.snapAt(dateKey),p=isO(s.pakt)?s.pakt:{};var days=Math.max(0,diffDays(dateKey,t));
+    var sealed=keysOf(p.sealed).filter(function(k){return p.sealed[k]>=dateKey}).length;var boss=keysOf(s.bossWins).filter(function(k){return (s.bossWins[k].d||"")>=dateKey});var w=LM.window(Math.min(400,days+1));
+    var exact=!!sp&&sp.day<=dateKey;var base=sp?sp.v:[0,0,0,1,0,0,0,0];
+    return {from:dateKey,days:days,exact:exact,words:exact?Math.max(0,c[0]-base[0]):Math.min(w.newc,c[0]),wordsNow:c[0],mastered:exact?Math.max(0,c[1]-base[1]):null,masteredNow:c[1],lessons:exact?Math.max(0,lessons60()-base[2]):LM.newLessons(days).length,chapters:sealed,bosses:boss,minutes:w.min,answers:w.ans+w.xa,activeDays:w.active,accThen:exact?(base[5]?Math.round(base[5]/10):null):null,accNow:LM.window(30).acc}},
+  delta30:function(){return memo("d30",function(){var t=today(),from=addDays(t,-30),s=LM.since(from),sp=LM.speed(),nl=LM.newLessons(30),a=LM.window(30),b=LM.window(30,30);var can=[];
+      if(s.words>0)can.push({k:"words",n:s.words,de:s.words+" neue Wörter",en:s.words+" new words"});
+      nl.slice(0,3).forEach(function(x){can.push({k:"lesson",id:x.id,de:"die Lektion „"+x.title+"“",en:"the lesson '"+x.title+"'"})});
+      if(s.chapters>0)can.push({k:"chapters",n:s.chapters,de:s.chapters+(s.chapters===1?" Siegel":" Siegel"),en:s.chapters+(s.chapters===1?" seal":" seals")});
+      s.bosses.forEach(function(id){var B=typeof BOSSES!=="undefined"&&BOSSES[id];can.push({k:"boss",id:id,de:"der Sieg über "+(B?B.n:id),en:"the victory over "+(B?B.n:id)})});
+      if(sp.faster)can.push({k:"speed",de:"Antworten in "+String(sp.now).replace(".",",")+" statt "+String(sp.then).replace(".",",")+" Sekunden",en:"answers in "+sp.now+" instead of "+sp.then+" seconds"});
+      if(a.acc!=null&&b.acc!=null&&a.acc>=b.acc+3)can.push({k:"acc",de:a.acc+" statt "+b.acc+" Prozent richtig",en:a.acc+" instead of "+b.acc+" per cent right"});
+      return {from:from,words:s.words,wordsThen:Math.max(0,s.wordsNow-s.words),wordsNow:s.wordsNow,mastered:s.mastered,lessons:nl.map(function(x){return x.id}),lessonTitles:nl.map(function(x){return x.title}),chapters:s.chapters,bosses:s.bosses,secNow:sp.now,secThen:sp.then,accNow:a.acc,accThen:b.acc,minutes:a.min,minutesThen:b.min,can:can,exact:s.exact}})},
+  // ---- excuses: what he does instead of learning. Only behaviour inside the app; nothing about the person.
+  excuseProfile:function(){var m=M(),s=ST(),ex=m.ex,p=isO(s.pakt)?s.pakt:{},w=LM.window(30),ab=LM.absence(),sh=LM.shiftRatio(30),tod=LM.timeOfDay();var sess=0;for(var i=0;i<30;i++){var L=logOf(addDays(today(),-i));if(L&&L.session)sess+=num(L.session)}
+    var span=Math.min(30,Math.max(1,diffDays(s.startDate||today(),today())+1));var w2=LM.window(span);var sc={absent:Math.min(1,Math.max(0,span-w2.active-sh.shift-Math.ceil(span/7))/16+num(p.debt)/7),skip:Math.min(1,(num(ex.skip)+num(ex.giveup)/3)/Math.max(6,sess*1.5)),right:Math.min(1,(num(ex.over)+num(ex.undo)/2)/Math.max(8,(w.ans+w.xa)/25)),shift:sh.shift>=3?Math.min(1,sh.shiftZero/sh.shift):0,night:tod.n>=60?Math.min(1,tod.nightShare/50):0};
+    var top="absent";for(var k in sc)if(sc[k]>sc[top])top=k;var none=sc[top]<.34;
+    var T={absent:["morgen","'tomorrow'","Schwänzer"],skip:["der Knopf „Überspringen“","the 'skip' button","Abkürzer"],right:["„Ich hatte recht“","'I was right'","Rechthaber"],shift:["der Dienst","the shift","Dienstschieber"],night:["die Uhrzeit","the hour","Nachteule"]};
+    return {type:none?"none":top,label:none?"ohne Ausrede":T[top][2],de:none?"":T[top][0],en:none?"":T[top][1],scores:sc,skips:num(ex.skip),giveups:num(ex.giveup),overrides:num(ex.over),undos:num(ex.undo),debt:num(p.debt),debtAdded:num(ex.debtAdd),debtPaid:num(p.paid),shiftZero:sh.shiftZero,left:num(ex.left)}},
+  today:function(){var m=M(),a=dayRow(m,dn(today()))||[];return {answers:num(a[D_ANS])+num(a[D_XA]),ok:num(a[D_OK])+num(a[D_XO]),cards:num(a[D_ANS]),newWords:num(a[D_NEW]),lapses:num(a[D_LAP]),bestRun:num(a[D_RUN]),first:a[D_FIRST]?a[D_FIRST]-1:null,last:a[D_LAST]?a[D_LAST]-1:null}},
+  // ---- maintenance
+  size:function(){try{return JSON.stringify(M()).length}catch(e){return 0}},
+  reset:function(){var s=ST();delete s.lm;touch();return M()},
+  _on:ON,_test:function(t){TEST=t;DN={};RUN=0;UNDO=null;touch()}};
+// ---------------------------------------------------------------- 7. story templates
+function nm(){var n="";try{n=String(P().name||"").trim()}catch(e){}return n||"Dr. Amron Ismail"}
+function bare(n){return n.replace(/^(Dr\.?|Prof\.?|Herr|Frau)\s+/gi,"").trim()}
+var HOUR_DE=function(h,en){return en?(h>=22||h<5?"at night":h<12?"in the morning":h<17?"in the afternoon":"in the evening"):(h>=22||h<5?"nachts":h<12?"morgens":h<17?"nachmittags":"abends")};
+var BAND_DE={night:"nachts",morning:"morgens",afternoon:"nachmittags",evening:"abends"},BAND_EN={night:"at night",morning:"in the morning",afternoon:"in the afternoon",evening:"in the evening"};
+var de1=function(x){return String(x).replace(".",",")};
+// each token: [value(lang) → string or null when there is no data, fallback de, fallback en]
+// each token: [value(lang) → string, or null when there is no data, fallback de, fallback en, hard]
+// soft tokens have a vague fallback that stays true ("einige"); hard tokens (4th field 1) have none: without data the sentence that
+// contains them is dropped, or the alternative of a [[ … || … ]] segment is used.
+var xmal=function(n,l){return n==null?null:(l==="en"?n+" times":n+"-mal")};
+var TOK={
+  NAME:[function(){return nm()},"Doktor","Doctor"],
+  LAST:[function(){return bare(nm()).split(/\s+/).pop()||null},"Ismail","Ismail"],
+  FIRST:[function(){return bare(nm()).split(/\s+/)[0]||null},"Amron","Amron"],
+  WORD:[function(){var w=LM.nemesisWord();return w?w.de:null},"dieses eine Wort","that one word"],
+  WORD_EN:[function(){var w=LM.nemesisWord();return w&&w.en?String(w.en).split(/[;,(]/)[0].trim():null},"","",1],
+  WORD_N:[function(){var w=LM.nemesisWord();return w?String(w.wrong):null},"viele","many"],
+  WORD_X:[function(l){var w=LM.nemesisWord();return w?xmal(w.wrong,l):null},"mehrmals","several times"],
+  WORD2:[function(){var L=LM.nemeses(2);return L[1]?L[1].de:null},"","",1],
+  NEMESIS_COUNT:[function(){var n=LM.nemeses(20).length;return n>=2?String(n):null},"einige","several"],
+  LESSON:[function(){var l=LM.weakLesson();return l?l.title:null},"die schwächste Lektion","the weakest lesson"],
+  LESSON_PCT:[function(){var l=LM.weakLesson();return l?String(l.acc):null},"","",1],
+  STRONG_LESSON:[function(){var l=LM.strongLesson();return l?l.title:null},"die beste Lektion","the best lesson"],
+  NEW_LESSON:[function(){var l=LM.newLessons(30);return l.length?l[l.length-1].title:null},"","",1],
+  WEAK_ARTICLE:[function(){return LM.articles().weak},"","",1],
+  WRONG_ARTICLE:[function(){var a=LM.articles();return a.weak&&a.weakGot?a.weakGot:null},"","",1],
+  ARTICLE_PCT:[function(){var a=LM.articles();return a.n>=15&&a.rate!=null?String(a.rate):null},"","",1],
+  CONF_WANT:[function(){var c=LM.topConfusion();return c?c.want:null},"","",1],
+  CONF_GOT:[function(){var c=LM.topConfusion();return c?c.got:null},"","",1],
+  CONF_X:[function(l){var c=LM.topConfusion();return c?xmal(c.n,l):null},"mehrmals","several times"],
+  OLD_CONF_GOT:[function(){var c=LM.healedConfusion();return c?c.got:null},"","",1],
+  OLD_CONF_WANT:[function(){var c=LM.healedConfusion();return c?c.want:null},"","",1],
+  CAP_X:[function(l){var s=LM.spelling();return s.cap>=3?xmal(s.cap,l):null},"mehrmals","several times"],
+  SS_X:[function(l){var s=LM.spelling();return s.ss>=3?xmal(s.ss,l):null},"mehrmals","several times"],
+  UM_X:[function(l){var s=LM.spelling();return s.um>=3?xmal(s.um,l):null},"mehrmals","several times"],
+  DAYS_AWAY:[function(){var a=LM.absence();var d=a.days>=2?a.days:a.returned>=2?a.returned:0;return d?String(d):null},"mehr als zwei","more than two"],
+  LONGEST_GAP:[function(){var a=LM.absence();return a.longest>=2?String(a.longest):null},"","",1],
+  STREAK:[function(){var b=LM.bestStreak();return b.current>=2?String(b.current):null},"","",1],
+  BEST_STREAK:[function(){var b=LM.bestStreak();return b.days>=2?String(b.days):null},"","",1],
+  STREAK_GAP:[function(){var b=LM.bestStreak();return b.days>b.current&&b.current>=1&&b.days-b.current>=1?String(b.days-b.current+1):null},"","",1],
+  RUN:[function(){var b=LM.bestStreak();return b.answers>=10?String(b.answers):null},"","",1],
+  HOUR:[function(){var t=LM.timeOfDay();return t.n>=30&&t.peakHour!=null?String(t.peakHour):null},"","",1],
+  BEST_HOUR:[function(){var t=LM.timeOfDay();return t.bestHour!=null&&t.bestHour!==t.peakHour?String(t.bestHour):null},"","",1],
+  DAYTIME:[function(l){var t=LM.timeOfDay();return t.band?(l==="en"?BAND_EN:BAND_DE)[t.band]:null},"zu den seltsamsten Zeiten","at the strangest hours"],
+  SECS:[function(l){var s=LM.speed();return s.now!=null?(l==="en"?String(s.now):de1(s.now)):null},"","",1],
+  SECS_THEN:[function(l){var s=LM.speed();return s.then!=null&&s.now!=null?(l==="en"?String(s.then):de1(s.then)):null},"","",1],
+  WORDS_TOTAL:[function(){var c=counts()[0];return c>=2?String(c):null},"einige","some"],
+  MASTERED:[function(){var c=counts()[1];return c>=2?String(c):null},"wenige","few"],
+  WORDS_30:[function(){var d=LM.delta30();return d.words>=2?String(d.words):null},"einige","some"],
+  WORDS_THEN:[function(){var d=LM.delta30();return d.words>0&&d.wordsThen>=2?String(d.wordsThen):null},"","",1],
+  WORDS_WEEK:[function(){var w=LM.weekWords();return w.last>=2?String(w.last):null},"einige","some"],
+  WORDS_THIS:[function(){var w=LM.weekWords();return String(w.cur)},"wenige","few"],
+  PCT_30:[function(){var w=LM.window(30);return w.acc!=null&&w.ans+w.xa>=50?String(w.acc):null},"","",1],
+  PCT_PREV:[function(){var w=LM.window(30,30);return w.acc!=null&&w.ans+w.xa>=50?String(w.acc):null},"","",1],
+  TODAY_N:[function(){var t=LM.today();return t.answers>=5?String(t.answers):null},"","",1],
+  TODAY_OK:[function(){var t=LM.today();return t.answers>=5?String(t.ok):null},"","",1],
+  MIN_WEEK:[function(){var w=LM.window(7);return w.min>=2?String(w.min):null},"","",1],
+  WEAK_SKILL:[function(l){var s=LM.skills(14);return s.known?(l==="en"?SK_EN:SK_DE)[s.weakest]:null},"","",1],
+  STRONG_SKILL:[function(l){var s=LM.skills(14);return s.known?(l==="en"?SK_EN:SK_DE)[s.strongest]:null},"","",1],
+  MIN_WEAK:[function(){var s=LM.skills(14);return s.known&&s.min[s.weakest]!==1?String(s.min[s.weakest]):null},"","",1],
+  MIN_STRONG:[function(){var s=LM.skills(14);return s.known&&s.min[s.strongest]>=2?String(s.min[s.strongest]):null},"","",1],
+  SKILL_DAYS:[function(){var s=LM.skills(14);return s.known&&s.weakestDaysAgo!=null&&s.weakestDaysAgo>=3?String(s.weakestDaysAgo):null},"","",1],
+  SHIFT_DAYS:[function(){var s=LM.shiftRatio(30);return s.shift>=2?String(s.shift):null},"","",1],
+  SHIFT_ZERO:[function(){var s=LM.shiftRatio(30);return s.shift>=2&&s.shiftZero>=1?String(s.shiftZero):null},"","",1],
+  SHIFT_OK:[function(){var s=LM.shiftRatio(30);return s.shift>=2&&s.shiftStudied>=1?String(s.shiftStudied):null},"","",1],
+  SKIPS:[function(){var e=LM.excuseProfile();return e.skips>=2?String(e.skips):null},"einige","several"],
+  GIVEUPS_X:[function(l){var e=LM.excuseProfile();return e.giveups>=3?xmal(e.giveups,l):null},"mehrmals","several times"],
+  OVERRIDES_X:[function(l){var e=LM.excuseProfile();return e.overrides>=3?xmal(e.overrides,l):null},"mehrmals","several times"],
+  EXCUSE:[function(l){var e=LM.excuseProfile();return e.type!=="none"?(l==="en"?e.en:e.de):null},"","",1],
+  DEBT:[function(){var d=0;try{d=num(P().debt)}catch(e){}return d>=2?String(d):null},"","",1],
+  DUE:[function(){var n=0;try{n=has("dueKeys")?dueKeys().length:0}catch(e){}return n>=2?String(n):null},"einige","some"],
+  CHAPTER:[function(){try{return String(P().ch)}catch(e){return null}},"","",1],
+  SEALS:[function(){try{var n=keysOf(P().sealed).length;return n>=2?String(n):null}catch(e){return null}},"einige","some"],
+  DAYS_PACT:[function(){try{var d=P().date;var n=d?diffDays(d,todayKey()):0;return n>=2?String(n):null}catch(e){return null}},"viele","many"]};
+var TOK_RE=/\{([A-Z][A-Z0-9_]*)\}/g;
+function tokVal(name,lang,x){if(x&&x[name]!=null)return String(x[name]);if(name==="N"&&x&&x.n!=null)return String(x.n);var t=TOK[name];if(!t)return undefined;var v=null;try{v=t[0](lang)}catch(e){EV.fail(e,"tok:"+name)}return v==null||v===""?null:String(v)}
+// lmCan(text, extra): true when every token in the text has real data — choose reactive lines with this
+function lmCan(s,x){var ok=true;String(s==null?"":s).replace(TOK_RE,function(all,name){var v=tokVal(name,"de",x);if(v===null)ok=false;return all});return ok}
+function hardMiss(s,x){var bad=false;String(s).replace(TOK_RE,function(all,name){var t=TOK[name];if(t&&t[3]&&tokVal(name,"de",x)===null)bad=true;return all});return bad}
+var SENT_RE=/[^.!?…]*(?:[.!?…]+[“”"'’)]*(?=\s|$)\s*|$)/g,ABBR=/(?:^|[\s(„])(?:Dr|Prof|Hr|Fr|St|Nr|ca|bzw|usw|z|B|d|h|u|a|o|ä|vgl|Mr|Mrs|e|g|i)\.\s*$/;
+function sentences(s){var out=[],buf="";(String(s).match(SENT_RE)||[]).forEach(function(p){if(!p)return;buf+=p;if(ABBR.test(buf)||/\d\.\s*$/.test(buf))return;out.push(buf);buf=""});if(buf)out.push(buf);return out}
+// lmFill(text, extra, lang)
+//   {TOKEN}            → the learner's data; a soft token without data gets its vague fallback; unknown tokens (and {n}) stay as they are
+//   [[ A || B ]]       → A when every token in A has data, else B (B may be empty)
+//   hard token, no data, outside [[ ]] → the whole sentence is dropped (extra.fallback is returned when nothing is left)
+function lmFill(s,x,lang){if(s==null)return "";s=String(s);if(s.indexOf("{")<0&&s.indexOf("[[")<0)return s;lang=lang==="en"?"en":"de";
+  s=s.replace(/\[\[([\s\S]*?)\]\]/g,function(all,body){var i=body.indexOf("||");var a=i<0?body:body.slice(0,i),b=i<0?"":body.slice(i+2);return lmCan(a,x)?a:b});
+  if(hardMiss(s,x)){s=sentences(s).filter(function(p){return !hardMiss(p,x)}).join("");if(!s.replace(/\s+/g,""))return x&&x.fallback!=null?String(x.fallback):""}
+  s=s.replace(TOK_RE,function(all,name,off,str){var v=tokVal(name,lang,x);if(v===undefined)return all;if(v===null){var t=TOK[name];v=t?t[lang==="en"?2:1]:all}
+    if(/^[a-zäöü]/.test(v)&&/(^|[.!?…]\s+)$/.test(str.slice(0,off)))v=v.charAt(0).toUpperCase()+v.slice(1);return v});
+  return s.replace(/[ \t]{2,}/g," ").trim()}
+function lmTokens(){return Object.keys(TOK)}
+// ---------------------------------------------------------------- 8. reactive lines: [trigger, minLevel 0–4 (A1–C1), de (Sie), en, de (du)]
+var MEPH_LM=[
+ ["nemesis",0,"Das Wort „{WORD}“. Schon {WORD_X} falsch. Es lacht über Sie.","The word '{WORD}'. Wrong {WORD_X} already. It is laughing at you.","Das Wort „{WORD}“. Schon {WORD_X} falsch. Es lacht über dich."],
+ ["nemesis",1,"„{WORD}“ heißt „{WORD_EN}“. Ich sage es Ihnen heute zum letzten Mal. Morgen kostet es Blut.","'{WORD}' means '{WORD_EN}'. I am telling you for the last time today. Tomorrow it costs blood.","„{WORD}“ heißt „{WORD_EN}“. Ich sage es dir heute zum letzten Mal. Morgen kostet es Blut."],
+ ["nemesis",2,"Ich habe „{WORD}“ an die Wand Ihres Zimmers geschrieben. Darunter stehen schon {WORD_N} Striche. Es ist noch Platz.","I have written '{WORD}' on the wall of your room. There are {WORD_N} tally marks under it already. There is room for more.","Ich habe „{WORD}“ an die Wand deines Zimmers geschrieben. Darunter stehen schon {WORD_N} Striche. Es ist noch Platz."],
+ ["nemesis",3,"Wenn Sie „{WORD}“ noch einmal vergessen, lasse ich es Ihnen vom Pudel vorbellen. Er ist nachtragender als ich.","If you forget '{WORD}' once more, I shall have the poodle bark it at you. He holds a grudge longer than I do.","Wenn du „{WORD}“ noch einmal vergisst, lasse ich es dir vom Pudel vorbellen. Er ist nachtragender als ich."],
+ ["weakLesson",0,"Die Lektion „{LESSON}“: {LESSON_PCT} Prozent. Das ist nicht viel.","The lesson '{LESSON}': {LESSON_PCT} per cent. That is not much.","Die Lektion „{LESSON}“: {LESSON_PCT} Prozent. Das ist nicht viel."],
+ ["weakLesson",1,"„{LESSON}“ ist Ihre schwächste Lektion. Machen Sie sie heute noch einmal. Ich schaue zu.","'{LESSON}' is your weakest lesson. Do it again today. I shall be watching.","„{LESSON}“ ist deine schwächste Lektion. Mach sie heute noch einmal. Ich schaue zu."],
+ ["weakStrong",2,"In „{LESSON}“ liegen Sie bei {LESSON_PCT} Prozent, in „{STRONG_LESSON}“ fast bei hundert. Sie können es also. Sie wollen nur nicht.","In '{LESSON}' you are at {LESSON_PCT} per cent, in '{STRONG_LESSON}' close to a hundred. So you can do it. You simply don't want to.","In „{LESSON}“ liegst du bei {LESSON_PCT} Prozent, in „{STRONG_LESSON}“ fast bei hundert. Du kannst es also. Du willst nur nicht."],
+ ["weakLesson",3,"Die Kommission wird Sie nicht nach Ihrer besten Lektion fragen, sondern nach „{LESSON}“. So ist sie. So bin ich.","The board will not ask about your best lesson but about '{LESSON}'. That is how they are. That is how I am.","Die Kommission wird dich nicht nach deiner besten Lektion fragen, sondern nach „{LESSON}“. So ist sie. So bin ich."],
+ ["back",0,"{DAYS_AWAY} Tage ohne Deutsch. Wo waren Sie?","{DAYS_AWAY} days without German. Where were you?","{DAYS_AWAY} Tage ohne Deutsch. Wo warst du?"],
+ ["backWord",1,"Sie waren {DAYS_AWAY} Tage weg. Das Wort „{WORD}“ hat auf Sie gewartet. Ich nicht.","You were away for {DAYS_AWAY} days. The word '{WORD}' waited for you. I did not.","Du warst {DAYS_AWAY} Tage weg. Das Wort „{WORD}“ hat auf dich gewartet. Ich nicht."],
+ ["backDue",2,"{DAYS_AWAY} Tage Stille. Ich habe inzwischen Ihre Karten gezählt: {DUE} sind fällig. Fangen wir an, bevor es mehr werden.","{DAYS_AWAY} days of silence. Meanwhile I have counted your cards: {DUE} are due. Let us begin before there are more.","{DAYS_AWAY} Tage Stille. Ich habe inzwischen deine Karten gezählt: {DUE} sind fällig. Fangen wir an, bevor es mehr werden."],
+ ["back",3,"Nach {DAYS_AWAY} Tagen Abwesenheit erwarte ich keine Entschuldigung. Entschuldigungen sind Grammatik für Feiglinge. Ich erwarte zwanzig Minuten.","After {DAYS_AWAY} days of absence I expect no apology. Apologies are grammar for cowards. I expect twenty minutes.","Nach {DAYS_AWAY} Tagen Abwesenheit erwarte ich keine Entschuldigung. Entschuldigungen sind Grammatik für Feiglinge. Ich erwarte zwanzig Minuten."],
+ ["confusion",1,"Sie schreiben „{CONF_GOT}“. Richtig ist „{CONF_WANT}“. Schon {CONF_X}.","You write '{CONF_GOT}'. '{CONF_WANT}' is correct. {CONF_X} now.","Du schreibst „{CONF_GOT}“. Richtig ist „{CONF_WANT}“. Schon {CONF_X}."],
+ ["confusion",2,"„{CONF_GOT}“ statt „{CONF_WANT}“ – {CONF_X} derselbe Fehler. Das ist kein Fehler mehr, das ist eine Gewohnheit.","'{CONF_GOT}' instead of '{CONF_WANT}' — the same mistake {CONF_X}. That is no longer a mistake, it is a habit.","„{CONF_GOT}“ statt „{CONF_WANT}“ – {CONF_X} derselbe Fehler. Das ist kein Fehler mehr, das ist eine Gewohnheit."],
+ ["article",0,"Ihr Problem heißt „{WEAK_ARTICLE}“. Sie sagen zu oft „{WRONG_ARTICLE}“.","Your problem is called '{WEAK_ARTICLE}'. You say '{WRONG_ARTICLE}' too often.","Dein Problem heißt „{WEAK_ARTICLE}“. Du sagst zu oft „{WRONG_ARTICLE}“."],
+ ["articlePct",1,"Bei {ARTICLE_PCT} Prozent der Nomen ist Ihr Artikel falsch. Der Golem rät besser.","With {ARTICLE_PCT} per cent of nouns your article is wrong. The golem guesses better.","Bei {ARTICLE_PCT} Prozent der Nomen ist dein Artikel falsch. Der Golem rät besser."],
+ ["article",2,"Die „{WEAK_ARTICLE}“-Wörter sind Ihre offene Wunde. Jedes Mal, wenn Sie stattdessen „{WRONG_ARTICLE}“ sagen, höre ich es bis in die Hölle.","The '{WEAK_ARTICLE}' words are your open wound. Every time you say '{WRONG_ARTICLE}' instead, I hear it all the way down in hell.","Die „{WEAK_ARTICLE}“-Wörter sind deine offene Wunde. Jedes Mal, wenn du stattdessen „{WRONG_ARTICLE}“ sagst, höre ich es bis in die Hölle."],
+ ["capital",1,"Nomen schreibt man groß. Sie haben es {CAP_X} vergessen.","Nouns are written with a capital letter. You have forgotten it {CAP_X}.","Nomen schreibt man groß. Du hast es {CAP_X} vergessen."],
+ ["eszett",2,"Das ß ist kein Schmuck. {SS_X} haben Sie es falsch gesetzt.","The ß is not an ornament. You have got it wrong {SS_X}.","Das ß ist kein Schmuck. {SS_X} hast du es falsch gesetzt."],
+ ["faster",1,"Vor einem Monat: {SECS_THEN} Sekunden pro Antwort. Heute: {SECS}. Sie werden schneller. Ich mag das nicht.","A month ago: {SECS_THEN} seconds per answer. Today: {SECS}. You are getting faster. I do not like it.","Vor einem Monat: {SECS_THEN} Sekunden pro Antwort. Heute: {SECS}. Du wirst schneller. Ich mag das nicht."],
+ ["slow",2,"{SECS} Sekunden pro Antwort. In der Notaufnahme hat der Patient in dieser Zeit schon zweimal gefragt, ob Sie ihn verstehen.","{SECS} seconds per answer. In the emergency department the patient has asked twice in that time whether you understand him.","{SECS} Sekunden pro Antwort. In der Notaufnahme hat der Patient in dieser Zeit schon zweimal gefragt, ob du ihn verstehst."],
+ ["hour",0,"Sie lernen am liebsten um {HOUR} Uhr. Ich weiß, wann Sie kommen.","You like best to study at {HOUR} o'clock. I know when you come.","Du lernst am liebsten um {HOUR} Uhr. Ich weiß, wann du kommst."],
+ ["hourBest",2,"Ihre besten Antworten geben Sie um {BEST_HOUR} Uhr, Ihre meisten um {HOUR} Uhr. Sie lernen zur falschen Zeit. Menschen eben.","You give your best answers at {BEST_HOUR} o'clock and most of your answers at {HOUR} o'clock. You study at the wrong time. Humans.","Deine besten Antworten gibst du um {BEST_HOUR} Uhr, deine meisten um {HOUR} Uhr. Du lernst zur falschen Zeit. Menschen eben."],
+ ["streakChase",0,"{STREAK} Tage in Folge. Ihr Rekord ist {BEST_STREAK}. Noch {STREAK_GAP} Tage.","{STREAK} days in a row. Your record is {BEST_STREAK}. {STREAK_GAP} more days.","{STREAK} Tage in Folge. Dein Rekord ist {BEST_STREAK}. Noch {STREAK_GAP} Tage."],
+ ["run",1,"{RUN} richtige Antworten hintereinander – Ihr Rekord. Ich habe ihn aufgeschrieben, damit ich ihn brechen kann.","{RUN} right answers in a row — your record. I have written it down so that I can break it.","{RUN} richtige Antworten hintereinander – dein Rekord. Ich habe ihn aufgeschrieben, damit ich ihn brechen kann."],
+ ["words30",0,"Vor 30 Tagen: {WORDS_THEN} Wörter. Heute: {WORDS_TOTAL}. Ich zähle mit.","30 days ago: {WORDS_THEN} words. Today: {WORDS_TOTAL}. I am keeping count.","Vor 30 Tagen: {WORDS_THEN} Wörter. Heute: {WORDS_TOTAL}. Ich zähle mit."],
+ ["words30b",1,"In diesem Monat haben Sie {WORDS_30} neue Wörter gelernt. Ich habe sie alle gehört. Einige sogar richtig.","This month you have learned {WORDS_30} new words. I have heard every one of them. Some of them even right.","In diesem Monat hast du {WORDS_30} neue Wörter gelernt. Ich habe sie alle gehört. Einige sogar richtig."],
+ ["newLesson",2,"Vor einem Monat konnten Sie „{NEW_LESSON}“ noch nicht. Jetzt können Sie es. Sagen Sie es niemandem – ich habe einen Ruf zu verlieren.","A month ago you could not do '{NEW_LESSON}'. Now you can. Tell no one — I have a reputation to lose.","Vor einem Monat konntest du „{NEW_LESSON}“ noch nicht. Jetzt kannst du es. Sag es niemandem – ich habe einen Ruf zu verlieren."],
+ ["skills",1,"In zwei Wochen: {MIN_STRONG} Minuten {STRONG_SKILL}, {MIN_WEAK} Minuten {WEAK_SKILL}. Sehen Sie das Problem?","In two weeks: {MIN_STRONG} minutes of {STRONG_SKILL}, {MIN_WEAK} minutes of {WEAK_SKILL}. Do you see the problem?","In zwei Wochen: {MIN_STRONG} Minuten {STRONG_SKILL}, {MIN_WEAK} Minuten {WEAK_SKILL}. Siehst du das Problem?"],
+ ["skillGap",2,"Seit {SKILL_DAYS} Tagen kein {WEAK_SKILL}. Die Prüfung übt es mit Ihnen – genau einmal, und dann ist es zu spät.","No {WEAK_SKILL} for {SKILL_DAYS} days. The exam will practise it with you — exactly once, and then it is too late.","Seit {SKILL_DAYS} Tagen kein {WEAK_SKILL}. Die Prüfung übt es mit dir – genau einmal, und dann ist es zu spät."],
+ ["shiftZero",1,"{SHIFT_DAYS} Dienste in diesem Monat. An {SHIFT_ZERO} davon: kein Wort Deutsch. Vier mal fünf Minuten, Doktor.","{SHIFT_DAYS} shifts this month. On {SHIFT_ZERO} of them: not a word of German. Four times five minutes, Doctor.","{SHIFT_DAYS} Dienste in diesem Monat. An {SHIFT_ZERO} davon: kein Wort Deutsch. Vier mal fünf Minuten, Doktor."],
+ ["shiftKept",2,"Der Dienst ist keine Ausrede, er ist der Grund. An {SHIFT_OK} von {SHIFT_DAYS} Diensttagen haben Sie trotzdem gelernt. Das merke ich mir.","The shift is not an excuse, it is the reason. On {SHIFT_OK} of {SHIFT_DAYS} shift days you studied all the same. I shall remember that.","Der Dienst ist keine Ausrede, er ist der Grund. An {SHIFT_OK} von {SHIFT_DAYS} Diensttagen hast du trotzdem gelernt. Das merke ich mir."],
+ ["skips",1,"Sie haben {SKIPS} Schritte übersprungen. Ich habe sie aufgehoben.","You have skipped {SKIPS} steps. I have kept them.","Du hast {SKIPS} Schritte übersprungen. Ich habe sie aufgehoben."],
+ ["giveups",2,"„Weiß ich nicht“ – {GIVEUPS_X}. Der Satz ist grammatisch richtig. Mehr spricht nicht für ihn.","'I don't know' — {GIVEUPS_X}. The sentence is grammatically correct. Nothing else speaks for it.","„Weiß ich nicht“ – {GIVEUPS_X}. Der Satz ist grammatisch richtig. Mehr spricht nicht für ihn."],
+ ["overrides",2,"{OVERRIDES_X} „Ich hatte recht“. Vielleicht. Die Kommission hat keinen solchen Knopf.","'I was right' — {OVERRIDES_X}. Perhaps. The board has no such button.","{OVERRIDES_X} „Ich hatte recht“. Vielleicht. Die Kommission hat keinen solchen Knopf."],
+ ["excuse",3,"Ihre liebste Ausrede ist: {EXCUSE}. Ich sammle Ausreden seit Jahrhunderten. Ihre ist nicht einmal originell.","Your favourite excuse is: {EXCUSE}. I have been collecting excuses for centuries. Yours is not even original.","Deine liebste Ausrede ist: {EXCUSE}. Ich sammle Ausreden seit Jahrhunderten. Deine ist nicht einmal originell."],
+ ["today",0,"Heute: {TODAY_OK} von {TODAY_N} richtig. Nicht schlecht. Für einen Menschen.","Today: {TODAY_OK} of {TODAY_N} right. Not bad. For a human.","Heute: {TODAY_OK} von {TODAY_N} richtig. Nicht schlecht. Für einen Menschen."],
+ ["rising",2,"{PCT_30} Prozent richtig in den letzten 30 Tagen, {PCT_PREV} im Monat davor. Die Kurve steigt. Ich werde nervös – sagen Sie es nicht dem Schatten.","{PCT_30} per cent right over the last 30 days, {PCT_PREV} the month before. The curve is rising. I am getting nervous — don't tell the Shadow.","{PCT_30} Prozent richtig in den letzten 30 Tagen, {PCT_PREV} im Monat davor. Die Kurve steigt. Ich werde nervös – sag es nicht dem Schatten."],
+ ["week",1,"Letzte Woche: {WORDS_WEEK} neue Wörter. Diese Woche bisher: {WORDS_THIS}. Die Woche ist noch nicht zu Ende. Ihre Seele auch nicht.","Last week: {WORDS_WEEK} new words. This week so far: {WORDS_THIS}. The week is not over yet. Neither is your soul.","Letzte Woche: {WORDS_WEEK} neue Wörter. Diese Woche bisher: {WORDS_THIS}. Die Woche ist noch nicht zu Ende. Deine Seele auch nicht."],
+ ["pact",3,"Seit der Unterschrift: {DAYS_PACT} Tage, {WORDS_TOTAL} Wörter, {SEALS} Siegel. Rechnen Sie selbst aus, wie viel Seele das ist. Ich habe es schon getan.","Since the signature: {DAYS_PACT} days, {WORDS_TOTAL} words, {SEALS} seals. Work out for yourself how much soul that is. I already have.","Seit der Unterschrift: {DAYS_PACT} Tage, {WORDS_TOTAL} Wörter, {SEALS} Siegel. Rechne selbst aus, wie viel Seele das ist. Ich habe es schon getan."]];
+// extra conditions per trigger (on top of "every token has data")
+var TRIG={
+  slow:function(){var s=LM.speed();return s.now!=null&&s.now>=9},
+  faster:function(){return LM.speed().faster===true},
+  rising:function(){var a=LM.window(30),b=LM.window(30,30);return a.acc!=null&&b.acc!=null&&a.acc>=b.acc+3},
+  streakChase:function(){var b=LM.bestStreak();return b.current>=3&&b.days-b.current<=5&&b.days>b.current},
+  run:function(){var b=LM.bestStreak();return b.answers>=15&&b.answersDay===today()},
+  today:function(){var t=LM.today();return t.answers>=20&&t.ok/t.answers>=.9},
+  skills:function(){var s=LM.skills(14);return s.known&&s.min[s.strongest]>=4*Math.max(1,s.min[s.weakest])},
+  weakLesson:function(){var l=LM.weakLesson();return !!l&&l.acc<70},
+  weakStrong:function(){var l=LM.weakLesson();return !!l&&l.acc<70&&!!LM.strongLesson()},
+  nemesis:function(){var w=LM.nemesisWord();return !!w&&w.wrong>=3},
+  back:function(){return LM.absence().returned>=2||LM.absence().days>=2},backWord:function(){return TRIG.back()},backDue:function(){return TRIG.back()},
+  week:function(){return LM.weekWords().weekday>=1},
+  hour:function(){var t=LM.timeOfDay();return t.n>=100},hourBest:function(){var t=LM.timeOfDay();return t.n>=200&&t.bestHour!=null&&Math.abs(t.bestHour-t.peakHour)>=3},
+  articlePct:function(){var a=LM.articles();return a.rate!=null&&a.rate>=20}};
+function lv(){try{return has("learnerLv")?learnerLv():0}catch(e){return 0}}
+function du(){try{return P().du===true}catch(e){return false}}
+// LM.lines(trigger?) → all lines that may be said now; LM.line(trigger?, seed?) → one of them as [de,en] filled in, or null
+LM.lines=function(trig){var L=lv()+1;return MEPH_LM.filter(function(x){if(trig&&x[0]!==trig&&x[0].indexOf(trig)!==0)return false;if(x[1]>L)return false;if(!lmCan(x[2]))return false;try{return !TRIG[x[0]]||TRIG[x[0]]()}catch(e){return false}})};
+LM.line=function(trig,seed){var L=LM.lines(trig);if(!L.length)return null;var k=today()+(seed||""),h=0;for(var i=0;i<k.length;i++)h=(h*31+k.charCodeAt(i))>>>0;
+  var top=Math.max.apply(null,L.map(function(x){return x[1]}));var best=L.filter(function(x){return x[1]>=top-1});var x=best[h%best.length];return {trigger:x[0],l:[lmFill(du()&&x[4]?x[4]:x[2],null,"de"),lmFill(x[3],null,"en")]}};
+LM.bank=MEPH_LM;LM.triggers=TRIG;LM.fill=lmFill;LM.can=lmCan;LM.tokens=lmTokens;
+// ---------------------------------------------------------------- 9. wiring the model to the bus, and the story to the model
+function wire(){
+  EV.on("card.answer",ON.cardAnswer);EV.on("card.undo",ON.cardUndo);EV.on("card.new",ON.cardNew);EV.on("ex.answer",ON.exAnswer);EV.on("boss.answer",ON.bossAnswer);EV.on("genus.answer",ON.genus);
+  EV.on("spell",ON.spell);EV.on("errors",ON.errors);EV.on("lesson.finish",ON.lessonFinish);EV.on("ex.round",ON.exRound);EV.on("study.time",ON.time);
+  EV.on("session.skip",function(){ON.count("skip")});EV.on("card.giveup",function(){ON.count("giveup")});EV.on("card.override",function(){ON.count("over")});EV.on("ex.override",function(){ON.count("over")});
+  EV.on("debt.added",function(d){ON.count("debtAdd",d.n)});EV.on("debt.paid",function(d){ON.count("debtPaid",d.n)});EV.on("shift.on",function(){ON.count("shiftOn")});EV.on("boss.left",function(){ON.count("left")});
+  EV.on("session.finish",function(d){if(d.hour>=23||d.hour<4)ON.count("late")});
+  EV.on("day.rollover",ON.day);EV.on("day.rollover",dayStart);
+  // proposal 6 — duel log in S.lm.du until i7's Duel engine exists (it keeps its own S.duel.log)
+  ["boss.won","boss.lost","boss.left"].forEach(function(nm){EV.on(nm,function(d){try{if(typeof W.Duel!=="undefined"||TEST)return;var m=M();m.du=(Array.isArray(m.du)?m.du:[]).concat([{date:todayKey(),id:String(d.id||""),r:nm==="boss.won"?"w":nm==="boss.lost"?"l":"x",hits:num(d.hits),miss:num(d.miss)}]).slice(-200);touch()}catch(e){EV.fail(e,"duel log")}})});
+  // proposal 5 — the return scene: remembered per device for the day of the return
+  EV.on("absence.detected",function(d){try{if(d&&d.days>=2&&isO(S.pakt)&&S.pakt.signed&&has("lsSet"))lsSet("mephisto_i1_ret",JSON.stringify({days:d.days,at:todayKey(),shown:0}))}catch(e){EV.fail(e,"ret")}});EV.on("state.ready",ON.day);EV.on("state.replaced",function(){RUN=0;UNDO=null;touch()});
+  // story lines: {WORD}, {LESSON} … work in every chapter line, document and Mephisto line without touching the reader
+  aroundG("st3Fill",function(inner,a){var s=a[0],r=inner.apply(null,a);try{return lmFill(r,null,/[äöüßÄÖÜ„“]/.test(String(s))?"de":"auto")}catch(e){return r}});
+  aroundG("pkSay",function(inner,a){var l=a[0];try{if(Array.isArray(l)&&(String(l[0]).indexOf("{")>=0||String(l[1]||"").indexOf("{")>=0))a[0]=[lmFill(l[0],null,"de"),lmFill(l[1],null,"en")].concat(l.slice(2))}catch(e){a[0]=l}return inner.apply(null,a)});
+  // the greeting on Heute: a reactive line on some days, never over a debt, shift, finished, return-after-30-days or after-the-pact line
+  aroundG("pkGreet",function(inner,a){var g=inner.apply(null,a);
+      try{if(LM.cfg.greet&&typeof W.vcPick!=="function"&&g&&(g.k==="greet"||g.k==="morning"||g.k==="night")){var d=dn(todayKey());var backNow=LM.absence().returned>=2;
+          if(backNow||d%LM.cfg.greetEvery===0){var x=LM.line(backNow?"back":null,"greet");if(x)return {k:"lm",l:x.l,trigger:x.trigger}}}}catch(e){EV.fail(e,"pkGreet")}
+      return g})}
+// "auto" language for st3Fill: English lines of the story contain no umlauts or German quotes in practice; fall back to German values otherwise
+(function(){var _f=lmFill;lmFill=function(s,x,lang){if(lang==="auto")lang=/\b(the|you|your|and|is|of)\b/.test(String(s))?"en":"de";return _f(s,x,lang)}})();
+// ---------------------------------------------------------------- 9b. day start out of the views (I9 proposal 9) and the return scene (proposal 5)
+// dayStart runs once per day: on the first scan of a new day (day.rollover) and at boot when this device has not started the day yet.
+function dayStart(d){try{if(TEST)return;if(has("pkCheckDebt"))try{pkCheckDebt()}catch(e){EV.fail(e,"dayStart:debt")}if(has("timeEggs"))try{timeEggs()}catch(e){EV.fail(e,"dayStart:eggs")}}catch(e){EV.fail(e,"dayStart")}}
+function bootDay(){try{var t=todayKey(),k="mephisto_ev_day",last=has("lsGet")?lsGet(k):"";if(last===t)return;if(has("lsSet"))lsSet(k,t);EV.emit("day.rollover",{from:last||"",to:t,boot:true})}catch(e){EV.fail(e,"bootDay")}}
+var RET_N=[["N","[[The path has been silent for {DAYS_AWAY} days. Leaves lie over your tracks.||]]"],
+  ["N","[[For {DAYS_AWAY} days nobody opened this page. Dust lies on the paper.||]]"],
+  ["N","[[Seit {DAYS_AWAY} Tagen war diese Seite zu. Staub liegt auf dem Papier.||]]","[[For {DAYS_AWAY} days this page stayed shut. Dust lies on the paper.||]]"]];
+function retNow(){try{var r=JSON.parse((has("lsGet")?lsGet("mephisto_i1_ret"):"")||"null");return r&&r.at===todayKey()&&!r.shown?r:null}catch(e){return null}}
+function retPass(L,c,ctx){try{if(!ctx||ctx.kind!=="chapter"||!c||c.sober||!isO(S.pakt)||c.n!==S.pakt.ch)return;var r=retNow();if(!r)return;
+    var nl=(c.n<=8?RET_N[0]:c.n<=16?RET_N[1]:RET_N[2]).map(function(x){return String(x).replace(/\{DAYS_AWAY\}/g,r.days)});var ins=[nl];
+    var x=LM.line("back","ret");if(x&&x.l&&x.l[0]&&x.l[0].indexOf("{")<0)ins.push(["M",x.l[0],x.l[1]]);
+    L.splice(0,0,...ins);r.shown=1;if(has("lsSet"))lsSet("mephisto_i1_ret",JSON.stringify(r))}catch(e){EV.fail(e,"retPass")}}
+EV.ret=retNow;
+// ---------------------------------------------------------------- 10. self-test (never touches S): EV.selfTest() → {ok, fails, size…}
+function sortDeep(v){if(Array.isArray(v))return v.map(sortDeep);if(isO(v)){var o={};Object.keys(v).sort().forEach(function(k){o[k]=sortDeep(v[k])});return o}return v}
+function selfTest(){var fails=[],eq=function(n,a,b){if(JSON.stringify(a)!==JSON.stringify(b))fails.push(n+": "+JSON.stringify(a)+" ≠ "+JSON.stringify(b))},ok=function(n,c){if(!c)fails.push(n)};var out={};
+  var keep=[TEST,RUN,UNDO];try{
+    // bus
+    var n=0,off=EV.on("__t",function(){n++});EV.on("__t",function(){throw new Error("x")});EV.emit("__t");off();EV.emit("__t");eq("bus count",n,1);EV._h.__t=[];EV._err.pop();EV._err.pop();
+    // model on a scratch state
+    var s={cards:{"w:der Blutdruck":{int:3,reps:2,lapses:1},"w:die Lunge":{int:30,reps:6,lapses:0}},log:{},custom:[],lessons:{},pakt:{ch:3,sealed:{1:"2026-11-02",2:"2026-11-09"},date:"2026-11-01"},shifts:{},lm:blank()};
+    LM._test({S:s,day:"2026-11-10",dev:"a",min:600});s.lm.t0=dn("2026-11-01");
+    for(var i=0;i<5;i++)ON.cardAnswer({key:"w:der Blutdruck",q:0,ms:4000,hour:10,lapse:i>0,typed:i<3?{want:"der Blutdruck",got:"die Blutdruck",q:0,art:true,gotArt:"die",spell:[]}:null});
+    for(var j=0;j<12;j++)ON.cardAnswer({key:"w:die Lunge",q:2,ms:2000,hour:22,typed:j<4?{want:"die Lunge",got:"die lunge",q:2,spell:["cap"]}:null});
+    var nw=LM.nemesisWord();ok("nemesis",!!nw&&/Blutdruck/.test(nw.de));eq("nemesis wrong",s.lm.k["w:der Blutdruck"][0],5);
+    eq("article weak",LM.articles().by.der,{n:3,wrong:3,rate:100});eq("article pair",LM.articles().pair,{want:"der",got:"die",n:3});eq("confusion",LM.confusions(1)[0].n,3);
+    eq("spelling",[s.lm.sp.n,s.lm.sp.cap],[7,4]);eq("run",s.lm.bs[0],12);eq("hours",[s.lm.h[20],s.lm.h[21],s.lm.h[44],s.lm.h[45]],[5,0,12,12]);eq("today",[LM.today().answers,LM.today().ok],[17,12]);
+    // undo restores exactly
+    var before=JSON.stringify(s.lm);ON.cardAnswer({key:"w:die Lunge",q:0,ms:1000,hour:9});ok("undo changed",JSON.stringify(s.lm)!==before);ON.cardUndo({key:"w:die Lunge"});var m2=JSON.parse(JSON.stringify(s.lm));delete m2.ex.undo;eq("undo",JSON.stringify(m2),before);delete s.lm.ex.undo;
+    // lessons with recency: 8 wrong then 8 right must score above 50 %
+    for(var a=0;a<8;a++)ON.exAnswer({lesson:"gX",ok:false,given:"dem",want:"den",type:"mc",hour:10,ms:3000});for(var b=0;b<8;b++)ON.exAnswer({lesson:"gX",ok:true,given:"den",want:"den",type:"mc",hour:10,ms:3000});
+    ok("recency "+s.lm.l.gX[0],s.lm.l.gX[0]>600&&s.lm.l.gX[0]<900);eq("lesson counts",[s.lm.l.gX[1],s.lm.l.gX[2]],[16,8]);
+    ON.time({skill:"L",sec:120});for(var r5=0;r5<5;r5++)ON.time({skill:"R",sec:180});eq("skills",[LM.skills(7).min.L,LM.skills(7).min.R,LM.skills(7).weakest],[2,15,"S"]);
+    // merge: commutative, idempotent, per-device days add up
+    var A=JSON.parse(JSON.stringify(s.lm));LM._test({S:{cards:{},log:{},custom:[],lm:blank()},day:"2026-11-10",dev:"b",min:700});var sb=ST();
+    for(var c=0;c<7;c++)ON.cardAnswer({key:"w:der Blutdruck",q:0,ms:3000,hour:11});for(var d=0;d<3;d++)ON.cardAnswer({key:"w:das Herz",q:0,ms:3000,hour:11});var B=JSON.parse(JSON.stringify(sb.lm));
+    var AB=mergeLM(A,B),BA=mergeLM(B,A);eq("merge commutes",JSON.stringify(AB),JSON.stringify(BA));eq("merge idempotent",JSON.stringify(mergeLM(AB,AB)),JSON.stringify(AB));eq("merge assoc",JSON.stringify(mergeLM(mergeLM(A,B),A)),JSON.stringify(AB));
+    eq("merge card max",AB.k["w:der Blutdruck"][0],7);ok("merge union",!!AB.k["w:das Herz"]);var day=AB.d[dn("2026-11-10")];eq("merge devices",[day.a[D_ANS],day.b[D_ANS]],[17,10]);
+    LM._test({S:{cards:{},log:{},custom:[],lm:AB},day:"2026-11-10",dev:"a"});eq("window sums devices",LM.window(1).ans,27);eq("first minute",dayRow(AB,dn("2026-11-10"))[D_FIRST],601);
+    // templates
+    LM._test({S:s,day:"2026-11-10",dev:"a"});s.lm=A;eq("fill",lmFill("Das Wort „{WORD}“, {WORD_X}, {n}, {UNKNOWN}.",null,"de"),"Das Wort „"+LM.nemesisWord().de+"“, 5-mal, {n}, {UNKNOWN}.");
+    ok("can",lmCan("{WORD} {CONF_GOT}")&&!lmCan("{OLD_CONF_GOT}"));eq("soft fallback",lmFill("{DAYS_AWAY} Tage Stille. Nach {DAYS_AWAY} Tagen.",null,"de"),"Mehr als zwei Tage Stille. Nach mehr als zwei Tagen.");eq("extra",lmFill("{N} {X}",{n:3,X:"y"}),"3 y");
+    eq("hard drop",lmFill("Guten Tag, Herr Dr. Faust. Früher sagten Sie „{OLD_CONF_GOT}“. Weiter.",null,"de"),"Guten Tag, Herr Dr. Faust. Weiter.");eq("hard all",lmFill("Früher: „{OLD_CONF_GOT}“?",{fallback:"Ach, Sie."},"de"),"Ach, Sie.");
+    eq("segment",lmFill("Der Wald war [[{LONGEST_GAP} Tage||lange]] still[[, und „{WORD}“ wartete]].",null,"de"),"Der Wald war lange still, und „"+LM.nemesisWord().de+"“ wartete.");
+    ok("line",!!LM.line("nemesis")&&LM.line("nemesis").l[0].indexOf("{")<0);
+    var bad=[];MEPH_LM.forEach(function(x,i){[x[2],x[3],x[4]].forEach(function(t){String(t).replace(TOK_RE,function(all,nm0){if(!TOK[nm0])bad.push(i+":"+nm0);return all})});var t2=function(z){return (String(z).match(TOK_RE)||[]).sort().join()};if(t2(x[2])!==t2(x[3])||t2(x[2])!==t2(x[4]))bad.push(i+":tokens differ")});eq("bank tokens",bad,[]);
+    // one year of use: 365 days, 2 devices on a third of the days, 150 card answers and 40 exercise answers a day, 4,000 cards, 72 lessons
+    var big={cards:{},log:{},custom:[],lessons:{},pakt:{},shifts:{},lm:blank()};var rnd=(function(){var x=12345;return function(){x=(x*1103515245+12345)&0x7fffffff;return x/0x7fffffff}})();
+    for(var dd=0;dd<365;dd++){var dayK=addDays("2026-01-01",dd);for(var dv=0;dv<(dd%3===0?2:1);dv++){LM._test({S:big,day:dayK,dev:dv?"dtablet1":"dphone01",min:480+Math.floor(rnd()*600)});
+        for(var q=0;q<150/(dv+1);q++){var id="w:Wort"+Math.floor(Math.pow(rnd(),2)*4000),wrong=rnd()<.18;ON.cardAnswer({key:id,q:wrong?0:2,ms:2000+rnd()*6000,hour:Math.floor(rnd()*24),lapse:wrong,typed:rnd()<.2?{want:"der Begriff"+(q%300),got:wrong?"die Begriff"+(q%300):"der begriff"+(q%300),q:wrong?0:2,art:wrong,gotArt:"die",spell:wrong?[]:["cap"]}:null})}
+        for(var e=0;e<40;e++){var w2=rnd()<.25;ON.exAnswer({lesson:"g"+Math.floor(rnd()*72),ok:!w2,given:"Antwort "+Math.floor(rnd()*400),want:"Lösung "+Math.floor(rnd()*400),type:"mc",hour:20,ms:5000})}
+        for(var t=0;t<6;t++)ON.time({skill:"VGRLWS".charAt(t),sec:300});ON.cardNew();ON.cardNew()}
+      if(dd%7===0){LM._test({S:big,day:dayK,dev:"dphone01"});ON.day()}}
+    out.yearBytes=JSON.stringify(big.lm).length;out.yearParts={};for(var kk in big.lm)out.yearParts[kk]=JSON.stringify(big.lm[kk]).length;ok("year size "+out.yearBytes,out.yearBytes<400000);
+    LM._test({S:big,day:"2026-12-31",dev:"dphone01"});var t0=Date.now();LM.nemeses(20);LM.weakLessons(5);LM.trend30();LM.delta30();LM.excuseProfile();LM.skills(30);out.readMs=Date.now()-t0;ok("nemeses 20",LM.nemeses(20).length===20);ok("weak 5",LM.weakLessons(5).length===5)
+    // proposal 8: mergeStates(S,S) changes no key of S, and a key present on one side only survives
+    try{if(has("mergeStates")&&isO(S)){var cl=JSON.parse(JSON.stringify(S)),mm=mergeStates(JSON.parse(JSON.stringify(S)),cl),chg=[];
+        Object.keys(cl).forEach(function(k2){if(k2==="_ts"||k2==="_dev"||k2==="_sync")return;if(JSON.stringify(sortDeep(mm[k2]))!==JSON.stringify(sortDeep(cl[k2])))chg.push(k2)});out.mergeNoop=chg;ok("merge no-op: "+chg.join(","),!chg.length);
+        var one=JSON.parse(JSON.stringify(S));one.__i1probe={a:1};var mo=mergeStates(one,JSON.parse(JSON.stringify(S)));out.mergeKeeps=!!(mo&&mo.__i1probe);}}catch(e){fails.push("merge no-op exception: "+String(e&&e.message||e).slice(0,200))}
+  }catch(e){fails.push("exception: "+String(e&&e.stack||e).slice(0,400))}finally{TEST=keep[0];RUN=keep[1];UNDO=keep[2];DN={};touch()}
+  out.ok=!fails.length;out.fails=fails;out.missing=EV._miss.slice();out.wrappers=Object.keys(EV._w).map(function(k){var r=EV._w[k];var cur=k.indexOf(".")>0?null:W[k];return {name:k,calls:r.calls,outermost:cur?cur===r.fn:null}});out.size=TEST?0:LM.size();out.errors=EV._err.slice();return out}
+EV.selfTest=selfTest;EV.scan=scan;EV.ctx=function(){return CTX};EV.skillNow=skillNow;
+// ---------------------------------------------------------------- 11. start
+W.EV=EV;W.LM=LM;W.lmFill=function(s,x,lang){return lmFill(s,x,lang||"de")};W.lmCan=lmCan;
+try{installWrappers()}catch(e){EV.fail(e,"install")}
+try{wire()}catch(e){EV.fail(e,"wire")}
+try{if(typeof RD!=="undefined"&&RD.pass)RD.pass("i1.back",40,retPass)}catch(e){EV.fail(e,"rd")}
+setTimeout(function(){try{scan();absenceCheck();bootDay();EV.emit("app.boot",{version:typeof APP_VERSION!=="undefined"?APP_VERSION:"",missing:EV._miss.slice()})}catch(e){EV.fail(e,"boot")}},0);
+setInterval(function(){try{if(PREV&&PREV.day!==todayKey())scan()}catch(e){}},60000);
+if(W.document&&document.addEventListener)document.addEventListener("visibilitychange",function(){try{if(!document.hidden)scanSoon()}catch(e){}});
+})();
 
 // ================= BOOT =================
 // P2: when the state lives in IndexedDB (localStorage holds only the stub) the first render waits for it (STORE.bootWait, at most 4 s).
