@@ -1134,7 +1134,7 @@ ACT.copyYuzu=()=>{const p=yuzuPack();copyText(JSON.stringify(p),$(".bk-txt"));to
 ACT.reset=()=>{const v=($(".rs-in")||{}).value;if(v!=="LÖSCHEN")return toast("Tippe LÖSCHEN zur Bestätigung");lsSet("mephisto_before_reset",JSON.stringify(S));S=fresh();saveNow();buildDict();applyPrefs();R.tab="home";toast("Zurückgesetzt. Eine Kopie liegt unter „mephisto_before_reset“.");rerender()};
 
 // ================= PHONE FEATURES (v10): speech check, Artikel-Blitz, numbers, terms, undo, haptics, coach, PWA =================
-const APP_VERSION="13.5.0";
+const APP_VERSION="13.6.0";
 const IS_PWA=!!window.MEPHISTO_PWA;
 const IS_STANDALONE=(()=>{try{return matchMedia("(display-mode: standalone)").matches||navigator.standalone===true}catch(e){return false}})();
 const IS_IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
@@ -1530,7 +1530,7 @@ function teachAnalyze(text,t){const L=tLex();const F=[];const reps=[];const take
   text.replace(/\bseit\s+(eine|ein|einen)\s+(\w+)/gi,(m,a,n,off)=>{const fix=a.toLowerCase()==="eine"?"einer":"einem";const s=off+5;add({key:"seit",type:"Präposition",title:"seit + Dativ",orig:m,fix:"seit "+fix+" "+n},s,s+a.length,fix);return m});
   text.replace(/\bseit\s+(zwei|drei|vier|fünf|sechs|sieben|acht|neun|zehn|\d+)\s+(tage|tag|woche|monate|monat|jahre|jahr|stunde|minute)\b/gi,(m,nm,n,off)=>{const pl={tag:"Tagen",tage:"Tagen",woche:"Wochen",monat:"Monaten",monate:"Monaten",jahr:"Jahren",jahre:"Jahren",stunde:"Stunden",minute:"Minuten"}[n.toLowerCase()];const s=off+m.length-n.length;add({key:"seit",type:"Präposition",title:"seit + Dativ",orig:m,fix:"seit "+nm+" "+pl},s,s+n.length,pl);return m});
   // Perfekt with sein: ich habe … gegangen → ich bin … gegangen
-  text.replace(/\b(habe|hast|hat|haben|habt)\b([^.!?]{0,40}?)\b(gegangen|gekommen|gefahren|gelaufen|geflogen|gestorben|gefallen|geblieben|gewesen|geworden|aufgestanden|eingeschlafen|aufgewacht|umgezogen|gestürzt|gereist|gerannt|angekommen|zurückgekommen|mitgekommen|passiert|geschehen)\b/gi,(m,aux,mid,pp,off)=>{if(/^gefallen$/i.test(pp)){const sent=text.slice(Math.max(0,text.lastIndexOf(".",off)+1),off+m.length);if(!/\b(von|vom|auf die|auf den|hin|runter|herunter|aus dem|aus der|aus dem Bett|die Treppe)\b/i.test(mid)&&(/^(hat|haben|habt)$/i.test(aux)||/\b(mir|dir|ihm|ihr|uns|euch|ihnen|Ihnen|mich|dich|es|das)\b/i.test(sent)))return m}const map={habe:"bin",hast:"bist",hat:"ist",haben:"sind",habt:"seid"};if(/\bge[a-zäöüß]{3,}(t|en)\b/i.test(mid)||/\b(ist|bin|sind|bist|seid|war|waren|und|aber|dann)\b/i.test(mid))return m;const fx=map[aux.toLowerCase()];add({key:"perfsein",type:"Konjugation",title:"Perfekt mit sein",orig:aux+" … "+pp,fix:fx+" … "+pp,pp},off,off+aux.length,aux[0]===aux[0].toUpperCase()?fx[0].toUpperCase()+fx.slice(1):fx);return m});
+  text.replace(new RegExp("\\b(habe|hast|hat|haben|habt)\\b((?:(?!\\b(?:habe|hast|hat|haben|habt)\\b)[^.!?]){0,40}?)\\b("+(typeof p3SeinParts==="function"?p3SeinParts():["gegangen","gekommen","gefahren","gelaufen","geflogen","gestorben","gefallen","geblieben","gewesen","geworden","aufgestanden","eingeschlafen","aufgewacht","umgezogen","gestürzt","gereist","gerannt","angekommen","passiert","geschehen"]).join("|")+")(?![a-zäöüß])","gi"),(m,aux,mid,pp,off)=>{if(/^(gefahren|geflogen|abgefahren|losgefahren|zurückgefahren|gefolgt|gelandet|gestoßen|gezogen|umgezogen)$/i.test(pp)&&/\b(den|einen|ihn|mich|dich|uns|euch|das Auto|den Wagen|das Kind|die Kinder|die Patientin|den Patienten)\b/i.test(mid))return m;if(/^gefallen$/i.test(pp)){const sent=text.slice(Math.max(0,text.lastIndexOf(".",off)+1),off+m.length);if(!/\b(von|vom|auf die|auf den|hin|runter|herunter|aus dem|aus der|aus dem Bett|die Treppe)\b/i.test(mid)&&(/^(hat|haben|habt)$/i.test(aux)||/\b(mir|dir|ihm|ihr|uns|euch|ihnen|Ihnen|mich|dich|es|das)\b/i.test(sent)))return m}const map={habe:"bin",hast:"bist",hat:"ist",haben:"sind",habt:"seid"};if(/\bge[a-zäöüß]{3,}(t|en)\b/i.test(mid)||/\b(ist|bin|sind|bist|seid|war|waren|und|aber|dann)\b/i.test(mid))return m;const fx=map[aux.toLowerCase()];add({key:"perfsein",type:"Konjugation",title:"Perfekt mit sein",orig:aux+" … "+pp,fix:fx+" … "+pp,pp},off,off+aux.length,aux[0]===aux[0].toUpperCase()?fx[0].toUpperCase()+fx.slice(1):fx);return m});
   // im/am/vom/zum/beim + adjective -e → -en
   text.replace(/\b(im|am|vom|zum|beim)\s+([a-zäöüß]+e)\s+([A-ZÄÖÜ][a-zäöüß]+)\b/g,(m,pre,adj,noun,off)=>{const s=off+pre.length+1;add({key:"adjdekl",type:"Adjektivendung",title:"im recht"+"en Arm",orig:m,fix:pre+" "+adj+"n "+noun,why:"After <i>im, am, vom, zum, beim</i> (= dem) the adjective always ends in <b>-en</b>: <i>im recht<b>en</b> Arm, am link<b>en</b> Bein</i>."},s,s+adj.length,adj+"n");return m});
   // article vs. genus: das X (X is der/die) · die X (X is der/das, singular) · eine X (X is der/das) · kein X (X is die)
@@ -1606,7 +1606,7 @@ function teachAnalyze(text,t){const L=tLex();const F=[];const reps=[];const take
     if(!e&&k.length>=3){const med=T_MED.find(([re])=>re.test(k)&&re.source);if(med&&med[1].toLowerCase()!==k){add({key:"spell",type:"Rechtschreibung",title:"Rechtschreibung",orig:tk.w,fix:med[1],why:med[2]},tk.s,tk.e,med[1]);return}
       if(/^[A-ZÄÖÜ]/.test(tk.w)&&(!start||k.length>6||/(en|a|ae|i|us|um|is)$/.test(k)))return;if(T_LATIN.test(k)||/(itis|ose|om|ie|ämie|urie|algie|ektomie|skopie|graphie|gramm|tomie|plasie|pathie|logie|ase|in|ol|id|at|on)$/.test(k)&&k.length>=7)return;
       if(/^[a-zäöüß]{2,8}ge[a-zäöüß]{3,}(t|en|et)$/.test(k)&&!/^ge/.test(k))return;
-      if(/^ge[a-zäöüß]{3,}(t|en|et)$/.test(k)){const sp=tStrongPart(k);if(sp){add({key:"spell",type:"Rechtschreibung",title:"Partizip II (unregelmäßig)",orig:tk.w,fix:sp,why:"This verb is irregular: the participle ends in <b>-en</b> and often changes its vowel."},tk.s,tk.e,sp)}return}
+      if(/^ge[a-zäöüß]{3,}(t|en|et)$/.test(k)){const sp=tStrongPart(k);if(sp){add({key:"spell",type:"Rechtschreibung",title:"Partizip II (unregelmäßig)",orig:tk.w,fix:sp,why:"This verb is irregular: the participle ends in <b>-en</b> and often changes its vowel."},tk.s,tk.e,sp)}else if(typeof p3WeakPart==="function"){const wp=p3WeakPart(k,inf=>!!L.get(inf)||tVForms().has(inf));if(wp)add({key:"spell",type:"Rechtschreibung",title:"Partizip II (regelmäßig: ge-…-t)",orig:tk.w,fix:wp,why:"Regular verbs form the participle with <b>ge- + stem + -t</b>: <i>lernen → gelernt, machen → gemacht, arbeiten → gearbeitet</i>. Only strong verbs end in -en (<i>gefahren, geschrieben</i>)."},tk.s,tk.e,wp)}return}
       const isCap=/^[A-ZÄÖÜ]/.test(tk.w);if(k.length<(isCap?6:7))return;const max=(isCap&&k.length>8)?2:1;let cands=[];for(const [w,v] of L){if(Math.abs(w.length-k.length)>max||w[0]!==k[0])continue;if(w.slice(isCap?-2:-3)!==k.slice(isCap?-2:-3))continue;let cp=0;while(cp<w.length&&cp<k.length&&w[cp]===k[cp])cp++;if(k.length-cp<=2&&w.length-cp<=2)continue;const d=tLev(k,w,max);if(d<=max)cands.push({w,d,n:v.n,v})}
       if(cands.length){const ctx=w=>(w==="seit"&&/^(\d+|zwei|drei|vier|fünf|einer|einem|gestern|heute|wann|tagen|wochen)/i.test(nx))?-3:0;
         cands.sort((a,b)=>(a.d+ctx(a.w))-(b.d+ctx(b.w))||b.n-a.n);const best=cands[0];const stem=x=>x.replace(/(em|en|er|es|e|n|s)$/,"");if(stem(best.w)===stem(k)||best.w.startsWith(k)||k.startsWith(best.w))return;let fx=tNoun(best.v)?best.v.form:best.w;if(start)fx=fx[0].toUpperCase()+fx.slice(1);
@@ -1630,6 +1630,8 @@ function teachAnalyze(text,t){const L=tLex();const F=[];const reps=[];const take
   const sents=text.split(/(?<=[.!?])\s+|\n+/).filter(s=>(s.match(/[A-Za-zÄÖÜäöüß]+/g)||[]).length>=2);const req=String((t&&t.task)||"").replace(/<[^>]+>/g,"").match(/\((\w+)(?:\s*(?:–|-|bis)\s*(\w+))?\s+Sätze\)/)||String((t&&t.task)||"").match(/(\w+)\s+Sätze/);
   const want=req?(tNum(req[1])||+req[1]||0):0;if(want&&sents.length<want)F.push({key:"len",type:"Sonstiges",title:"Mehr Sätze, mehr Inhalt",have:sents.length,want});
   const lastLine=text.trim().split(/\n/).pop()||"";if(/[A-Za-zÄÖÜäöüß0-9)]\s*$/.test(text)&&!/Grü(ß|ss)|Gruß|^\s*(Dr\.|Prof\.)|^[^ ]+( [^ ]+)?$/.test(lastLine)&&(lastLine.match(/\S+/g)||[]).length>=4)add({key:"punct",type:"Rechtschreibung",title:"Satzzeichen am Ende",orig:"…"+text.trim().slice(-12),fix:"…"+text.trim().slice(-12)+"."},text.replace(/\s+$/,"").length,text.replace(/\s+$/,"").length,".");
+  // --- P3: Arztbrief rule set and other high-precision rules (c_p3_coach.js)
+  try{if(typeof p3CoachRules==="function")p3CoachRules(text,t,add,F)}catch(e){}
   // --- corrected text
   let corrected=text;reps.sort((a,b)=>b.s-a.s||b.e-a.e).forEach(r=>{corrected=corrected.slice(0,r.s)+r.rep+corrected.slice(r.e)});corrected=corrected.replace(/\s+,/g,",").replace(/,,+/g,",");
   // --- content
@@ -1637,11 +1639,12 @@ function teachAnalyze(text,t){const L=tLex();const F=[];const reps=[];const take
   return {F,corrected,content,sents:sents.length,want,T}}
 
 // ---- grouped teaching moments with the rule, a demo and a "Merke"
-const T_ORDER=["reg_intro","age","perfsein","genus","herrn","adjdekl","v2","vich","akk","lok","dat","imp","tel","vend","comma","comma2","seit","cap","spell","start","low","reg_glaube","reg_du","reg_sie","reg_latin","len","punct"];
+const T_ORDER=["b_sec","b_cont","b_stil","b_konj","b_perf","b_ich","b_coll","b_gruss","b_excl","b_ct","b_komma","b_adj","b_kongr","b_ndekl","b_kein","reg_intro","age","perfsein","genus","herrn","adjdekl","v2","vich","akk","lok","dat","imp","tel","vend","comma","comma2","seit","cap","spell","start","low","reg_glaube","reg_du","reg_sie","reg_latin","len","punct"];
 function dg(txt,cls,lab){return `<span class="dg ${cls||""}">${txt}${lab?`<small>${lab}</small>`:""}</span>`}
 function tMoments(F){const by={};F.forEach(f=>{(by[f.key]=by[f.key]||[]).push(f)});return T_ORDER.filter(k=>by[k]).map(k=>{const L=by[k],f=L[0];const pairs=L.slice(0,6).map(x=>`<span class="tch-pair"><del>${esc(x.orig)}</del><span class="ar">→</span><ins>${esc(x.fix)}</ins></span>`).join("");
   let rule="",demo="",merke="",tip="";
-  if(k==="cap"){rule="In German <b>every noun starts with a capital letter</b>, also in the middle of a sentence. Test: can you put <i>der, die</i> or <i>das</i> in front? Then it is a noun.";
+  if(f.p3&&k!=="herrn"){rule=L.map(x=>x.why?`<span class="tch-why">${x.why}</span>`:"").filter((v,i,a)=>v&&a.indexOf(v)===i).join("");merke=f.merke||"";tip=f.tip||""}
+  else if(k==="cap"){rule="In German <b>every noun starts with a capital letter</b>, also in the middle of a sentence. Test: can you put <i>der, die</i> or <i>das</i> in front? Then it is a noun.";
     demo=`<div class="dg-row">${L.slice(0,3).map(x=>dg(`<u>${esc(x.fix[0])}</u>${esc(x.fix.slice(1))}`,"dg-add","Nomen")).join("")}</div><div class="muted ui dg-cap">der <b>P</b>atient · die <b>L</b>uftnot · seit zwei <b>T</b>agen</div>`;
     merke="Artikel davor möglich → großschreiben.";tip=`Vor dem Absenden jedes Nomen prüfen: ${L.slice(0,3).map(x=>"<b>"+esc(x.fix)+"</b>").join(", ")}.`}
   else if(k==="spell"){rule=L.map(x=>x.why?`<span class="tch-why">${x.why}</span>`:"").join("")||"Words the app doesn't know, with the closest real word. Check the suggestion; if you meant something else, use hold-to-translate or the dictionary.";
@@ -1689,7 +1692,7 @@ function tCharDiff(a,b){let i=0;while(i<a.length&&i<b.length&&a[i].toLowerCase()
 const TCH_ATT=new WeakMap();
 // split into sentences without breaking at abbreviations (Z. n., ca., i.v., z. B., Dr.) or numbers (3. Tag)
 function tSplitSents(x){const out=[];let cur="";String(x).split(/(\n+)/).forEach(block=>{if(/^\n+$/.test(block)){if(cur.trim())out.push(cur.trim());cur="";return}const parts=block.split(/(?<=[.!?])\s+/);
-    parts.forEach(p=>{cur=cur?cur+" "+p:p;const last=(cur.match(/(\S+)$/)||[])[1]||"";const brk=/[!?]$/.test(last)||(/\.$/.test(last)&&!T_ABBR_RE.test(last)&&!/^\(?\d+\.$/.test(last)&&!/^\(?(ca|vgl|bzw|evtl|ggf|inkl|zzgl|sog|Nr|Abb|Tab|Std|Min|Mio|Mrd|Jh|St|Z|n|p|i|v|o|B|z|u|a|d|h|s|m|Pat|Hr|Fr|Dr|Prof)\.$/.test(last.split(/\./).slice(-2).join(".")));
+    parts.forEach((p,pi)=>{cur=cur?cur+" "+p:p;const last=(cur.match(/(\S+)$/)||[])[1]||"";const nxt=parts[pi+1]||"";const keep=/\.$/.test(last)&&(/^[a-zäöüß0-9(]/.test(nxt)||/^\(?(V|Z|D|B|g|ggf|bzw|vgl|ca|St|z|o|i|v|u|a|s|n)\.$/.test(last)||/^\(?\d{1,2}\.(\d{1,2}\.)?$/.test(last)&&/^[a-zäöüß0-9]/.test(nxt));const brk=!keep&&(/[!?]$/.test(last)||(/\.$/.test(last)&&!T_ABBR_RE.test(last)&&!/^\(?\d+\.$/.test(last)&&!/^\(?(ca|vgl|bzw|evtl|ggf|inkl|zzgl|sog|Nr|Abb|Tab|Std|Min|Mio|Mrd|Jh|St|Z|n|p|i|v|o|B|z|u|a|d|h|s|m|Pat|Hr|Fr|Dr|Prof)\.$/.test(last.split(/\./).slice(-2).join("."))));
       if(brk){out.push(cur.trim());cur=""}})});if(cur.trim())out.push(cur.trim());return out.filter(Boolean)}
 function teachRender(out,text,t,o,tutor){o=o||{};let A;try{A=teachAnalyze(text,t)}catch(e){logError&&logError(e);return _selfCheckOld(out,text,t,o)}
   const T=A.T;let moments=tMoments(A.F);
@@ -1707,7 +1710,10 @@ function teachRender(out,text,t,o,tutor){o=o||{};let A;try{A=teachAnalyze(text,t
     if(/salbutamol|antibio|sauerstoff|ibuprofen|metoprolol|röntgen|labor|ekg/i.test(text)&&!/\b(unklar|keine Ahnung|weiß nicht)\b/i.test(text)&&(!A.T||/plan|procedere|therapie|vorschlag/i.test(JSON.stringify(A.T.checks||"")+String((t&&t.task)||""))))good.push("Konkreter Plan mit Maßnahme/Medikament");
     if(!A.F.some(f=>["v2","vend","comma","age","perfsein","vich","akk","lok","dat","imp"].includes(f.key))&&A.sents>=2&&!/(^|[.!?]\s+)(?:Dann|Danach|Heute|Gestern|Morgen|Jetzt|Am \w+|Im \w+|Um \d+ Uhr)\s+(ich|er|sie|wir|du|es)\s/.test(text))good.push("Satzbau: Verb an der richtigen Stelle");
     good.splice(3);if(!good.length)good.push("Du hast es versucht – genau so lernt man. Jetzt die Lernmomente.")}
-  const lenShort=A.F.some(f=>f.key==="len");const contentMiss=cN!=null&&cOk<cN;const sum=lenShort?`Gut – aber noch nicht vollständig (${A.sents}/${A.want} Sätze).`:nIssues===0&&!contentMiss?"Sehr gut – sauber und vollständig.":nIssues===0?"Sprachlich sauber – inhaltlich fehlt noch etwas:":nIssues===1?"Gut gemacht. Eine Feinheit:":nIssues<=3?"Guter Versuch. Das schauen wir uns an:":"Hier sind deine Lernmomente:";
+  // P3 honesty gate: no praise for English, off-topic, too short or wrong-case texts, and never "Sehr gut" from rules alone
+  let G=null;try{if(!tutor&&typeof p3CoachGate==="function")G=p3CoachGate(text,t,A)}catch(e){G=null}
+  if(G&&G.block){good.length=0;G.block.why.forEach(w=>good.push(esc(w)))}else if(G&&G.warn&&G.warn.length)G.warn.forEach(w=>good.unshift(esc(w)));
+  const lenShort=A.F.some(f=>f.key==="len");const contentMiss=cN!=null&&cOk<cN;const sum=G&&G.block?G.block.head:lenShort?`Gut – aber noch nicht vollständig (${A.sents}/${A.want} Sätze).`:nIssues===0&&!contentMiss?(tutor?"Sehr gut – sauber und vollständig.":cN?"Inhalt vollständig, und ich finde keinen Fehler, den ich offline erkenne. Vergleiche jetzt Satz für Satz mit dem Muster.":"Keine Fehler gefunden, die ich offline erkenne. Das ist kein Urteil über den Inhalt – vergleiche jetzt Satz für Satz mit dem Muster."):nIssues===0?"Sprachlich sauber – inhaltlich fehlt noch etwas:":nIssues===1?"Gut gemacht. Eine Feinheit:":nIssues<=3?"Guter Versuch. Das schauen wir uns an:":"Hier sind deine Lernmomente:";
   // tips for next time
   const tips=[];if(tutor&&Array.isArray(tutor.tips))tutor.tips.slice(0,3).forEach(x=>tips.push(esc(x)));
   if(tips.length<3&&content){const miss=content.find(c=>!c.ok);if(miss)tips.push(`Inhalt: <b>${esc(miss.res.filter(r=>!r.ok).map(r=>r.n).join(", "))}</b> fehlte – plane vorher mit der Checkliste.`)}
@@ -1720,7 +1726,7 @@ function teachRender(out,text,t,o,tutor){o=o||{};let A;try{A=teachAnalyze(text,t
   out.innerHTML=`<div class="stack s fade-in tch">${prog}
    <div class="card tch-hero"><div class="row between" style="align-items:flex-start;gap:1rem"><div><div class="eyebrow">Feedback <span class="en">${tutor?"Claude + rules":"offline coach"}</span></div><h3 style="margin:.25rem 0 .4rem">${sum}</h3></div>
      <div class="tch-rings">${cN!=null?tRing(cOk,cN,"Inhalt"):""}${tRing(Math.max(0,8-nIssues),8,"Lernpunkte",true,nIssues)}</div></div>
-     <div class="tch-good">${good.map(g=>`<div>${ic("check")}<span>${g}</span></div>`).join("")}</div></div>
+     <div class="tch-good${G&&G.block?" p3-block":""}">${good.map(g=>`<div>${G&&G.block?"<b style=\"color:var(--bad,#c0392b)\">✗</b>":ic("check")}<span>${g}</span></div>`).join("")}</div>${G&&G.cc&&!G.block?`<div class="muted ui" style="font-size:.88rem;margin-top:.4rem">Vom Fall im Text gefunden: <b>${G.cc.found}/${G.cc.total}</b>${G.cc.missing.length?" · fehlt: "+esc(G.cc.missing.slice(0,8).join(", ")):""}${G.cc.foreign.length?" · nicht in der Anamnese: "+esc(G.cc.foreign.join(", ")):""}</div>`:""}</div>
    <div class="card"><div class="row between"><div class="eyebrow">Dein Text, verbessert <span class="en">red = remove · green = new</span></div><button class="icon ghost" data-say="${esc(corrected)}" aria-label="Anhören">${ic("vol")}</button></div>
      <div class="tch-diff">${corrected.trim()!==text.trim()?wordDiff(text,corrected):esc(text)}</div>${tutor&&tutor.natural?`<div class="tch-nat"><span class="eyebrow">So klingt es natürlich</span><div>${glossify(tutor.natural)}</div></div>`:""}</div>
    ${moments.length?`<div class="eyebrow" style="margin-top:.4rem">Lernmomente <span class="en">${moments.length} · what to learn from this text</span></div>
@@ -1728,7 +1734,7 @@ function teachRender(out,text,t,o,tutor){o=o||{};let A;try{A=teachAnalyze(text,t
        ${m.pairs?`<div class="tch-pairs">${m.pairs}</div>`:""}${m.rule?`<div class="tch-rule">${m.rule}</div>`:""}${m.demo?`<div class="tch-demo">${m.demo}</div>`:""}${m.merke?`<div class="tch-merke"><b>Merke:</b> ${m.merke}</div>`:""}</div>`).join("")}
      ${moments.length>4?`<button class="ghost sm tch-more">+ ${moments.length-4} weitere Lernmomente</button>`:""}`:""}
    ${content?`<div class="card"><div class="eyebrow" style="margin-bottom:.5rem">Inhalt <span class="en">checked automatically</span></div><div class="tch-content">${content.map(c=>`<div class="tch-ci ${c.ok?"ok":c.part?"part":"no"}"><span class="tch-dot">${c.ok?ic("check"):c.part?"½":"–"}</span><div><b>${esc(c.label)}</b>${!c.ok?`<small>fehlt: ${esc(c.res.filter(r=>!r.ok).map(r=>r.n).join(", "))}</small>`:""}</div></div>`).join("")}</div></div>`
-     :t.check?`<div class="card"><div class="eyebrow" style="margin-bottom:.5rem">Hast du das?</div><div class="check-list">${t.check.map((c,i)=>`<label class="row" style="gap:.6rem;flex-wrap:nowrap"><input type="checkbox" style="width:22px;min-height:22px;flex-shrink:0" data-c="${i}"> <span>${esc(c)}</span></label>`).join("")}</div></div>`:""}
+     :G&&G.points&&G.points.length?`<div class="card"><div class="eyebrow" style="margin-bottom:.5rem">Inhaltspunkte <span class="en">rough keyword check – not a grade</span></div><div class="tch-content">${G.points.map(p=>`<div class="tch-ci ${p.ok?"ok":"no"}"><span class="tch-dot">${p.ok?ic("check"):"–"}</span><div><b>${esc(p.label)}</b>${p.ok?"":"<small>im Text nicht gefunden</small>"}</div></div>`).join("")}</div></div>`:t.check&&t.check.length?`<div class="card"><div class="eyebrow" style="margin-bottom:.5rem">Hast du das?</div><div class="check-list">${t.check.map((c,i)=>`<label class="row" style="gap:.6rem;flex-wrap:nowrap"><input type="checkbox" style="width:22px;min-height:22px;flex-shrink:0" data-c="${i}"> <span>${esc(c)}</span></label>`).join("")}</div></div>`:""}
    ${modelSents.length?`<div class="card tint"><div class="row between"><div class="eyebrow">${/^Alltag/i.test(String(t.reg||""))?"So klingt es natürlich":"So macht es ein Arzt"} <span class="en">sentence by sentence · hold to translate</span></div><button class="icon ghost" data-say="${esc(t.model)}" aria-label="Anhören">${ic("vol")}</button></div>
      <div class="tch-model">${modelSents.map(s=>{const r=roleOf(s);return `<div class="tch-ms">${r?`<span class="tch-role">${esc(r)}</span>`:""}<div class="tch-mt">${glossify(s)}</div></div>`}).join("")}</div></div>`:""}
    ${T?`<div class="card"><div class="eyebrow">Bausteine <span class="en">reuse these frames next time</span></div><ol class="tch-frames">${T.frames.map(f=>`<li>${esc(f)}</li>`).join("")}</ol>
@@ -1740,7 +1746,7 @@ function teachRender(out,text,t,o,tutor){o=o||{};let A;try{A=teachAnalyze(text,t
   const more=$(".tch-more",out);if(more)more.onclick=()=>{$$(".tch-m.more",out).forEach(x=>x.hidden=false);more.remove()};
   $$(".tch-wd",out).forEach(b=>b.onclick=()=>{const de=b.dataset.de,en=b.dataset.en;const k=de.replace(/^(der|die|das) /,"").toLowerCase();const c=DICT[k];if(c&&S.cards[c.id]){toast("Schon im Deck");return}if(c)S.cards[c.id]=newState();else{S.custom.push({de,en,ex:t.model?String(t.model).split(/(?<=[.!?])\s+/).find(s=>s.toLowerCase().includes(k.split(" ")[0]))||"":""});buildDict();S.cards["c:"+(S.custom.length-1)]=newState()}introducedNew(false);saveSoon();b.classList.add("on");toast("Ins Deck: "+de)});
   const fg=$(".fu-go",out);if(fg)fg.onclick=()=>{const v=$(".fu-in",out).value;const g=gradeTyped(v,tutor.followup.answer);$(".fu-out",out).innerHTML=`<p class="${g.q>=2?"ok":"no"}">${g.q>=2?"Richtig.":"Lösung: "+esc(tutor.followup.answer)}</p>`;fb(g.q>=2)};
-  const score=(cN==null||cOk===cN)&&nIssues<=1?2:(cN==null||cOk>=cN/2)&&nIssues<=5?1:0;
+  const score=G&&G.block?0:(cN==null||cOk===cN)&&nIssues<=1?(cN==null&&!tutor?1:2):(cN==null||cOk>=cN/2)&&nIssues<=5?1:0;
   if(!tutor){addErrors(A.F.filter(f=>f.orig&&f.fix&&f.key!=="punct"&&f.key!=="len").slice(0,8).map(f=>({type:f.type,original:f.orig,fix:f.fix,why:f.title})),"coach")}
   if(!tutor)logEvent("write",(t.t||"Schreiben")+` · ${nIssues} Lernpunkt${nIssues===1?"":"e"}${cN?` · Inhalt ${cOk}/${cN}`:""}${prev?" · Versuch "+(TCH_ATT.get(box).att||2):""}`,score*50);
   $(".tch-retry",out).onclick=()=>{const ta=box.querySelector(".ft-in");const help=box.querySelector(".tch-help");if(help){help.hidden=false;const fr=help.querySelector('[data-h="frames"]');if(fr&&!fr.classList.contains("on"))fr.click()}if(ta){ta.scrollIntoView({behavior:"smooth",block:"center"});setTimeout(()=>ta.focus(),350)}toast("Verbessere deinen Text – die Bausteine helfen.")};
@@ -2642,7 +2648,7 @@ const BOSS_LV={A1:["g0","g1","g2","g3","g4"],A2:["g5","g6","g7","g8","g9"],B1:["
 ACT.bossHub=()=>{const box=Focus.open({title:"Stufenprüfung",sub:"boss fight per level"});const B=S.badges||{};box.innerHTML=`<div class="stack s"><p class="muted">12 gemischte Aufgaben aus allen Lektionen der Stufe, 8 Minuten, ohne Hilfe. Ab 10 richtigen gibt es das Abzeichen – und die Stufe gilt als geprüft.</p><div class="tiles">${Object.keys(BOSS_LV).map(L=>{const ids=BOSS_LV[L].filter(id=>GRAMMAR.some(g=>g.id===id&&g.ex&&g.ex.length));const ready=ids.filter(id=>((S.lessons[id]||{}).best||0)>=60).length;return `<button class="tile ${B[L]?"boss-won":""}" data-act="boss" data-l="${L}"><span class="ic"><span class="pill lv lv-${L}">${L}</span></span><b>${B[L]?"Abzeichen ✓":"Stufenprüfung "+L}</b><small>${B[L]?"Bestes "+B[L].best+"/12 · "+fmtDate(B[L].date):ready+" von "+ids.length+" Lektionen gelernt"}</small></button>`}).join("")}</div></div>`};
 ACT.boss=el=>{const L=el.dataset.l;const pool=BOSS_LV[L].flatMap(id=>{const g=GRAMMAR.find(x=>x.id===id);return g&&g.ex?g.ex.map(e=>Object.assign({_l:id},e)):[]});if(pool.length<12)return toast("Noch zu wenig Übungen für diese Stufe");Focus.close(true);const box=Focus.open({title:"Stufenprüfung "+L,sub:"12 Aufgaben · 8 Minuten"});let left=480;const t=setInterval(()=>{left--;const b=$(".boss-t",box);if(b)b.textContent=pad(Math.floor(left/60))+":"+pad(left%60);if(left<=0){clearInterval(t);toast("Zeit um");Focus.close(true)}},1000);
   box.innerHTML=`<div class="row between"><span class="pill lv lv-${L}">${L}</span><span class="pill boss-t">08:00</span></div><div class="boss-box"></div>`;
-  gramRunner($(".boss-box",box),pickEx(pool,12),{retry:false,onDone:sc=>{clearInterval(t);const right=Math.round(sc*12/100);S.badges=S.badges||{};const prev=S.badges[L];if(right>=10){S.badges[L]={best:Math.max(right,prev?prev.best:0),date:todayKey()};toast("Abzeichen "+L+" – gewonnen!");fb(true)}logEvent("exam","Stufenprüfung "+L+" · "+right+"/12",sc);saveSoon()}})};
+  gramRunner($(".boss-box",box),pickEx(pool,12),{retry:false,noComplete:true,onDone:sc=>{clearInterval(t);const right=Math.round(sc*12/100);S.badges=S.badges||{};const prev=S.badges[L];if(right>=10){S.badges[L]={best:Math.max(right,prev?prev.best:0),date:todayKey()};toast("Abzeichen "+L+" – gewonnen!");fb(true)}logEvent("exam","Stufenprüfung "+L+" · "+right+"/12",sc);saveSoon()}})};
 // ---- 4. Erkläre es (teach it back): explain a rule in your own words, grade yourself against a rubric; own spacing
 const TEACH_Q=[["genus","Erkläre einem neuen Kollegen, wie man das Genus eines Nomens oft an der Endung erkennt. Zwei Beispiele.",["eine Endung für die","eine Endung für das","ein Beispiel mit Artikel"]],["kasus","Erkläre, wann man „den“ statt „der“ sagt. Ein Satz aus der Klinik als Beispiel.",["Akkusativ = Objekt / wen?","nur der Maskulin ändert sich","ein eigener Satz"]],["v2","Erkläre die Position-2-Regel und was passiert, wenn der Satz mit „Seit zwei Tagen“ beginnt.",["Verb an zweiter Stelle","Subjekt rutscht hinter das Verb","ein Beispiel"]],["vend","Erkläre, was „dass“ und „weil“ mit dem Verb machen.",["Verb ans Ende","Komma davor","ein Beispiel"]],["praep","Erkläre, welchen Fall „seit“ verlangt, mit zwei Zeitangaben.",["seit + Dativ","seit einer Woche / seit zwei Tagen","Plural-n"]],["perfekt","Erkläre, wann das Perfekt mit „sein“ gebildet wird.",["Bewegung","Zustandsänderung","ein Beispiel (ist gestürzt)"]],["register","Erkläre, wann du im Krankenhaus Sie und wann du sagst, und wer das du anbietet.",["Patienten → Sie","Kollegen oft du","der Ältere/Ranghöhere bietet an"]],["vorstellung","Erkläre die Reihenfolge einer Patientenvorstellung an den Oberarzt.",["wer, Alter, Leitsymptom, Dauer","Vorerkrankungen, Befund","Verdacht + DD, Procedere"]],["modal","Erkläre den Unterschied zwischen „nicht dürfen“ und „nicht müssen“.",["nicht dürfen = verboten","nicht müssen = nicht nötig","ein Beispiel"]],["zahlen","Erkläre, wie man 47 und 120/80 auf Deutsch sagt.",["Einer vor Zehner","„zu“ beim Blutdruck","ein weiteres Beispiel"]]];
 ACT.teach=()=>{const T=S.teach||{};const t=todayKey();const due=TEACH_Q.filter(q=>!T[q[0]]||T[q[0]].due<=t);const box=Focus.open({title:"Erkläre es",sub:"teach it back"});box.innerHTML=`<div class="stack s"><p class="muted">Wer etwas erklären kann, hat es verstanden. Schreib die Erklärung auf Deutsch (ein paar Sätze genügen), dann prüfst du dich selbst an drei Punkten. Was sitzt, kommt später wieder.</p><div class="list">${TEACH_Q.map(q=>{const st=T[q[0]];const isDue=!st||st.due<=t;return `<button class="li" data-act="teachOpen" data-k="${q[0]}"><span class="t"><b>${esc((RULES[q[0]]||{}).t||q[0])}</b><small>${esc(q[1])}</small></span><span class="m">${st?`<span class="pill ${isDue?"o":"good"}">${isDue?"fällig":"bis "+fmtDate(st.due)}</span>`:""}</span></button>`}).join("")}</div></div>`};
@@ -2820,8 +2826,10 @@ if(typeof BOSS_LV!=="undefined")BOSS_LV.B1=BOSS_LV.B1.filter(id=>id!=="g16");
 if(typeof TEACH_Q!=="undefined"){[["passiv","Erkläre den Unterschied zwischen Vorgangspassiv (wird untersucht) und Zustandspassiv (ist untersucht). Ein Beispiel aus der Klinik.",["werden + Partizip II = Vorgang","sein + Partizip II = Zustand/Ergebnis","ein Klinik-Beispiel"]],["k2","Erkläre, wie man mit Konjunktiv II höflich bittet und wie man einen irrealen Wunsch ausdrückt.",["würde/könnte/hätte für Höflichkeit","Wenn … wäre/hätte, würde …","ein Beispiel"]],["Lg19","Erkläre zwei zweiteilige Konnektoren (z. B. sowohl … als auch, weder … noch) mit Beispielen.",["Bedeutung beider Konnektoren","Wortstellung","je ein Beispiel"]],["Lg21","Erkläre, was Nominalstil ist und warum man ihn im Arztbrief benutzt. Forme einen Satz um.",["Verb → Nomen (untersuchen → Untersuchung)","kürzer, sachlicher","ein umgeformter Satz"]],["Lg25","Erkläre die indirekte Rede mit Konjunktiv I und wann man Konjunktiv II nimmt.",["er habe / sie sei","Ersatzform Konj. II, wenn Konj. I = Indikativ","ein Beispiel aus dem Arztbrief"]]].forEach(q=>{if(!TEACH_Q.some(x=>x[0]===q[0])&&RULES[q[0]])TEACH_Q.push(q)})}
 
 // ---- 12. finishing a lesson's exercise set counts as doing the lesson (not only the 4-question quiz)
-(function(){const _gr=gramRunner;gramRunner=function(el,exs,o){o=o||{};const host=el&&el.closest&&el.closest("[data-lesson]");const lid=o.lesson||(host&&host.dataset.lesson)||"";
-  if(lid&&!o._wrapped){const od=o.onDone;o=Object.assign({},o,{_wrapped:1,lesson:lid,onDone:sc=>{if(od)od(sc);if(exs.length>=8&&!o.noComplete)try{completeLesson(lid,sc);saveSoon()}catch(e){}}})}return _gr(el,exs,o)}})();
+(function(){const _gr=gramRunner;gramRunner=function(el,exs,o){o=o||{};if(o._wrapped||o.noComplete||!exs||!exs.length)return _gr(el,exs,o);
+  // the lesson is identified by the exercise objects themselves (or o.lesson) – never by a stale data-lesson attribute left on #fIn
+  let lid=o.lesson||"";if(!lid){try{const g=GRAMMAR.find(x=>x.ex&&x.ex.includes(exs[0]));if(g&&exs.every(e=>g.ex.includes(e)))lid=g.id}catch(e){}}
+  if(lid){const od=o.onDone;let fired=false;o=Object.assign({},o,{_wrapped:1,lesson:lid,onDone:sc=>{if(od)od(sc);if(!fired&&exs.length>=8){fired=true;try{completeLesson(lid,sc);saveSoon()}catch(e){}}}})}else o=Object.assign({},o,{_wrapped:1});return _gr(el,exs,o)}})();
 
 // ---- 13. offline FSP: a patient who answers only what you ask, notes → Teil 2, the case's own Oberarzt questions,
 //          Fachbegriffe, diagnosis hidden until the end, a stored rubric score
@@ -2881,7 +2889,7 @@ function fspOffline(el,o){o=o||{};const pool=FSP_CASES.filter(x=>x.hpi);const c=
       logEvent("fsp","FSP-Simulation · "+c.name+" · "+avg+"/5",Math.round(avg*20));logDay("fsp");saveSoon();toast("Gespeichert: "+avg+" / 5");if(o.onDone)o.onDone(avg)}}
   function draw(){Focus.progress({n:3,i:Math.min(part,3)});if(part>=3)return result();Focus.title("FSP-Simulation",T[part]);timer();[p1,p2,p3][part]()}
   draw()}
-(function(){const _fr=fspRunner;fspRunner=function(el,o){if(SAMPLE)return _fr(el,o);return fspOffline(el,o)}})();
+(function(){const _fr=fspRunner;fspRunner=function(el,o){if(SAMPLE)return _fr(el,o);return (typeof p3Fsp==="function"?p3Fsp:fspOffline)(el,o)}})();
 
 // ---- 14. Satzbaukasten: chips without give-away capitals, every valid word order accepted, the solution shown field by field
 const SATZ2=[
@@ -3081,7 +3089,7 @@ const FSP_LAY=[[/\bZ\.\s?n\.\s*/g,"früher: "],[/\bSt\.\s?p\.\s*/g,"früher: "],
   [/Hypercholesterinämie|Hyperlipidämie/gi,"zu hohes Cholesterin"],[/\bKHK\b|koronare Herzkrankheit/gi,"verengte Herzkranzgefäße"],[/Myokardinfarkt/gi,"Herzinfarkt"],[/Apoplex|ischämischer Schlaganfall/gi,"Schlaganfall"],[/Herzinsuffizienz/gi,"Herzschwäche"],[/Niereninsuffizienz/gi,"schwache Nieren"],[/Hypothyreose/gi,"Schilddrüsenunterfunktion"],[/Hyperthyreose/gi,"Schilddrüsenüberfunktion"],
   [/Appendektomie/gi,"Blinddarm-OP"],[/Cholezystektomie/gi,"Gallenblasen-OP"],[/Adipositas/gi,"Übergewicht"],[/Asthma bronchiale/gi,"Asthma"],[/Karzinom/gi,"krebs"],[/Vorhofflimmern/gi,"Vorhofflimmern (Herzstolpern)"],[/Arthrose/gi,"Gelenkverschleiß"],[/Migräne/gi,"Migräne"],[/Hysterektomie/gi,"Gebärmutter-OP"],[/Sectio/gi,"Kaiserschnitt"],[/Gastritis/gi,"Magenschleimhautentzündung"],[/Refluxkrankheit|GERD/gi,"Sodbrennen"],
   [/\(vorher ca\.\s*(\d+)\s*Packungsjahre\)/gi,"(vorher etwa $1 Jahre lang eine Schachtel am Tag)"],[/ca\.\s*(\d+)\s*Packungsjahre/gi,"etwa $1 Jahre lang eine Schachtel am Tag"],[/\(zuletzt HbA1c[^)]*\)/gi,""],[/\s*\([^)]*\b(mg|mmol|%|HbA1c|ml|NYHA|GOLD|EF)\b[^)]*\)/g,""],[/\brechts\b/g,"rechts"]];
-function fspLay(s){let x=String(s||"");FSP_LAY.forEach(([re,r])=>x=x.replace(re,r));try{(typeof FSP_TERMS!=="undefined"?FSP_TERMS:[]).forEach(t=>{const f=String(t.fach||"").replace(/^(der|die|das)\s+/,""),l=String(t.laie||"").replace(/^(der|die|das)\s+/,"");if(f.length>=6&&l&&!/\(|\)/.test(f))x=x.replace(new RegExp("\\b"+f.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b","g"),l)})}catch(e){}return x.replace(/\s{2,}/g," ").replace(/\s+([,.])/g,"$1").trim()}
+function fspLay(s){let x=String(s||"");FSP_LAY.forEach(([re,r])=>x=x.replace(re,r));try{(typeof FSP_TERMS!=="undefined"?(Array.isArray(FSP_TERMS)?FSP_TERMS:(FSP_TERMS.terms||[])):[]).forEach(t=>{const f=String(t.fach||"").replace(/^(der|die|das)\s+/,""),l=String(t.laie||"").replace(/^(der|die|das)\s+/,"");if(f.length>=6&&l&&!/\(|\)/.test(f))x=x.replace(new RegExp("\\b"+f.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b","g"),l)})}catch(e){}return x.replace(/\s{2,}/g," ").replace(/\s+([,.])/g,"$1").trim()}
 const fspDose=s=>String(s).replace(/(\d+(?:,\d+)?\s*(?:mg|µg|IE|g|ml)(?:\/\w+)?)\s*/g,"").replace(/\b1-0-0\b/g,"morgens").replace(/\b0-0-1\b/g,"abends").replace(/\b0-1-0\b/g,"mittags").replace(/\b1-0-1\b/g,"morgens und abends").replace(/\b1-1-1\b/g,"dreimal am Tag").replace(/\b1-1-1-1\b/g,"viermal am Tag").replace(/\b\d-\d-\d(-\d)?\b/g,"").replace(/\s{2,}/g," ").replace(/\s+,/g,",").trim();
 function fspFirst(soc,w){return String(soc||"").split(/[;]\s*|,\s+(?=[a-zäöüA-ZÄÖÜ])/).map(p=>p.trim()).filter(Boolean).map(p=>{let x=p;
   x=x.replace(/\blebt\b/,"ich lebe").replace(/\barbeitet\b/,"ich arbeite").replace(/\bwohnt\b/,"ich wohne").replace(/\bist\b/,"ich bin").replace(/\bhat\b/,"ich habe").replace(/\bversorgt sich\b/,"ich versorge mich").replace(/\braucht\b/,"ich rauche").replace(/\btrinkt\b/,"ich trinke");
@@ -3096,7 +3104,7 @@ const FSP_SYM=[[/fieber|temperatur|heiß|schüttelfrost/i,/fieber|schüttelfrost
   [/schmerz|weh|drück|sticht|brennt/i,/schmerz|weh|drück|stich|brenn/i,"Richtige Schmerzen habe ich eigentlich nicht."],[/gewicht|abgenommen|zugenommen/i,/gewicht|abgenommen|zugenommen|kilo/i,"Mein Gewicht ist gleich geblieben."]];
 FSP_SYM.unshift([/kopfschmerz|kopfweh/i,/kopfschmerz|kopfweh|migräne/i,"Kopfschmerzen habe ich eigentlich nicht."],[/rückenschmerz|kreuzschmerz|rücken/i,/rücken|kreuz|lende/i,"Mit dem Rücken habe ich keine Probleme."],[/brustschmerz|brustenge|engegefühl|druck (auf|in) der brust|brust|herzschmerz/i,/brust|herz|engegefühl|thorax|sternum/i,"Schmerzen in der Brust habe ich nicht."],[/blut im urin|blutig\w* urin|rote\w* urin|urin.*blut/i,/blut im urin|hämaturie|roter urin|blutiger urin/i,"Blut im Urin ist mir nicht aufgefallen."],[/strahl|zieht.*(arm|kiefer|rücken)/i,/ausstrahl|strahlt|zieht (in|bis)|bis in (den|die)/i,"Nein, es strahlt nirgendwohin aus."],[/herzrasen|herzklopfen|herzstolpern|puls/i,/herzrasen|herzklopfen|puls|stolper/i,"Herzrasen hatte ich nicht."],[/beine|knöchel|ödem|wasser/i,/bein|knöchel|schwell|ödem/i,"Die Beine sind nicht geschwollen."]);
 function fspPainScale(c){const t=String(c.hpi||"")+" "+String(c.cc||"")+" "+String(c.dx||"");const m=t.match(/(\d{1,2})\s*(?:\/|von)\s*10/);if(m)return +m[1];if(/vernichtend|reißend|heftigst|unerträglich|kolik|infarkt|dissektion|aneurysma|perforation/i.test(t))return 9;if(/stark|heftig|massiv|akut|plötzlich/i.test(t))return 7;if(/dumpf|leicht|gering|mild|ziehend/i.test(t))return 4;return 6}
-function fspVitals(c){const t=(String(c.dx||"")+" "+String(c.cc||"")+" "+String(c.hpi||"")).toLowerCase();let v={rr:"130/80",hf:78,spo2:98,t:"36,8",af:14,extra:""};
+function fspVitals(c){if(c&&c.vit)return String(c.vit).split(/\s·\s/);const t=(String(c.dx||"")+" "+String(c.cc||"")+" "+String(c.hpi||"")).toLowerCase();let v={rr:"130/80",hf:78,spo2:98,t:"36,8",af:14,extra:""};
   if(/anaphyl|schock|sepsis|blutung|ruptur|aneurysma|embolie/.test(t)&&!/lungenembolie/.test(t))v={rr:"90/55",hf:118,spo2:94,t:/sepsis/.test(t)?"39,2":"36,6",af:22,extra:""};
   else if(/lungenembolie|asthma|copd|pneumothorax|pneumonie|lungenödem|luftnot/.test(t))v={rr:"135/85",hf:108,spo2:90,t:/pneumonie/.test(t)?"38,7":"36,9",af:26,extra:""};
   else if(/infarkt|acs|stemi|angina|koronar/.test(t))v={rr:"150/90",hf:96,spo2:95,t:"36,7",af:18,extra:""};
@@ -5001,7 +5009,7 @@ S7.lock=function(d){const p=P();const why=[];
   if(d.ch&&(p.ch||1)<d.ch)why.push(`ab Kapitel ${d.ch}`);
   if(d.page&&S7.runs()<d.page)why.push(d.page===1?"nach 10 Lerntagen am Stück":`nach ${d.page} × 10 Lerntagen am Stück`);
   return why};
-const SETS=[["nb","Mephistos Notizbuch","Mephisto's notebook"],["amt","Briefe vom Amt","letters from the authorities"],["pk","Postkarten aus dem Goldenen Gässchen","postcards from the Golden Lane"],["br","Frau Brandts Rückmeldung","Mrs Brandt's feedback"]];
+const SETS=[["nb","Mephistos Notizbuch","Mephisto's notebook"],["amt","Briefe vom Amt","letters from the authorities"],["pk","Postkarten aus dem Goldenen Gässchen","postcards from the Golden Lane"],["br","Frau Brandts Rückmeldung","Mrs Brandt's feedback"]];S7.sets=SETS; /* integrator 13.6: other packages add a set (i8 notebook pages, c_int.js) */
 function score(d){return +(bv()["m:"+d.id]||0)}
 function nQ(d){return (d.q||[]).length+(Array.isArray(d.tf)?d.tf.length:0)}
 S7.mappeStat=function(){const D=S7.docs();const open=D.filter(d=>!S7.lock(d).length);return {all:D.length,open:open.length,done:open.filter(d=>nQ(d)&&score(d)>=nQ(d)).length}};
@@ -5147,6 +5155,540 @@ function plateHTML(id,ctx,o){try{o=o||{};const a=plateMeta(id);if(!a)return "";c
 // "Bildnachweis" rows for a9 (one per plate, sorted by realm then title)
 function plateCredits(){try{const R={I:1,II:2,III:3,IV:4,V:5};return Object.keys(PAKT_ART).map(k=>{const a=PAKT_ART[k];return{id:k,u:a.u,t:a.t,a:a.a,y:a.y||"",src:a.src||"",scan:a.scan||"",lic:a.lic||"",r:a.r}})
   .sort((x,y)=>(R[x.r]||9)-(R[y.r]||9)||String(x.t).localeCompare(String(y.t),"de"))}catch(e){return []}}
+
+// ================= P3 · speech layer: honest capabilities, normalised text, chunks, one player at a time =================
+// Replaces say(), stopSpeech(), pkSpeak(), pickVoice(), hoerenRunner(), rListen(); wraps numbersRunner(), shadowRunner(), listen().
+// Pure helpers (ttsNorm, ttsChunks, p3Cast) are tested in tests/p3_node.js.
+
+// ---- 1. text normalisation for the synthesizer (nothing on screen changes)
+const TTS_ORD=(()=>{const u=["","ein","zwei","drei","vier","fünf","sechs","sieben","acht","neun"];const O=["","ersten","zweiten","dritten","vierten","fünften","sechsten","siebten","achten","neunten","zehnten","elften","zwölften","dreizehnten","vierzehnten","fünfzehnten","sechzehnten","siebzehnten","achtzehnten","neunzehnten","zwanzigsten"];
+  for(let n=21;n<=29;n++)O[n]=u[n-20]+"undzwanzigsten";O[30]="dreißigsten";O[31]="einunddreißigsten";return O})();
+function ttsDate(t){return String(t).replace(/\b(am|den|dem|vom|zum|ab dem|bis zum|bis|seit dem|ab)\s(\d{1,2})\.\s?(\d{1,2})\.(\s?\d{4})?/g,(m,p,d,mo,y)=>{d=+d;mo=+mo;if(d<1||d>31||mo<1||mo>12)return m;return p+" "+TTS_ORD[d]+" "+TTS_ORD[mo]+(y?" "+y.trim():"")})
+  .replace(/\b(\d{1,2})\.(\d{1,2})\.(\d{4})\b/g,(m,d,mo,y)=>{d=+d;mo=+mo;if(d<1||d>31||mo<1||mo>12)return m;return "der "+TTS_ORD[d].replace(/n$/,"")+" "+TTS_ORD[mo].replace(/n$/,"")+" "+y})
+  .replace(/\b(\d{1,2})\.(\d{1,2})\.(?!\d)/g,(m,d,mo)=>{d=+d;mo=+mo;if(d<1||d>31||mo<1||mo>12)return m;return "der "+TTS_ORD[d].replace(/n$/,"")+" "+TTS_ORD[mo].replace(/n$/,"")+" "})}
+const TTS_UNIT={h:"Stunde",d:"Tag",min:"Minute",kg:"Kilogramm",l:"Liter",dl:"Deziliter",ml:"Milliliter",Tag:"Tag",Woche:"Woche",Jahr:"Jahr"};
+const TTS_LEX=[
+ [/^\s*\((?:[a-zäöüß ,.]+|Arabic)\)\s*/i,""],                                          // stage directions: (irritiert), (lacht), (nach Glukosegabe)
+ [/\s*\((?:Pl|Sg|ugs|fam|med|von|an|auf|mit|zu|für|über|um|nach|bei|aus|vor|in|D|A|G|Akk|Dat|Gen|KI|m|f|n)\.?\)/g,""],
+ [/\b(der|die|das|ein|eine|einen|er|sie)\/(der|die|das|ein|eine|einen|er|sie)\b/g,"$1 oder $2"],
+ [/\b(\d)-(\d)-(\d)-(\d)\b/g,"$1, $2, $3, $4"],[/\b(\d)-(\d)-(\d)\b/g,"$1, $2, $3"],                 // dosing scheme 1-0-1
+ [/\bRR\b/g,"R R"],[/(\d{2,3})\s?\/\s?(\d{2,3})(?=\s?mmHg|[^\d]|$)/g,"$1 zu $2"],[/(\d)\s?\/\s?(\d{1,2})(?!\d)/g,"$1 von $2"],
+ [/\bmmHg\b/g,"Millimeter Quecksilbersäule"],[/\/min\b/g," pro Minute"],[/\bmg\/dl\b/gi,"Milligramm pro Deziliter"],[/\bg\/dl\b/gi,"Gramm pro Deziliter"],
+ [/\bmmol\/l\b/gi,"Millimol pro Liter"],[/\bkm\/h\b/g,"Kilometer pro Stunde"],[/\bl\/min\b/g,"Liter pro Minute"],[/\bml\/h\b/g,"Milliliter pro Stunde"],[/\bml\/kg\b/g,"Milliliter pro Kilogramm"],[/\bmg\/kg\b/g,"Milligramm pro Kilogramm"],[/\bIE\/kg\/h\b/g,"Einheiten pro Kilogramm und Stunde"],
+ [/(\d)\s?mg\b/g,"$1 Milligramm"],[/(\d)\s?ml\b/g,"$1 Milliliter"],[/(\d)\s?µg\b/g,"$1 Mikrogramm"],[/(\d)\s?kg\b/g,"$1 Kilogramm"],[/(\d)\s?g\b/g,"$1 Gramm"],[/(\d)\s?mmol\b/g,"$1 Millimol"],[/(\d)\s?mm\b/g,"$1 Millimeter"],[/(\d)\s?cm\b/g,"$1 Zentimeter"],[/(\d)\s?l\b/g,"$1 Liter"],[/(\d)\s?h\b/g,"$1 Stunden"],
+ [/\bI\.?\s?E\.?(?=\s|$|,|\/)/g,"Einheiten"],[/\bi\.\s?v\./g,"intravenös"],[/\bs\.\s?c\./g,"subkutan"],[/\bp\.\s?o\./g,"per os"],[/\bi\.\s?m\./g,"intramuskulär"],
+ [/\bV\.\s?a\./g,"Verdacht auf"],[/\bZ\.\s?n\./g,"Zustand nach"],[/\bz\.\s?B\./g,"zum Beispiel"],[/\bbzw\./g,"beziehungsweise"],[/\bd\.\s?h\./g,"das heißt"],
+ [/\bggf\./g,"gegebenenfalls"],[/\bca\./g,"circa"],[/\bo\.\s?B\./g,"ohne Befund"],[/\bu\.\s?a\./g,"unter anderem"],[/\bb\.\s?B\./g,"bei Bedarf"],[/\bDD\b:?/g,"Differentialdiagnose"],[/\binkl\./g,"inklusive"],[/\bevtl\./g,"eventuell"],[/\bsog\./g,"sogenannt"],[/\bv\.\s?a\./g,"vor allem"],
+ [/(\d)\s?[–-]\s?(\d)/g,"$1 bis $2"],[/(\d)\s?%/g,"$1 Prozent"],[/(\d)\s?°\s?C\b/g,"$1 Grad Celsius"],[/(\d)\s?°/g,"$1 Grad"],[/§§?\s?(\d)/g,"Paragraph $1"],[/§/g,"Paragraph"],
+ [/(\d{1,3})\.(\d{3})(?!\d)/g,"$1$2"],                                                  // 14.200 → 14200
+ [/(\d+),(\d\d) Euro/g,(m,a,b)=>a+" Euro "+(+b)],
+ [/\b(I{1,3}|IV|V|VI)\. Grades\b/g,(m,r)=>({I:"ersten",II:"zweiten",III:"dritten",IV:"vierten",V:"fünften",VI:"sechsten"})[r]+" Grades"],[/\bGrad (I{1,3}|IV)\b/g,(m,r)=>"Grad "+({I:"eins",II:"zwei",III:"drei",IV:"vier"})[r]],[/\bGOLD (\d|I{1,3}|IV)\b/g,(m,r)=>"Gold "+(({I:"eins",II:"zwei",III:"drei",IV:"vier"})[r]||r)],
+ [/\bin II, III und aVF\b/g,"in zwei, drei und a V F"],[/\b([A-ZÄÖÜ][a-zäöü]+) II\./g,"$1 der Zweite"],
+ [/\bSpO[2₂]\b|\bSpO₂/g,"S P O zwei"],[/\bCO[2₂]\b|\bCO₂/g,"C O zwei"],[/\bO[2₂]\b|\bO₂/g,"Sauerstoff"],[/\bNT-proBNP\b/g,"N T pro B N P"],[/\bHbA1c\b/g,"H b A eins c"],[/\bβ-hCG\b/g,"Beta H C G"],
+ [/\b(ASS|ADAC|TIA|OP|ID|AU|ICE|EU|KI|WG|TK|IBAN|PIN|ZNA|BGA|HWS|LWS|KHK|TVT|LAE|SSW|RTW|KTW|ITW|MANV|EKG|CT|MRT|CRP|BZ|HF|AF|GCS|NRS|BMI|COPD|PCT|INR|TSH|LDH|NIV|IMC|TEP|BWS)\b/g,(m)=>m==="IBAN"?"Iban":m==="PIN"?"Pin":m==="BZ"?"Blutzucker":m==="HF"?"Herzfrequenz":m==="AF"?"Atemfrequenz":m.split("").join(" ")],
+ [/\bTemp\./g,"Temperatur"],[/\bcCT\b/g,"Schädel C T"],[/\bROSC\b/g,"Rosk"],[/\.\.\./g,"…"],
+ [/≥/g," mindestens "],[/≤/g," höchstens "],[/(\d)\s?×/g,"$1 mal"],[/\s[<]\s?(?=\d)/g," unter "],[/\s[>]\s?(?=\d)/g," über "],[/→/g,", dann "],[/\s·\s/g,", "],[/[‚‘]/g,""],
+ [/\b([A-Za-zÄÖÜäöüß]{2,})\/(h|d|min|kg|l|dl|ml|Tag|Woche|Jahr)\b/g,(m,a,u)=>a+" pro "+TTS_UNIT[u]],
+ [/\s?\/\s?/g,", "],                                                                   // any remaining slash is a pause
+ [/\s*\(([^()]*)\)/g,", $1,"],[/[()\[\]]/g," "],[/,\s*([,.;:!?])/g,"$1"],[/\s+([,.;:!?])/g,"$1"]];
+function ttsNorm(t){t=ttsDate(String(t==null?"":t));TTS_LEX.forEach(([re,to])=>{t=t.replace(re,to)});return t.replace(/\s+/g," ").replace(/^[,;\s]+/,"").trim()}
+// chunks ≤ max characters; line breaks are kept as pauses (verse, lists); returns [{t, gap}] with gap in ms after the chunk
+function ttsChunks(text,max){max=max||180;const out=[];const lines=String(text==null?"":text).replace(/\r/g,"").split("\n");
+  lines.forEach((raw,li)=>{const line=ttsNorm(raw);if(!line){if(out.length)out[out.length-1].gap=Math.max(out[out.length-1].gap,800);return}
+    const parts=line.match(/[^.!?…;:]+[.!?…;:]+["“”»)]*\s*|[^.!?…;:]+$/g)||[line];let cur="";const push=()=>{if(cur.trim())out.push({t:cur.trim(),gap:120});cur=""};
+    parts.forEach(p=>{if(p.length>max){push();let rest=p;while(rest.length>max){let cut=rest.lastIndexOf(", ",max);if(cut<40)cut=rest.lastIndexOf(" ",max);if(cut<1)cut=max;out.push({t:rest.slice(0,cut+1).trim(),gap:60});rest=rest.slice(cut+1)}cur=rest;return}
+      if((cur+p).length>max)push();cur+=p});push();
+    if(out.length&&li<lines.length-1)out[out.length-1].gap=/[.!?;:]["“”»]?$/.test(line)?450:220});
+  return out}
+
+// ---- 2. capabilities
+const P3_VOICE_GOOD=/Google|Natural|Neural|Online|Premium|Enhanced|Erweitert|Anna|Petra|Markus|Katja|Conrad|Vicki|Hedda|Yannick/i,P3_VOICE_BAD=/espeak|compact|speech-dispatcher/i;
+function p3DeVoices(){try{const want=lsGet("mephisto_voice");const sc=v=>(v.voiceURI===want?100:0)+(/^de[-_]DE/i.test(v.lang)?10:0)+(v.localService?6:0)+(P3_VOICE_GOOD.test(v.name)?5:0)-(P3_VOICE_BAD.test(v.name)?8:0)+(v.default?1:0);
+  return speechSynthesis.getVoices().filter(v=>/^de([-_]|$)/i.test(v.lang)).sort((a,b)=>sc(b)-sc(a))}catch(e){return []}}
+pickVoice=function(){try{DE_VOICE=p3DeVoices()[0]||null}catch(e){DE_VOICE=null}try{document.documentElement.classList.toggle("no-de-voice",!DE_VOICE)}catch(e){}};
+hasDeVoice=function(){return !!(TTS_OK&&DE_VOICE)};
+function canSpeak(){return hasDeVoice()}
+// integrator 13.6: l8's Hörpakete — a listening item whose every line has an installed clip can be played without a system voice (say() is wrapped by l8)
+function p3Clips(sc){try{return typeof lxAudioHas==="function"&&Array.isArray(sc)&&sc.length>0&&sc.every(l=>l&&l.text&&lxAudioHas(l.text,l.who))}catch(e){return false}}
+let P3_VREADY=null;
+function p3VoicesReady(){if(P3_VREADY)return P3_VREADY;P3_VREADY=new Promise(r=>{if(!TTS_OK)return r();let n=0;try{n=speechSynthesis.getVoices().length}catch(e){}if(n){pickVoice();return r()}
+    let done=false;const fin=()=>{if(done)return;done=true;pickVoice();r()};try{speechSynthesis.addEventListener("voiceschanged",fin,{once:true})}catch(e){}setTimeout(fin,1200)});return P3_VREADY}
+if(TTS_OK){try{speechSynthesis.addEventListener("voiceschanged",()=>pickVoice())}catch(e){}}
+try{pickVoice();p3VoicesReady()}catch(e){}
+function p3VoiceHelp(){const ua=(typeof navigator!=="undefined"&&navigator.userAgent)||"";
+  if(/Android/i.test(ua))return "Android: Einstellungen → System → Sprachen → Sprachausgabe → Bevorzugtes Modul (Google) → Sprachdaten installieren → Deutsch. Danach die App neu öffnen.";
+  if(/iPhone|iPad/i.test(ua))return "iPhone/iPad: Einstellungen → Bedienungshilfen → Gesprochene Inhalte → Stimmen → Deutsch → eine Stimme laden (z. B. Anna, Petra oder Markus). Danach die App neu öffnen.";
+  if(/Linux|X11|CrOS/i.test(ua))return "Steam Deck / Linux: Chromium bringt hier keine deutsche Stimme mit. Entweder Google Chrome installieren und die App dort öffnen (online gibt es dann „Google Deutsch“) oder speech-dispatcher mit einer deutschen Stimme einrichten. Bis dahin: Hörübungen am Handy oder Tablet machen.";
+  if(/Mac/i.test(ua))return "Mac: Systemeinstellungen → Bedienungshilfen → Gesprochene Inhalte → Systemstimme → Stimmen verwalten → Deutsch laden. Danach die App neu öffnen.";
+  return "Windows: Einstellungen → Zeit und Sprache → Sprache → Deutsch hinzufügen (mit Sprachausgabe). Danach den Browser neu starten."}
+function p3NoVoiceHTML(extra){return `<div class="card stack s p3-nv" style="border-color:var(--bad,#c0392b)"><div class="eyebrow">Ton</div><h3 style="margin:0">Keine deutsche Stimme auf diesem Gerät</h3><p class="ui" style="margin:0">Mephisto spricht hier <b>nicht</b> – ich tue auch nicht so. Hören, Diktat und Nachsprechen werden auf diesem Gerät nicht gewertet. <span class="en">No German voice on this device: nothing is spoken and no listening is scored.</span></p><p class="ui small" style="margin:0"><b>So bekommst du Ton:</b> ${esc(p3VoiceHelp())}</p>${extra||""}<div class="row"><button class="sm" data-act="p3VoiceRetry">Erneut prüfen</button></div></div>`}
+let P3_NV_AT=0,P3_NV_DLG=false;
+function p3NoVoice(o){if(o&&o.silent)return;const now=Date.now();if(!P3_NV_DLG){P3_NV_DLG=true;P3_NV_AT=now;try{let d=document.getElementById("p3nv");if(!d){d=document.createElement("div");d.id="p3nv";d.setAttribute("role","dialog");d.style.cssText="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);padding:1rem";document.body.appendChild(d)}
+      d.innerHTML=`<div style="max-width:520px;width:100%">${p3NoVoiceHTML()}<div class="row" style="margin-top:.5rem;justify-content:flex-end"><button class="primary" data-act="p3NvClose">Verstanden</button></div></div>`;d.hidden=false;d.style.display="flex"}catch(e){toast("Keine deutsche Stimme auf diesem Gerät – kein Ton.",4000)}return}
+  if(now-P3_NV_AT>15000){P3_NV_AT=now;toast("Keine deutsche Stimme auf diesem Gerät – kein Ton.",3500)}}
+ACT.p3NvClose=()=>{const d=document.getElementById("p3nv");if(d)d.hidden=true;if(d)d.style.display="none"};
+ACT.p3VoiceRetry=()=>{P3_VREADY=null;p3VoicesReady().then(()=>{if(canSpeak()){ACT.p3NvClose();toast("Deutsche Stimme gefunden: "+(DE_VOICE&&DE_VOICE.name||"ok"));say("Guten Tag. Jetzt hören Sie mich.")}else toast("Immer noch keine deutsche Stimme gefunden.",3000)})};
+ACT.p3Voice=()=>{const vs=p3DeVoices();const box=Focus.open({title:"Stimme",sub:"Deutsche Stimmen auf diesem Gerät"});
+  box.innerHTML=vs.length?`<div class="stack s"><p class="muted ui">Tippe eine Stimme an, um sie zu hören und auszuwählen.</p><div class="list">${vs.map((v,i)=>`<button class="li p3-v" data-i="${i}"><span class="t"><b>${esc(v.name)}</b><small>${esc(v.lang)} · ${v.localService?"auf dem Gerät":"online"}${DE_VOICE&&v.voiceURI===DE_VOICE.voiceURI?" · gewählt":""}</small></span></button>`).join("")}</div></div>`:p3NoVoiceHTML();
+  $$(".p3-v",box).forEach(b=>b.onclick=()=>{const v=vs[+b.dataset.i];try{lsSet("mephisto_voice",v.voiceURI)}catch(e){}pickVoice();say("Guten Tag, ich bin der diensthabende Arzt. Was führt Sie zu uns?")})};
+
+// ---- 3. say(): never speaks without a German voice, normalises, chunks, one player at a time (token), honours the speed setting
+let P3_TOK=0,P3_UTT=null;
+function p3Verse(text){try{if(typeof REZI==="undefined")return text;const M=p3Verse.M||(p3Verse.M=new Map(REZI.map(p=>[String(p.text).replace(/\n+/g," "),String(p.text)])));return M.get(text)||text}catch(e){return text}}
+say=function(text,o){o=o||{};const my=++P3_TOK;return p3VoicesReady().then(()=>new Promise(res=>{if(my!==P3_TOK)return res(false);
+  if(!canSpeak()){p3NoVoice(o);return res(false)}
+  let chunks;try{chunks=ttsChunks(p3Verse(String(text==null?"":text)),180)}catch(e){chunks=[{t:String(text),gap:0}]}if(!chunks.length)return res(true);
+  const base=(typeof S!=="undefined"&&S&&S.ttsRate)||.95;const rate=Math.max(.5,Math.min(1.6,o.abs?(o.rate||base):(o.rate||1)*base));
+  try{speechSynthesis.cancel()}catch(e){}let i=0;
+  const next=()=>{if(my!==P3_TOK)return res(false);if(i>=chunks.length)return res(true);const c=chunks[i++];let u;try{u=new SpeechSynthesisUtterance(c.t)}catch(e){return res(false)}
+    u.lang="de-DE";try{u.voice=o.voice||DE_VOICE}catch(e){} /* integrator 13.6: a non-SpeechSynthesisVoice (stub, stale) must not throw */u.rate=rate;u.pitch=o.pitch||1;let done=false,tm=null;
+    const fin=ok=>{if(done)return;done=true;clearTimeout(tm);if(P3_UTT===u)P3_UTT=null;if(my!==P3_TOK||ok===false)return res(false);setTimeout(next,c.gap||0)};
+    u.onend=()=>fin(true);u.onerror=e=>fin(!(e&&/interrupted|canceled|not-allowed|synthesis-unavailable|synthesis-failed|voice-unavailable|language-unavailable/.test(e.error||"")));
+    tm=setTimeout(()=>fin(true),Math.max(2500,c.t.length*95/rate+1500));P3_UTT=u;try{speechSynthesis.speak(u)}catch(e){fin(false)}};
+  setTimeout(next,40)}))};
+stopSpeech=function(){P3_TOK++;try{if(TTS_OK)speechSynthesis.cancel()}catch(e){}};
+function p3MaleVoice(){try{return p3DeVoices().find(v=>/male|markus|yannick|conrad|stefan|deu-x-nfh|deb\b/i.test(v.name)&&!/female/i.test(v.name))||DE_VOICE}catch(e){return DE_VOICE}}
+pkSpeak=function(de){return say(String(de).replace(/^\(.*?\)\s*/,""),{pitch:.78,rate:.97,voice:p3MaleVoice()})};
+// stop when the learner leaves: tab hidden, navigation, sheet closed (Focus.open/close already call stopSpeech)
+try{document.addEventListener("visibilitychange",()=>{if(document.hidden)stopSpeech()})}catch(e){}
+(function(){try{const _go=go;go=function(){stopSpeech();return _go.apply(this,arguments)}}catch(e){}try{const _cs=closeSheet;closeSheet=function(){stopSpeech();return _cs.apply(this,arguments)};ACT.closeSheet=closeSheet}catch(e){}})();
+// distinct voice profiles per speaker (real voices where the device has several, otherwise pitch and rate)
+function p3Cast(names,voices){const uniq=[...new Set(names)];const de=voices||p3DeVoices();const prof=[{pitch:1,rate:1},{pitch:.72,rate:.94},{pitch:1.3,rate:1.04},{pitch:.86,rate:1.08},{pitch:1.15,rate:.9}];const cast={};
+  uniq.forEach((n,i)=>{cast[n]=Object.assign({voice:de.length?de[i%de.length]:null},de.length>=uniq.length?{pitch:1,rate:prof[i%5].rate}:prof[i%5])});return cast}
+
+// ---- 4. listening library: no autoplay, a second tap stops instead of starting a second loop, a play counts only when it reached the end,
+//         the speed setting applies, speakers differ, and without a German voice nothing is scored as listening
+hoerenRunner=function(el,h,o){o=o||{};let plays=0,playing=false,my=0,answered=false;const maxPlays=h.level>=5?2:3;const LV=["","A1","A2","B1","B2","C1"][h.level]||"B2";
+  const KIND={durchsage:"Durchsage",telefon:"Telefon",radio:"Radio",vortrag:"Vortrag",gespraech:"Gespräch",visite:"Visite",uebergabe:"Übergabe"}[h.kind]||h.kind;
+  const head=`<div class="head"><div class="row"><span class="pill lesen">Hören · ${LV}</span><span class="pill">${esc(KIND)}</span></div><h1>${esc(h.title)}</h1><p>${esc(h.situation)}</p></div>`;
+  const qs=h.questions.map(q=>q.kind==="rf"?{q:q.q,o:["richtig","falsch"],a:q.answer==="r"?0:1,why:""}:{q:q.q,o:q.opts,a:+q.answer,why:""});
+  const transcript=()=>`<div class="dl" data-gk="${glossKey({})}">${h.script.map(t=>`<div class="turn ${/Ismail|^Arzt$|^Du$/.test(t.who)?"me":""}"><div class="who"><span>${esc(t.who)}</span>${(canSpeak()||p3Clips([t]))?`<button data-say="${esc(t.text)}" aria-label="Anhören">${ic("vol")}</button>`:""}</div><div>${glossify(t.text)}</div></div>`).join("")}</div>`;
+  if(!canSpeak()&&!p3Clips(h.script)){ // honest state: reading practice only, stored as reading, S.hoeren untouched
+    el.innerHTML=head+p3NoVoiceHTML(`<p class="ui small" style="margin:0">Du kannst den Text als <b>Leseübung</b> machen. Das zählt als Lesen – der Hörtext bleibt offen, bis es Ton gibt.</p><div class="row"><button class="primary ho-play">Als Lesetext üben (kein Hören)</button><span class="muted ui small ho-plays">kein Ton – wird nicht als Hören gezählt</span></div>`)+`<div class="ho-read ho-body stack s" hidden></div>`;
+    $(".ho-play",el).onclick=()=>{const b=$(".ho-body",el);b.hidden=false;b.innerHTML=`<div class="card"><div class="eyebrow">Lesen statt Hören <span class="en">reading, not scored as listening</span></div>${transcript()}</div><div class="card ho-q"></div>`;
+      $(".ho-play",el).disabled=true;quizRunner($(".ho-q",b),qs,{retry:false,msg:sc=>"Als Lesen gewertet ("+sc+" %). Den Hörtext kannst du nachholen, sobald das Gerät eine deutsche Stimme hat.",onDone:sc=>{S.readQ=S.readQ||{};S.readQ["h:"+h.id]=Math.max(S.readQ["h:"+h.id]||0,sc);logDay("read");logEvent("read","Hörtext als Lesetext „"+h.title+"“ · "+sc+" % (kein Ton)",sc);saveSoon();if(o.onDone)o.onDone(null)}})};return}
+  const cast=p3Cast(h.script.map(s=>s.who));
+  const paint=()=>{const pl=$(".ho-plays",el);if(pl)pl.textContent=`${plays} / ${maxPlays}× gehört`;const b=$(".ho-play",el);if(b)b.innerHTML=playing?ic("pause")+" Stopp":ic("play")+" Anhören";const s=$(".ho-slow",el);if(s)s.disabled=playing};
+  async function play(slow){if(playing){my++;playing=false;stopSpeech();paint();return}if(plays>=maxPlays&&!answered)return toast("Erst antworten, dann nochmal hören.");
+    playing=true;const me=++my;paint();let ended=true;for(const t of h.script){if(me!==my||!document.body.contains(el)){ended=false;break}const c=cast[t.who]||{};if(!(await say(t.text,{rate:(slow?.75:1)*(c.rate||1),pitch:c.pitch,voice:c.voice,silent:true}))){ended=false;break}await new Promise(r=>setTimeout(r,350))}
+    if(me===my){playing=false;if(ended)plays++;paint()}}
+  el.innerHTML=head+`<div class="card raise" style="text-align:center;padding:1.3rem"><button class="primary ho-play" style="min-height:64px;padding:0 1.6rem">${ic("play")} Anhören</button><div class="row" style="justify-content:center;margin-top:.6rem;gap:.5rem"><button class="sm ghost ho-slow">Langsam</button><span class="muted ui ho-plays">0 / ${maxPlays}× gehört</span></div><p class="muted ui" style="margin:.6rem 0 0;font-size:.85rem">Wie in der Prüfung: lies zuerst die Frage unten, dann tippe auf Anhören. Ein Durchgang zählt erst, wenn er bis zum Ende gelaufen ist. Das Transkript kommt nach den Antworten.</p></div>
+   <div class="card ho-q"></div><div class="ho-after stack s" hidden></div>`;
+  $(".ho-play",el).onclick=()=>play(false);$(".ho-slow",el).onclick=()=>play(true);
+  quizRunner($(".ho-q",el),qs,{retry:false,msg:sc=>plays<1?"Du hast geantwortet, ohne den Text einmal ganz zu hören – das Ergebnis zählt nicht als Hören.":sc>=80?"Gut gehört. Lies jetzt das Transkript und halte unklare Sätze gedrückt.":sc>=50?"Teilweise. Im Transkript steht, was du verpasst hast – nochmal anhören lohnt sich.":"Schwer, oder? Lies das Transkript, hör es dann nochmal und achte auf die Falle unten.",onDone:sc=>{answered=true;const heard=plays>=1;const after=$(".ho-after",el);after.hidden=false;
+    after.innerHTML=`<div class="card"><div class="row between"><h3>Transkript</h3><span class="muted ui" style="font-size:.82rem">Satz halten = Übersetzung</span></div>${transcript()}<div class="tip" style="margin-top:.6rem"><b>Falle:</b> ${esc(h.trap||"")}</div></div>
+     <div class="card"><div class="eyebrow">Redemittel aus dem Hörtext <span class="en">tap = deck</span></div><div class="tch-words">${(h.phrases||[]).map(p=>`<button class="tch-wd" data-de="${esc(p[0])}" data-en="${esc(p[1])}"><b>${esc(p[0])}</b><small>${esc(p[1])}</small></button>`).join("")}</div></div>
+     <div class="row"><button class="sm ho-dict">${ic("type")} Diktat aus diesem Text</button><button class="primary ho-ok">Fertig</button></div>`;
+    $$(".tch-wd",after).forEach(b=>b.onclick=()=>{S.custom.push({de:b.dataset.de,en:b.dataset.en,ex:"",tag:"hoeren"});buildDict();S.cards["c:"+(S.custom.length-1)]=newState();introducedNew(false);saveSoon();b.classList.add("on");toast("Ins Deck")});
+    $(".ho-dict",after).onclick=()=>{const all=h.script.flatMap(t=>t.text.split(/(?<=[.!?])\s+/)).filter(s=>s.split(/\s+/).length>=4&&s.length<=140);const dense=all.filter(s=>/\d|nicht|kein/.test(s));const pick=(dense.length>=3?dense:all).slice(0,5);dictationRunner(Focus.open({title:"Diktat",sub:h.title}),pick.map(s=>({de:s,en:""})),{})};
+    if(heard){S.hoeren=S.hoeren||{};S.hoeren[h.id]=Math.max(S.hoeren[h.id]||0,sc);logDay("listen");logEvent("listen","Hören „"+h.title+"“ · "+sc+" %",sc)}else logEvent("read","Hörtext ohne Hören beantwortet „"+h.title+"“ · nicht gewertet",null);saveSoon();
+    $(".ho-ok",after).onclick=()=>{if(o.onDone)o.onDone(heard?sc:null)}}})};
+
+// ---- 5. exam listening: speakers are announced and sound different; without a voice the attempt is not saved as listening
+rListen=function(el,it,c){const plays=it.plays||1;let used=0,playing=false,heard=false;const ok=canSpeak()||p3Clips(it.script);const names=[...new Set(it.script.map(l=>l.who||""))].filter(Boolean);const cast=p3Cast(it.script.map(l=>l.who||""));
+  el.innerHTML=c.head+(ok?`<div class="card raise stack s" style="text-align:center"><div class="eyebrow">Hörtext <span class="en">${plays===1?"played once, like the exam":"played twice"}</span></div><div class="row" style="justify-content:center"><button class="primary ls-play" style="min-height:58px;padding:0 1.6rem">${ic("play")} Abspielen <span class="ls-n">(0 / ${plays})</span></button></div><div class="muted ui ls-st" style="font-size:.88rem">Lies zuerst die Aufgaben unten, dann spiel den Text ab.${names.length>1?" Es sprechen: "+esc(names.join(", "))+" – jede Person hat eine eigene Stimme und wird am Anfang angesagt.":""}</div></div>`:p3NoVoiceHTML(`<p class="ui small" style="margin:0">Dieser Versuch wird <b>nicht als Hören gespeichert</b>. Du kannst das Transkript unten als Leseübung nutzen.</p>`))
+   +qBlock(it.questions)+`<div class="row"><button class="primary ex-chk">${ok?"Abgeben":"Abgeben (zählt nicht)"}</button></div><div class="ex-out"></div><details class="card ls-script" ${ok?"hidden":"open"}><summary class="ui" style="cursor:pointer;font-weight:700">Transkript</summary><div class="dl" style="margin-top:.6rem">${it.script.map(l=>`<div class="turn"><div class="who"><span>${esc(l.who||"")}</span></div><div>${esc(l.text)}</div></div>`).join("")}</div></details>`;
+  const scr=$(".ls-script",el);const pb=$(".ls-play",el);
+  if(pb)pb.onclick=async()=>{if(playing||used>=plays)return;if(!canSpeak()&&!p3Clips(it.script)){p3NoVoice({});return}playing=true;const st=$(".ls-st",el);st.textContent="Läuft…";let ended=true;
+    if(names.length>1){for(let i=0;i<names.length;i++){const k=cast[names[i]]||{};if(!pb.isConnected||!(await say((i===0?"Es sprechen: ":"")+names[i]+".",{pitch:k.pitch,rate:k.rate,voice:k.voice,silent:true}))){ended=false;break}}}
+    if(ended)for(const l of it.script){if(!pb.isConnected){ended=false;break}const k=cast[l.who||""]||{};if(!(await say(l.text,{pitch:k.pitch,rate:k.rate,voice:k.voice,silent:true}))){ended=false;break}await new Promise(r=>setTimeout(r,450))}
+    playing=false;if(!pb.isConnected)return;if(ended){used++;heard=true}$(".ls-n",el).textContent=`(${used} / ${plays})`;st.textContent=!ended?"Unterbrochen – dieser Durchgang zählt nicht. Du kannst neu starten.":used>=plays?"Fertig gehört. Jetzt abgeben.":"Du kannst den Text noch einmal hören.";if(used>=plays)pb.disabled=true};
+  $(".ex-chk",el).onclick=()=>{stopSpeech();const r=gradeQ(el,it.questions);const s=scoreLine(r,it.questions.length);$(".ex-out",el).innerHTML=s.html+(heard?"":`<p class="muted ui">Nicht als Hörergebnis gespeichert – der Text wurde nicht (ganz) gehört.</p>`);$(".ex-chk",el).remove();scr.hidden=false;c.done(heard?s.pct:null)}};
+
+// ---- 6. drills that need sound say so instead of pretending
+(function(){try{const _nr=numbersRunner;numbersRunner=function(el){if(canSpeak())return _nr.apply(this,arguments);
+    const N=8;let i=0,right=0;const step=()=>{if(i>=N){el.innerHTML=`<div class="celebrate fade-in"><div class="eyebrow">Zahlen lesen (ohne Ton)</div><h1>${right} / ${N}</h1><p class="fg2">Das war die Lesevariante. Die Hörvariante gibt es, sobald das Gerät eine deutsche Stimme hat.</p></div>`;logDay("drill");return}
+      const it=numItem();el.innerHTML=p3NoVoiceHTML(`<p class="ui small" style="margin:0">Ersatz ohne Ton: Du siehst die Zahl und schreibst sie <b>in Worten</b>.</p>`)+`<div class="card raise" style="text-align:center;padding:1.2rem"><div class="eyebrow">${i+1} / ${N} · ${esc(it.hint)}</div><div style="font-size:1.6rem;font-weight:700">${esc(it.ans)}</div></div><div class="typed"><input class="nm-in" autocomplete="off" placeholder="in Worten …"><button class="primary nm-chk">Prüfen</button></div><div class="nm-out"></div>`;
+      const inp=$(".nm-in",el);let done=false;const chk=()=>{if(done){i++;step();return}done=true;const s=similarity(inp.value,it.say);const good=s>=.8;if(good)right++;fb(good);$(".nm-out",el).innerHTML=`<div class="verdict ${good?"ok":"no"}" data-noxp="1"><b>${good?"Richtig.":"So sagt man es:"}</b><div>„${esc(it.say)}“</div><div class="row" style="margin-top:.5rem"><button class="primary nm-nx">Weiter</button></div></div>`;$(".nm-nx",el).onclick=chk};
+      $(".nm-chk",el).onclick=chk;inp.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();chk()}};setTimeout(()=>inp.focus(),200)};step()}}catch(e){}
+  try{const _sh=shadowRunner;shadowRunner=function(el){const r=_sh.apply(this,arguments);if(!canSpeak()&&el&&el.insertAdjacentHTML){try{const old=el.parentNode&&el.parentNode.querySelector(":scope > .p3-nvb");if(!old)el.insertAdjacentHTML("beforebegin",`<div class="tch-merke p3-nvb"><b>Keine deutsche Stimme auf diesem Gerät.</b> Hier gibt es kein Vorbild zum Nachsprechen: Lies jede Zeile dreimal laut. <button class="sm ghost" data-act="p3NvInfo">Was tun?</button></div>`)}catch(e){}}return r}}catch(e){}})();
+ACT.p3NvInfo=()=>{P3_NV_DLG=false;p3NoVoice({})};
+
+// ---- 7. microphone: hide the buttons where recognition cannot work, and say why
+function p3SrDead(code,persist){try{document.documentElement.classList.remove("has-sr");document.documentElement.classList.add("no-sr");if(persist)lsSet("mephisto_sr","0")}catch(e){}
+  setTimeout(()=>toast("Spracherkennung funktioniert in diesem Browser nicht ("+code+"). Die Mikrofon-Knöpfe sind jetzt ausgeblendet – sprich laut und tippe deine Antwort.",6000),150)}
+function canRecognise(){try{return typeof SR!=="undefined"&&!!SR&&document.documentElement.classList.contains("has-sr")}catch(e){return false}}
+(function(){try{if(typeof SR==="undefined"||!SR)return;if(lsGet("mephisto_sr")==="0")document.documentElement.classList.remove("has-sr");
+    if(typeof navigator!=="undefined"&&navigator.onLine===false&&!/iPhone|iPad/i.test(navigator.userAgent||""))document.documentElement.classList.remove("has-sr");
+    window.addEventListener("online",()=>{if(lsGet("mephisto_sr")!=="0")document.documentElement.classList.add("has-sr")});
+    window.addEventListener("offline",()=>{if(!/iPhone|iPad/i.test(navigator.userAgent||""))document.documentElement.classList.remove("has-sr")});
+    const _l=listen;listen=function(o){return _l(o).catch(e=>{const code=e&&e.code||"";if(/^(network|service-not-allowed|language-not-supported|unsupported|start)$/.test(code))p3SrDead(code,code!=="network"||navigator.onLine!==false);throw e})}}catch(e){}})();
+ACT.p3SrRetest=()=>{try{lsSet("mephisto_sr","");if(typeof SR!=="undefined"&&SR){document.documentElement.classList.add("has-sr");document.documentElement.classList.remove("no-sr");toast("Mikrofon-Knöpfe sind wieder sichtbar. Probier es aus.")}else toast("Dieser Browser hat keine Spracherkennung.")}catch(e){}};
+try{const st=document.createElement("style");st.textContent=".no-de-voice [data-say]{opacity:.45}";document.head.appendChild(st)}catch(e){}
+
+// ================= P3 · writing coach honesty: language, length, topic, the right case, the Arztbrief rule set =================
+// Pure functions (tested in tests/p3_node.js). c_teach.js calls p3CoachRules() from teachAnalyze and p3CoachGate() from teachRender.
+// A positive verdict is printed only by the tutor; offline the best headline is "Keine Fehler gefunden, die ich offline erkenne".
+
+const P3_DE_FW=new Set("der die das und ist ich sie nicht mit ein eine einen einem einer zu den dem des auf es wir haben sind wie er habe hat bei von im für auch noch sich mein meine ihr ihnen ihre wird kann wenn dass oder aber seit sehr wo wann heute um aus nach vor als nur schon dann weil hatte wurde werden kein keine über unter durch gegen ohne bis zum zur ins vom beim sein bin mich mir uns diese dieser wegen doch mehr hier dort jetzt immer wieder gibt muss soll".split(" "));
+const P3_EN_FW=new Set("the and is you of to a your with it that for are this be have not on as at by from were will can or but if he she they what how i my me we our his her their there has had been would should could do does did up out about which who when where why because very no yes woke got went feel pain since days".split(" "));
+function p3Words(s){return String(s||"").match(/[A-Za-zÄÖÜäöüß]+/g)||[]}
+function p3Lang(text){const tk=p3Words(text).map(w=>w.toLowerCase());let de=0,en=0;tk.forEach(w=>{if(P3_DE_FW.has(w))de++;if(P3_EN_FW.has(w))en++});const n=tk.length;const uml=/[äöüß]/i.test(text);
+  let lang="de";if(n>=4&&en>=2&&en>de)lang="en";else if(n>=10&&de===0&&!uml)lang="other";else if(n>=12&&en>=4&&en>=de*.6)lang="mixed";
+  return {lang,de,en,n,ratio:n?de/n:0}}
+const P3_STOP=new Set("eine einen einem einer eines nicht auch noch sich mein meine meinen ihre ihren ihrem ihrer wird kann wenn dass oder aber seit sehr wann heute nach über unter durch gegen ohne beim sein sind haben habe hatte wurde werden kein keine keinen diese dieser dieses diesen wegen doch mehr hier dort jetzt immer wieder gibt muss soll sollen sollte können möchte möchten bitte danke sehr viele viel etwas alles alle dann weil also schon ganz sowie bzw etwa wie was welche welcher wollen will damit dabei dafür davon dazu darüber einmal mindestens ungefähr zwischen während bevor nachdem schreiben schreib schreibe text wörter sätze satz punkt punkte thema aufgabe ihnen ihres deren denen dessen sowohl jedoch bereits weiter weitere andere anderen".split(" "));
+function p3Stems(s){return [...new Set((String(s||"").toLowerCase().replace(/<[^>]+>/g," ").match(/[a-zäöüß]{4,}/g)||[]).filter(w=>!P3_STOP.has(w)).map(w=>w.length>=6?w.slice(0,5):w))]}
+const P3_FORMAL_POINT=/Wörter|Verb an Position|Register|Sie-Form|du-Form|Nominalstil|Anrede|Gruß|Komma|Rechtschreib|Absätze|Absatz|Satzbau|Bezug zum Text|Eigene Meinung|Konnektor|Einleitung|Schluss\b|höflich|Präteritum|Konjunktiv|an den Anfang/i;
+// content points of the task → found / not found (rough, keyword stems; honest label on screen)
+function p3Points(text,points){const low=String(text||"").toLowerCase();return (points||[]).filter(p=>!P3_FORMAL_POINT.test(String(p))).map(p=>{const st=p3Stems(p);const hit=st.filter(s=>low.includes(s));return {label:String(p),ok:st.length?hit.length>=1:true,hit,n:st.length}}).filter(x=>x.n>0)}
+function p3TopicShare(text,t){const ref=new Set(p3Stems([t&&t.task,t&&t.ctx,t&&t.model,(t&&t.check||[]).join(" "),t&&t.situation].filter(Boolean).join(" ")));const tx=p3Stems(text);const hits=tx.filter(s=>ref.has(s));return {ref:ref.size,tx:tx.length,hits:hits.length,share:tx.length?hits.length/tx.length:0}}
+function p3Target(t){if(!t)return 0;if(t.words)return +t.words;const mw=p3Words(t.model).length;if(t.p3case)return 90;return mw>=75?Math.round(mw*.8):0}
+function p3IsBrief(t){if(!t)return "";if(t.p3case)return "fsp";const s=String(t.t||"")+" "+String(t.task||"")+" "+String(t.reg||"")+" "+(t.check||[]).join(" ");const m=String(t.model||"");
+  if(/Arztbrief|Entlass(ungs)?brief|Verlegungsbrief|Epikrise/i.test(s)||(/Sehr geehrte/.test(m)&&/wir berichten|Diagnose/i.test(m)))return "letter";return ""}
+
+// ---- the case check for FSP Teil 2: is this letter about THIS patient?
+const P3_NODRUG=/^(Tablette|Tabletten|Bedarf|Dauermedikation|Spray|Klasse|Kompressionsstrümpfe|Saison|Pollensaison|Wirkung|Wochen|Woche|Nacht|Knieschmerzen|Kopfschmerzen|Schmerzen|Jahren|Ziel|Pille|Mischinsulin|Vitamin|Eisen|Kontrazeption|Kontrazeptivum|Östrogen|Gestagen|Zäpfchen|Paracetamol-Zäpfchen|Einheiten|Tropfen|Hübe|Salbe|Creme|Pflaster|Schmerzmittel|Blutdrucksenker|Präparat|Einnahme|Morgen|Abend|Mittag|Tag|Monaten|Monat|Tagen|Dosis|Jodid|Baldrian)$/;
+function p3Drugs(s){return [...new Set((String(s||"").match(/[A-ZÄÖÜ][a-zäöüß]{4,}(?:-[A-Za-zäöüß]+)?/g)||[]).filter(w=>!P3_NODRUG.test(w)&&!/^(Keine|Seit|Sonst|Heute|Gestern|Zuletzt|Nimmt|Orales?|Kombinierte|Gelegentlich|Regelmäßig)$/.test(w)))]}
+function p3CaseCheck(text,c,all){const low=String(text||"").toLowerCase();const has=w=>low.includes(String(w).toLowerCase());const stem=w=>String(w).toLowerCase().replace(/[^a-zäöüß]/g,"").slice(0,6);const hasStem=w=>{const s=stem(w);return s.length>=4&&low.includes(s)};
+  const sur=String(c.name||"").replace(/\(.*$/,"").trim().split(/\s+/).filter(w=>!/^(Herr|Frau|Dr\.?)$/.test(w)).pop()||"";
+  const items=[];const add=(label,ok)=>items.push({label,ok:!!ok});
+  add("Name ("+sur+")",sur&&has(sur));add("Alter ("+c.age+")",new RegExp("(^|[^0-9])"+c.age+"([^0-9]|$)").test(text));
+  const ccSt=p3Stems(c.cc).slice(0,4);add("Leitsymptom",ccSt.some(s=>low.includes(s)));
+  p3Drugs(c.meds).slice(0,6).forEach(d=>add(d,hasStem(d)));
+  if(c.all&&!/^\s*(keine|nein)/i.test(c.all)){const a=(String(c.all).match(/[A-ZÄÖÜ][a-zäöüß]{3,}/)||[""])[0];if(a)add("Allergie ("+a+")",hasStem(a)||/allergi/i.test(text)&&hasStem(a))}else add("Allergien (keine)",/allergi/i.test(text));
+  const dxHead=(c.terms&&c.terms[0])||((String(c.dx||"").replace(/^V\.\s?a\.\s*/,"").match(/[A-ZÄÖÜ][a-zäöüß]{5,}/)||[""])[0]);if(dxHead)add("Verdachtsdiagnose ("+dxHead+")",hasStem(dxHead));
+  String(c.pmh||"").split(/[,;]/).map(x=>(x.match(/[A-ZÄÖÜ][a-zäöüß]{5,}/)||[""])[0]).filter(Boolean).slice(0,4).forEach(p=>add(p,hasStem(p)));
+  const ages=[...String(text).matchAll(/(\d{1,3})\s?(?:-\s?jährig|jährig|Jahre\b|J\.)/g)].map(m=>+m[1]);const wrongAge=ages.length>0&&!ages.includes(+c.age);
+  const mine=new Set(p3Drugs(c.meds+" "+(c.plan||"")+" "+(c.brief||"")).map(stem));const foreign=(all||[]).filter(d=>!mine.has(stem(d))&&low.includes(stem(d))).slice(0,5);
+  const found=items.filter(x=>x.ok).length;const nameOk=items[0].ok;
+  return {items,found,total:items.length,missing:items.filter(x=>!x.ok).map(x=>x.label),wrongAge,ages,foreign,wrong:(wrongAge&&!nameOk)||(items.length>=5&&found/items.length<.34)||(wrongAge&&foreign.length>0)}}
+
+// ---- Arztbrief rule set (all regex-checkable); mode "letter" = full letter to the Hausarzt, "fsp" = the 20-minute FSP document
+const P3_BRIEF_SEC={letter:[["Diagnose",/\bDiagnosen?\s*:/i],["Anrede „Sehr geehrte …“",/Sehr geehrte/],["„wir berichten über …“",/wir berichten über/i],["Befund / Diagnostik",/zeigte sich|fand sich|fanden sich|ergab|wurde[n]? .{0,40}nachgewiesen|Labor|Sonograph|sonographisch|\bCT\b|Röntgen|EKG|Urinstatus|laborchemisch/i],["Therapie / Verlauf",/Therapie|Verlauf|erhielt|kam es|wurde .{0,40}behandelt|beschwerdefrei|unter (der |einer )?[A-ZÄÖÜa-zäöü]+ /i],["Empfehlung / Procedere",/empfehlen|bitten um|Procedere|Empfehlung|Kontrolle|Wiedervorstellung/i],["Gruß „Mit freundlichen kollegialen Grüßen“",/Mit freundlichen (kollegialen )?Grüßen/]],
+  fsp:[["Patientendaten (Name, Alter)",/\b\d{1,3}\s?-?\s?(jährig|Jahre)/i],["Aktuelle Anamnese",/stellte sich|vorstell|berichtete|gab an|klagte|Beschwerden|seit\b/i],["Vorerkrankungen / Voroperationen",/Vorerkrankung|vorbekannt|bekannt|Z\.\s?n\.|Zustand nach|Voroperation|operiert/i],["Medikation",/Medikation|Dauermedikation|nimmt|nehme|einnahme|Medikamente/i],["Allergien",/allergi|Unverträglichkeit/i],["Noxen",/Nikotin|rauch|Alkohol|Noxen|Drogen/i],["Familien- und Sozialanamnese",/Familienanamnese|Mutter|Vater|Bruder|Schwester|familiär|verheiratet|lebt|wohnt|Beruf|berufstätig|Rentner|arbeitet|von Beruf/i],["Verdachtsdiagnose und Differenzialdiagnosen",/Verdacht|V\.\s?a\.|deutet .{0,30}hin|am ehesten|Differen[zt]ialdiagnos|\bDD\b/i],["Procedere",/Procedere|empfehlen|Abklärung|veranlass|geplant|vorgesehen|Therapie|Labor|Untersuchung/i]]};
+const P3_KONJ1=/\b(habe|sei|seien|hätten|bestehe|bestünden|könne|nehme|leide|rauche|trinke|lebe|arbeite|werde|müsse|wisse|gebe|sei es|verspüre|fühle|komme|gehe|esse|schlafe|vertrage)\b/;
+function p3BriefRules(text,mode,t,genus){const out=[];const f=(key,title,orig,fix,why,s,e,rep,extra)=>out.push(Object.assign({key,type:"Arztbrief",title,orig,fix,why,s:s==null?-1:s,e:e==null?-1:e,rep:rep==null?null:rep,p3:1},extra||{}));
+  const UB="(?:(?<![0-9A-Za-zÄÖÜäöüß])(?=[0-9A-Za-zÄÖÜäöüß])|(?<=[0-9A-Za-zÄÖÜäöüß])(?![0-9A-Za-zÄÖÜäöüß]))";const each=(re,fn)=>{let m;const r=new RegExp(re.source.replace(/\\b/g,UB),re.flags.includes("g")?re.flags:re.flags+"g");while((m=r.exec(text))){fn(m);if(m.index===r.lastIndex)r.lastIndex++}};
+  // 1 sections
+  const miss=(P3_BRIEF_SEC[mode]||[]).filter(([n,re])=>!re.test(text)).map(x=>x[0]);
+  if(miss.length)f("b_sec","Aufbau: es fehlt "+miss.length+(miss.length===1?" Teil":" Teile"),"–",miss.join(" · "),mode==="letter"?"A discharge letter has fixed parts in a fixed order: <b>Diagnose</b> on top, <i>Sehr geehrte Frau Kollegin, sehr geehrter Herr Kollege,</i> <i>wir berichten über …</i>, Anamnese, Befunde, Therapie und Verlauf, Empfehlung, <i>Mit freundlichen kollegialen Grüßen</i>.":"The FSP document has fixed rubrics: Patientendaten · aktuelle Anamnese · Vorerkrankungen/Voroperationen · Medikation · Allergien · Noxen · Familien- und Sozialanamnese · Verdachtsdiagnose und DD · Procedere. A missing rubric costs points even if you asked about it.",null,null,null,{merke:"Erst das Gerüst, dann die Sätze.",tip:"Schreib zuerst die Überschriften aller Teile hin – dann fehlt keiner."});
+  // 2 forbidden: ich, !, colloquial, private salutation
+  each(/\b[Ii]ch\b/,m=>f("b_ich","Im Brief nie „ich“",m[0],"wir / Passiv","A letter speaks for the department: <b>wir</b> (<i>wir berichten, wir empfehlen</i>) or the passive (<i>es erfolgte, wurde durchgeführt</i>) — never <i>ich</i>.",null,null,null,{merke:"wir berichten · es erfolgte · wurde durchgeführt"}));
+  each(/!/,m=>f("b_excl","Kein Ausrufezeichen im Arztbrief","!",".","A medical letter is neutral. No exclamation marks.",m.index,m.index+1,"."));
+  const COLL=[[/\bgekriegt\b/i,"bekommen / erhalten"],[/\bkrieg(?:t|en|te)\b/i,"bekommt / erhält"],[/\bein bisschen\b/i,"leicht / gering"],[/\bhalt\b(?=\s+[a-zäöü])/, "(streichen)"],[/\braus(?:ge)?kommen\b|\brausgekommen\b/i,"abgegangen (Steinabgang)"],[/\bgemacht\b/i,"durchgeführt / erfolgte"],[/\bgesehen\b/i,"zeigte sich / fand sich"],[/\bganz schön\b|\bziemlich\b|\btotal\b|\bsuper\b/i,"deutlich / ausgeprägt"],[/\bkaputt\b/i,"defekt / geschädigt"],[/\bgekommen mit\b/i,"stellte sich mit … vor"]];
+  COLL.forEach(([re,fx])=>each(re,m=>f("b_coll","Umgangssprache im Brief",m[0],fx,"Colloquial words do not belong in a letter. Use the fixed formulas: <i>Es erfolgte eine Sonographie. Es zeigte sich … Der Patient erhielt …</i>",null,null,null,{merke:"erfolgte · zeigte sich · erhielt · wurde durchgeführt"})));
+  each(/\bHallo\b|\bViele Grüße\b|\bLiebe Grüße\b|\bLiebe[r]? (Herr|Frau|Kolleg\w*)\b|\bTschüss\b|\bMfG\b/,m=>f("b_gruss","Anrede und Gruß wie im Arztbrief",m[0],/Grüße|Tschüss|MfG/.test(m[0])?"Mit freundlichen kollegialen Grüßen":"Sehr geehrte Frau Kollegin, sehr geehrter Herr Kollege,","Colleagues are addressed formally in writing.",null,null,null,{merke:"Sehr geehrte … · Mit freundlichen kollegialen Grüßen"}));
+  // 3 Herrn, der CT, decimal point
+  each(/\b(über|für|an|bei|von|mit|zu|um|ohne|durch|gegen|den|dem)\s+Herr\b(?!n)/,m=>f("herrn","Herrn (n-Deklination)",m[0],m[1]+" Herrn",null,m.index+m[0].length-4,m.index+m[0].length,"Herrn"));
+  each(/\b([Dd])er CT\b/,m=>f("b_ct","die CT (Computertomographie)",m[0],(m[1]==="D"?"Die":"die")+" CT","<b>die CT</b> = die Computertomographie (die Untersuchung); <b>das CT</b> wird für das Gerät oder das Bild auch gesagt. Never <i>der CT</i>.",m.index,m.index+3,m[1]==="D"?"Die":"die"));
+  each(/(?<![\d.])(\d{1,3})\.(\d{1,2})(?![\d])(?!\.\d)/,m=>{const pre=text.slice(Math.max(0,m.index-30),m.index),post=text.slice(m.index+m[0].length,m.index+m[0].length+8);if(/Uhr/.test(post)||/\bum\s*$/.test(pre))return;if(!(/(Krea\w*|CRP|Hb|Kalium|Natrium|Laktat|Troponin|Leuko\w*|pH|INR|TSH|Temp\w*|BZ|HbA1c|Wert|war|betrug|von|bei|auf)\s*:?\s*$/i.test(pre)||/^\s?(mg|mmol|g\b|°|%|l\b|cm|mm|µg|ng)/.test(post)))return;
+    f("b_komma","Dezimalkomma, nicht Punkt",m[0],m[1]+","+m[2],"German uses a <b>comma</b> for decimals: <i>Kreatinin 1,1 mg/dl · Temperatur 38,2 °C</i>. A point marks dates (20.10.) and thousands (14.200).",m.index,m.index+m[0].length,m[1]+","+m[2],{merke:"1,1 – nicht 1.1"})});
+  // 4 tense: Perfekt → Präteritum
+  const perf=[];each(/\b(hat|haben|ist|sind)\b[^.!?;]{0,60}?\b((?:[a-zäöüß]{2,6})?ge[a-zäöüß]{3,}(?:t|en))\b/i,m=>perf.push(m[1]+" … "+m[2]));
+  if(perf.length>2)f("b_perf","Im Brief Präteritum statt Perfekt",perf.slice(0,3).join(" · "),"stellte sich vor · zeigte sich · erfolgte · erhielt","Spoken German uses the Perfekt (<i>ist gekommen, haben gemacht</i>); the letter uses the <b>Präteritum</b> and the passive: <i>Der Patient stellte sich vor. Sonographisch zeigte sich … Es erfolgte … Der Patient erhielt …</i>",null,null,null,{merke:"Brief = Präteritum.",tip:"Jedes „hat/ist … ge-“ im Brief durch eine Präteritum-Formel ersetzen: <b>stellte sich vor, zeigte sich, erfolgte</b>."});
+  // 5 reported speech: Konjunktiv I
+  each(/\b(sagt|sagte|meint|meinte|erzählt|erzählte|berichtet|berichtete|gibt an|gab an|hat .{0,20}gesagt)\s*,?\s*(?:dass\s+)?(er|sie|der Patient|die Patientin)\s+(hat|ist|hatte|war|kann|nimmt|raucht|trinkt|lebt|arbeitet)\b/i,m=>{const K={hat:"habe",ist:"sei",hatte:"habe … gehabt",war:"sei … gewesen",kann:"könne",nimmt:"nehme",raucht:"rauche",trinkt:"trinke",lebt:"lebe",arbeitet:"arbeite"}[m[3].toLowerCase()];
+    f("b_konj","Angaben des Patienten im Konjunktiv I",m[0],(/^sag|^mein|^erz|^hat/i.test(m[1])?"gab an":m[1])+", "+m[2]+" "+K,"What the patient reports is written in <b>indirect speech</b> with Konjunktiv I: <i>Der Patient gab an, er <b>habe</b> kein Fieber. Sie berichtete, die Schmerzen <b>seien</b> …</i> And <i>sagen</i> becomes <b>angeben / berichten / verneinen</b>.",null,null,null,{merke:"gab an, er habe / sei …"})});
+  each(/\b(hat|haben)\s+(keine?\s+\w+\s+)?gesagt\b|\b[Ee]r sagt\b|\b[Ss]ie sagt\b/,m=>{if(out.some(x=>x.key==="b_konj"&&text.indexOf(x.orig)<=m.index&&text.indexOf(x.orig)+x.orig.length>=m.index))return;f("b_konj","Angaben des Patienten im Konjunktiv I",m[0],"gab an / berichtete / verneinte","In a letter the patient does not <i>sagen</i>: <b>Der Patient gab an, … / verneinte Fieber / berichtete über …</b>",null,null,null,{merke:"gab an · berichtete über · verneinte"})});
+  if(mode==="fsp"&&p3Words(text).length>=40&&!P3_KONJ1.test(text))f("b_konj","Angaben des Patienten im Konjunktiv I","(kein Konjunktiv I im Text)","Die Patientin berichtete, sie habe … / die Schmerzen seien …","The examiners mark sentence-level German in the Anamnese: Präteritum for what happened here (<i>stellte sich vor</i>) and <b>Konjunktiv I</b> for what the patient told you (<i>habe, sei, seien, bestünden</i>). See grammar lesson g70.",null,null,null,{merke:"berichtete, er habe / sei …"});
+  // FSP: keywords instead of sentences
+  if(mode==="fsp"){const fin=(text.match(/\b(stellte|berichtete|gab|habe|hätten|seien|sei|bestehe|bestünden|ist|sind|war|waren|wurde|wurden|hat|hatte|nimmt|nehme|leidet|leide|lebt|lebe|arbeitet|klagte|zeigte|fand|empfehlen|kommen|deutet|besteht|bestehen|findet|finden|trinke|rauche|verneinte|verneint|bestand|bestanden|erfolgte|raucht|trinkt)\b/gi)||[]).length;
+    if(p3Words(text).length>=25&&fin<4)f("b_stil","Stichwörter statt Sätze","(fast keine Verben im Text)","Frau … ist eine …-jährige Patientin, die sich mit … vorstellte.","Telegram style is fine for Befund, Diagnose and Medikation — but the <b>Anamnese</b> must be full sentences, otherwise the examiners have no grammar to mark (lesson g70).",null,null,null,{merke:"Anamnese in ganzen Sätzen.",tip:"Erster Satz immer: <b>Herr/Frau X ist ein(e) …-jährige(r) Patient(in), der/die sich mit … vorstellte.</b>"})}
+  // 7 adjective endings after mit|bei|seit|nach|von|zu|aus (dative) and missing article after in|an|auf
+  const NOADJ=/^(heute|gerade|ohne|bitte|danke|eine|keine|meine|deine|seine|ihre|unsere|eure|diese|jene|jede|alle|viele|einige|mehrere|welche|solche|beide|manche|ende|mitte|anfang|lange|gerne|leise|müde|ihre|etwa|nahe|beinahe|ungefähr|schade|rechte|linke)$/i;
+  each(/\b(mit|bei|seit|nach|von|zu|aus)\s+([a-zäöüß]{4,}e)\s+([A-ZÄÖÜ][a-zäöüß]{2,})\b/,m=>{if(NOADJ.test(m[2])&&!/^(rechte|linke)$/i.test(m[2]))return;const n=m[3];const g=genus?genus(n):null;const pl=/(en|ern|eln)$/.test(n)&&!g;const end=pl?"n":g==="die"?"r":g==="der"||g==="das"?"m":"n";const fix=m[1]+" "+m[2]+end+" "+n;
+    f("b_adj","Adjektivendung im Dativ",m[0],fix,"After <i>mit, bei, seit, nach, von, zu, aus</i> comes the dative. Without an article the adjective carries the ending: <b>mit starke<u>n</u> Schmerzen</b> (plural), <b>mit hohe<u>m</u> Fieber</b> (m/n), <b>mit starke<u>r</u> Übelkeit</b> (f).",m.index+m[1].length+1,m.index+m[1].length+1+m[2].length,m[2]+end,{merke:"mit starken Schmerzen · bei hohem Fieber · seit letzter Woche"})});
+  each(/\b(in|an|auf)\s+(linke|rechte|obere|untere|vordere|hintere|ganze)\s+([A-ZÄÖÜ][a-zäöüß]{2,})\b/,m=>{const n=m[3];const g=genus?genus(n):null;const art=g==="die"?"der":"dem";const pre=g==="die"?m[1]+" der":m[1]==="in"?"im":m[1]==="an"?"am":"auf dem";
+    f("b_adj","Artikel und Endung: in der linken Flanke",m[0],pre+" "+m[2]+"n "+n,"A body region needs its article, and after <i>in der / im / am</i> the adjective ends in <b>-en</b>: <i>in der link<b>en</b> Flanke, im recht<b>en</b> Unterbauch, am link<b>en</b> Bein</i>."+(g?"":" (Check the gender: "+art+"?)"),m.index,m.index+m[0].length,pre+" "+m[2]+"n "+n,{merke:"in der linken Flanke · im rechten Unterbauch"})});
+  // small agreement and n-declension slips that examiners circle
+  each(/\b([Dd]ie)\s+(Schmerzen|Beschwerden|Symptome|Werte|Befunde|Entzündungswerte)\s+(ist|war|wird|hat)\b/,m=>{const fx={ist:"sind",war:"waren",wird:"werden",hat:"haben"}[m[3]];f("b_kongr","Plural-Subjekt, Plural-Verb",m[0],m[1]+" "+m[2]+" "+fx,"<i>"+m[2]+"</i> is plural, so the verb is plural too.",m.index+m[0].length-m[3].length,m.index+m[0].length,fx,{merke:"die Schmerzen sind / waren"})});
+  each(/\b(zum|beim|vom|dem|den|einem|einen)\s+(Urologe|Kollege|Neurologe|Kardiologe|Psychologe|Radiologe|Gynäkologe|Experte|Junge|Kunde|Zeuge|Patient|Internist|Chirurg|Nachbar)\b(?!n|en)/,m=>{const fx=m[2]+(/e$/.test(m[2])?"n":/Nachbar/.test(m[2])?"n":"en");f("b_ndekl","n-Deklination: "+m[1]+" "+fx,m[0],m[1]+" "+fx,"Masculine nouns like <i>der Urologe, der Kollege, der Patient</i> add <b>-(e)n</b> in every case except the nominative: <i>zum Urolog<b>en</b>, den Patient<b>en</b></i>.",m.index+m[0].length-m[2].length,m.index+m[0].length,fx,{merke:"zum Urologen · den Patienten · Herrn"})});
+  each(/\bkeine\s+(Fieber)\b/,m=>f("b_kein","kein Fieber (das Fieber)",m[0],"kein Fieber","<i>das Fieber</i> is neuter and has no plural here: <b>kein Fieber</b>.",m.index,m.index+5,"kein"));
+  // 6 content: numbers and drugs of the model must appear
+  const model=String((t&&t.model)||"");if(mode==="letter"&&model){const low=text.toLowerCase().replace(/\s+/g," ");const need=[];
+    (model.match(/\b\d+(?:,\d+)?\s?-?\s?(?:mm|cm|l\b|mg|g\b|Wochen|Tagen?|Stunden|h\b|ml|%|°C|Monaten?)|\bGrad\s+[IV\d]+\b|\b\d{1,2}\.\d{1,2}\.(?:\d{4})?/g)||[]).forEach(x=>need.push(x.trim()));
+    p3Drugs(model).filter(w=>/(ol|in|il|an|on|id|am|at|ir|ix|ax|um|en)$/.test(w)&&/^(?!Diagnos|Anamnes|Befund|Verlauf|Empfehl|Kolleg|Patient|Behandl|Aufnahm|Kontroll|Therapi|Schmerz|Analgesi|Übelkeit|Ausstrahl|Flüssigkeit|Urinstat|Kreatinin|Harnstau|Konkrement|Leiste|Zustand|Grüßen|Wochen|Mikrohäm|Steinabgang|Trinkmenge|Stunden|Ureter)/.test(w)).forEach(x=>need.push(x));
+    const normN=s=>s.toLowerCase().replace(/\s|-/g,"").replace(/vier/g,"4");const lowN=normN(text);const missC=[...new Set(need)].filter(x=>!lowN.includes(normN(x))&&!low.includes(x.toLowerCase()));
+    if(missC.length)f("b_cont","Angaben aus den Stichpunkten fehlen","–",missC.slice(0,10).join(" · "),"Every number, date and drug from the notes must be in the letter — the Hausarzt acts on them. A wrong or missing dose is the error examiners punish hardest.",null,null,null,{merke:"Zahlen, Daten, Medikamente: alle übernehmen.",tip:"Vor dem Abgeben die Stichpunkte abhaken: jede Zahl, jedes Datum, jedes Medikament im Brief?"})}
+  return out}
+
+// ---- wrong auxiliary and wrong participle, from the strong-verb table (x_verbs.js STARK) — used by c_teach.js
+function p3SeinParts(){if(p3SeinParts.L)return p3SeinParts.L;const s=new Set("gegangen gekommen gefahren gelaufen geflogen gestorben gefallen geblieben gewesen geworden aufgestanden eingeschlafen aufgewacht umgezogen gestürzt gereist gerannt angekommen zurückgekommen mitgekommen passiert geschehen gewandert geschwommen gesprungen gestiegen ausgestiegen eingestiegen umgestiegen gewachsen aufgewachsen erschienen verschwunden gelungen entstanden losgegangen weggegangen ausgegangen abgefahren losgefahren zurückgefahren abgeflogen hingefallen umgefallen ausgerutscht gestolpert gelandet geklettert gefolgt begegnet zurückgekehrt eingetreten aufgetreten".split(" "));
+  try{if(typeof STARK!=="undefined")STARK.forEach(v=>{const m=String(v[4]||"").match(/^ist\s+(\S+)$/);if(m)s.add(m[1].toLowerCase())})}catch(e){}p3SeinParts.L=[...s];return p3SeinParts.L}
+function p3StrongInf(){if(p3StrongInf.S)return p3StrongInf.S;const s=new Set();try{if(typeof STARK!=="undefined")STARK.forEach(v=>s.add(String(v[0]).toLowerCase()))}catch(e){}p3StrongInf.S=s;return s}
+// "gelernen" → "gelernt": ge + weak stem + en, where stem+en is a known weak infinitive (known = fn)
+function p3WeakPart(k,known){const m=String(k).toLowerCase().match(/^ge([a-zäöüß]{3,})en$/);if(!m)return null;const inf=m[1]+"en";if(p3StrongInf().has(inf))return null;if(!known(inf))return null;return "ge"+m[1]+(/[td]$/.test(m[1])?"et":"t")}
+
+// ---- hook 1: extra findings inside teachAnalyze (add = the analyzer's own add(f,s,e,rep))
+function p3CoachRules(text,t,add,F){const mode=p3IsBrief(t);if(!mode)return;const genus=typeof tGenus==="function"?n=>{try{return tGenus(n)}catch(e){return null}}:null;
+  p3BriefRules(text,mode,t,genus).forEach(f=>{if(f.key==="herrn"&&F.some(x=>x.key==="herrn"))return;add(f,f.s<0?0:f.s,f.e<0?0:f.e,f.s<0?null:f.rep)})}
+// ---- hook 2: the verdict gate used by teachRender. Returns {block:{head,why[]}|null, points, cc, words, target, lang}
+function p3CoachGate(text,t,A){t=t||{};const words=(String(text||"").trim().match(/\S+/g)||[]).length;const L=p3Lang(text);const G={block:null,points:null,cc:null,words,target:p3Target(t),lang:L.lang,warn:[]};
+  if(L.lang==="en"){G.block={head:"Das ist noch kein Deutsch.",why:["Ich erkenne englische Wörter – einen englischen Text kann ich nicht als Deutsch bewerten.","Schreib den ersten Satz auf Deutsch, am besten mit dem Gerüst (Hilfe → Bausteine)."]};return G}
+  if(L.lang==="other"){G.block={head:"Ich erkenne hier keinen deutschen Text.",why:["Kein einziges deutsches Funktionswort (der, und, ist, nicht …) gefunden.","Schreib ganze deutsche Sätze – dann kann ich sie prüfen."]};return G}
+  if(L.lang==="mixed")G.warn.push("Im Text stehen englische Wörter – in der Prüfung zählt nur Deutsch.");
+  if(t.p3case){G.cc=p3CaseCheck(text,t.p3case,t.p3drugs||[]);if(G.cc.wrong){G.block={head:"Dieser Text passt nicht zu diesem Fall.",why:["Vom Fall gefunden: "+G.cc.found+" von "+G.cc.total+" Angaben. Es fehlen: "+G.cc.missing.slice(0,8).join(", ")+".",G.cc.wrongAge?"Alter im Text: "+G.cc.ages.join(", ")+" – die Patientin/der Patient ist "+t.p3case.age+".":"",G.cc.foreign.length?"Nicht in der Anamnese: "+G.cc.foreign.join(", ")+".":""].filter(Boolean)};return G}}
+  if(Array.isArray(t.check)&&t.check.length&&!(A&&A.content)){const P=p3Points(text,t.check);if(P.length){G.points=P;const ok=P.filter(p=>p.ok).length;const ts=p3TopicShare(text,t);if((P.length>=3&&ok===0)||(P.length>=2&&ok<P.length/2&&ts.ref>=8&&ts.tx>=6&&ts.share<.25)){G.block={head:"Thema verfehlt: "+ok+" von "+P.length+" Inhaltspunkten gefunden.",why:P.filter(p=>!p.ok).slice(0,4).map(p=>"fehlt: "+p.label)}}}}
+  if(G.target>=40&&words<.75*G.target){const head="Zu kurz: "+words+" von "+G.target+" Wörtern. In der Prüfung kostet das die Erfüllung.";if(G.block)G.block.why.unshift(head.replace(/\.$/,"")+".");else G.block={head,why:["Erst wenn die Länge stimmt, lohnt der Blick auf die Feinheiten."]}}
+  if(!G.block&&!t.p3case){const ts=p3TopicShare(text,t);if(ts.ref>=8&&ts.tx>=6&&ts.hits<Math.max(2,Math.ceil(ts.tx*.1)))G.block={head:"Thema verfehlt: Dein Text hat fast nichts mit der Aufgabe zu tun.",why:["Nur "+ts.hits+" von "+ts.tx+" Inhaltswörtern passen zu Aufgabe und Muster.","Lies die Aufgabe noch einmal und beantworte genau sie."]};
+    else if(/\bFragen\b/.test(String(t.task||"")+" "+String(t.t||""))&&/\bfrag|stell/i.test(String(t.task||"")+" "+String(t.t||""))&&!/\?/.test(text)&&words>=6)G.block={head:"Die Aufgabe verlangt Fragen – ich sehe keine einzige.",why:["Kein Fragezeichen im Text. Stell die Fragen so, wie du sie der Patientin stellen würdest."]}}
+  return G}
+
+// ================= P3 · FSP simulation (offline): a lay patient, the examiners' sheet, a real Arztbrief, Teil 3 assessed =================
+// Data: x_p3_fsp.js (P3_FSP_OVER), x_p3_fsp2.js (P3_FSP_OVER_P9), x_p3_fsp3.js (P3_FSP_NEW), x_p3_fix.js (P3_TEXT_FIX).
+// State: S.p3fsp = {seen:{caseId:"yyyy-mm-dd"}, strict:bool}. Results still go to S.fsp (existing key; entries gain .sheet and .id).
+// Pure parts (p3Intent, p3Patient, p3NumWords, p3Spell, p3Present, p3Kw, p3AllCases) are tested in tests/p3_node.js.
+
+// ---- 1. the case pool: overlays merged, the eight p9 cases made reachable, 24 classic cases added
+function p3AllCases(){const C=typeof FSP_CASES!=="undefined"?FSP_CASES:[];
+  try{if(typeof FSP2!=="undefined")FSP2.forEach(c=>{if(!C.some(x=>x.id===c.id))C.push(c)})}catch(e){}
+  try{if(typeof P3_FSP_OVER!=="undefined")C.forEach(c=>{const o=c.id&&P3_FSP_OVER[c.id];if(o&&!c._p3)Object.assign(c,o,{_p3:1})})}catch(e){}
+  try{if(typeof P3_FSP_OVER_P9!=="undefined")C.forEach(c=>{const o=!c.id&&P3_FSP_OVER_P9[c.name];if(o&&!c._p3)Object.assign(c,o,{_p3:1})})}catch(e){}
+  try{if(typeof P3_FSP_NEW!=="undefined")P3_FSP_NEW.forEach(c=>{if(!C.some(x=>x.id===c.id)){c._p3=1;if(c.oa&&!c.oberarztQs)c.oberarztQs=c.oa.map(x=>x.q);if(c.oa&&!c.kw)c.kw=c.oa.map(x=>x.kw||[]);C.push(c)}})}catch(e){}
+  return C}
+try{p3AllCases()}catch(e){}
+const P3_SYS={kardio:"Herz und Kreislauf",pulmo:"Lunge und Atemwege",gi:"Bauch und Verdauung","nephro-uro":"Niere und Harnwege",neuro:"Nervensystem",endo:"Stoffwechsel und Hormone",infekt:"Infektionen",muskulo:"Unfall, Knochen, Gelenke",gyn:"Frauenheilkunde, Geburtshilfe",paed:"Kinder",psych:"Psychiatrie",derma:"Haut",haem:"Blut und Lymphknoten",allgemein:"Allergie und Notfall"};
+const p3Usable=c=>!!(c&&c.id&&c.lay&&(c.hpi||c.lay.open));
+const p3Female=c=>c.sex==="w"||/^Frau/.test(c.name||"");
+const p3Sur=c=>String(c.name||"").replace(/\(.*$/,"").trim().split(/\s+/).filter(w=>!/^(Herr|Frau|Dr\.?)$/.test(w)).pop()||"";
+
+// ---- 2. numbers, dates and spelling the way a patient says them
+function p3NumWords(n){n=Math.round(+n);const U=["null","eins","zwei","drei","vier","fünf","sechs","sieben","acht","neun","zehn","elf","zwölf","dreizehn","vierzehn","fünfzehn","sechzehn","siebzehn","achtzehn","neunzehn"],T=["","","zwanzig","dreißig","vierzig","fünfzig","sechzig","siebzig","achtzig","neunzig"];
+  const w=(x,end)=>{if(x<20)return x===1&&!end?"ein":U[x];if(x<100){const u=x%10,t=Math.floor(x/10);return (u?(u===1?"ein":U[u])+"und":"")+T[t]}if(x<1000){const h=Math.floor(x/100),r=x%100;return (h===1?"ein":U[h])+"hundert"+(r?w(r,true):"")}const th=Math.floor(x/1000),r=x%1000;return (th===1?"ein":w(th))+"tausend"+(r?w(r,true):"")};
+  if(n>=1100&&n<2000)return w(Math.floor(n/100))+"hundert"+(n%100?w(n%100,true):"");return w(n,true)}
+function p3DateWords(d){const m=String(d||"").match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);if(!m)return d;const O=typeof TTS_ORD!=="undefined"?TTS_ORD:null;const o=x=>O?O[x]:x+".";const mo=String(o(+m[2]));return "am "+o(+m[1])+" "+mo[0].toUpperCase()+mo.slice(1)+" "+p3NumWords(+m[3])}
+const P3_SPELL_OLD={A:"Anton","Ä":"Ärger",B:"Berta",C:"Cäsar",D:"Dora",E:"Emil",F:"Friedrich",G:"Gustav",H:"Heinrich",I:"Ida",J:"Julius",K:"Kaufmann",L:"Ludwig",M:"Martha",N:"Nordpol",O:"Otto","Ö":"Ökonom",P:"Paula",Q:"Quelle",R:"Richard",S:"Samuel",T:"Theodor",U:"Ulrich","Ü":"Übermut",V:"Viktor",W:"Wilhelm",X:"Xanthippe",Y:"Ypsilon",Z:"Zacharias"};
+const P3_SPELL_NEW={A:"Aachen","Ä":"Umlaut Aachen",B:"Berlin",C:"Chemnitz",D:"Düsseldorf",E:"Essen",F:"Frankfurt",G:"Goslar",H:"Hamburg",I:"Ingelheim",J:"Jena",K:"Köln",L:"Leipzig",M:"München",N:"Nürnberg",O:"Offenbach","Ö":"Umlaut Offenbach",P:"Potsdam",Q:"Quickborn",R:"Rostock",S:"Salzwedel",T:"Tübingen",U:"Unna","Ü":"Umlaut Unna",V:"Völklingen",W:"Wuppertal",X:"Xanten",Y:"Ypsilon",Z:"Zwickau"};
+function p3Spell(word,newTable){const T=newTable?P3_SPELL_NEW:P3_SPELL_OLD;const out=[];const s=String(word||"");for(let i=0;i<s.length;i++){let ch=s[i];if(ch==="ß"){out.push("Eszett");continue}
+    const base=ch.normalize("NFD").replace(/[\u0300-\u036f]/g,"");const up=ch.toUpperCase();const key=/[ÄÖÜ]/.test(up)?up:base.toUpperCase();if(!T[key])continue;const acc=!/[äöüÄÖÜ]/.test(ch)&&base!==ch;
+    out.push(key+" wie "+T[key]+(acc?", mit einem Strich darüber":""))}return out.join(", ")+"."}
+
+// ---- 3. intent routing: word-boundary patterns in a fixed priority order (personal data → explicit rubrics → symptoms)
+const P3_EXPLAIN=/\b(ich vermute|ich denke|wahrscheinlich|vermutlich|wir werden|wir machen|wir müssen|wir möchten|wir würden|ich möchte (sie|ihnen|gern|gerne)|ich würde (sie|ihnen|gern|gerne)|sie haben (wahrscheinlich|vermutlich|eine?n?)\b|das bedeutet|es handelt sich|verdacht|keine sorge|machen sie sich keine sorgen|man nennt|nötig|notwendig|ich erkläre|ich erklär|das heißt|das ist (eine?|ein|nicht)\b|ich glaube,? (sie|dass|es))/;
+const P3_QWORD=/^(wie|was|wo|wann|warum|wieso|weshalb|welche[rsnm]?|wer|wen|wem|wohin|woher|womit|seit wann|haben|hatten|sind|waren|nehmen|rauchen|trinken|leiden|können|könnten|dürfen|darf|kann|gibt|gab|ist|tut|hat|haben|möchten|essen|schlafen|fühlen|leben|wohnen|arbeiten|müssen|strahlt|kommt|wird|wurde|erzählen|beschreiben|zeigen)\b/;
+const P3_VEG=[["appetit",/\b(appetit|hunger|essen sie)/],["gewicht",/\b(abgenommen|zugenommen|gewichts?(verlust|zunahme|abnahme)|gewicht (verändert|verloren|gleich)|kilo (ab|zu|verloren))/],["stuhl",/\b(stuhl\w*|durchfall|verstopf\w*|darm(entleerung)?|teerstuhl|blut im stuhl|schwarze?r? stuhl)\b/],["wasser",/\b(wasserlassen|wasser lassen|urin\w*|harn\w*|pinkeln|blase|brennen beim|nachts (zur toilette|raus))\b/],["schlaf",/\b(schlaf\w*|schlafen|flach liegen|kissen)\b/],["fieber",/(\bfieber\w*|\btemperatur\w*|\bheiß\b|schüttelfrost|nachtschweiß|\bschwitzen\b)/],["durst",/\b(durst\w*|mehr (als sonst )?trinken|trinken sie (mehr|viel)\b(?! alkohol))/]];
+const P3_SYM=[["brust",/\b(brust\w*|herzschmerz\w*|herzstolper\w*|herzrasen|herzklopfen|engegefühl|druck auf der brust)\b/],["luft",/\b(luftnot|atemnot|luft|atmen|atmung|husten|auswurf|schleim)\b/],["uebel",/\b(übel\w*|übelkeit|erbroch\w*|erbrechen|brechen|spucken|gespuckt)\b/],["kopf",/\b(kopfschmerz\w*|kopfweh|kopf)\b/],["schwindel",/\b(schwindel\w*|schwindlig|ohnmacht\w*|ohnmächtig|bewusstlos|umgekippt|schwarz vor (den )?augen)\b/],["bein",/\b(wasser in den beinen|geschwollen\w* (beine|füße|knöchel)|beine? (dick|geschwollen)|ödeme?|wade\w*|beine?)\b/],["blut",/\b(blut\w*|blutung\w*)\b/],["haut",/\b(ausschlag|juck\w*|haut\w*|rötung|rot)\b/],["sehen",/\b(sehen|sehstörung\w*|augen|flimmer\w*|doppelt\w*)\b/],["neuro",/\b(taub\w*|kribbel\w*|lähmung\w*|gelähmt|schwäche|schwach|kraft\w*|sprechen|sprache)\b/],["schmerz",/\b(schmerz\w*|weh|wehtun|tut .{0,15}weh)\b/]];
+const P3_RULES=[
+ ["du",/\b(du|dich|dir|dein\w*)\b/],
+ ["suiz",/\b(suizid\w*|selbstmord\w*|das leben (zu )?nehmen|(sich|ihnen) (etwas|was) an(zu)?tun|nicht mehr (zu )?leben|lebensmüde|umzubringen|umbringen)\b/],
+ ["summary",/(zusammenfass|habe ich (sie|das|alles) richtig verstanden|wenn ich (sie|das) richtig verstehe|stimmt das so|ist das (so )?richtig|fasse .{0,12}zusammen)/],
+ ["closing",/(noch (irgendwelche |weitere )?fragen|haben sie (noch )?fragen|gibt es (noch )?(etwas|was).{0,40}(wichtig|vergessen|nicht gefragt|fragen)|möchten sie noch etwas|komme (gleich |dann )?(wieder|zurück)|bespreche .{0,40}(oberarzt|oberärztin|kolleg)|auf wiedersehen)/],
+ ["spell",/buchstabier/],
+ ["name",/(\bheiß(en|t) (sie|ihr|er|der|die|das)\b|\b(ihr(en)?|ihres|vor|nach|voll|familien)\s?names?n?\b|\bname\b)/],
+ ["dob",/\b(geboren|geburtsdatum|geburtstag|wie alt|ihr alter)\b/],
+ ["size",/(wie groß (sind|ist)|körpergröße|wie (viel|schwer) (wiegen|wiegt)|wie schwer (sind|ist)|größe und gewicht|ihr (körper)?gewicht\b(?!.{0,25}(verändert|ab|zu)))/],
+ ["ha",/\b(hausarzt|hausärztin|kinderarzt|kinderärztin|frauenarzt|frauenärztin|wer behandelt sie|bei welchem arzt)\b/],
+ ["consent",/(darf ich sie .{0,25}untersuchen|einverstanden|ist das (in ordnung|okay|ok)|erlauben sie|haben sie etwas dagegen)/],
+ ["drugs",/\b(droge\w*|rauschgift|kiffen|cannabis|kokain|marihuana|haschisch|joint|heroin|amphetamin\w*|ecstasy)\b/],
+ ["vacc",/\b(geimpft|impf\w*|tetanus\w*)\b/],
+ ["reise",/\b(ausland\w*|verreist|reise\w*|urlaub\w*|tropen|geflogen|flug\w*)\b/],
+ ["lastmeal",/(zuletzt (etwas )?gegessen|letzte mahlzeit|wann haben sie (zuletzt|das letzte mal) (etwas )?(gegessen|getrunken)|\bnüchtern\b)/],
+ ["ops",/\b(operiert|operation\w*|op|eingriff\w*)\b/],
+ ["gyn",/\b(periode|regel|regelblutung|menstruation|schwanger\w*|verhütung|verhüten|wechseljahre|ausfluss|geburten|entbindung\w*)\b/],
+ ["all",/\b(allergi\w*|vertragen sie|unverträglich\w*|überempfindlich\w*)\b/],
+ ["fam",/\b(familie\w*|eltern|vater|mutter|geschwister|bruder|brüder|schwester\w*|erblich\w*|verwandt\w*|großeltern|familiär)\b/],
+ ["nox",/\b(rauch\w*|zigarett\w*|nikotin|tabak|alkohol\w*|bier|wein|schnaps)\b/],
+ ["self",/((selbst|schon|zu hause) (etwas|was|eine?) ?(tablette|schmerzmittel|medikament)? ?(dagegen )?(genommen|eingenommen|gemacht|getan|versucht)|hat (es|das|die tablette) geholfen|schmerzmittel genommen|(etwas|was) eingenommen)/],
+ ["trigger",/(was haben sie (gerade |da )?gemacht,? als|wobei (ist|hat) es|wie ist (es|das) passiert|was ist (genau )?passiert|wie kam es|unfallhergang|wie sind sie (gestürzt|gefallen))/],
+ ["pmh",/\b(vorerkrank\w*|krankheiten|erkrankung\w*|chronisch\w*|krankenhaus|sonst gesund|gesund\b|bluthochdruck|zuckerkrank\w*|diabetes|herzerkrank\w*|herzprobleme|lungenerkrank\w*|nierenerkrank\w*|schilddrüse\w*|leiden sie|bekannte)/],
+ ["prev",/(so etwas|so was|solche beschwerden|ähnliche\w* beschwerden|das gleiche|dasselbe).{0,30}(schon|früher|vorher)|(schon|früher) (einmal|mal|öfter).{0,40}(gehabt|so|ähnlich|passiert|erlebt)|zum ersten mal|kennen sie (das|diese)|hatten sie (das|so etwas|solche|ähnliche)/],
+ ["meds",/\b(medikament\w*|tablette\w*|arznei\w*|nehmen sie (regelmäßig|etwas|irgend\w*|sonst)|einnehm\w*|pille|spray\w*|insulin|blutverdünn\w*|spritze\w*|tropfen|pflanzlich\w*|dauermedikation|präparat\w*|dosis|dosierung)\b/],
+ ["soc",/\b(beruf\w*|arbeiten sie|was machen sie (beruflich|von beruf)|wohnen|wohnung|leben sie|mit wem|verheiratet|partner\w*|kinder|allein zurecht|versorgt|pflegedienst|pflegegrad|treppe\w*|stockwerk|haushalt|kita|studieren|ausbildung|arbeit\w*)\b/],
+ ["scale",/\b(skala|von (0|null|1|eins) bis (10|zehn)|wie stark|wie schlimm|wie heftig|intensität)\b/],
+ ["rad",/\b(strahl\w*|zieht (es|der schmerz|das)|wohin zieht|ausbreit\w*|wandert)\b/],
+ ["char",/(wie fühlt sich|beschreib\w*|drückend|stechend|brennend|ziehend|krampf\w*|dumpf|pochend|was für (ein|eine)n? (schmerz|gefühl)|art (von|des|der) schmerz|in wellen|dauernd|dauerhaft|die ganze zeit|kommt und geht)/],
+ ["mod",/(lindert|linder\w*|verstärk\w*|\bbesser\b|schlimmer|verschlechter\w*|verbesser\w*|abhängig von|bei bewegung|beim (atmen|essen|gehen|liegen)|nach dem essen|\blage\b|wenn sie sich)/],
+ ["onset",/(seit wann|wann (hat|haben|ist|fing|begann|ging)|wie lange (schon|haben|geht)|plötzlich|schleichend|angefangen|begonnen|wann zuerst)/],
+ ["loc",/(wo genau|wo (tut|haben|ist|sind|spüren)|welche stelle|zeigen sie|wo (es|der schmerz))/],
+ ["open",/(was führt|was fehlt|wie kann ich (ihnen )?helfen|womit kann ich|was ist (los|das problem|ihr problem)|warum sind sie (hier|gekommen)|was (bringt|plagt) sie|erzählen sie|welche beschwerden|wie geht es ihnen|was kann ich für sie tun|weshalb sind|weswegen)/],
+ ["assoc",/(andere beschwerden|sonst noch|begleit\w*|noch etwas aufgefallen|weitere symptome|noch (andere|weitere)|außerdem)/]];
+// JavaScript's \b ignores umlauts ("\bübel" never matches): rebuild every routing pattern with a Unicode-aware boundary
+const P3_UB="(?:(?<![0-9A-Za-zÄÖÜäöüß])(?=[0-9A-Za-zÄÖÜäöüß])|(?<=[0-9A-Za-zÄÖÜäöüß])(?![0-9A-Za-zÄÖÜäöüß]))";
+const p3U=re=>new RegExp(re.source.replace(/\\b/g,P3_UB),re.flags);
+[P3_RULES,P3_VEG,P3_SYM].forEach(L=>L.forEach(r=>{r[1]=p3U(r[1])}));
+function p3Intent(q){const raw=String(q||"").trim();const t=raw.toLowerCase().replace(/[„“"]/g,"");const out={k:"",veg:[],sym:"",intro:/(mein name ist|ich bin (der|die|ihr|ihre) (diensthabende\w*|zuständige\w*|aufnehmende\w*|arzt|ärztin|assistenzarzt|assistenzärztin|stationsarzt|stationsärztin)|ich heiße\b)/.test(t),greet:/^(guten (tag|morgen|abend)|hallo|grüß gott)\b/.test(t)};
+  if(!t)return out;if(/\b(du|dich|dir|dein\w*)\b/.test(t)){out.k="du";return out}
+  const isQ=/\?/.test(raw)||P3_QWORD.test(t.replace(/^(und|also|gut|okay|ok|aha|frau \S+|herr \S+|entschuldigung)[,.!]?\s+/,""));
+  if(!isQ&&p3U(P3_EXPLAIN).test(t)){out.k="explain";return out}
+  // strip the self-introduction so "Guten Tag, ich heiße Ismail. Wie heißen Sie?" routes the question
+  const body=t.replace(/^(guten (tag|morgen|abend)|hallo)[,!.]?\s*/,"").replace(/(mein name ist|ich heiße|ich bin)\s+[^.?!]*?(arzt|ärztin|ismail|doktor)[^.?!]*[.!]?\s*/,"");
+  for(const [k,re] of P3_RULES){if(k==="du")continue;if(re.test(body)){out.k=k;break}}
+  if(out.k==="assoc"||!out.k||out.k==="open"){const v=P3_VEG.filter(([,re])=>re.test(body)).map(x=>x[0]);if(v.length&&out.k!=="open"){out.k="veg";out.veg=v}}
+  if(!out.k||out.k==="assoc"){const s=P3_SYM.find(([,re])=>re.test(body));if(s){out.k="sym";out.sym=s[0]}}
+  if(!out.k&&(out.intro||out.greet))out.k="greet";
+  if(!out.k&&/\b(gut|danke|okay|alles klar|verstehe|verstanden|aha)\b/.test(body)&&!isQ)out.k="ack";
+  return out}
+
+// ---- 4. the patient: answers only from hand-written lay text; never chart fields
+const P3_FALLBACK="Das weiß ich nicht so genau – das steht in meinem Arztbrief vom Hausarzt.";
+const P3_CHART=/;|\(|\)|\bZ\.\s?n\.|\bSt\.\s?p\.|\bpy\b|Packungsjahr|\bGOLD\b|Stadium|MMST|\bG\d\/P\d|laut Patient|\bV\.\s?a\.|\bDD\b|\b\d-\d-\d\b|mg\/dl|\bNYHA\b|\bEF\b|\bHbA1c\b|\bINR\b|\bIE\b/;
+const P3_NEG={brust:"Schmerzen in der Brust habe ich nicht.",luft:"Luft bekomme ich eigentlich gut, Husten habe ich auch nicht.",uebel:"Übel ist mir nicht, erbrochen habe ich auch nicht.",kopf:"Kopfschmerzen habe ich eigentlich nicht.",schwindel:"Schwindelig ist mir nicht, ohnmächtig war ich auch nicht.",bein:"Die Beine sind nicht geschwollen.",blut:"Blut ist mir nirgends aufgefallen.",haut:"An der Haut ist mir nichts aufgefallen.",sehen:"Mit den Augen ist alles in Ordnung.",neuro:"Taub oder gelähmt ist nichts, die Kraft ist normal.",schmerz:"Richtige Schmerzen habe ich eigentlich nicht.",
+  appetit:"Der Appetit ist eigentlich normal.",gewicht:"Mein Gewicht ist ungefähr gleich geblieben.",stuhl:"Der Stuhlgang ist normal.",wasser:"Beim Wasserlassen ist alles normal.",schlaf:"Ich schlafe eigentlich ganz normal.",fieber:"Fieber habe ich nicht, glaube ich.",durst:"Nein, ich habe nicht mehr Durst als sonst."};
+const P3_SYM_ANS={brust:/brust|herz|eng|drück/i,luft:/luft|atm|hust|schleim|auswurf/i,uebel:/übel|schlecht|erbroch|übergeben|spuck|gebrochen/i,kopf:/kopf/i,schwindel:/schwindel|schwarz vor|ohnmächt|bewusstlos|weg\b/i,bein:/bein|wade|füße|knöchel|geschwollen|dick/i,blut:/blut/i,haut:/haut|rot|ausschlag|juck|quaddel/i,sehen:/augen|sehe|flimmer|blitze/i,neuro:/arm|bein|schwach|taub|sprech|wörter|lähm/i,schmerz:/schmerz|weh|tut|sticht|drückt|zieht/i};
+function p3Patient(c,opts){opts=opts||{};const L=c.lay||{};const V=L.veg||{};const w=p3Female(c);const used=new Set();const hpiS=String(c.hpi||"").replace(/^\([^)]*\)\s*/,"").split(/(?<=[.!?])\s+/).filter(Boolean);const sur=p3Sur(c);const st={k:0};
+  const clean=s=>{s=String(s||"").trim();return s&&!P3_CHART.test(s)?s:""};
+  const nextHpi=n=>{const out=[];for(const x of hpiS){if(out.length>=(n||2))break;if(!used.has(x)){used.add(x);out.push(x)}}return out.join(" ")};
+  const find=(re,skipUsed)=>{const pool=hpiS.concat([L.char,L.mod,L.rad,L.prev,L.self].filter(Boolean),Object.values(V));return pool.find(x=>re.test(x)&&!(skipUsed&&used.has(x)))};
+  const field=k=>clean(L[k]);
+  const ageW=()=>p3NumWords(c.age);
+  const A={
+   greet:()=>"Guten Tag, Herr Doktor."+(opts.intro?"":""),
+   consent:()=>"Ja, natürlich, das ist in Ordnung.",
+   name:()=>clean(L.name)||(sur?(sur+". "+(c.vn?c.vn+" "+sur:sur)+"."):P3_FALLBACK),
+   spell:()=>{const nm=(L.name&&c.via)?"":"";return (c.via?"Den Nachnamen? ":"")+p3Spell(sur,(opts.idx||0)%2===1)+nm},
+   dob:()=>clean(L.dob)||(c.geb?(p3DateWords(c.geb).replace(/^am/,"Am")+". "+(c.age<3?"Er ist "+ageW()+" Jahre alt.":"Ich bin "+ageW()+".")):"Ich bin "+ageW()+" Jahre alt."),
+   size:()=>clean(L.size)||(c.cm&&c.kg?((c.cm>=100?"Eins "+(c.cm%100?p3NumWords(c.cm%100):"null"):p3NumWords(c.cm)+" Zentimeter")+", und ich wiege ungefähr "+p3NumWords(c.kg)+" Kilo."):"Das weiß ich gerade nicht genau."),
+   ha:()=>c.ha?((c.sys==="paed"?(/^Frau/.test(c.ha)?"Unsere Kinderärztin ist ":"Unser Kinderarzt ist "):(/^Frau/.test(c.ha)?"Meine Hausärztin ist ":"Mein Hausarzt ist "))+c.ha+"."):"Einen festen Hausarzt habe ich nicht.",
+   open:()=>{if(used.has("_open"))return nextHpi(2)||"Wie gesagt – deswegen bin ich hier.";used.add("_open");return field("open")||nextHpi(2)||P3_FALLBACK},
+   hpi:()=>nextHpi(2)||"Mehr fällt mir dazu gerade nicht ein. Fragen Sie ruhig genauer nach.",
+   onset:()=>{const s=find(/\b(seit|gestern|heute|vor (einer|einem|zwei|drei|vier|fünf|sechs|ein paar|\d+)|morgens|nachts|abends|mittag|früh|wochen|monaten|plötzlich|auf einmal)\b/i,true);if(s){used.add(s);return s}return field("open")||P3_FALLBACK},
+   loc:()=>{const s=find(/\b(rechts|links|oben|unten|mitte|nabel|brust|bauch|kopf|rücken|flanke|leiste|bein|wade|hüfte|nacken|arm|hals|schienbein|rippen|blase)\b/i,true);if(s){used.add(s);return s}return field("char")||field("open")||P3_FALLBACK},
+   char:()=>field("char")||(()=>{const s=find(/\b(drück|stech|brenn|zieh|krampf|dumpf|poch|wellen|wie ein|als ob)\w*/i,true);if(s){used.add(s);return s}return "Das ist schwer zu beschreiben. Es tut einfach weh."})(),
+   rad:()=>field("rad")||(()=>{const s=find(/\b(strahlt|zieht (in|bis|nach)|bis in|bis zum|in den rücken|in die leiste|in den arm)\b/i,true);return s||"Nein, es bleibt an einer Stelle."})(),
+   scale:()=>{const t=String(c.hpi||"")+" "+String(c.cc||"");if(!/schmerz|weh|druck|drückt|sticht|kolik|krampf|brennt|zieht/i.test(t+" "+(L.open||"")))return "Eigentlich habe ich kaum Schmerzen – höchstens eins von zehn.";const n=c.scale||(typeof fspPainScale==="function"?fspPainScale(c):6);return "Ich würde sagen, etwa "+p3NumWords(n)+" von zehn."},
+   mod:()=>field("mod")||"Eigentlich ist es immer gleich. Ich habe nichts gefunden, was hilft.",
+   prev:()=>field("prev")||"Nein, so etwas hatte ich noch nie.",
+   self:()=>field("self")||"Nein, ich habe nichts dagegen genommen.",
+   trigger:()=>{const s=hpiS[0];if(s&&!used.has(s)){used.add(s);return s}return field("mod")||nextHpi(1)||P3_FALLBACK},
+   pmh:()=>field("pmh")||P3_FALLBACK,ops:()=>field("ops")||"Nein, operiert worden bin ich noch nie.",meds:()=>field("meds")||P3_FALLBACK,
+   all:()=>field("all")||"Allergien habe ich keine, soweit ich weiß.",fam:()=>field("fam")||"In der Familie ist nichts Besonderes bekannt.",
+   nox:()=>field("nox")||"Ich rauche nicht, und Alkohol trinke ich nur selten.",drugs:()=>field("drugs")||"Nein, Drogen nehme ich nicht.",
+   soc:()=>field("soc")||P3_FALLBACK,vacc:()=>field("vacc")||"Ich glaube, ich habe die normalen Impfungen. Den Impfpass habe ich nicht dabei.",
+   reise:()=>field("reise")||"Nein, ich war in letzter Zeit nicht im Ausland.",lastmeal:()=>field("lastmeal")||"Heute habe ich kaum etwas gegessen, nur etwas getrunken.",
+   gyn:()=>w?(field("gyn")||"Meine letzte Periode war vor ungefähr drei Wochen. Schwanger bin ich nicht, soweit ich weiß."):(c.sys==="paed"?"Das betrifft uns nicht, Herr Doktor.":"Das betrifft mich wohl nicht, Herr Doktor."),
+   suiz:()=>field("suiz")||"Nein, solche Gedanken habe ich nicht. Ich möchte nur, dass es mir wieder besser geht.",
+   summary:()=>"Ja, genau so ist es.",closing:()=>"Nein, im Moment nicht. Danke, Herr Doktor.",
+   ack:()=>"Ja.",
+   du:()=>"Entschuldigung … kennen wir uns? Ich bin es gewohnt, dass man mich siezt."};
+  return {ask(q){const I=p3Intent(q);let k=I.k,a="";const ticks=[];
+      if(k==="veg"){a=I.veg.slice(0,2).map(v=>clean(V[v])||P3_NEG[v]).join(" ");I.veg.forEach(v=>ticks.push("veg:"+v))}
+      else if(k==="sym"){const re=P3_SYM_ANS[I.sym];const s=find(re,true)||find(re,false);a=s?s:P3_NEG[I.sym];if(s)used.add(s);ticks.push("assoc")}
+      else if(k==="explain"){return {k,a:"",ticks:["explain"],explain:true}}
+      else if(k&&A[k])a=A[k]();
+      else if(I.intro||I.greet){k="greet";a=A.greet()}
+      else return {k:"",a:"Wie meinen Sie das? Können Sie die Frage anders stellen?",ticks:[],miss:true};
+      if(I.intro&&k!=="greet")a="Guten Tag, Herr Doktor. "+a;
+      if(I.intro)ticks.push("intro");if(k==="dob"||k==="name"||k==="size"||k==="spell"||k==="ha")ticks.push("daten:"+k);
+      if(P3_CHART.test(a))a=P3_FALLBACK;return {k,a,ticks}}}}
+
+// ---- 5. Teil 3: expected points and the order of the presentation
+function p3Kw(text,alts){const t=String(text||"");return (alts||[]).map(a=>{let re;try{re=new RegExp(a,"i")}catch(e){re=new RegExp(String(a).replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"i")}return {label:String(a).split("|")[0].replace(/\\[sd.]\??|[\\.?{}\[\]()*+^$]/g," ").replace(/\s+/g," ").trim(),ok:re.test(t)}})}
+function p3Present(text,c){const t=String(text||"");const ccSt=(typeof p3Stems==="function"?p3Stems(c.cc):[]).slice(0,4);
+  const P=[["Name und Alter",new RegExp("("+(p3Sur(c)||"§§")+"|\\b"+c.age+"\\b|"+p3NumWords(c.age)+")","i")],["Leitsymptom und Dauer",ccSt.length?new RegExp(ccSt.join("|"),"i"):/seit/i],["Begleitsymptome",/begleitend|außerdem|zusätzlich|dazu|ferner|weiterhin/i],["Vorerkrankungen",/vorerkrank|bekannt|z\.\s?n\.|zustand nach|leidet an|vorbekannt/i],["Medikation",/medikation|nimmt|dauermedikation|medikamente|einnahme/i],["Allergien",/allergi|unverträglich/i],["Noxen",/nikotin|raucht|raucher|alkohol|packungsjahre|noxen/i],["Verdachtsdiagnose",/verdacht|v\.\s?a\.|vermute|am ehesten|spricht für|deutet .{0,20}hin/i],["Differenzialdiagnosen",/differen[zt]ial|\bdd\b|in betracht|auszuschließen|ausschließen/i],["Procedere",/empfehle|würde|möchte|planen|veranlass|labor|sonograph|\bct\b|ekg|röntgen|aufnahme/i]];
+  const found=P.map(([n,re])=>{const m=t.search(re);return {n,i:m}});let last=-1;const order=[];found.forEach(f=>{if(f.i<0)return;if(f.i<last)order.push(f.n);last=Math.max(last,f.i)});
+  return {items:found.map(f=>({label:f.n,ok:f.i>=0})),outOfOrder:order}}
+
+// ---- 6. the run
+function p3State(){S.p3fsp=S.p3fsp||{seen:{},strict:false};S.p3fsp.seen=S.p3fsp.seen||{};return S.p3fsp}
+function p3PickCase(o){const all=p3AllCases().filter(p3Usable);if(o&&o.caseId){const c=all.find(x=>x.id===o.caseId);if(c)return c}const st=p3State();const unseen=all.filter(c=>!st.seen[c.id]);
+  const pool=unseen.length?unseen:all.slice().sort((a,b)=>String(st.seen[a.id]).localeCompare(String(st.seen[b.id]))).slice(0,Math.max(1,Math.ceil(all.length/3)));return pool[Math.floor(Math.random()*pool.length)]}
+function p3FachTerms(){if(p3FachTerms.L)return p3FachTerms.L;const s=new Set();try{(TERMS||[]).forEach(t=>{String(t[1]||"").split(/[\/,;]/).forEach(f=>{f=f.replace(/^(der|die|das)\s+/,"").replace(/\(.*?\)/g,"").trim();if(f.length>=8&&!/\s/.test(f)&&!/^(Blutdruck|Patient)/.test(f))s.add(f.toLowerCase())})})}catch(e){}p3FachTerms.L=[...s];return p3FachTerms.L}
+function p3FachIn(text){const t=String(text||"").toLowerCase();return p3FachTerms().filter(f=>new RegExp("\\b"+f.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b").test(t))}
+const P3_RUB=[["intro","Begrüßung und Vorstellung (Name, Funktion)"],["daten","Patientendaten (Name buchstabiert, Geburtsdatum, Größe/Gewicht)"],["open","Offene Einstiegsfrage, Leitsymptom"],["onset","Beginn und Verlauf"],["char","Lokalisation und Charakter"],["rad","Ausstrahlung"],["scale","Stärke (Skala 0–10)"],["mod","Lindernde und verstärkende Faktoren"],["prev","Ähnliche Beschwerden früher"],["assoc","Begleitsymptome"],["veg","Vegetative Anamnese (mind. 3: Appetit, Gewicht, Stuhl, Wasserlassen, Schlaf, Fieber, Durst)"],["pmh","Vorerkrankungen"],["ops","Voroperationen"],["meds","Medikation"],["all","Allergien"],["nox","Noxen (Nikotin, Alkohol, Drogen)"],["fam","Familienanamnese"],["soc","Sozialanamnese"],["gyn","Gynäkologische Anamnese"],["vacc","Impfstatus / Reiseanamnese"],["summary","Zusammenfassung („Habe ich Sie richtig verstanden …“)"],["explain","Verdacht und nächste Schritte in Laiensprache erklärt"],["closing","Offene Fragen, Verabschiedung"]];
+const P3_CRIT=["Hörverstehen – reagiert passend, fragt nach statt zu raten","Verständlichkeit – Aussprache, Tempo, Lautstärke","Wortschatz und Register – Laiensprache beim Patienten, Fachsprache beim Kollegen","Grammatik – Verbstellung, Kasus, Zeiten","Aufgabenerfüllung"];
+const P3_CRIT5=["Teil 1: Struktur, Vollständigkeit, Empathie, Zusammenfassung, Erklärung","Teil 2: Vollständigkeit, Gliederung, Lesbarkeit, Abkürzungen korrekt","Teil 3: geordnete Vorstellung, begründete VD/DD/Procedere, Antworten auf Rückfragen"];
+const P3_BRIEF_TASK="Schreib einen kurzen Arztbrief aus deinen Notizen (20 Minuten): Patientendaten · aktuelle Anamnese in ganzen Sätzen (Präteritum, Konjunktiv I für die Angaben des Patienten) · Vorerkrankungen/Voroperationen · Medikation · Allergien · Noxen · Familien- und Sozialanamnese · Verdachtsdiagnose und Differenzialdiagnosen · Procedere.";
+function p3BriefFallback(c){const w=p3Female(c);return (w?"Frau ":"Herr ")+p3Sur(c)+" ist "+(w?"eine ":"ein ")+c.age+"-jährige"+(w?" Patientin, die":"r Patient, der")+" sich in unserer Notaufnahme vorstellte. "+(w?"Sie":"Er")+" berichtete, "+(w?"sie":"er")+" habe "+String(c.cc||"Beschwerden")+".\nVerdachtsdiagnose und Procedere: siehe Erwartungshorizont."}
+
+function p3Fsp(el,o){o=o||{};if(!o.caseId&&!o.go)return p3Chooser(el,o);const c=p3PickCase(o);if(!c)return fspOffline(el,o);const w=p3Female(c);const st=p3State();const strict=!!st.strict;
+  const idx=p3AllCases().indexOf(c);const P=p3Patient(c,{idx});const pat=c.via?(c.via):(w?"Patientin":"Patient");
+  let part=0,left=1200,tm=null,t0=Date.now(),notes="",doc="",asked=[],miss=0,fachSlips=[],duSlips=0,pqI=0,pqPending=null,pqAsked=[],pqAnswered=0,lastPq=0,interrupt={slow:false,fach:0},locked=false;
+  const ticks=new Set(),daten=new Set(),veg=new Set();const ansO=[],ansT=[];let terms=[];const res={};
+  const T=["Teil 1 · Arzt-Patienten-Gespräch","Teil 2 · Dokumentation (Arztbrief)","Teil 3 · Arzt-Arzt-Gespräch"];
+  const timer=(onEnd)=>{clearInterval(tm);left=1200;const pstart=Date.now();Focus.tools(`<span class="chip fsp-t">${ic("timer")} 20:00</span>`);tm=every(()=>{left=Math.max(0,1200-Math.round((Date.now()-pstart)/1000));const x=$(".fsp-t");if(x)x.innerHTML=ic("timer")+" "+pad(Math.floor(left/60))+":"+pad(left%60);if(part===0)tick1();if(!left){clearInterval(tm);if(strict){locked=true;toast("Die Zeit ist um. Der Prüfer beendet diesen Teil.",3500);if(onEnd)onEnd()}else{toast("20 Minuten um – in der Prüfung wäre jetzt Schluss.");const n=$(".fsp-n",el);if(n)n.classList.add("pulse")}}},1000)};
+  const next=()=>{part++;draw()};let say1=()=>{},tick1=()=>{};
+  function p1(){el.innerHTML=`<div class="card k stack s"><div class="eyebrow">${T[0]}${strict?' · <span class="pill o">Prüfungsmodus streng</span>':""}</div><p><b>${esc(c.via?c.name+" – Fremdanamnese mit "+c.via:c.name)}</b>, ${c.age} Jahre, kommt in die Notaufnahme. Mehr weißt du nicht. <b>Du beginnst</b>: Begrüßung, Vorstellung, Patientendaten – dann frag nach (Sie-Form, Laiensprache).</p>
+     <p class="muted ui small" style="margin:0">${typeof canRecognise==="function"&&canRecognise()?"Tipp auf das Mikrofon und stell die Frage laut – so wie in der Prüfung. Das Erkannte erscheint im Feld; schick es mit „Fragen“ ab.":"In diesem Browser gibt es keine funktionierende Spracherkennung. Stell jede Frage zuerst <b>laut</b> und tippe sie dann – nur das Sprechen trainiert die mündliche Prüfung."}</p></div>
+    <div class="card dl fsp-chat"></div><div class="typed"><input class="fsp-q" placeholder="Ihre Frage an ${c.via?"die Angehörige / den Angehörigen":w?"die Patientin":"den Patienten"} …" autocomplete="off"><button class="icon fsp-mic need-sr" aria-label="Frage sprechen">${ic("mic")}</button><button class="primary fsp-ask">Fragen</button></div>
+    <details class="card" open><summary class="ui">Notizen (nur diese hast du in Teil 2)</summary><textarea class="fsp-notes" rows="6" placeholder="Stichpunkte …"></textarea></details>
+    <div class="row between"><span class="muted ui fsp-cov" style="font-size:.85rem"></span><button class="primary fsp-n">Gespräch beenden → Teil 2</button></div>`;
+    const chat=$(".fsp-chat",el),q=$(".fsp-q",el),cov=$(".fsp-cov",el),nt=$(".fsp-notes",el);nt.value=notes;nt.oninput=()=>notes=nt.value;
+    const paint=()=>{cov.textContent=asked.length+" Fragen · "+(miss?miss+"× nicht verstanden":"alles verstanden")};paint();
+    say1=(who,txt,cls,speak)=>{chat.insertAdjacentHTML("beforeend",`<div class="turn ${cls||""}"><div class="who"><span>${esc(who)}</span>${who!=="Du"&&speak!==false?`<button data-say="${esc(txt)}">${ic("vol")}</button>`:""}</div><div data-gk="${glossKey({})}">${speak===false?"<i>"+esc(txt)+"</i>":glossify(txt)}</div></div>`);chat.scrollTop=chat.scrollHeight;if(who!=="Du"&&speak!==false)say(txt,{silent:true})};
+    say1("",c.via?"(Die Tochter sitzt neben der Patientin und wartet. Stellen Sie sich vor.)":(w?"(Die Patientin sitzt auf der Liege und wartet. Stellen Sie sich vor.)":"(Der Patient sitzt auf der Liege und wartet. Stellen Sie sich vor.)"),"",false);
+    const askPq=why=>{if(pqI>=(c.patientQs||[]).length||pqPending)return;pqPending=c.patientQs[pqI++];pqAsked.push(pqPending);lastPq=Date.now();setTimeout(()=>{say1(pat,pqPending);toast((c.via?"Die Angehörige":w?"Die Patientin":"Der Patient")+" fragt dich – antworte in Laiensprache.")},500)};
+    tick1=()=>{const el2=(Date.now()-t0)/1000;if(locked)return;if(!pqAsked.length&&el2>=720)askPq("time");else if(pqAsked.length&&!pqPending&&pqI<(c.patientQs||[]).length&&(Date.now()-lastPq)/1000>=120)askPq("interval")};
+    const ask=()=>{if(locked)return toast("Die Zeit ist um.");const t=q.value.trim();if(!t)return;q.value="";asked.push(t);say1("Du",t,"me");
+      const fach=p3FachIn(t);const words=(t.match(/\S+/g)||[]).length;
+      // the patient's own question is answered by a statement of ≥ 8 words without Fachbegriffe
+      if(pqPending&&!/\?/.test(t)&&words>=8&&!fach.length){pqAnswered++;pqPending=null;ticks.add("explain")}
+      const r=P.ask(t);(r.ticks||[]).forEach(x=>{if(x.startsWith("daten:"))daten.add(x.slice(6));else if(x.startsWith("veg:"))veg.add(x.slice(4));else ticks.add(x)});
+      if(r.k&&!["du","greet","ack","consent","explain"].includes(r.k))ticks.add({sym:"assoc",name:"",dob:"",size:"",spell:"",ha:"",drugs:"nox",reise:"vacc",trigger:"onset",self:"mod",loc:"char",lastmeal:"",suiz:"soc"}[r.k]??r.k);
+      if(r.k==="du")duSlips++;if(r.miss)miss++;
+      setTimeout(()=>{let a=r.a;
+        if(fach.length&&interrupt.fach<3){interrupt.fach++;fachSlips.push(fach[0]);a="Entschuldigung, was heißt „"+fach[0]+"“? Das Wort kenne ich nicht."}
+        else if(words>25&&!interrupt.slow){interrupt.slow=true;a="Entschuldigung, können Sie bitte etwas langsamer sprechen? Ich verstehe nicht alles."+(a?" "+a:"")}
+        else if(r.explain){const named=/verdacht|vermute|wahrscheinlich|vermutlich|es handelt sich|sie haben/i.test(t);if(named&&!pqAsked.length&&(c.patientQs||[]).length){askPq("dx");paint();return}
+          const gen=["Aha. Und ist das gefährlich?","Und was passiert jetzt mit mir?","Und wie lange dauert das?","Verstehe. Danke, dass Sie mir das erklären."];a=gen[Math.min(gen.length-1,(asked.filter(x=>!/\?/.test(x)).length-1)%gen.length)]}
+        if(a)say1(pat,a);paint()},250)};
+    $(".fsp-ask",el).onclick=ask;q.onkeydown=e=>{if(e.key==="Enter")ask()};const mic=$(".fsp-mic",el);if(mic&&typeof dictateInto==="function")mic.onclick=()=>dictateInto(mic,q);setTimeout(()=>q.focus(),60);
+    $(".fsp-n",el).onclick=()=>{res.min=Math.max(.5,(Date.now()-t0)/60000);next()};timer(()=>{res.min=20;next()})}
+  function p2(){const vit=(typeof fspVitals==="function"?fspVitals(c):[]);
+    el.innerHTML=`<div class="card k"><div class="eyebrow">${T[1]}</div><p>${esc(P3_BRIEF_TASK)}</p><p class="muted ui small">Stichwörter sind nur bei Befund, Diagnose und Medikation erlaubt – die Anamnese in ganzen Sätzen (siehe Lektion g70: <i>Die Patientin berichtete, sie habe …</i>).</p>${vit.length?`<div class="tch-merke"><b>Befunde der Pflege:</b> ${esc(vit.join(" · "))}</div>`:""}${notes.trim()?`<details class="card"><summary class="ui">Deine Notizen</summary><p style="white-space:pre-wrap">${esc(notes)}</p></details>`:'<p class="muted ui">Du hast keine Notizen gemacht – in der echten Prüfung ein Problem.</p>'}</div>
+     <textarea class="fsp-doc" rows="14" placeholder="${esc((w?"Frau ":"Herr ")+"… ist "+(w?"eine …-jährige Patientin, die":"ein …-jähriger Patient, der")+" sich mit … vorstellte. "+(w?"Sie":"Er")+" berichtete, … habe / sei …\n\nVorerkrankungen: …  ·  Voroperationen: …\nMedikation: …  ·  Allergien: …  ·  Noxen: …\nFamilienanamnese: …  ·  Sozialanamnese: …\n\nDie Anamnese spricht am ehesten für … Differenzialdiagnostisch kommen … in Betracht.\nProcedere: …")}"></textarea><div class="row"><button class="primary fsp-n">Abgeben → Teil 3</button></div>`;
+    const d=$(".fsp-doc",el);d.value=doc;d.oninput=()=>doc=d.value;$(".fsp-n",el).onclick=next;timer(()=>next())}
+  function p3(){const qs=(c.oberarztQs&&c.oberarztQs.length?c.oberarztQs:["Welche Differenzialdiagnosen kommen in Betracht?","Welche Diagnostik veranlassen Sie und warum?","Wie behandeln Sie initial?"]).slice(0,3);
+    const bare=s=>String(s||"").replace(/^(der|die|das)\s+/,"").toLowerCase();const want=(c.terms||[]).map(bare);let pool=(TERMS||[]).filter(t=>t[0]&&t[1]&&t[0]!==t[1]);
+    const mine=pool.filter(t=>want.some(x=>bare(t[1]).includes(x)||x.includes(bare(t[1]).split(/[\s\/(]/)[0])));const same=pool.filter(t=>t[3]===c.sys&&!mine.includes(t));terms=mine.slice(0,5).concat(shuffle(same)).slice(0,5);if(terms.length<5)terms=terms.concat(shuffle(pool.filter(t=>!terms.includes(t))).slice(0,5-terms.length));
+    const items=[{q:"Stellen Sie mir "+(w?"die Patientin":"den Patienten")+" bitte vor.",k:"vor"}].concat(qs.map((x,i)=>({q:x,k:"oa",i})));let i=0;
+    const step=()=>{if(locked&&i<items.length){while(i<items.length){ansO.push([items[i].q,"",items[i]]);i++}}
+      if(i<items.length){const it=items[i];el.innerHTML=`<div class="card k"><div class="eyebrow">${T[2]} · Oberarzt ${i+1}/${items.length}</div><div class="turn"><div class="who"><span>Oberarzt</span><button data-say="${esc(it.q)}">${ic("vol")}</button></div><div data-gk="${glossKey({})}">${glossify(it.q)}</div></div></div><textarea class="fsp-a" rows="${it.k==="vor"?7:4}" placeholder="Ihre Antwort (erst laut sprechen, dann aufschreiben oder diktieren) …"></textarea><div class="row"><button class="icon fsp-mic need-sr">${ic("mic")}</button><button class="primary fsp-go">Weiter</button></div>`;
+        const ta=$(".fsp-a",el);const mic=$(".fsp-mic",el);if(mic&&typeof dictateInto==="function")mic.onclick=()=>dictateInto(mic,ta);say(it.q,{silent:true});$(".fsp-go",el).onclick=()=>{ansO.push([it.q,ta.value.trim(),it]);i++;step()};return}
+      const j=i-items.length;if(j<terms.length&&!locked){const t=terms[j];const toF=j%2===0;el.innerHTML=`<div class="card k"><div class="eyebrow">${T[2]} · Fachbegriffe ${j+1}/${terms.length}</div><p>${toF?`Wie heißt „<b>${esc(t[0])}</b>“ in der Fachsprache?`:`Erklären Sie „<b>${esc(t[1])}</b>“ für einen Patienten.`}</p></div><div class="typed"><input class="fsp-t2" autocomplete="off" autocapitalize="off"><button class="primary fsp-go">Weiter</button></div>`;
+        const inp=$(".fsp-t2",el);setTimeout(()=>inp.focus(),40);const go2=()=>{const g=normT(inp.value).replace(/^(der|die|das)\s+/,"");const wa=(toF?[t[1]].concat(t[4]||[]):[t[0]]).map(x=>normT(x).replace(/^(der|die|das)\s+/,""));let ok=!!g&&wa.some(a=>a===g||(typeof similarity==="function"&&similarity(a,g)>=.85));
+          if(!ok&&!toF&&g){const stem=x=>x.toLowerCase().replace(/[^a-zäöüß]/g,"").slice(0,5);const kw=String(t[0]).replace(/^(der|die|das)\s+/,"").split(/[\s,/()-]+/).filter(x=>x.length>=4).map(stem);const gw=g.split(/[\s,/()-]+/).filter(x=>x.length>=4).map(stem);ok=kw.some(k=>gw.includes(k))||(typeof similarity==="function"&&wa.some(a=>similarity(a,g)>=.6))}
+          ansT.push([toF?t[0]:t[1],inp.value.trim(),toF?t[1]:t[0],ok]);i++;step()};$(".fsp-go",el).onclick=go2;inp.onkeydown=e=>{if(e.key==="Enter")go2()};return}
+      next()};step();timer(()=>{step()})}
+  function result(){clearInterval(tm);Focus.tools("");st.seen[c.id]=todayKey();
+    // Teil 1
+    if(daten.size>=2||daten.has("spell"))ticks.add("daten");if(veg.size>=3)ticks.add("veg");const need=P3_RUB.filter(r=>r[0]!=="gyn"||(w&&c.age>=12&&c.age<=60));
+    const cov=need.map(r=>[r[1],ticks.has(r[0])]);const covN=cov.filter(x=>x[1]).length;const qpm=Math.round(10*asked.length/(res.min||20))/10;
+    // Teil 2
+    let A=null;try{A=teachAnalyze(doc,{t:"FSP Teil 2",task:P3_BRIEF_TASK,reg:"Arztbrief",model:c.brief||"",check:[],p3case:c})}catch(e){}
+    const F=(A&&A.F)||[];const keys=new Set(F.map(f=>f.key));const cc=doc.trim()&&typeof p3CaseCheck==="function"?p3CaseCheck(doc,c,[]):null;
+    // Teil 3
+    const pres=ansO.find(x=>x[2].k==="vor");const pr=p3Present(pres&&pres[1],c);const oa=ansO.filter(x=>x[2].k==="oa").map(x=>{const kw=(c.kw||[])[x[2].i]||[];return {q:x[0],a:x[1],r:p3Kw(x[1],kw),model:c.oa&&c.oa[x[2].i]&&c.oa[x[2].i].a}});
+    const kwAll=oa.flatMap(x=>x.r);const kwOk=kwAll.filter(x=>x.ok).length;const prOk=pr.items.filter(x=>x.ok).length;const tOk=ansT.filter(x=>x[3]).length;
+    // suggested marks (0–4); the learner must set the rest himself
+    const sug={p1:{4:Math.round(4*covN/need.length),2:Math.max(0,4-Math.min(4,fachSlips.length+duSlips*2))},p2:{4:doc.trim()?(cc?Math.round(4*cc.found/Math.max(1,cc.total)*(keys.has("b_sec")?.6:1)):0):0,3:doc.trim()?(()=>{const n=F.filter(f=>!["len","punct","b_sec","b_cont"].includes(f.key)).length;return n<=1?4:n<=3?3:n<=6?2:n<=10?1:0})():0},p3:{4:Math.round(4*((kwAll.length?kwOk/kwAll.length:0)*.6+(prOk/pr.items.length)*.4)-(pr.outOfOrder.length?1:0))}};
+    const fails=[[miss>3,"Patient nicht verstanden und nicht nachgefragt ("+miss+"× „Wie meinen Sie das?“)"],[fachSlips.length>0,"Fachbegriffe gegenüber dem Patienten: "+fachSlips.join(", ")],[!doc.trim()||keys.has("b_sec"),"Brief unvollständig"],[keys.has("b_stil"),"Stichwörter statt Sätze"],[!!(cc&&(cc.wrongAge||cc.items[0]&&!cc.items[0].ok)),"Name oder Alter falsch notiert"],[!!(cc&&cc.missing.some(m=>/^[A-ZÄÖÜ][a-zäöü]+(ol|in|il|an|on|id|am|at|ir)$/.test(m))),"Medikamentennamen fehlen im Brief"],[pr.outOfOrder.length>0,"Vorstellung ungeordnet: "+pr.outOfOrder.join(", ")],[!pr.items[7].ok,"Keine Verdachtsdiagnose genannt"],[ansO.some(x=>!x[1]),"Bei Rückfrage geschwiegen"],[duSlips>0,"du statt Sie"],[pqAsked.length>pqAnswered,"Frage des Patienten nicht beantwortet ("+(pqAsked.length-pqAnswered)+")"]].filter(x=>x[0]).map(x=>x[1]);
+    const sel=(p,ci)=>{const v0=sug[p]&&sug[p][ci];const v=v0==null||isNaN(v0)?null:Math.max(0,Math.min(4,v0));return `<select class="p3-m" data-p="${p}" data-c="${ci}"><option value="">–</option>${[0,1,2,3,4].map(n=>`<option ${v===n?"selected":""}>${n}</option>`).join("")}</select>${v!=null?'<small class="muted"> vorgeschlagen</small>':""}`};
+    const brief=c.brief||p3BriefFallback(c);
+    el.innerHTML=`<div class="stack s"><div class="celebrate fade-in"><div class="eyebrow">FSP-Simulation · Auswertung</div><h2>${esc(c.name)}, ${c.age}</h2><p class="muted">Jetzt sehen: Diagnose, Erwartungshorizont, Fallen – dann bewertest du dich mit dem Bogen der Prüfer.</p></div>
+     <div class="card stack s"><h3>Teil 1 · Anamnese <span class="pill ${covN/need.length>=.8?"good":"o"}">${covN}/${need.length} Punkte</span></h3>
+      <div class="kv"><b>Fragen</b><span>${asked.length} in ${Math.round(res.min||20)} Min. · <b>${qpm} Fragen pro Minute</b> <small class="muted">(Ziel: ≥ 25 Fragen in 20 Minuten)</small></span><b>Nicht verstanden</b><span>${miss}×</span><b>Fragen des Patienten</b><span>${pqAnswered} von ${pqAsked.length} beantwortet</span>${fachSlips.length?`<b>Fachwörter</b><span>${esc(fachSlips.join(", "))}</span>`:""}</div>
+      <div class="list">${cov.map(([n,ok])=>`<div class="li" style="cursor:default"><span class="t">${ok?"✓":"✗"} ${esc(n)}</span></div>`).join("")}</div>${asked.length?`<details><summary class="ui">Deine ${asked.length} Fragen</summary><ul>${asked.map(a=>`<li>${esc(a)}</li>`).join("")}</ul></details>`:""}</div>
+     <div class="card stack s"><h3>Teil 2 · Arztbrief</h3><div class="grid2"><div><div class="eyebrow">Deine Version</div><p style="white-space:pre-wrap;font-size:.92rem">${esc(doc||"–")}</p></div><div><div class="eyebrow">Muster</div><p style="white-space:pre-wrap;font-size:.92rem">${esc(brief)}</p></div></div><div class="fsp-coach"></div></div>
+     <div class="card stack s"><h3>Teil 3 · Oberarzt</h3>
+      <div><b>Fallvorstellung</b> <span class="pill ${prOk>=8&&!pr.outOfOrder.length?"good":"o"}">${prOk}/${pr.items.length}</span><p style="white-space:pre-wrap;font-size:.92rem">${esc(pres&&pres[1]||"–")}</p><div class="tch-content">${pr.items.map(x=>`<div class="tch-ci ${x.ok?"ok":"no"}"><span class="tch-dot">${x.ok?ic("check"):"–"}</span><div><b>${esc(x.label)}</b>${x.ok?"":"<small>fehlt</small>"}</div></div>`).join("")}</div>${pr.outOfOrder.length?`<p class="ui small" style="color:var(--bad)">Reihenfolge: ${esc(pr.outOfOrder.join(", "))} kam zu früh/zu spät. Feste Ordnung: Name/Alter → Leitsymptom → Begleitsymptome → Vorerkrankungen → Medikation → Allergien → Noxen → Verdacht → DD → Procedere.</p>`:""}</div>
+      ${oa.map(x=>{const n=x.r.filter(y=>y.ok).length;return `<div class="p3-oa"><b>${esc(x.q)}</b><p style="white-space:pre-wrap;font-size:.92rem">${esc(x.a||"–")}</p>${x.r.length?`<div class="ui small"><b>${n} von ${x.r.length} erwarteten Punkten genannt</b>${x.r.some(y=>y.ok)?" · genannt: "+esc(x.r.filter(y=>y.ok).map(y=>y.label).join(", ")):""}${x.r.some(y=>!y.ok)?` · <span style="color:var(--bad)">fehlt: ${esc(x.r.filter(y=>!y.ok).map(y=>y.label).join(", "))}</span>`:""}</div>`:""}${x.model?`<details><summary class="ui small">Musterantwort</summary><p class="small">${esc(x.model)}</p></details>`:""}</div>`}).join("")}
+      <div class="tch-merke"><b>Erwartet:</b> ${esc(c.dx)}<br><b>Procedere:</b> ${esc(c.plan)}</div>${c.traps?`<div class="tch-merke" style="border-color:var(--bad)"><b>Prüfungsfallen:</b> ${esc(c.traps)}</div>`:""}
+      <div class="eyebrow">Fachbegriffe · ${tOk}/${ansT.length}</div><div class="list">${ansT.map(([q,g,a,ok])=>`<div class="li" style="cursor:default"><span class="t"><b>${ok?"✓":"✗"} ${esc(q)}</b><small>${esc(g||"–")} → ${esc(a)}</small></span></div>`).join("")}</div></div>
+     ${fails.length?`<div class="card stack s" style="border-color:var(--bad)"><h3>Typische Gründe zum Durchfallen – bei dir gefunden</h3><ul>${fails.map(f=>`<li>${esc(f)}</li>`).join("")}</ul></div>`:""}
+     <div class="card stack s"><h3>Bewertungsbogen</h3><p class="muted ui" style="font-size:.9rem">Wie die Prüfer: fünf Kriterien je Teil, 0–4 Punkte. Bestanden ab 60 % in <b>jedem</b> Teil. Vorschläge kommen aus dem, was die App messen kann – den Rest setzt du ehrlich selbst.</p>
+      ${["p1","p2","p3"].map((p,pi)=>`<div class="stack" style="gap:.25rem"><b class="ui">${esc(T[pi])}</b>${P3_CRIT.map((cr,ci)=>`<label class="row between ui small" style="gap:.5rem"><span>${esc(ci===4?P3_CRIT5[pi]:cr)}</span><span>${sel(p,ci)}</span></label>`).join("")}<span class="ui small p3-sum" data-p="${p}"></span></div>`).join("")}
+      <button class="primary fsp-save">Speichern</button></div></div>`;
+    const paintSum=()=>["p1","p2","p3"].forEach(p=>{const v=$$(`.p3-m[data-p="${p}"]`,el).map(s=>s.value===""?null:+s.value);const n=v.filter(x=>x!=null).length;const sum=v.reduce((a,b)=>a+(b||0),0);const x=$(`.p3-sum[data-p="${p}"]`,el);if(x)x.innerHTML=n<5?`<span class="muted">noch ${5-n} offen</span>`:`<b style="color:${sum>=12?"var(--good)":"var(--bad)"}">${sum}/20 · ${Math.round(sum*5)} % · ${sum>=12?"bestanden":"nicht bestanden"}</b>`});
+    $$(".p3-m",el).forEach(s=>s.onchange=paintSum);paintSum();
+    if(doc.trim()&&typeof teachRender==="function"){try{teachRender($(".fsp-coach",el),doc,{t:"FSP Teil 2",task:P3_BRIEF_TASK,reg:"Arztbrief: ganze Sätze, Präteritum, Konjunktiv I",model:brief,check:[],p3case:c,p3drugs:p3AllCases().flatMap(x=>typeof p3Drugs==="function"?p3Drugs(x.meds):[])},{})}catch(e){}}
+    else{const cb=$(".fsp-coach",el);if(cb)cb.innerHTML=`<div class="verdict no"><b>Kein Brief abgegeben.</b> Teil 2 ist damit nicht bestanden.</div>`}
+    $(".fsp-save",el).onclick=()=>{const m={};let open=0;$$(".p3-m",el).forEach(s=>{const p=s.dataset.p;m[p]=m[p]||[];m[p][+s.dataset.c]=s.value===""?null:+s.value;if(s.value==="")open++});if(open)return toast("Bitte alle "+open+" offenen Kriterien bewerten – ehrlich.");
+      const sums=["p1","p2","p3"].map(p=>m[p].reduce((a,b)=>a+b,0));const parts=sums.map(x=>Math.round(10*(1+4*x/20))/10);const avg=Math.round(10*parts.reduce((a,b)=>a+b,0)/3)/10;const pass=sums.every(x=>x>=12);
+      S.fsp=S.fsp||[];S.fsp.push({date:todayKey(),id:c.id,c:c.name,score:avg,parts,terms:tOk+"/"+ansT.length,cov:covN+"/"+need.length,sheet:{m,pass,qpm,miss}});
+      logEvent("fsp","FSP-Simulation · "+c.name+" · "+sums.join("/")+" von 20 · "+(pass?"bestanden":"nicht bestanden"),Math.round(avg*20));logDay("fsp");saveSoon();toast(pass?"Gespeichert – alle drei Teile ≥ 60 %.":"Gespeichert – mindestens ein Teil unter 60 %.");if(o.onDone)o.onDone(avg)}}
+  function draw(){Focus.progress({n:3,i:Math.min(part,3)});if(part>=3)return result();locked=false;Focus.title("FSP-Simulation",T[part]);[p1,p2,p3][part]()}
+  draw()}
+function p3Chooser(el,o){const st=p3State();const all=p3AllCases().filter(p3Usable);const by={};all.forEach(c=>{const k=c.sys||"allgemein";(by[k]=by[k]||[]).push(c)});const seenN=all.filter(c=>st.seen[c.id]).length;
+  el.innerHTML=`<div class="stack s"><div class="card stack s"><div class="eyebrow">FSP-Simulation · ${all.length} Fälle · ${seenN} schon gespielt</div><div class="row wrap"><button class="primary p3-rand">${ic("bolt")} Zufälliger neuer Fall</button><label class="row ui small" style="gap:.4rem"><input type="checkbox" class="p3-strict" ${st.strict?"checked":""} style="width:20px;min-height:20px"> Prüfungsmodus streng (die Zeit beendet jeden Teil)</label></div></div>
+   ${Object.keys(by).sort((a,b)=>(P3_SYS[a]||a).localeCompare(P3_SYS[b]||b)).map(k=>`<details class="card"><summary class="ui"><b>${esc(P3_SYS[k]||k)}</b> <span class="muted">· ${by[k].length}</span></summary><div class="list">${by[k].map(c=>`<button class="li p3-case" data-id="${esc(c.id)}"><span class="t"><b>${esc(c.name.replace(/\s*\(.*$/,""))}, ${c.age}</b><small>${esc(String(c.lay&&c.lay.open||c.cc).slice(0,90))}</small></span><span class="m">${st.seen[c.id]?`<span class="pill">gespielt ${esc(typeof fmtDate==="function"?fmtDate(st.seen[c.id]):st.seen[c.id])}</span>`:'<span class="pill good">neu</span>'}</span></button>`).join("")}</div></details>`).join("")}
+   <p class="muted ui small">Die Liste zeigt die Klage des Patienten, nicht die Diagnose.</p></div>`;
+  $(".p3-strict",el).onchange=e=>{st.strict=e.target.checked;saveSoon()};$(".p3-rand",el).onclick=()=>p3Fsp(el,Object.assign({},o,{go:1}));$$(".p3-case",el).forEach(b=>b.onclick=()=>p3Fsp(el,Object.assign({},o,{caseId:b.dataset.id})))}
+
+// ---- 7. text defects 15–24 and the stale format card
+(function(){try{if(typeof P3_TEXT_FIX!=="undefined"&&typeof applyTextFix==="function"){const r=applyTextFix(P3_TEXT_FIX);P3_TEXT_FIX._ok=r.ok;P3_TEXT_FIX._miss=r.miss}}catch(e){}
+  try{const bare=s=>String(s||"").replace(/^(der|die|das)\s+/,"").toLowerCase();const row=(f,l)=>(TERMS||[]).filter(t=>(!f||bare(t[1])===bare(f))&&(!l||bare(t[0])===bare(l)));
+    row("Pyrexie").forEach(t=>{t[1]="febrile Temperaturen";t[4]=["die Hyperthermie"];t[2]="fever (in German „Pyrexie“ is unusual)"});
+    row(null,"Röteln").forEach(t=>{t[1]="die Rubeola";t[4]=["die Rubella"];t[2]="rubella — careful: English „rubeola“ = Masern (measles)"});
+    row("Delirium tremens").forEach(t=>{if(/säuferwahn/i.test(t[0]))t[0]="das Zittern und Halluzinieren im Alkoholentzug"});
+    row(null,"Herzstolpern").forEach(t=>{t[4]=(t[4]||[]).concat(["Palpitationen"])});row(null,"Herzrasen").forEach(t=>{t[4]=(t[4]||[]).concat(["Palpitationen"])});
+    row(null,"Mandelentzündung").forEach(t=>{t[4]=(t[4]||[]).concat(["die Angina tonsillaris"])});
+    if(!row(null,"die Angina (sagt der Patient: Halsentzündung!)").length)TERMS.push(["die Angina (sagt der Patient: Halsentzündung!)","die Tonsillitis / Angina tonsillaris — nicht Angina pectoris","tonsillitis","hno-auge",["die Tonsillitis","die Angina tonsillaris"]]);
+    row("Ödem","Wassereinlagerung").forEach(t=>{t[3]="allgemein"});
+    TERMS.forEach(t=>{if(bare(t[0])==="schlaganfall"&&/apoplex/i.test(t[1])){t[1]="der ischämische Schlaganfall / der Hirninfarkt";t[4]=["der Insult","der Hirninfarkt","der Apoplex (veraltet)"]}})}catch(e){}
+  try{if(typeof P3_CARD_FIX!=="undefined"&&typeof VOC4!=="undefined")VOC4.forEach(r=>P3_CARD_FIX.forEach(([a,b,c2,d])=>{for(let i=0;i<r.length;i++){if(r[i]===a)r[i]=b;else if(r[i]===c2)r[i]=d}}))}catch(e){}
+  try{if(typeof P3_CARD_FIX!=="undefined"&&typeof CATALOG!=="undefined")CATALOG.forEach(v=>P3_CARD_FIX.forEach(([a,b,c2,d])=>{for(const k in v){if(v[k]===a)v[k]=b;else if(v[k]===c2)v[k]=d}}))}catch(e){}
+  try{const _a=ACT.fsp;ACT.fsp=function(){const r=_a.apply(this,arguments);try{const box=document.querySelector("#fIn")||document.body;box.querySelectorAll("p,li").forEach(p=>{if(/Stand: Ärzteblatt/.test(p.textContent))p.innerHTML="Stand der Angaben: bitte das aktuelle Merkblatt deiner Bezirksärztekammer lesen, bevor du dich anmeldest. <span class=\"en\">check the current rules of your Bezirksärztekammer</span>";
+        if(/Anamnesebogen \/ Arztbrief schriftlich/.test(p.textContent))p.innerHTML="<b>Dokumentation</b> – ein kurzer Arztbrief aus deinen Notizen: Anamnese in ganzen Sätzen (Präteritum, Konjunktiv I), Befund, Diagnose und Medikation knapp.";if(/vermutlich Nordbaden, Karlsruhe – bitte prüfen/.test(p.innerHTML))p.innerHTML=p.innerHTML.replace(/\s*\(für Heidelberg vermutlich Nordbaden, Karlsruhe – bitte prüfen\)/,"")})}catch(e){}return r}}catch(e){}})();
 
 // ===== Mephisto · L1 · German morphology for the lexicon (pure functions, no DOM, no state).
 // Used by c_l1.js (form index for tap-to-translate, principal parts on verb cards) and by the Node tools/tests
@@ -5769,6 +6311,202 @@ l2Try("hooks",()=>{if(typeof MOD==="undefined"||typeof window==="undefined")retu
       const v=root.querySelector(".fc-wrap .verdict");if(v&&!v.querySelector(".l2-why")){const L=GRAMMAR.find(g=>g.id===c.lesson);const d=document.createElement("div");d.className="l2-why";d.innerHTML=`<div class="why">${esc(c.why||"")}</div>${L?`<button class="sm ghost" data-act="gramOpen" data-id="${L.id}">Zur Lektion: ${esc(L.title)}</button>`:""}`;v.appendChild(d)}}catch(e){}};
     const start=()=>{try{new MutationObserver(()=>{if(L2.registered.size)paint()}).observe(document.body,{childList:true,subtree:true})}catch(e){}};if(document.body)start();else document.addEventListener("DOMContentLoaded",start)}
   const s=document.createElement("style");s.textContent=`.l2-pre{display:flex;flex-wrap:wrap;gap:.35rem;align-items:center;margin:0 0 .6rem}.l2-pre .eyebrow{margin-right:.2rem}.l2-why{margin-top:.5rem;display:grid;gap:.4rem;justify-items:start}.l2-why .why{font-size:.95rem;opacity:.9}`;document.head.appendChild(s)});
+
+// ================= c_l3.js — package L3: «Leben in Deutschland» =================
+// One Werkstatt tile with five rooms: Die Strecke (scenario lessons in 8 modules), Der Briefkasten (letters and forms),
+// Der Jahreskreis (customs on the right day), Das Regal (the canon), Das Dialektohr (regional patient speech).
+// Data: v2/x_l3_*.js (see x_l3_base.js for the shapes). State: ONE key, S.l3 = {sc:{id:{d,rp}}, bk:{id:date}, kn:{id:1}, ohr:{id:[right,seen]}}.
+// Merge rule for sync (integrator: add to mergeCore): per id union; sc → keep the entry with the later d (tie: higher rp);
+// bk → earlier date; kn → 1 wins; ohr → element-wise max. Nothing here is required by any other file.
+// 13.1: MOD.after("viewPakt","l3") adds the Werkstatt tile, MOD.after("viewHome","l3") one small card. No around change. Grave pages carry data-sober="1".
+// Daily plan: LX.reg providers l3.szene and l3.brief (PLAN-L §2.2). Sync: MERGE_RULES.l3 = l3Merge (registered late).
+function l3S(){S.l3=S.l3||{};const s=S.l3;["sc","bk","kn","ohr"].forEach(k=>{if(!s[k]||typeof s[k]!=="object")s[k]={}});return s}
+const l3Lv=x=>Math.max(0,L3_LEVELS.indexOf(String(x||"A1").slice(0,2)));
+function l3Cap(){try{return typeof levelCap==="function"?levelCap():1}catch(e){return 1}}
+const l3Unlocked=x=>l3Lv(x.lv)<=l3Cap();
+const l3Say=t=>String(t||"").replace(/\s*\([^)]*\)/g,"").replace(/\*\*/g,"").trim();
+// English follows the app's fade rule: shown under the German at A1–A2 while enMode() is "show"; otherwise blurred until tapped
+function l3En(t,lv,tag){if(!t)return "";let show=false;try{show=enMode()==="show"&&l3Lv(lv)<=1}catch(e){}return `<${tag||"div"} class="en l3-en${show?"":" hid"}"${show?"":' tabindex="0" role="button" aria-label="Englisch zeigen"'}>${esc(t)}</${tag||"div"}>`}
+function l3Stats(){const D=l3Data(),s=l3S();const mods=D.mods.map(m=>{const L=D.sc.filter(x=>x.mod===m[0]);return {id:m[0],name:m[1],sub:m[2],en:m[3],n:L.length,d:L.filter(x=>s.sc[x.id]).length}});
+  const bk=Object.values(D.docs).filter(d=>d.want);return {mods,n:D.sc.length,d:D.sc.filter(x=>s.sc[x.id]).length,bkN:bk.length,bkD:bk.filter(d=>s.bk[d.id]).length,knN:D.kanon.length,knD:D.kanon.filter(k=>s.kn[k.id]).length,ohrN:D.ohr.length,ohrD:D.ohr.filter(o=>(s.ohr[o.id]||[0])[0]>0).length}}
+// the next scenario: lowest level first, in module order, among those the level gate allows
+function l3NextSc(){const D=l3Data(),s=l3S();const L=D.sc.filter(x=>!s.sc[x.id]&&l3Unlocked(x));if(!L.length)return null;const mi=id=>D.mods.findIndex(m=>m[0]===id);
+  return L.slice().sort((a,b)=>l3Lv(a.lv)-l3Lv(b.lv)||mi(a.mod)-mi(b.mod))[0]}
+const l3Fmt=d=>String(d.getDate()).padStart(2,"0")+"/"+String(d.getMonth()+1).padStart(2,"0")+"/"+d.getFullYear();
+function l3When(x){return x.inDays===0?"Heute":x.inDays===1?"Morgen":"In "+x.inDays+" Tagen"}
+function l3JahrCard(x,cls){const e=x.e;const sag=e.sag?`<div class="row" style="gap:.4rem;align-items:center"><button class="icon ghost" data-say="${esc(l3Say(e.sag))}" aria-label="Anhören">${ic("vol")}</button><b class="de">${esc(e.sag)}</b></div>`:"";
+  return `<div class="card l3-jahr ${cls||""}" data-jahr="${e.id}"><div class="eyebrow">Jahreskreis · ${l3When(x)}${x.inDays?" · "+l3Fmt(x.a):""} ${e.frei?'<span class="pill good">Feiertag in BW</span>':""}</div><b class="l3-jt">${esc(e.t)}</b>
+   <p class="de" data-gk="${glossKey({})}">${glossify(e.de)}</p>${l3En(e.en,e.lv||"A2")}${e.ess?`<small class="ui muted">Essen &amp; Trinken: ${esc(e.ess)}</small>`:""}${sag}
+   ${e.sc&&l3Data().sc.some(s=>s.id===e.sc)?`<button class="sm" data-act="l3Sc" data-id="${e.sc}">Dazu die Szene${ic("chev")}</button>`:""}</div>`}
+// ---------------------------------------------------------------- hub
+ACT.l3=()=>{if(Focus.isOpen())Focus.close(true);const box=Focus.open({title:"Leben in Deutschland",sub:"ankommen · wohnen · mitreden"});const st=l3Stats();const today=l3Day(todayKey(),3);const nx=l3NextSc();
+  const tool=(a,t,s)=>`<button data-act="${a}"><b>${t}</b><small>${esc(s)}</small></button>`;
+  box.innerHTML=`<div class="stack s l3"><p class="muted">Alles, was ein neuer Arzt in Heidelberg zum Leben braucht – als Szenen mit Gespräch, Brief und Rollenspiel. <span class="en">Everything a newcomer needs to live here, as lessons.</span></p>
+   ${today.length?l3JahrCard(today[0]):""}
+   ${nx?`<button class="card li l3-next" data-act="l3Sc" data-id="${nx.id}" style="text-align:left"><span class="t"><span class="eyebrow">Als Nächstes</span><b>${esc(nx.t)}</b><small>${esc(nx.sub)}</small></span><span class="m"><span class="pill lv lv-${nx.lv}">${nx.lv}</span></span></button>`:""}
+   <div class="row between ui"><span>Die Strecke · ${st.d} / ${st.n} Szenen</span><span class="pbar" style="flex:1;margin-left:.6rem"><i style="width:${st.n?Math.round(100*st.d/st.n):0}%"></i></span></div>
+   <div class="list">${st.mods.map((m,i)=>`<button class="li" data-act="l3Mod" data-id="${m.id}"><span class="n" style="${m.n&&m.d>=m.n?"background:var(--accent);color:#fff;border-radius:50%":""}">${m.n&&m.d>=m.n?"✓":i+1}</span><span class="t"><b>${esc(m.name)}</b><small>${esc(m.sub)}</small><span class="pbar l3-pb"><i style="width:${m.n?Math.round(100*m.d/m.n):0}%"></i></span></span><span class="m"><span class="pill ${m.n&&m.d>=m.n?"good":""}">${m.d} / ${m.n}</span></span></button>`).join("")}</div>
+   <div class="werk-grid l3-tools">${tool("l3Bk","Der Briefkasten",st.bkD+" / "+st.bkN+" Briefe abgeheftet")}${tool("l3Jahr","Der Jahreskreis","Feiertage und Bräuche in Baden-Württemberg")}${tool("l3Regal","Das Regal",st.knD+" / "+st.knN+" · was alle zitieren")}${tool("l3Ohr","Das Dialektohr",st.ohrD+" / "+st.ohrN+" Sätze verstanden")}</div></div>`};
+ACT.l3Mod=el=>{const id=el.dataset?el.dataset.id:el;const D=l3Data(),s=l3S();const m=D.mods.find(x=>x[0]===id);if(!m)return;if(Focus.isOpen())Focus.close(true);const box=Focus.open({title:"Leben in Deutschland",sub:m[1]});FOCUS_BACK=()=>ACT.l3();
+  const L=D.sc.filter(x=>x.mod===id).sort((a,b)=>l3Lv(a.lv)-l3Lv(b.lv));const cap=l3Cap();
+  box.innerHTML=`<div class="stack s l3"><div class="head"><h1>${esc(m[1])}</h1><p>${esc(m[2])} <span class="en">${esc(m[3])}</span></p></div>
+   <div class="list">${L.map((x,i)=>{const d=s.sc[x.id],lock=l3Lv(x.lv)>cap;return `<button class="li${lock?" l3-lock":""}" data-act="l3Sc" data-id="${x.id}"><span class="n" style="${d?"background:var(--accent);color:#fff;border-radius:50%":""}">${d?"✓":i+1}</span><span class="t"><b>${esc(x.t)}</b><small>${esc(x.sub)}${lock?" · ab "+x.lv:""}</small></span><span class="m"><span class="pill lv lv-${x.lv}">${x.lv}</span></span></button>`}).join("")}</div>
+   <button class="sm ghost" data-act="l3">Alle Module</button></div>`};
+// ---------------------------------------------------------------- documents
+function l3Inline(t,frist){const fr=x=>{let parts=[x];(frist||[]).forEach(f=>{parts=parts.flatMap(p=>typeof p!=="string"?[p]:p.split(f).flatMap((y,i,a)=>i<a.length-1?[y,{f}]:[y]))});return parts.map(p=>typeof p!=="string"?`<mark class="l3-frist">${glossify(p.f)}</mark>`:glossify(p)).join("")};
+  const F=(frist||[]).map(f=>[f,f.replace(/\*\*/g,"")]);let s=String(t);F.forEach(([f])=>{s=s.split("**"+f+"**").join("\u0001"+f+"\u0001")});
+  return s.split(/(\*\*[^*]+\*\*|\u0001[^\u0001]+\u0001)/).map(x=>/^\*\*.+\*\*$/.test(x)?`<b>${fr(x.slice(2,-2))}</b>`:/^\u0001/.test(x)?`<b>${fr(x.slice(1,-1))}</b>`:fr(x)).join("")}
+function l3DocHTML(d){const gk=glossKey(d.gl||{});const rows=(d.lines||[]).map(l=>{if(l==="---")return "<hr>";if(/^# /.test(l))return `<h3 class="l3-betr">${l3Inline(l.slice(2),d.frist)}</h3>`;
+    if(l.includes(" :: ")){const c=l.split(" :: ");return `<div class="l3-row"><span>${l3Inline(c[0],d.frist)}</span><span>${l3Inline(c[1],d.frist)}</span>${c[2]?`<small class="ui">${esc(c[2])}</small>`:""}</div>`}
+    return `<p>${l3Inline(l,d.frist)}</p>`}).join("");
+  return `<div class="l3-paper" data-gk="${gk}" data-doc="${d.id}"><div class="l3-abs ui">${esc(d.kind)} · ${esc(d.from)}</div>${rows}</div><small class="ui muted">Wort antippen = Bedeutung · <mark class="l3-frist">markiert</mark> = Frist oder Betrag · Namen, Nummern, Beträge und Fristen sind Beispiele.</small>`}
+function l3MarkGloss(root,d){const keys=Object.keys(d.gl||{}).map(k=>k.toLowerCase());$$(".l3-paper .w",root).forEach(w=>{if(keys.includes(String(w.dataset.w).toLowerCase()))w.classList.add("l3-gl")})}
+function l3GlossHTML(d){const E=Object.entries(d.gl||{});return E.length?`<details class="card l3-amt"><summary class="ui">Amtsdeutsch · ${E.length} Wörter</summary><div class="l3-glist">${E.map(([k,v])=>`<div><b class="de">${esc(k)}</b><span>${esc(v)}</span></div>`).join("")}</div></details>`:""}
+// comprehension questions; cb(right, total) when the last one is answered
+function l3Quiz(el,Q,quiet,cb){let i=0,right=0;const step=()=>{if(i>=Q.length){el.innerHTML=`<div class="row between"><b class="ui">Verstanden?</b><span class="pill ${right===Q.length?"good":"o"}">${right} / ${Q.length}</span></div>`;if(cb)cb(right,Q.length);return}const q=Q[i];
+    el.innerHTML=`<div class="q"><div class="eyebrow">Frage ${i+1} / ${Q.length}</div><div class="stem">${esc(q[0])}</div><div class="opts">${shuffle(q[1].map((t,j)=>[t,j])).map(([t,j])=>`<button data-j="${j}">${esc(t)}</button>`).join("")}</div><div class="l3-why"></div></div>`;
+    $$(".opts [data-j]",el).forEach(b=>b.onclick=()=>{if($(".l3-why",el).innerHTML)return;const ok=+b.dataset.j===q[2];if(ok)right++;if(!quiet)fb(ok);b.classList.add(ok?"right":"wrong");if(!ok){const r=$(`.opts [data-j="${q[2]}"]`,el);if(r)r.classList.add("right")}
+      $(".l3-why",el).innerHTML=`<div class="verdict ${ok?"ok":"no"}" data-noxp="1"><b>${ok?"Richtig.":"Nicht ganz."}</b>${q[3]?" "+esc(q[3]):""}<div class="row" style="margin-top:.5rem"><button class="primary l3-nx">Weiter</button></div></div>`;const n=$(".l3-nx",el);n.onclick=()=>{i++;step()};n.focus()})};step()}
+// typed line with accepted patterns; cb(q) once the learner moves on
+function l3Typed(el,o,cb){el.innerHTML=`<textarea class="l3-in" rows="${o.rows||2}" placeholder="${esc(o.ph||"Ihre Antwort auf Deutsch …")}" aria-label="Antwort"></textarea><div class="row"><button class="primary l3-ck">Prüfen</button><button class="sm ghost l3-show">Muster zeigen</button></div><div class="l3-out"></div>`;
+  const ta=$(".l3-in",el),out=$(".l3-out",el);let best=0;const next=()=>cb(best);
+  const check=show=>{const r=show?{q:0}:l3Check(ta.value,o.ok,o.model);best=Math.max(best,r.q);if(!o.quiet&&!show)fb(r.q===2);
+    out.innerHTML=`<div class="verdict ${r.q===2?"ok":"no"}" data-noxp="1"><b>${show?"Muster":r.q===2?"Passt.":r.q===1?"Fast – es fehlt noch etwas.":"Noch nicht."}</b>${r.q===2&&!show?"":`<div class="de">${show||!ta.value.trim()?esc(o.model):wordDiff(ta.value,o.model)}</div>`}<div class="row" style="gap:.4rem;align-items:center"><button class="icon ghost" data-say="${esc(l3Say(o.model))}" aria-label="Muster anhören">${ic("vol")}</button><small class="ui muted">${r.q===2?esc(o.model):"Es gibt mehrere richtige Antworten; das Muster ist eine davon."}</small></div><div class="row" style="margin-top:.4rem"><button class="primary l3-go">Weiter</button></div></div>`;
+    const g=$(".l3-go",out);g.onclick=next;if(r.q===2)g.focus()};
+  $(".l3-ck",el).onclick=()=>check(false);$(".l3-show",el).onclick=()=>check(true);ta.onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();check(false)}};try{ta.focus({preventScroll:true})}catch(e){}}
+function l3AddWord(b){const de=b.dataset.de,en=b.dataset.en;const id="w:"+de;if(S.cards[id]||(S.custom||[]).some(c=>c.de===de)){b.disabled=true;b.innerHTML=ic("check");return toast("Schon im Deck")}
+  const st=typeof kpState==="function"?kpState():newState();if(typeof CATALOG!=="undefined"&&CATALOG.has(id))S.cards[id]=st;else{S.custom=S.custom||[];S.custom.push({de,en,ex:b.dataset.ex||"",info:"",tag:"leben"});buildDict();S.cards["c:"+(S.custom.length-1)]=st}
+  saveSoon();b.disabled=true;b.innerHTML=ic("check");toast("Ins Deck · zum ersten Mal "+(st.due===addDays(todayKey(),1)?"morgen":fmtDate(st.due)))}
+function l3VocHTML(V){return `<div class="list">${V.map(v=>{const has=S.cards["w:"+v[0]]||(S.custom||[]).some(c=>c.de===v[0]);return `<div class="li" style="cursor:default;align-items:center"><span class="t"><b>${deHTML(v[0])}</b><small>${esc(v[1])}</small></span><span class="m"><button class="icon ghost" data-say="${esc(v[0])}" aria-label="Anhören">${ic("vol")}</button><button class="sm l3-add" data-de="${esc(v[0])}" data-en="${esc(v[1])}" ${has?"disabled":""} aria-label="Ins Deck">${ic(has?"check":"plus")}</button></span></div>`}).join("")}</div>`}
+// ---------------------------------------------------------------- the scenario runner
+const L3_STEPS=["Lage","Gespräch","Sätze","Dokument","Rollenspiel","Wörter"];
+ACT.l3Sc=el=>{const id=el&&el.dataset?el.dataset.id:el;const D=l3Data();const sc=D.sc.find(x=>x.id===id);if(!sc)return;
+  if(!l3Unlocked(sc))return toast("Ab Niveau "+sc.lv+" – die Strecke läuft mit dem Kurs. Den Brief dazu finden Sie schon jetzt im Briefkasten.",4200);
+  if(Focus.isOpen())Focus.close(true);const box=Focus.open({title:"Leben in Deutschland",sub:sc.t});FOCUS_BACK=()=>ACT.l3Mod(sc.mod);
+  const mod=D.mods.find(m=>m[0]===sc.mod)||D.mods[0];const doc=D.docs[sc.doc];const res={q:null,rp:[]};let i=0;
+  const nav=(next)=>`<div class="row l3-nav">${i>0?`<button class="sm ghost l3-back">Zurück</button>`:""}<button class="primary l3-fwd">${next||"Weiter"}</button></div>`;
+  const wire=()=>{const b=$(".l3-back",box),f=$(".l3-fwd",box);if(b)b.onclick=()=>{i--;draw()};if(f)f.onclick=()=>{i++;draw()}};
+  const head=()=>`<div class="head"><div class="row wrap" style="gap:.35rem"><span class="pill">${esc(mod[1])}</span><span class="pill lv lv-${sc.lv}">${sc.lv}</span><span class="pill o">${i+1} / ${L3_STEPS.length} · ${L3_STEPS[i]}</span></div><h1>${esc(sc.t)}</h1></div>`;
+  function draw(){Focus.progress({n:L3_STEPS.length,i,p:.5});const el=Focus.body();const gk=glossKey({});if(sc.grave){el.dataset.sober="1";el.dataset.hx="speech"}
+    if(i===0){el.innerHTML=`<div class="stack s l3 l3-sc" data-step="0">${head()}<div class="card"><div class="row between"><div class="eyebrow">Die Lage <span class="en">read first · tap a word</span></div><button class="icon ghost" data-say="${esc(l3Say(sc.sit))}" aria-label="Vorlesen">${ic("vol")}</button></div><p class="de l3-sit" data-gk="${gk}">${glossify(sc.sit)}</p>${l3En(sc.en,sc.lv)}</div>${nav("Zum Gespräch")}</div>`}
+    else if(i===1){el.innerHTML=`<div class="stack s l3 l3-sc" data-step="1">${head()}<div class="card"><div class="eyebrow">Das Gespräch <span class="en">listen line by line</span></div><div class="dl" data-gk="${gk}">${sc.dlg.map(d=>`<div class="turn ${/^(Du|Dr\. Ismail|Sie)\b/.test(d[0])?"me":""}"><div class="who"><span>${esc(d[0])}</span><button data-say="${esc(l3Say(d[1]))}" aria-label="Anhören">${ic("vol")}</button></div><div>${glossify(d[1])}</div>${d[2]?l3En(d[2],sc.lv):""}</div>`).join("")}</div></div>${nav("Zu den Sätzen")}</div>`}
+    else if(i===2){el.innerHTML=`<div class="stack s l3 l3-sc" data-step="2">${head()}<div class="card"><div class="eyebrow">Zehn Sätze für diese Lage <span class="en">say each one aloud</span></div><div class="list">${sc.ph.map(p=>`<div class="li" style="cursor:default;align-items:flex-start"><span class="t"><b class="de" data-gk="${gk}">${glossify(p[0])}</b>${l3En(p[1],sc.lv,"small")}</span><span class="m"><button class="icon ghost" data-say="${esc(l3Say(p[0]))}" aria-label="Anhören">${ic("vol")}</button></span></div>`).join("")}</div></div>${nav("Zum Dokument")}</div>`}
+    else if(i===3){el.innerHTML=`<div class="stack s l3 l3-sc" data-step="3">${head()}<div class="eyebrow">Lesen: ${esc(doc.t)}</div>${l3DocHTML(doc)}${l3GlossHTML(doc)}<div class="card l3-quiz"></div>${nav("Zum Rollenspiel")}</div>`;l3MarkGloss(el,doc);l3Quiz($(".l3-quiz",el),doc.q,sc.grave,(r,n)=>{res.q=Math.round(100*r/n)})}
+    else if(i===4){const B=sc.rp.beats;let j=0;el.innerHTML=`<div class="stack s l3 l3-sc" data-step="4">${head()}<div class="card"><div class="eyebrow">Rollenspiel <span class="en">you type your lines</span></div><p class="ui">${esc(sc.rp.ziel)}</p><div class="dl l3-chat" data-gk="${gk}"></div><div class="l3-beat"></div></div><div class="row l3-nav"><button class="sm ghost l3-back">Zurück</button><button class="sm ghost l3-fwd">Überspringen</button></div></div>`;
+      const chat=$(".l3-chat",el),bt=$(".l3-beat",el);const turn=(who,t,me)=>{chat.insertAdjacentHTML("beforeend",`<div class="turn ${me?"me":""}"><div class="who"><span>${esc(who)}</span><button data-say="${esc(l3Say(t))}" aria-label="Anhören">${ic("vol")}</button></div><div>${glossify(t)}</div></div>`)};
+      const beat=()=>{if(j>=B.length){const ok=res.rp.filter(q=>q===2).length;bt.innerHTML=`<div class="verdict ok" data-noxp="1"><b>Gespräch geschafft.</b> ${ok} von ${B.length} Zeilen ohne Hilfe.</div>`;const f=$(".l3-fwd",el);f.textContent="Zu den Wörtern";f.className="primary l3-fwd";f.focus();return}
+        const b=B[j];turn(b.p[0],b.p[1]);bt.innerHTML=`<div class="l3-cue ui"><b>Du:</b> ${esc(b.cue)}</div><div class="l3-ty"></div>`;l3Typed($(".l3-ty",bt),{ok:b.ok,model:b.model,quiet:sc.grave},q=>{res.rp[j]=q;const v=$(".l3-in",bt).value.trim();turn("Du",q===2&&v?v:b.model,true);j++;beat()})};beat()}
+    else{const meph=sc.meph&&!sc.grave&&typeof pkSay==="function"&&P().signed?pkSay([sc.meph,""]):"";
+      el.innerHTML=`<div class="stack s l3 l3-sc" data-step="5">${head()}<div class="card"><div class="eyebrow">Wörter fürs Deck <span class="en">tap + to add · first review tomorrow</span></div>${l3VocHTML(sc.voc)}</div>
+       <div class="card l3-note"><div class="eyebrow">Kulturnotiz</div>${sc.noteDe?`<p class="de" data-gk="${gk}">${glossify(sc.noteDe)}</p>`:""}<p${sc.noteDe?' class="en l3-en hid" tabindex="0" role="button"':""}>${esc(sc.note)}</p></div>${meph}
+       <div class="row l3-nav"><button class="sm ghost l3-back">Zurück</button><button class="primary l3-done">Szene abschließen</button></div></div>`;
+      $$(".l3-add",el).forEach(b=>b.onclick=()=>l3AddWord(b));
+      $(".l3-done",el).onclick=()=>{const s=l3S();const rp=res.rp.length?Math.round(100*res.rp.filter(q=>q===2).length/sc.rp.beats.length):null;const old=s.sc[sc.id];s.sc[sc.id]={d:todayKey(),rp:Math.max(rp==null?0:rp,old&&old.rp||0)};try{logDay("read");logEvent("read","Leben: "+sc.t+(rp!=null?" · Rollenspiel "+rp+" %":""),rp)}catch(e){}saveSoon();toast("Szene abgeschlossen");ACT.l3Mod(sc.mod)}}
+    wire()}
+  draw()};
+// ---------------------------------------------------------------- Briefkasten
+const L3_ACT={antworten:"antworten",zahlen:"zahlen",abheften:"abheften",termin:"Termin machen",widerspruch:"Widerspruch / Einspruch",nachreichen:"Unterlagen nachreichen",zurueck:"zurück in den Briefkasten der Post"};
+ACT.l3Bk=()=>{if(Focus.isOpen())Focus.close(true);const box=Focus.open({title:"Der Briefkasten",sub:"Briefe und Formulare lesen"});FOCUS_BACK=()=>ACT.l3();const D=l3Data(),s=l3S();
+  const L=Object.values(D.docs).filter(d=>d.want).sort((a,b)=>l3Lv(a.lv)-l3Lv(b.lv));const rest=Object.values(D.docs).filter(d=>!d.want).sort((a,b)=>l3Lv(a.lv)-l3Lv(b.lv));
+  const row=d=>`<button class="li" data-act="l3Doc" data-id="${d.id}"><span class="n" style="${s.bk[d.id]?"background:var(--accent);color:#fff;border-radius:50%":""}">${s.bk[d.id]?"✓":"✉"}</span><span class="t"><b>${esc(d.t)}</b><small>${esc(d.from)} · ${esc(d.kind)}</small></span><span class="m"><span class="pill lv lv-${d.lv}">${d.lv}</span></span></button>`;
+  box.innerHTML=`<div class="stack s l3"><p class="muted">Deutsche Post sieht streng aus und will meistens nur eines. Lesen, die Frist finden, antworten, abheften. Der Briefkasten ist immer offen – auch für Briefe über Ihrem Niveau. <span class="en">Open at any level: a letter does not wait for B1.</span></p>
+   <div class="row between ui"><span>${L.filter(d=>s.bk[d.id]).length} / ${L.length} abgeheftet</span><span class="pbar" style="flex:1;margin-left:.6rem"><i style="width:${L.length?Math.round(100*L.filter(d=>s.bk[d.id]).length/L.length):0}%"></i></span></div>
+   <div class="eyebrow">Post für Sie <span class="en">letters that want something</span></div><div class="list">${L.map(row).join("")}</div>
+   ${rest.length?`<details class="l3-more"><summary class="ui">Aushänge, Zettel, Karten und Tafeln (${rest.length})</summary><div class="list">${rest.map(row).join("")}</div></details>`:""}</div>`};
+ACT.l3Doc=el=>{const id=el&&el.dataset?el.dataset.id:el;const D=l3Data();const d=D.docs[id];if(!d)return;if(Focus.isOpen())Focus.close(true);const box=Focus.open({title:"Der Briefkasten",sub:d.t});FOCUS_BACK=()=>ACT.l3Bk();const s=l3S();
+  const fr=(d.frist||[]);
+  box.innerHTML=`<div class="stack s l3 l3-doc"><div class="head"><div class="row wrap" style="gap:.35rem"><span class="pill">${esc(d.kind)}</span><span class="pill lv lv-${d.lv}">${d.lv}</span>${s.bk[d.id]?'<span class="pill good">abgeheftet</span>':""}</div><h1>${esc(d.t)}</h1></div>
+   ${l3DocHTML(d)}${l3GlossHTML(d)}<div class="card l3-quiz"></div>
+   ${d.want?`<div class="card l3-want" hidden><div class="eyebrow">Was will der Brief von mir?</div><p class="de" data-gk="${glossKey({})}">${glossify(d.want)}</p>${l3En(d.wantEn,d.lv)}
+     ${fr.length?`<div class="ui"><b>Frist / Betrag:</b> ${fr.map(f=>`<mark class="l3-frist">${esc(f)}</mark>`).join(" · ")}</div>`:`<div class="ui muted">Keine Frist in diesem Schreiben.</div>`}<div class="ui"><b>Was tun:</b> ${esc(L3_ACT[d.act]||d.act)}</div></div>
+    <div class="card l3-reply" hidden><div class="eyebrow">Ihre Antwort <span class="en">two or three lines</span></div><p class="ui">${esc(d.reply.task)}</p><div class="l3-ty"></div></div>`:""}
+   <div class="row l3-nav"><button class="sm ghost" data-act="l3Bk">Alle Briefe</button>${d.want?"":`<button class="primary l3-file">Gelesen</button>`}</div></div>`;
+  l3MarkGloss(box,d);const file=()=>{s.bk[d.id]=s.bk[d.id]||todayKey();try{logDay("read");logEvent("read","Briefkasten: "+d.t)}catch(e){}saveSoon();toast("Abgeheftet");ACT.l3Bk()};
+  const f=$(".l3-file",box);if(f)f.onclick=file;
+  l3Quiz($(".l3-quiz",box),d.q,false,()=>{if(!d.want)return;$(".l3-want",box).hidden=false;const r=$(".l3-reply",box);r.hidden=false;
+    l3Typed($(".l3-ty",r),{ok:d.reply.need,model:d.reply.model,rows:4,ph:"Sehr geehrte Damen und Herren, …"},file)})};
+// ---------------------------------------------------------------- Jahreskreis
+ACT.l3Jahr=()=>{if(Focus.isOpen())Focus.close(true);const box=Focus.open({title:"Der Jahreskreis",sub:"Feiertage und Bräuche in Baden-Württemberg"});FOCUS_BACK=()=>ACT.l3();const k=todayKey();
+  const L=l3Data().jahr.map(e=>({e,r:l3Next(e,k)})).filter(x=>x.r).sort((a,b)=>a.r.a-b.r.a);const now=l3Day(k,0).map(x=>x.e.id);
+  box.innerHTML=`<div class="stack s l3"><p class="muted">Ab heute, ${fmtDate(k)}, ein Jahr voraus. Bewegliche Feste sind aus dem Osterdatum berechnet. <span class="en">What people do, eat and say – on the right day.</span></p>
+   ${L.map(x=>{const e=x.e;const span=+x.r.a===+x.r.b?l3Fmt(x.r.a):l3Fmt(x.r.a)+" – "+l3Fmt(x.r.b);return `<div class="card l3-jahr${now.includes(e.id)?" l3-now":""}" data-jahr="${e.id}"><div class="eyebrow">${span}${now.includes(e.id)?" · jetzt":""} ${e.frei?'<span class="pill good">Feiertag in BW</span>':""}</div><b class="l3-jt">${esc(e.t)}</b><p class="de" data-gk="${glossKey({})}">${glossify(e.de)}</p>${l3En(e.en,e.lv||"A2")}
+     ${e.ess?`<small class="ui muted">Essen &amp; Trinken: ${esc(e.ess)}</small>`:""}${e.sag?`<div class="row" style="gap:.4rem;align-items:center"><button class="icon ghost" data-say="${esc(l3Say(e.sag))}" aria-label="Anhören">${ic("vol")}</button><b class="de">${esc(e.sag)}</b></div>`:""}${e.sc&&l3Data().sc.some(z=>z.id===e.sc)?`<button class="sm" data-act="l3Sc" data-id="${e.sc}">Dazu die Szene${ic("chev")}</button>`:""}</div>`}).join("")}
+   <small class="ui muted">Schulferien und Ortstermine (Schlossbeleuchtung, Märkte) ändern sich jedes Jahr – bitte im Amtsblatt oder auf der Seite der Stadt nachsehen.</small></div>`};
+// ---------------------------------------------------------------- Das Regal (canon)
+ACT.l3Regal=()=>{if(Focus.isOpen())Focus.close(true);const box=Focus.open({title:"Das Regal",sub:"was Kolleginnen und Kollegen zitieren"});FOCUS_BACK=()=>ACT.l3();const K=l3Data().kanon,s=l3S();const cats=[...new Set(K.map(k=>k.cat))];
+  const quotes=t=>(String(t).match(/„[^“]+“/g)||[]).map(q=>q.slice(1,-1));
+  box.innerHTML=`<div class="stack s l3"><p class="muted">Niemand muss das alles gelesen, gehört oder gesehen haben. Aber man sollte nicken können, wenn der Satz fällt – und ihn irgendwann selbst sagen. <span class="en">Why it matters, and a line you can actually use.</span></p>
+   <div class="row between ui"><span class="l3-kn-n">${K.filter(k=>s.kn[k.id]).length} / ${K.length} kenne ich</span></div>
+   ${cats.map(c=>`<div class="eyebrow" style="margin-top:.4rem">${esc(c)}</div>${K.filter(k=>k.cat===c).map(k=>`<details class="card l3-kn${s.kn[k.id]?" on":""}" data-id="${k.id}"><summary><b>${esc(k.t)}</b></summary><p>${esc(k.why)}</p>${quotes(k.say).map(q=>`<div class="row l3-q" style="gap:.4rem;align-items:center"><button class="icon ghost" data-say="${esc(q)}" aria-label="Anhören">${ic("vol")}</button><b class="de">„${esc(q)}“</b></div>`).join("")}<small class="ui muted">${esc(k.say.replace(/„[^“]+“/g,"").replace(/\s*·\s*(?=·|$)/g,"").replace(/^[\s·/]+|[\s·/]+$/g,""))}</small>${k.de?`<p class="de" data-gk="${glossKey({})}">${glossify(k.de)}</p>`:""}<div class="row"><button class="sm l3-kn-b">${s.kn[k.id]?ic("check")+" Kenne ich":"Kenne ich jetzt"}</button></div></details>`).join("")}`).join("")}</div>`;
+  $$(".l3-kn-b",box).forEach(b=>b.onclick=()=>{const d=b.closest(".l3-kn"),id=d.dataset.id;if(s.kn[id])delete s.kn[id];else s.kn[id]=1;saveSoon();d.classList.toggle("on",!!s.kn[id]);b.innerHTML=s.kn[id]?ic("check")+" Kenne ich":"Kenne ich jetzt";$(".l3-kn-n",box).textContent=K.filter(k=>s.kn[k.id]).length+" / "+K.length+" kenne ich"})};
+// ---------------------------------------------------------------- Dialektohr
+ACT.l3Ohr=()=>{if(Focus.isOpen())Focus.close(true);const box=Focus.open({title:"Das Dialektohr",sub:"was Patienten wirklich sagen"});FOCUS_BACK=()=>ACT.l3();const O=l3Data().ohr,s=l3S();const regs=[...new Set(O.map(o=>o.reg))];
+  box.innerHTML=`<div class="stack s l3"><p class="muted">Ältere Patienten aus Heidelberg, Mannheim und von der Bergstraße sprechen Kurpfälzisch; aus dem Süden kommt Schwäbisch und Badisch dazu, und überall die Umgangssprache. Hier lesen Sie den Satz so, wie er klingt, und wählen das Hochdeutsche. <span class="en">Read the line as it sounds, pick the standard German.</span></p>
+   <div class="tch-merke"><b>Achtung:</b> Die Schreibung ist nur angenähert – Dialekt hat keine feste Rechtschreibung, und die Sprachausgabe kann ihn nicht. Vorgelesen wird nur die hochdeutsche Lösung. Wenn Sie können: Lassen Sie sich die Sätze von einer Kollegin aus der Region vorsprechen.</div>
+   <div class="werk-grid">${regs.map(r=>{const L=O.filter(o=>o.reg===r);return `<button data-act="l3OhrRun" data-reg="${esc(r)}"><b>${esc(r)}</b><small>${L.filter(o=>(s.ohr[o.id]||[0])[0]>0).length} / ${L.length} verstanden</small></button>`}).join("")}<button data-act="l3OhrRun" data-reg=""><b>Gemischt</b><small>zehn Sätze, alle Regionen</small></button></div>
+   <details class="card"><summary class="ui">Falsche Freunde und Regeln</summary><ul>${L3_OHR_NOTES.map(n=>`<li>${esc(n)}</li>`).join("")}</ul></details>
+   <details class="card"><summary class="ui">Alle Sätze (${O.length})</summary><div class="l3-glist">${O.map(o=>`<div><b class="de">${esc(o.d)}</b><span>${esc(o.s)}</span></div>`).join("")}</div></details></div>`};
+ACT.l3OhrRun=el=>{const reg=el&&el.dataset?el.dataset.reg:"";const O=l3Data().ohr,s=l3S();const pool=O.filter(o=>!reg||o.reg===reg);const seen=o=>(s.ohr[o.id]||[0,0])[1];
+  const Q=shuffle(pool).sort((a,b)=>seen(a)-seen(b)).slice(0,10);if(!Q.length)return;if(Focus.isOpen())Focus.close(true);const box=Focus.open({title:"Das Dialektohr",sub:reg||"Gemischt"});FOCUS_BACK=()=>ACT.l3Ohr();let i=0,right=0;
+  const step=()=>{Focus.progress({n:Q.length,i,p:.5});if(i>=Q.length){box.innerHTML=`<div class="stack s l3"><div class="card"><h2>${right} von ${Q.length} verstanden</h2><p class="ui">Rettungssatz für alles andere:</p><div class="row" style="gap:.4rem;align-items:center"><button class="icon ghost" data-say="Entschuldigung, ich bin noch neu hier – könnten Sie das bitte auf Hochdeutsch sagen?">${ic("vol")}</button><b class="de">Entschuldigung, ich bin noch neu hier – könnten Sie das bitte auf Hochdeutsch sagen?</b></div></div><div class="row"><button class="primary" data-act="l3OhrRun" data-reg="${esc(reg)}">Noch eine Runde</button><button class="sm ghost" data-act="l3Ohr">Zurück</button></div></div>`;return}
+    const o=Q[i];const opts=shuffle([o].concat(shuffle(O.filter(x=>x.id!==o.id&&x.s!==o.s)).slice(0,3)));
+    box.innerHTML=`<div class="stack s l3 l3-ohr"><div class="card"><div class="eyebrow">${esc(o.reg)} · Satz ${i+1} / ${Q.length} <span class="en">spelling approximate</span></div><div class="l3-dia">„${esc(o.d)}“</div><p class="ui muted">Was sagt die Patientin auf Hochdeutsch?</p><div class="opts">${opts.map(x=>`<button data-id="${x.id}">${esc(x.s)}</button>`).join("")}</div><div class="l3-why"></div></div></div>`;
+    $$(".opts button",box).forEach(b=>b.onclick=()=>{if($(".l3-why",box).innerHTML)return;const ok=b.dataset.id===o.id;if(ok)right++;fb(ok);b.classList.add(ok?"right":"wrong");if(!ok){const r=$(`.opts [data-id="${o.id}"]`,box);if(r)r.classList.add("right")}
+      const a=s.ohr[o.id]||[0,0];s.ohr[o.id]=[a[0]+(ok?1:0),a[1]+1];saveSoon();
+      $(".l3-why",box).innerHTML=`<div class="verdict ${ok?"ok":"no"}" data-noxp="1"><div class="row" style="gap:.4rem;align-items:center"><button class="icon ghost" data-say="${esc(l3Say(o.s))}" aria-label="Anhören">${ic("vol")}</button><b class="de">${esc(o.s)}</b></div><small class="ui">${esc(o.en)}${o.tip?" · "+esc(o.tip):""}</small><div class="row" style="margin-top:.5rem"><button class="primary l3-nx">Weiter</button></div></div>`;const n=$(".l3-nx",box);n.onclick=()=>{i++;step()};n.focus()})};step()};
+// ---------------------------------------------------------------- entry points (13.1: MOD.after only — no function is reassigned)
+function l3TileHTML(){const st=l3Stats();return `<button data-act="l3" class="werk-l3"><b>Leben in Deutschland</b><small>${st.d} / ${st.n} Szenen · Briefkasten · Jahreskreis</small></button>`}
+function l3HomeHTML(){const k0=todayKey().split("-").map(Number),t0=new Date(k0[0],k0[1]-1,k0[2]);const today=l3Day(todayKey(),3).filter(x=>x.single||x.inDays>0||Math.round((t0-x.a)/864e5)<=1); // long seasons show on Home only on their first two days
+ const nx=l3NextSc();let h="";
+  if(today.length){const x=today[0],e=x.e;h+=`<button class="card li l3-home l3-home-jahr" data-act="${e.sc&&x.inDays===0&&l3Data().sc.some(s=>s.id===e.sc&&l3Unlocked(s))?"l3Sc":"l3Jahr"}" data-id="${e.sc||""}" data-jahr="${e.id}" style="text-align:left"><span class="t"><span class="eyebrow">Jahreskreis · ${l3When(x)}${e.frei?" · Feiertag":""}</span><b>${esc(e.t)}</b><small>${esc(e.sag||e.de.split(/(?<=[.!?])\s/)[0])}</small></span>${ic("chev")}</button>`}
+  if(nx)h+=`<button class="card li l3-home l3-home-sc" data-act="l3Sc" data-id="${nx.id}" style="text-align:left"><span class="t"><span class="eyebrow">Leben in Deutschland <span class="en">today's scene</span></span><b>${esc(nx.t)}</b><small>${esc(nx.sub)}</small></span><span class="m"><span class="pill lv lv-${nx.lv}">${nx.lv}</span></span></button>`;
+  return h}
+function l3HomeInsert(m){if(!m||m.querySelector(".l3-home"))return;const v=m.querySelector(".view")||m;const h=l3HomeHTML();if(!h)return;
+  const a=v.querySelector(".kp-home")||v.querySelector(".wdt")||v.querySelector(".weg")||v.querySelector(".prog-strip")||v.querySelector(".hero");if(a)a.insertAdjacentHTML("afterend",h);else v.insertAdjacentHTML("beforeend",h)}
+function l3TileInsert(m){const g=(m||document).querySelector(".pk-werk .werk-grid");if(!g||g.querySelector('[data-act="l3"]'))return;g.insertAdjacentHTML("afterbegin",l3TileHTML())}
+(function(){try{if(typeof MOD!=="undefined"&&MOD&&typeof MOD.after==="function"){MOD.after("viewHome","l3",function(m){l3HomeInsert(m)});MOD.after("viewPakt","l3",function(m){l3TileInsert(m)})}
+  else{ // 13.0 fallback (no MOD): wrap defensively
+    const _vh=viewHome;viewHome=function(m){const r=_vh.apply(this,arguments);try{l3HomeInsert(m)}catch(e){}return r};
+    const _vp=viewPakt;viewPakt=function(m){const r=_vp.apply(this,arguments);try{l3TileInsert(m)}catch(e){}return r}}}catch(e){try{logError(e)}catch(x){}}})();
+// ---------------------------------------------------------------- daily plan provider (PLAN-L §2.2): one scene, or the day's custom, as an activity
+window.LX=window.LX||{acts:{},order:[],feeds:[],arounds:[]};
+LX.reg=LX.reg||function(a){LX.acts[a.id]=a;if(!LX.order.includes(a.id))LX.order.push(a.id)};
+LX.reg({id:"l3.szene",skill:"leben",pocket:false,
+  next(ctx){try{const s=l3NextSc();if(!s)return null;return {ref:s.id,title:("Leben · "+s.t+" ("+s.lv+")").slice(0,60),lv:l3Lv(s.lv),min:12,why:"eine Szene aus dem Alltag in Deutschland",needsAudio:false}}catch(e){return null}},
+  run(el,ref,done){const t0=Date.now();ACT.l3Sc(ref);const tick=setInterval(()=>{const s=l3S().sc[ref];if(s&&s.d===todayKey()){clearInterval(tick);done({ok:1,n:1,right:1,sec:Math.round((Date.now()-t0)/1000)})}else if(!Focus.isOpen()){clearInterval(tick);done({ok:0,n:1,right:0,sec:Math.round((Date.now()-t0)/1000)})}},700)}});
+LX.reg({id:"l3.brief",skill:"lesen",pocket:true,
+  next(ctx){try{const s=l3S(),D=l3Data();const cap=ctx&&ctx.lv!=null?ctx.lv+1:l3Cap();const d=Object.values(D.docs).filter(x=>x.want&&!s.bk[x.id]&&l3Lv(x.lv)<=cap).sort((a,b)=>l3Lv(a.lv)-l3Lv(b.lv))[0];return d?{ref:d.id,title:("Briefkasten · "+d.t).slice(0,60),lv:l3Lv(d.lv),min:5,why:"echte deutsche Post lesen und beantworten",needsAudio:false}:null}catch(e){return null}},
+  run(el,ref,done){const t0=Date.now();ACT.l3Doc(ref);const tick=setInterval(()=>{if(l3S().bk[ref]){clearInterval(tick);done({ok:1,n:1,right:1,sec:Math.round((Date.now()-t0)/1000)})}else if(!Focus.isOpen()){clearInterval(tick);done({ok:0,n:1,right:0,sec:Math.round((Date.now()-t0)/1000)})}},700)}});
+// ---------------------------------------------------------------- sync: merge rule for S.l3 (commutative, associative, idempotent)
+function l3Merge(a,b){a=a||{};b=b||{};const o={sc:{},bk:{},kn:{},ohr:{}};const A=x=>(x&&typeof x==="object")?x:{};
+  const sc=Object.assign({},A(a.sc));Object.entries(A(b.sc)).forEach(([k,v])=>{const u=sc[k];if(!u){sc[k]=v;return}const ud=String(u.d||""),vd=String(v.d||"");sc[k]=vd>ud?{d:vd,rp:Math.max(u.rp||0,v.rp||0)}:ud>vd?{d:ud,rp:Math.max(u.rp||0,v.rp||0)}:{d:ud,rp:Math.max(u.rp||0,v.rp||0)}});o.sc=sc;
+  const bk=Object.assign({},A(a.bk));Object.entries(A(b.bk)).forEach(([k,v])=>{bk[k]=bk[k]&&bk[k]<v?bk[k]:v});o.bk=bk;
+  Object.keys(Object.assign({},A(a.kn),A(b.kn))).forEach(k=>{if(A(a.kn)[k]||A(b.kn)[k])o.kn[k]=1});
+  Object.keys(Object.assign({},A(a.ohr),A(b.ohr))).forEach(k=>{const x=A(a.ohr)[k]||[0,0],y=A(b.ohr)[k]||[0,0];o.ohr[k]=[Math.max(x[0]||0,y[0]||0),Math.max(x[1]||0,y[1]||0)]});return o}
+setTimeout(()=>{try{if(typeof MERGE_RULES==="object")MERGE_RULES.l3=(a,b)=>l3Merge(a,b)}catch(e){}},0);
+// English behind a tap; keyboard: Enter or Space
+(function(){try{const tog=e=>{const en=e.target.closest&&e.target.closest(".l3-en.hid,.l3-en.shown");if(!en)return false;en.classList.toggle("hid");en.classList.toggle("shown");return true};
+  document.addEventListener("click",e=>{tog(e)},true);document.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.classList&&e.target.classList.contains("l3-en")){if(tog(e))e.preventDefault()}})}catch(e){}})();
+// ---------------------------------------------------------------- styles
+(function(){try{const s=document.createElement("style");s.textContent=`
+.l3 .l3-pb{margin-top:.35rem;height:5px;max-width:none}.l3 .li .n{min-width:1.8em;height:1.8em;display:inline-flex;align-items:center;justify-content:center;font-size:.95rem}
+.l3 .l3-lock{opacity:.55}.l3-tools{margin-top:.3rem}.werk-l3{border-color:var(--accent)!important}
+.l3-en.hid{color:transparent!important;text-shadow:0 0 7px var(--muted);cursor:pointer;user-select:none;position:relative}.l3-en.hid::after{content:"Englisch: tippen";position:absolute;left:0;top:0;color:var(--accent-2);text-shadow:none;font-size:.78rem;font-family:var(--ui);white-space:nowrap}.l3-en.shown{cursor:pointer}
+.l3 .turn .l3-en,.l3 .li .l3-en{display:block;font-family:var(--ui);font-size:.84rem;color:var(--muted);margin-top:.15rem}
+.l3-sit{font-size:1.08rem;line-height:1.6}.l3 .de{overflow-wrap:anywhere}
+.l3-paper{background:#fbf7ec;color:#1c1a17;border:1px solid #d8cfb8;border-radius:4px;padding:1.1rem 1rem 1.2rem;box-shadow:0 2px 0 #d8cfb8,0 6px 18px rgba(0,0,0,.25);font-family:var(--body);font-size:.98rem;line-height:1.5;overflow-wrap:anywhere}
+.l3-paper p{margin:.45rem 0}.l3-paper hr{border:0;border-top:1px dashed #b9ae93;margin:.7rem 0}.l3-paper .l3-abs{font-size:.72rem;letter-spacing:.05em;text-transform:uppercase;color:#6b6250;border-bottom:1px solid #d8cfb8;padding-bottom:.35rem;margin-bottom:.5rem}
+.l3-paper .l3-betr{font-family:var(--body);font-size:1.05rem;margin:.7rem 0 .4rem;color:#1c1a17}.l3-paper .w{color:inherit}.l3-paper .w.l3-gl{border-bottom:2px dotted #c2571a;cursor:help}
+.l3-paper .l3-row{display:grid;grid-template-columns:1fr auto;gap:.1rem .8rem;padding:.22rem 0;border-bottom:1px dotted #d8cfb8}.l3-paper .l3-row span:nth-child(2){text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}.l3-paper .l3-row small{grid-column:1/-1;color:#6b6250;font-size:.78rem}
+mark.l3-frist{background:#ffd9a8;color:#1c1a17;padding:0 .15em;border-radius:3px;box-shadow:0 0 0 1px #e2651c inset}mark.l3-frist .w{color:inherit}
+.l3-glist{display:grid;gap:.3rem;margin-top:.5rem}.l3-glist>div{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:.6rem;font-size:.92rem;border-bottom:1px dotted var(--line,rgba(128,128,128,.3));padding-bottom:.25rem}.l3-glist span{font-family:var(--ui);color:var(--muted)}
+.l3-in{width:100%;font:inherit;font-size:1.02rem;padding:.6rem .7rem;border-radius:var(--r-s,10px);min-height:3.2rem}.l3-cue{margin:.6rem 0 .4rem;padding:.5rem .7rem;border-left:3px solid var(--accent);background:var(--sunk)}
+.l3-chat{display:grid;gap:.5rem;margin:.5rem 0}.l3-nav{justify-content:space-between;gap:.5rem;flex-wrap:wrap}
+.l3-jahr .l3-jt{font-family:var(--display);font-size:1.15rem;display:block}.l3-jahr.l3-now,.l3-home-jahr{border-color:var(--accent)!important}.l3-jahr p{margin:.3rem 0}
+.l3-kn summary{cursor:pointer}.l3-kn.on{border-color:var(--good)}.l3-kn p{margin:.4rem 0}.l3-dia{font-family:var(--display);font-size:1.45rem;line-height:1.3;margin:.5rem 0}
+.l3-home{width:100%}.l3-more summary,.l3-amt summary{cursor:pointer}
+html:has(#focus:not([hidden]) [data-sober="1"]) :is(#hor-edge,.hor-drip,.hor-whisper,#hor-shadow,#hor-amb){display:none!important}#focus [data-sober="1"].hor-shake,#focus [data-sober="1"] .hor-glitch{animation:none!important}
+@media(max-width:420px){.l3-paper{padding:.9rem .75rem;font-size:.94rem}.l3-glist>div{grid-template-columns:1fr}}`;document.head.appendChild(s)}catch(e){}})();
 
 // ===== Mephisto · track I · c_i1_seam.js — the reader dispatcher RD, the task-line registry TL, story conditions IQ (owner: i1).
 // Place (13.1 modules.json): ["c_i1_seam","story"] after ["c_final","story"] and after ["c_s2","story"] when s2 is merged (RD works in either order).
@@ -7875,7 +8613,7 @@ function i2TodayPlan(){const n=PROG.cur(),r=i2Row(n),p=typeof P==="function"?P()
   let station=null;if(typeof bvOpen==="function"||typeof BVE!=="undefined"){for(let k=n-1;k>=1&&!station;k--){const b=SYLLABUS[k-1].bv;if(!b)continue;let pass=false;try{pass=typeof bvBest==="function"?!!(bvBest(b)||{}).pass:!!(((p.bv||{})[b])||{}).pass}catch(e){}if(!pass)station=b}}
   // task: i5/i6 own the chapter task; without them the TASKS writing prompt of the row is offered (write)
   let task=null;const tk=r.ta&&r.ta.tk;if(tk){let has=false,pass=false;try{if(/^bv/.test(tk))has=typeof bvOpen==="function";else has=typeof tkById==="function"&&!!tkById(tk);const st=((p.tk||{})[tk])||((p.bv||{})[tk])||{};pass=!!(st.pass||st.grey)}catch(e){}if(has&&!pass)task=tk}
-  let write=null;const ti=typeof TASKS!=="undefined"?TASKS.findIndex(t=>t.t===(r.ta||{}).t):-1;if(ti>=0){const d=(S.taskDone||{})[TASKS[ti].t];if(!(d&&d>=(p.chStart||"")))write=ti}
+  let write=null;if(typeof TASKS!=="undefined"){for(const tt of [(r.ta||{}).t].concat((r.ta||{}).x||[])){const ti=TASKS.findIndex(t=>t.t===tt);if(ti<0)continue;const d=(S.taskDone||{})[TASKS[ti].t];if(!(d&&d>=(p.chStart||""))){write=ti;break}}}   // main prompt first, then the extra prompts ta.x
   let probe=false;try{if(typeof pkGate==="function"&&typeof CHAPTERS!=="undefined"){const g=pkGate(CHAPTERS[n-1]);const it=(g&&g.items)||[];const pr=it.filter(i=>/probe/.test(i.k||""));if(pr.length&&pr.some(i=>!i.ok))probe=it.filter(i=>!/probe/.test(i.k||"")&&!i.opt).every(i=>i.ok)}}catch(e){}
   const L=lessons[0]&&i2Les(lessons[0]);
   const why=L?`Kapitel ${n}: „${L.title}“ – ${pick.why}`:words.length?`Kapitel ${n}: ${words.length} Wörter des Kapitels sind noch neu`:input?`Kapitel ${n}: Hören und Lesen des Kapitels`:`Kapitel ${n}: alles Material ist begonnen; jetzt zählt die Wiederholung`;
@@ -8074,7 +8812,7 @@ function reqActive(q){if(!q.need)return true;try{if(q.need==="TASKS40"){if(typeo
   if(q.need==="BVE")return typeof BVE!=="undefined"}catch(e){}return false}
 
 // ---------------------------------------------------------------- 3. requirement and can-do status
-const I3_RETEST=14;
+const I3_RETEST=10;   // i4_pace: re-test gap of first-contact items (was 14)
 const I3_PERROW=new Set(["w","wq","sp","bv","tk"]);
 const CD_SPAN=[0,4,5,7,7,10],CD_FADE=[0,60,60,75,90,90];   // per level: days the evidence must span · days without evidence until a secured can-do fades
 function reqEval(q){
@@ -8115,7 +8853,8 @@ const CD_W=st=>st>=3?1:st===2.5?.85:st===2?.5:st===1?.1:0;
 const CD_NAME={0:"offen",1:"begonnen",2:"gezeigt",2.5:"verblasst",3:"gesichert"},CD_NAME_EN={0:"open",1:"started",2:"shown",2.5:"fading",3:"secured"};
 function cdStatus(id){const e=cdAll()[id];return e?e.st:0}
 function cdOfChapter(n){const A=cdAll();return (typeof CANDO!=="undefined"?CANDO:[]).filter(c=>c.ch===+n).map(c=>({id:c.id,st:A[c.id].st,pct:A[c.id].pct,self:A[c.id].self,de:c.de,en:c.en,sk:c.sk,lv:c.lv}))}
-const CD_QUOTA=[16,20,21,23,18],ROMAN=["I","II","III","IV","V"];
+// i4_pace (16/11/2026): 16/20/21/23/18 → 16/18/20/21/17; the old values kept shift-heavy learners 19 and 63 days in boss chapters 8 and 16; realm IV had ≤ 24 reachable
+const CD_QUOTA=[16,18,20,21,17],ROMAN=["I","II","III","IV","V"];
 function cdRealm(r){let i=typeof r==="string"?ROMAN.indexOf(r):+r;if(!(i>=0&&i<5))i=0;const A=cdAll();const L=CANDO.filter(c=>c.lv===i+1);
   const secured=L.filter(c=>A[c.id].st===3).length,faded=L.filter(c=>A[c.id].st===2.5).length,shown=L.filter(c=>A[c.id].st===2).length;
   return {realm:ROMAN[i],lv:i+1,secured,faded,shown,need:CD_QUOTA[i],total:L.length,ok:secured>=CD_QUOTA[i]}}
@@ -8451,6 +9190,2515 @@ function i3MergeI3(a,b){a=a||{};b=b||{};const st=(x,y)=>{x=x||"";y=y||"";const n
   const o={st:st(a.st,b.st),lv:st(a.lv,b.lv),enTap:{shown:Math.max(t1.shown||0,t2.shown||0),tapped:Math.max(t1.tapped||0,t2.tapped||0)},cal:[...cal.values()].sort((x,y)=>(x.d+"|"+x.k+"|"+x.g+"|"+x.r+"|"+x.N)<(y.d+"|"+y.k+"|"+y.g+"|"+y.r+"|"+y.N)?-1:1).slice(-20),said};if(ovr)o.ovr=ovr;return o}
 setTimeout(()=>{try{if(typeof MERGE_RULES!=="undefined"){MERGE_RULES.ev=(a,b)=>i3MergeEv(a,b);MERGE_RULES.evSeen=(a,b)=>i3MergeMin(a,b);MERGE_RULES.evAgg=(a,b)=>i3MergeAgg(a,b);MERGE_RULES.cdTest=(a,b)=>i3MergeCdTest(a,b);MERGE_RULES.i3=(a,b)=>i3MergeI3(a,b)}}catch(e){}},0);
 
+// ===== c_i4.js · package i4 (PLAN-I R4, R5, R6 part 1, §2.5) · mastery gates, Siegelprobe, retention, test-out, realm level tests,
+// placement, migration. Sources: beta r8 I6-assessment §4.4/4.5/4.9/4.11, I2 §5.3 rules 4–10 and proposal 3, I4 P5.
+// Declared replacements (MOD.around, tag "i4"; each keeps signature and return shape and falls back to the old chain on error):
+//   pkGate(c) → {items,ready,need:0}   ·   pkSealChapter() (old ceremony kept: the inner chain runs; i4 records around it)
+// New API: GATE (add, items, probe, state, run, retention, repair, testOut, lvTest, place), lvTest(realm), plRun(box),
+//   ACT.gateOpen ACT.probeGo ACT.probeGuided ACT.probeTestOut ACT.lvTestGo ACT.lvTestOut ACT.placeGo ACT.placeSkip ACT.retGo ACT.repairGo ACT.i4Duel ACT.i4Read
+// State: S.seal {n:{tries,best,pass,grey,to,crk,rep,ret,mig}} · S.cp {cpA1…:{tries,written,wPct,full,duel,pass,to}} · S.place · S.realmDone {I…V:date}
+//   (merge rules at the end; S.syl.mig is i2's field reserved for this migration).
+// Nothing here throws at load. Every call into another package is guarded.
+
+const I4_ERRS=[];
+function i4Err(t,e){const m=t+": "+(e&&e.message||e);I4_ERRS.push(m);if(I4_ERRS.length>50)I4_ERRS.shift();try{logError({message:"i4 "+m})}catch(x){}}
+function i4T(t,f,fb){try{return f()}catch(e){i4Err(t,e);return fb}}
+const I4R=["I","II","III","IV","V"],I4LV=["A1","A2","B1","B2","C1"];
+const I4C=typeof I4_CFG!=="undefined"?I4_CFG:{minDays:[5,5,6,6,7],probeN:[12,12,14,16,16],probeCut:[10,10,12,14,14],testOutN:16,testOutCut:15,testOutWords:.9,wordsIntro:.9,wordsSolid:.8,wordsInt:4,lessonPct:80,lessonDays:2,retDays:14,retDaysTestOut:7,retN:3,retCut:2,repairN:8,repairCut:6,waits:[0,0,1,2,3],guidedAfter:4,lessonBackAfter:3,realmRetake:[3,3,3,7,7],realmTestOutPct:85,realmTestOutEvery:7,quota:[16,20,21,23,18]};
+function i4Ch(n){return CHAPTERS[Math.max(1,Math.min(CHAPTERS.length,+n||1))-1]}
+function i4Ri(c){c=typeof c==="object"&&c?c:i4Ch(c);const i=I4R.indexOf(c&&c.r);return i<0?0:i}
+function i4D(a,b){try{return diffDays(a,b)}catch(e){return 0}}
+function i4Ok(){return typeof PROG!=="undefined"&&typeof SYLLABUS!=="undefined"&&Array.isArray(SYLLABUS)&&SYLLABUS.length===40&&typeof CHAPTERS!=="undefined"}
+function i4Uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+function i4Emit(n,d){try{if(window.EV&&typeof EV.emit==="function")EV.emit(n,d)}catch(e){}}
+function i4Line(k,v){try{const L=(typeof MEPH_I4!=="undefined"&&MEPH_I4[k])||(typeof MEPH_ASSESS!=="undefined"&&MEPH_ASSESS[k]);if(!L||!L[0])return null;const l=L[0];const du=P().du===true;
+  const f=s=>String(s==null?"":s).replace(/\{(\w+)\}/g,(m,x)=>v&&v[x]!=null?v[x]:m);return [f(du&&l[2]?l[2]:l[0]),f(l[1])]}catch(e){return null}}
+function i4Say(k,v){const l=i4Line(k,v);if(!l)return "";try{return pkSay(l)}catch(e){return `<p>${esc(l[0])}</p>`}}
+function i4Fmt(d){try{return fmtDate(d)}catch(e){return d}}
+function i4Les(id){return (typeof GRAMMAR!=="undefined"?GRAMMAR:[]).find(g=>g.id===id)||null}
+function i4Norm(s){return normT(String(s==null?"":s)).replace(/[.,!?;:…–—"„“'()]/g," ").replace(/\s+/g," ").trim()}
+
+// ---------------------------------------------------------------- state
+function i4Seal(n){if(!S.seal||typeof S.seal!=="object"||Array.isArray(S.seal))S.seal={};let s=S.seal[n];if(!s||typeof s!=="object")s=S.seal[n]={};
+  if(!Array.isArray(s.tries))s.tries=[];["pass","grey","to","crk","rep","ret","mig"].forEach(k=>{if(typeof s[k]!=="string")s[k]=""});s.best=+s.best||0;return s}
+function i4SealPeek(n){const s=S.seal&&S.seal[n];return s&&typeof s==="object"?i4Seal(n):{tries:[],pass:"",grey:"",to:"",crk:"",rep:"",ret:"",mig:"",best:0}}
+function i4Cp(id){if(!S.cp||typeof S.cp!=="object"||Array.isArray(S.cp))S.cp={};let e=S.cp[id];if(!e||typeof e!=="object")e=S.cp[id]={};
+  if(!Array.isArray(e.tries))e.tries=[];["written","full","duel","pass","to","grey","rep"].forEach(k=>{if(typeof e[k]!=="string")e[k]=""});e.wPct=+e.wPct||0;return e}
+function i4CpPeek(id){return S.cp&&S.cp[id]&&typeof S.cp[id]==="object"?i4Cp(id):{tries:[],written:"",full:"",duel:"",pass:"",to:"",grey:"",rep:"",wPct:0}}
+function i4RealmDone(){if(!S.realmDone||typeof S.realmDone!=="object")S.realmDone={};return S.realmDone}
+function i4Crack(n){const s=i4SealPeek(n);return !!s.crk&&!(s.rep&&s.rep>=s.crk)}
+function i4Cracked(){const se=(P().sealed)||{};return Object.keys(se).map(Number).filter(n=>i4Crack(n)).sort((a,b)=>a-b)}
+function i4LastSeal(){const se=P().sealed||{};let m="";for(const k in se)if(typeof se[k]==="string"&&se[k]>m)m=se[k];return m}
+
+// ---------------------------------------------------------------- probe state: failures, waits, guided
+function i4Fails(n){return i4SealPeek(n).tries.filter(t=>t.k==="p"&&!t.ok)}
+function i4Wait(n){const s=i4SealPeek(n);if(s.pass||s.grey||s.to)return 0;const f=i4Fails(n);if(!f.length)return 0;const w=I4C.waits[Math.min(f.length,I4C.waits.length-1)];
+  return Math.max(0,w-i4D(f[f.length-1].d,todayKey()))}
+function i4GuidedOk(n){return i4Fails(n).length>=I4C.guidedAfter}
+function i4Words(n){const ids=PROG.words(n);let intro=0,solid=0;ids.forEach(id=>{let known=false,int=0;
+    try{if(typeof memGet==="function"){const m=memGet(id);if(m){known=true;int=+(m.ivl||m.int||m.s||0)}}}catch(e){}
+    const c=(S.cards||{})[id];if(c){if((c.reps||0)>0||(c.int||0)>0||c.due)known=true;int=Math.max(int,+c.int||0)}
+    if(known)intro++;if(known&&int>=I4C.wordsInt)solid++});
+  const n0=ids.length;return {n:n0,intro,solid,needI:Math.ceil(I4C.wordsIntro*n0),needS:Math.ceil(I4C.wordsSolid*n0),ok:!n0||intro>=Math.ceil(I4C.wordsIntro*n0)&&solid>=Math.ceil(I4C.wordsSolid*n0),introOk:!n0||intro>=Math.ceil(I4C.testOutWords*n0)}}
+function i4Lessons(n){const ids=PROG.lessons(n);const L=ids.map(id=>{const r=(S.lessons||{})[id]||{};const d=PROG.days(id);return {id,best:+r.best||0,days:d,ok:(+r.best||0)>=I4C.lessonPct&&d>=I4C.lessonDays,t:(i4Les(id)||{}).title||id}});
+  return {L,ok:L.every(x=>x.ok),done:L.filter(x=>x.ok).length}}
+function i4Task(n){try{const r=SYLLABUS[n-1];const tk=r&&r.ta&&r.ta.tk;if(!tk||typeof TL==="undefined"||!TL.get(tk))return null;const st=TL.state(tk)||{};return {id:tk,pass:!!st.pass,grey:!!st.grey,ok:!!(st.pass||st.grey),best:st.best,max:st.max}}catch(e){return null}}
+// a can-do counts as "begun" for the gate also when everything still missing can only come from an external rater (EVF.RATED, no tutor in the app)
+function i4Unmeasurable(id){try{const e=typeof cdAll==="function"?cdAll()[id]:null;if(!e||!e.parts||!e.parts.length)return false;const miss=e.parts.filter(p=>!p.ok);return miss.length>0&&miss.every(p=>p.q&&p.q.rated&&!p.any)}catch(e){return false}}
+function i4Cando(n){if(typeof cdOfChapter!=="function")return null;const L=cdOfChapter(n);L.forEach(x=>{x.ext=x.st<2&&i4Unmeasurable(x.id)});
+  return {L,shown:L.filter(x=>x.st>=2).length,begun:L.filter(x=>x.st>=1||x.ext).length,ext:L.filter(x=>x.ext).length,n:L.length}}
+
+// ---------------------------------------------------------------- GATE registry
+const GATE=(function(){const ext=[];
+  function add(tag,fn){if(!tag||typeof fn!=="function")return false;const i=ext.findIndex(x=>x[0]===tag);if(i>=0)ext[i]=[tag,fn];else ext.push([tag,fn]);return true}
+  function run(tag,fn,c){try{const r=fn(c);return (Array.isArray(r)?r:r?[r]:[]).filter(x=>x&&typeof x==="object").map(x=>Object.assign({k:tag},x))}catch(e){i4Err("provider "+tag,e);return []}}
+  function items(c){c=c||pkCh();const out=[];const B=c.boss?BOSS:NORMAL;B.forEach(([tag,fn])=>{if(tag==="ext")ext.forEach(([t,f])=>out.push(...run(t,f,c)));else out.push(...run(tag,fn,c))});return out}
+  function state(n){const s=i4SealPeek(n);return {tries:s.tries.length,best:s.best,wait:i4Wait(n),grey:!!s.grey&&!s.pass,pass:!!s.pass,testout:!!s.to,cracked:i4Crack(n),fails:i4Fails(n).length,guided:i4GuidedOk(n)}}
+  return {add,items,state,providers:()=>NORMAL.map(x=>x[0]).concat(ext.map(x=>x[0])),_ext:ext}})();
+window.GATE=GATE;
+
+// built-in providers (order of PLAN-I §3 i4 step 1: Lektionen, Wörter, Kann-Beschreibungen, Aufgabe, [others], Siegelprobe, Tage; then cracks)
+function i4pLesson(c){const x=i4Lessons(c.n);if(!x.L.length)return null;const open=x.L.find(l=>!l.ok);
+  return {k:"i4.lesson",ok:x.ok,part:x.L.reduce((a,l)=>a+Math.min(1,(Math.min(l.best,I4C.lessonPct)/I4C.lessonPct+Math.min(l.days,2)/2)/2),0)/x.L.length,
+    de:`Lektionen ab ${I4C.lessonPct} % an zwei Tagen: ${x.done} von ${x.L.length}`+(x.L.length?" · "+x.L.map(l=>`${l.t} ${l.best} % · ${Math.min(l.days,2)}/2 Tage`).join(" · "):""),en:"chapter lessons at 80 % on two different days",act:open?"pkLesson":"",id:open?open.id:"",n:x.done,of:x.L.length}}
+function i4pWords(c){const w=i4Words(c.n);if(!w.n)return null;
+  return {k:"i4.words",ok:w.ok,part:Math.min(1,(Math.min(1,w.intro/Math.max(1,w.needI))+Math.min(1,w.solid/Math.max(1,w.needS)))/2),
+    de:`Wörter des Kapitels: ${w.intro} von ${w.n} eingeführt (nötig ${w.needI}) · ${w.solid} sitzen mit Abstand ≥ ${I4C.wordsInt} Tage (nötig ${w.needS})`,en:"chapter words introduced and holding",act:"i4Words",id:String(c.n),n:Math.min(w.intro,w.solid),of:w.n}}
+function i4pCando(c){const x=i4Cando(c.n);if(!x||!x.n)return null;const s=i4SealPeek(c.n);const viaProbe=(s.pass||s.to)&&x.begun===x.n&&x.shown<x.n;const ok=x.shown===x.n||viaProbe||!!s.grey;
+  return {k:"i4.cando",ok,part:x.L.reduce((a,l)=>a+Math.min(1,l.st/2),0)/x.n,
+    de:`Kann-Beschreibungen: ${x.shown} von ${x.n} gezeigt`+(viaProbe?` · ${x.n-x.shown} durch die Siegelprobe`:"")+(x.ext?` · ${x.ext} braucht eine fremde Bewertung (Vorbehalt)`:"")+(s.grey&&x.shown<x.n?" · graues Siegel: das Reich verlangt sie noch":""),en:"can-dos of the chapter at least shown",act:"cdMap",id:"",n:x.shown,of:x.n}}
+function i4pTask(c){const t=i4Task(c.n);if(!t)return null;return {k:"i4.task",ok:t.ok,grey:t.grey&&!t.pass,de:`Aufgabe des Kapitels: ${t.ok?1:0} von 1 · ${t.pass?"bestanden":t.grey?"§ 6 · grau, mit Mephisto gemeinsam":"offen"}`,en:"the chapter task",act:"i4Read",id:String(c.n)}}
+function i4ProbeOpen(c){const x=i4Lessons(c.n),w=i4Words(c.n),t=i4Task(c.n),cd=i4Cando(c.n);return x.ok&&w.ok&&(!t||t.ok)&&(!cd||cd.begun===cd.n)}
+function i4pProbe(c){const s=i4SealPeek(c.n),ri=i4Ri(c),N=I4C.probeN[ri],cut=I4C.probeCut[ri];const ok=!!(s.pass||s.grey||s.to);const open=i4ProbeOpen(c),w=i4Wait(c.n),f=i4Fails(c.n).length;
+  const last=s.tries.filter(t=>t.k!=="r"&&t.k!=="x").slice(-1)[0];
+  const de=s.pass?`Siegelprobe bestanden am ${i4Fmt(s.pass)}${last&&last.ok?`: ${last.r} von ${last.N}`:""}${s.to?" · Sofort-Probe":""}`
+    :s.grey?`Siegelprobe: graues Siegel (Begleitete Probe am ${i4Fmt(s.grey)})`
+    :!open?`Siegelprobe (${N} Aufgaben, ${cut} richtig): öffnet sich, wenn Lektionen, Wörter${i4Task(c.n)?", Aufgabe":""} und Kann-Beschreibungen begonnen sind`
+    :w>0?`Siegelprobe: wieder möglich in ${w} Tag${w===1?"":"en"} · ${f} Versuch${f===1?"":"e"}${i4GuidedOk(c.n)?" · Begleitete Probe jetzt möglich":""}`
+    :`Siegelprobe: ${N} Aufgaben ohne Hilfe, ${cut} richtig${f?` · bisher ${f} Versuch${f===1?"":"e"}, bester ${Math.round(s.best)} %`:""}`;
+  return {k:"i4.probe",ok,grey:!!s.grey&&!s.pass,locked:!ok&&(!open||w>0),de,en:"seal trial — no hints, untimed",act:ok?"":(w>0&&i4GuidedOk(c.n)?"probeGuided":open&&w===0?"probeGo":""),id:String(c.n),n:last?last.r:0,of:N}}
+function i4pDays(c){const p=P(),s=i4SealPeek(c.n),need=I4C.minDays[i4Ri(c)];const st=p.chStart||todayKey();const dd=Math.max(0,i4D(st,todayKey()));const dry=i4LastSeal()===todayKey();
+  const ok=(dd>=need||!!s.to)&&!dry;return {k:"i4.days",ok,part:Math.min(1,dd/need),de:dry?"Das Siegel des letzten Kapitels trocknet bis morgen.":s.to&&dd<need?`Zeit in diesem Kapitel: erlassen (Sofort-Probe)`:`Zeit in diesem Kapitel: ${Math.min(dd,need)} von ${need} Tagen`,en:"days in this chapter (cramming does not seal)",n:Math.min(dd,need),of:need}}
+function i4pCrack(c){return i4Cracked().filter(k=>k!==c.n).slice(0,1).map(k=>({k:"i4.crack",ok:false,de:`Riss im Siegel von Kapitel ${k}: Reparatur (${I4C.repairN} Aufgaben, ${I4C.repairCut} richtig)`,en:"repair round before the next seal",act:"repairGo",id:String(k)}))}
+// boss chapters: entry quota, Die Probe, Das Duell
+function i4pRealm(c){const ri=i4Ri(c);const cp=i4CpPeek(I4_CP[I4R[ri]].id);if(cp.grey&&!cp.pass){const r0=typeof cdRealm==="function"?cdRealm(ri):{secured:0,need:0,total:0};return {k:"i4.realm",ok:true,grey:true,de:`Können in Reich ${I4R[ri]}: ${r0.secured} von ${r0.total} gesichert (nötig ${r0.need}) · graues Siegel: das holt die nächste Probe ein`,en:"realm can-dos (grey realm seal)",n:r0.secured,of:r0.need}}if(cp.to)return {k:"i4.realm",ok:true,de:`Reich ${I4R[ri]} im Sturm genommen (${i4Fmt(cp.to)})`,en:"realm tested out"};
+  const r=typeof cdRealm==="function"?cdRealm(ri):null;if(!r)return null;return {k:"i4.realm",ok:r.secured>=r.need,part:Math.min(1,r.secured/Math.max(1,r.need)),de:`Können in Reich ${I4R[ri]}: ${r.secured} von ${r.total} gesichert (nötig ${r.need})`,en:"can-dos of this realm secured",act:"cdMap",id:"",n:r.secured,of:r.need}}
+function i4pRealmProbe(c){const ri=i4Ri(c),D=I4_CP[I4R[ri]],cp=i4CpPeek(D.id);if(cp.grey&&!cp.pass&&!cp.written)return {k:"i4.probe",ok:true,grey:true,de:`Begleitete Realmprobe am ${i4Fmt(cp.grey)} · graues Siegel (1 von 1)`,en:"guided realm test (grey)",n:1,of:1};if(cp.to)return {k:"i4.probe",ok:true,de:"Die Probe: durch den Stufentest ersetzt",en:"written level test"};
+  i4T("auto"+ri,()=>i4RealmAuto(ri));const e=i4CpPeek(D.id);const w=i4RealmWait(ri);
+  const what=ri===3?"Goethe-B2-Simulation, jedes Modul ≥ 60 %":ri===4?"Station bv17 (Kommission, streng) ≥ 12/20, jede Dimension ≥ 40 %":`${D.min} Minuten, ${D.cut} % gesamt, jeder Teil ≥ ${D.secCut} %`;
+  return {k:"i4.probe",ok:!!e.written,de:e.written?`Die Probe bestanden am ${i4Fmt(e.written)} · ${e.wPct} %${ri===3&&!e.full?" · mit Vorbehalt (Schreiben und Sprechen nicht fremd bewertet)":""}`:w>0?`Die Probe: neuer Versuch in ${w} Tag${w===1?"":"en"}`:`Die Probe (${what})`,
+    en:"part 1 of the level test (written)",act:e.written||w>0?"":"lvTestGo",id:I4R[ri],locked:w>0}}
+function i4pDuel(c){const ri=i4Ri(c),D=I4_CP[I4R[ri]],cp=i4CpPeek(D.id);if(cp.grey&&!cp.pass&&!(S.bossWins||{})[D.boss])return {k:"boss",ok:true,grey:true,de:"Das Duell: aufgeschoben (graues Siegel) · 0 von 1 – es bleibt offen",en:"duel deferred",n:0,of:1};if(cp.to)return {k:"boss",ok:true,de:"Das Duell: entfällt (Reich im Sturm genommen)",en:"duel"};
+  const w=(S.bossWins||{})[D.boss];const r=typeof cdRealm==="function"?cdRealm(ri):{secured:0,need:0};const open=!!cp.written&&r.secured>=r.need;const B=typeof BOSSES!=="undefined"?BOSSES[D.boss]:null;
+  return {k:"boss",ok:!!w,de:`Das Duell: ${B?B.n:D.boss}${w?` · besiegt am ${i4Fmt(w.d||w.date||"")}`:open?"":" · öffnet sich nach der Probe und mit dem Können des Reichs"}`,en:B?B.mech||"duel":"duel",act:!w&&open?"i4Duel":"",id:D.boss,locked:!open}}
+const NORMAL=[["i4.lesson",i4pLesson],["i4.words",i4pWords],["i4.cando",i4pCando],["i4.task",i4pTask],["ext",null],["i4.probe",i4pProbe],["i4.days",i4pDays],["i4.crack",i4pCrack]];
+const BOSS=[["i4.realm",i4pRealm],["i4.probe",i4pRealmProbe],["ext",null],["i4.duel",i4pDuel],["i4.crack",i4pCrack]];
+
+// ---------------------------------------------------------------- pkGate / pkSealChapter (declared replacements)
+const I4_READY={};
+i4T("gateHook",()=>MOD.around("pkGate","i4",function(orig,c){c=c||pkCh();if(!i4Ok())return orig(c);
+  try{const items=GATE.items(c);let ready=items.filter(i=>!i.opt).every(i=>i.ok);try{if(P().done&&c.n===CHAPTERS.length)ready=false}catch(e){}   // c_story3's pact-done guard
+    if(ready&&!I4_READY[c.n]&&!(P().sealed||{})[c.n]){I4_READY[c.n]=1;setTimeout(()=>i4Emit("seal.ready",{n:c.n}),0)}return {items,ready,need:0}}
+  catch(e){i4Err("pkGate",e);return orig(c)}}));
+i4T("sealHook",()=>MOD.around("pkSealChapter","i4",function(orig){const p=P(),c=pkCh(),n=c.n,before=!!(p.sealed||{})[n];const r=orig.apply(this,arguments);
+  try{if(!before&&(p.sealed||{})[n]){const s=i4Seal(n);const t=todayKey();
+      if(s.grey&&!s.pass){try{if(typeof ECON!=="undefined"&&ECON&&typeof ECON.issue==="function")ECON.issue(1,{why:"grey",n});else{p.debt=Math.min(7,(+p.debt||0)+1);p.debtPeak=Math.max(p.debtPeak||0,p.debt)}}catch(e){i4Err("iou",e)}}
+      const Dg=c.boss&&I4_CP[c.r];const eg=Dg&&i4CpPeek(Dg.id);if(eg&&eg.grey&&!eg.pass&&!(S.bossWins||{})[Dg.boss]){try{if(typeof ECON!=="undefined"&&ECON&&typeof ECON.issue==="function")ECON.issue(1,{why:"grey",n});else{p.debt=Math.min(7,(+p.debt||0)+1);p.debtPeak=Math.max(p.debtPeak||0,p.debt)}}catch(e){i4Err("iou",e)}}
+      else if(c.boss){const rd=i4RealmDone();if(!rd[c.r])rd[c.r]=t;const D=I4_CP[c.r];if(D){const e=i4Cp(D.id);const w=(S.bossWins||{})[D.boss];if(w&&!e.duel)e.duel=String(w.d||w.date||t).slice(0,10);if(e.written&&(e.duel||e.to)&&!e.pass)e.pass=t}}
+      saveSoon()}}catch(e){i4Err("seal",e)}return r}));
+
+// ---------------------------------------------------------------- item pools
+const I4_ENG=/\b(the|who|whom|what|which|does|did|me|my|your|you|his|their|means?|correct|sentence|word|polite|formal|plural|past|present|perfect|tense|question|choose|not|it|we|they|is|are|was|to|of)\b/i;
+function i4Eng(s){return I4_ENG.test(String(s||"").replace(/[„“"«»][^„“"«»]*[„“"«»]/g,""))}
+function i4GramItem(id,e){if(!e||!e.type)return null;const q=e.q||(e.words||[]).join(" ");const L=i4Les(id);
+  return {key:`g:${id}:${e.type}:${evHash(q)}`,src:"g",ref:id,type:e.type,q:e.q,o:e.o,a:e.a,alt:e.alt,words:e.words,why:e.why||"",rule:(L&&L.title?L.title+": ":"")+(e.why||""),cr:e.type!=="mc",mc:e.type==="mc"?(e.o||[]).length:0,eng:i4Eng(e.q)||(e.type==="mc"&&(e.o||[]).some(i4Eng))}}
+function i4GramItems(ids,types){const out=[];(ids||[]).forEach(id=>{const L=i4Les(id);(L&&L.ex||[]).forEach(e=>{if(types&&!types.includes(e.type))return;const it=i4GramItem(id,e);if(it)out.push(it)})});return out}
+const I4_W="[A-Za-zÄÖÜäöüß]";
+function i4WordItem(cid){const c=card(cid);if(!c||c.kind==="satz"||!c.de||!c.en)return null;const de=String(c.de).split(" / ")[0];const bare=de.replace(/^(der|die|das|sich) /,"");
+  if(/\s/.test(bare))return null;const ex=String(c.ex||"");const re=new RegExp("(^|[^A-Za-zÄÖÜäöüß])"+bare.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"(?!"+I4_W+")");
+  if(ex&&re.test(ex))return {key:`v:${c.id}:prod`,src:"v",ref:c.id,type:"cloze",q:ex.replace(re,(m,p)=>p+"___"),a:bare,why:c.de+" – "+c.en,rule:c.de+" – "+c.en,cr:true,eng:false};
+  return {key:`v:${c.id}:prod`,src:"v",ref:c.id,type:"word",q:c.en,a:de,alt:String(c.de).split(" / ").slice(1),why:c.de,rule:c.de,cr:true,eng:true}}
+function i4GeItem(c){const m=/^(der|die|das) (\S+)$/.exec(c.de||"");if(!m)return null;return {key:"ge:"+c.id,src:"ge",ref:c.id,type:"mc",q:"___ "+m[2],o:["der","die","das"],a:["der","die","das"].indexOf(m[1]),why:c.de,rule:c.de,cr:false,mc:3}}
+function i4StItem(v){return v&&v[3]?{key:"st:"+v[0],src:"st",ref:v[0],type:"gap",q:`Präteritum: er/sie/es ___ (${v[0]})`,a:String(v[3]).split(/[ /,]/)[0],why:`${v[0]} – ${v[3]} – ${v[4]}`,rule:`${v[0]} – ${v[3]} – ${v[4]}`,cr:true}:null}
+function i4FromPool(q){const out=[];(typeof evPool==="function"?evPool(q):[]).forEach(it=>{try{
+    if(it.src==="g"&&it.ex){const x=i4GramItem(it.ref,it.ex);if(x)out.push(x)}
+    else if(it.src==="v"){const x=i4WordItem(it.ref);if(x)out.push(x)}
+    else if(it.src==="ge"){const c=card(it.ref);const x=c&&i4GeItem(c);if(x)out.push(x)}
+    else if(it.src==="st"){const v=(typeof STARK!=="undefined"?STARK:[]).find(s=>s[0]===it.ref);const x=i4StItem(v);if(x)out.push(x)}}catch(e){}});return out}
+function i4ChapterPool(n){const r=SYLLABUS[n-1]||{};const groups={les:i4GramItems(PROG.lessons(n)),rv:i4GramItems((r.rv||[]).filter(i4Les)),w:PROG.words(n).map(i4WordItem).filter(Boolean),cd:[]};
+  try{(typeof CANDO!=="undefined"?CANDO:[]).filter(c=>c.ch===n).forEach(cd=>cd.ev.forEach(q=>{if(["g","v","ge","st"].includes(q.src))groups.cd.push(...i4FromPool(q))}))}catch(e){}
+  const seen=new Set();for(const k of ["les","w","cd","rv"])groups[k]=groups[k].filter(it=>!seen.has(it.key)&&seen.add(it.key));return groups}
+function i4RightSet(){const s=new Set();(S.ev||[]).forEach(r=>{if(r[2]>=.999)s.add(r[1])});return s}
+// one form: about half from the chapter's lessons, a quarter words, a quarter can-do pools and review; ≥ ½ constructed, ≥ ⅓ never answered right,
+// never an item of the previous form while the pool allows; English-cued items and "easy" items only when nothing else is left
+function i4Form(n,N,o){o=o||{};const G=i4ChapterPool(n);const s=i4SealPeek(n);const prev=new Set(((s.tries.slice(-1)[0]||{}).h)||[]);const right=i4RightSet();
+  let easy=new Set();try{if(typeof itemReport==="function")easy=new Set(itemReport().easy||[])}catch(e){}
+  const all=[].concat(G.les,G.w,G.cd,G.rv);const big=all.length>2*N;
+  const rank=it=>(prev.has(evHash(it.key))?8:0)+(it.eng?4:0)+(big&&easy.has(it.key)?2:0)+(right.has(it.key)?1:0)+Math.random()*.9;
+  const sorted=L=>L.slice().sort((a,b)=>rank(a)-rank(b));
+  const out=[],used=new Set();const take=(L,k)=>{for(const it of L){if(k<=0||out.length>=N)break;if(used.has(it.key))continue;used.add(it.key);out.push(it);k--}};
+  if(o.fixed)o.fixed.forEach(it=>{used.add(it.key);out.push(it)});
+  const rest=N-out.length;take(sorted(G.les),Math.round(rest*.5));take(sorted(G.w),Math.round(rest*.25));take(sorted(G.cd.concat(G.rv)),N);take(sorted(all),N);
+  // constructed share
+  const needCr=Math.ceil(N/2);let cr=out.filter(i=>i.cr).length;if(cr<needCr){const spare=sorted(all.filter(i=>i.cr&&!used.has(i.key)));
+    for(let i=out.length-1;i>=0&&cr<needCr&&spare.length;i--)if(!out[i].cr&&!out[i].fixed){const x=spare.shift();used.add(x.key);out[i]=x;cr++}}
+  // fresh share
+  const needFr=Math.ceil(N/3);let fr=out.filter(i=>!right.has(i.key)).length;if(fr<needFr){const spare=sorted(all.filter(i=>!right.has(i.key)&&!used.has(i.key)));
+    for(let i=out.length-1;i>=0&&fr<needFr&&spare.length;i--)if(right.has(out[i].key)&&!out[i].fixed&&(!out[i].cr||spare[0].cr)){const x=spare.shift();used.add(x.key);out[i]=x;fr++}}
+  const fixedN=o.fixed?o.fixed.length:0;const head=out.slice(0,fixedN),tail=shuffle(out.slice(fixedN));return head.concat(tail).slice(0,N)}
+function i4FixedItems(n){const F=typeof PROBE_FIXED!=="undefined"&&PROBE_FIXED[n];if(!F)return null;
+  return F.items.map((x,i)=>Object.assign({key:`sp:${n}:f${i}`,src:"fx",fixed:true,cr:x.type!=="mc",rule:x.why},x))}
+
+// ---------------------------------------------------------------- answer checking (strict: no override, no near miss)
+function i4Check(it,got){try{if(it.type==="mc"||it.type==="rf"||it.type==="who")return +got===+it.a||(it.type==="rf"&&String(got)===String(it.a));
+  if(it.type==="word"){const q=gradeTyped(got,it.a);if(q&&q.q===2)return true;return (it.alt||[]).some(a=>{const r=gradeTyped(got,a);return r&&r.q===2})}
+  if(it.type==="q")return !!(it.re&&it.re.test(normT(got)));
+  const g=i4Norm(got);if(!g)return false;return [it.a].concat(it.alt||[]).some(x=>i4Norm(x)===g||(typeof v2Same==="function"&&v2Same(x,got)))}catch(e){return false}}
+
+// ---------------------------------------------------------------- the runner (chapter probe, retention, repair, realm test, test-out)
+// items may carry stim:{kind:"h"|"r",id} (a listening/reading stimulus shown above its questions) or type "ct" (C-test: gaps[]) or "write" (task)
+function i4Run(box,items,o){o=o||{};let i=0;const res=[];let KEYS0=null;const N=items.length;const plays={};
+  const who=it=>it.who==="M"?"Mephisto":it.who==="S"?"Dein Schatten":"";
+  const stimHTML=it=>{const s=it.stim;if(!s)return "";if(s.kind==="h"){const H=(HOEREN||[]).find(h=>h.id===s.id);const left=2-(plays[s.id]||0);return `<div class="card"><div class="eyebrow">Hören · ${esc(H?H.title:s.id)}</div><p class="muted ui">${esc(H&&H.situation||"")}</p><button class="sm i4-play" data-id="${esc(s.id)}" ${left<=0?"disabled":""}>${ic("play")} Anhören (noch ${left}×)</button></div>`}
+    if(s.kind==="r"){const T=(TEXTS||[]).find(t=>t.id===s.id);return `<div class="card"><div class="eyebrow">Lesen · ${esc(T?T.title:s.id)}</div>${(T&&T.paras||[]).map(p=>`<p>${esc(p.de)}</p>`).join("")}</div>`}return ""};
+  function draw(){if(i>=N)return finish();const it=items[i];const head=`<div class="row between"><div class="eyebrow">${esc(o.title||"Probe")} · ${i+1} / ${N}${it.part?" · "+esc(it.part):""}</div>${o.pause!==false?`<button class="sm ghost i4-pause">Pause</button>`:""}</div>`;
+    const say=it.say?`<div class="card">${it.who==="M"?pkSay(it.say):`<div class="eyebrow">${esc(who(it)||"")}</div><p class="pk-nar">${esc(it.say[0])}</p>`}</div>`:"";
+    const rule=o.guided&&it.rule?`<div class="verdict ok i4-rule"><b>Regel: </b>${esc(it.rule)}</div>`:"";
+    let body="";
+    if(it.type==="mc"||it.type==="who")body=`<div class="stem">${esc(it.q)}</div><div class="opts">${(it.o||[]).map((x,k)=>`<button data-k="${k}"><span class="k">${k+1}</span>${esc(x)}</button>`).join("")}</div>`;
+    else if(it.type==="rf")body=`<div class="stem">${esc(it.q)}</div><div class="opts"><button data-k="r"><span class="k">1</span>richtig</button><button data-k="f"><span class="k">2</span>falsch</button></div>`;
+    else if(it.type==="order"){body=`<div class="stem muted ui" style="font-size:.95rem">Tippen Sie die Wörter in der richtigen Reihenfolge.</div><div class="gr-line"></div><div class="gr-pool"></div><div class="row"><button class="sm ghost i4-undo">Zurück</button><button class="primary i4-ok" disabled>Weiter</button></div>`}
+    else if(it.type==="ct")body=`<div class="stem" style="line-height:2">${esc(it.html).replace(/\{(\d+)\}/g,(m,k)=>`<input class="ct-in" data-i="${k}" size="${(it.gaps[+k]||{ans:"xx"}).ans.length+1}" autocapitalize="off" autocomplete="off" spellcheck="false">`)}</div><button class="primary i4-ok">Abgeben</button>`;
+    else if(it.type==="write")body=`<div class="stem"><b>${esc(it.t.t)}</b></div><p>${it.t.task||""}</p><textarea class="gr-in i4-w" rows="7" spellcheck="false" placeholder="Ihr Text …"></textarea><div class="row"><span class="muted ui i4-wc">0 Wörter</span><button class="primary i4-ok">Abgeben</button></div>`;
+    else body=`<div class="stem">${it.type==="word"?`<span class="muted ui">Auf Deutsch:</span> `:""}${esc(it.q)}</div><div class="typed"><input class="gr-in i4-in" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${it.type==="gap"||it.type==="cloze"?"Lücke ausfüllen …":"Ihre Antwort …"}"><button class="primary i4-ok">Weiter</button></div>`;
+    box.innerHTML=`<div class="stack s i4-run" style="max-width:680px;margin:0 auto" data-i4="${esc(o.kind||"probe")}">${head}${stimHTML(it)}${say}<div class="q fade-in">${rule}${body}</div><div class="i4-fb"></div></div>`;
+    wire(it)}
+  function answer(it,got,ok,pts){res.push({it,got,ok,pts:pts==null?(ok?1:0):pts,max:it.pts||1});if(o.onAnswer)try{o.onAnswer(it,ok,got)}catch(e){}
+    if(o.guided&&it.type!=="ct"&&it.type!=="write"){const fb=box.querySelector(".i4-fb");fb.innerHTML=`<div class="verdict ${ok?"ok":"no"}"><b>${ok?"Richtig.":"Lösung: "}</b>${ok?"":esc(it.type==="mc"?(it.o||[])[it.a]:it.a)}</div><button class="primary i4-nx">Weiter</button>`;fb.querySelector(".i4-nx").onclick=()=>{i++;draw()};KEYS=ev=>{if(ev.key==="Enter"){ev.preventDefault();i++;draw()}};return}
+    i++;draw()}
+  function wire(it){KEYS=null;const q=s=>box.querySelector(s),qa=s=>[...box.querySelectorAll(s)];
+    const pz=q(".i4-pause");if(pz)pz.onclick=()=>{try{Focus.close()}catch(e){}if(o.onPause)o.onPause(i,res)};
+    const pl=q(".i4-play");if(pl)pl.onclick=()=>{const id=pl.dataset.id;if((plays[id]||0)>=2)return;plays[id]=(plays[id]||0)+1;const H=(HOEREN||[]).find(h=>h.id===id);if(H)(window.lxSay||say)((H.script||[]).map(l=>l.text).join(" "),{rate:.95});pl.innerHTML=`${ic("play")} Anhören (noch ${2-plays[id]}×)`;if(plays[id]>=2)pl.disabled=true};
+    if(it.type==="mc"||it.type==="who"||it.type==="rf"){const pick=k=>{if(box.dataset.lock)return;answer(it,k,i4Check(it,k))};qa("[data-k]").forEach(b=>b.onclick=()=>pick(it.type==="rf"?b.dataset.k:+b.dataset.k));
+      KEYS=ev=>{const k=+ev.key;if(it.type==="rf"){if(k===1)pick("r");if(k===2)pick("f")}else if(k>=1&&k<=(it.o||[]).length)pick(k-1)};return}
+    if(it.type==="order"){const toks=shuffle(it.words.map((w,k)=>({w,k})));let ch=[];const line=q(".gr-line"),pool=q(".gr-pool"),ok=q(".i4-ok");
+      const paint=()=>{line.innerHTML=ch.map(t=>`<button class="gr-tok on" data-k="${t.k}">${esc(t.w)}</button>`).join("")||'<span class="muted ui">…</span>';pool.innerHTML=toks.filter(t=>!ch.includes(t)).map(t=>`<button class="gr-tok" data-k="${t.k}">${esc(t.w)}</button>`).join("");ok.disabled=ch.length!==toks.length;
+        [...pool.querySelectorAll(".gr-tok")].forEach(b=>b.onclick=()=>{ch.push(toks.find(t=>t.k===+b.dataset.k));paint()});[...line.querySelectorAll(".gr-tok")].forEach(b=>b.onclick=()=>{ch=ch.filter(t=>t.k!==+b.dataset.k);paint()})};paint();
+      q(".i4-undo").onclick=()=>{ch.pop();paint()};ok.onclick=()=>{const got=ch.map(t=>t.w).join(" ");answer(it,got,i4Check(it,got))};return}
+    if(it.type==="ct"){q(".i4-ok").onclick=()=>{const v=qa(".ct-in").map(x=>x.value);const sc=typeof ctestScore==="function"?ctestScore(it.gaps,v):it.gaps.map((g,k)=>i4Norm(v[k])===i4Norm(g.ans)?1:0);
+      const r=sc.reduce((a,b)=>a+b,0);it.gaps.forEach((g,k)=>{try{evLog(`ct:${it.ref}:${g.i}`,sc[k],{f:(EVF.TEST||8)})}catch(e){}});answer(it,v.join("|"),r/Math.max(1,sc.length)>=.6,(it.pts||1)*r/Math.max(1,sc.length))};return}
+    if(it.type==="write"){const ta=q(".i4-w"),wc=q(".i4-wc");ta.oninput=()=>{wc.textContent=((ta.value.trim().match(/\S+/g)||[]).length)+" Wörter"};
+      q(".i4-ok").onclick=()=>{const txt=ta.value;let r={ok:false,words:0};try{const A=typeof teachAnalyze==="function"?teachAnalyze(txt,it.t):{F:[]};r=typeof wPass==="function"?wPass(txt,it.t,A,null,null):{ok:(txt.match(/\S+/g)||[]).length>=40,words:(txt.match(/\S+/g)||[]).length}}catch(e){}
+        const len=(txt.trim().match(/\S+/g)||[]).length;const pts=r.ok?(it.pts||1):len>=20?(it.pts||1)*.5:0;answer(it,txt.slice(0,2000),!!r.ok,pts)};return}
+    const inp=q(".i4-in");const go_=()=>{answer(it,inp.value,i4Check(it,inp.value))};q(".i4-ok").onclick=go_;inp.onkeydown=ev=>{if(ev.key==="Enter"){ev.preventDefault();go_()}};setTimeout(()=>{try{inp.focus()}catch(e){}},30)}
+  function finish(){KEYS=null;if(o.onDone)o.onDone(res)}
+  draw();return {res}}
+// the wounds: what was missed, with the rule
+function i4Wounds(res){const miss=res.filter(r=>!r.ok&&r.it.type!=="ct"&&r.it.type!=="write");if(!miss.length)return "";
+  return `<div class="card"><div class="eyebrow">Ihre Wunden</div><div class="list">${miss.map(r=>`<div class="li" style="cursor:default;align-items:flex-start"><span class="t"><b style="font-weight:400">${esc(r.it.q||(r.it.words||[]).join(" "))}</b><small class="ok">✓ ${esc(r.it.type==="mc"||r.it.type==="who"?(r.it.o||[])[r.it.a]:r.it.type==="rf"?(r.it.a==="r"?"richtig":"falsch"):r.it.a)}</small><small>${esc(r.it.why||"")}</small></span></div>`).join("")}</div></div>`}
+function i4Log(n,it,ok,guided){try{const f=(EVF.TEST||8)|(guided?(EVF.HELP||16):0);if(it.src!=="fx")evLog(it.key,ok?1:0,{f});evLog(`sp:${n}:${evHash(it.key)}`,ok?1:0,{f})}catch(e){}}
+
+// ---------------------------------------------------------------- chapter probe (unaided / guided / test-out)
+function i4ProbeForm(n,mode){const c=i4Ch(n),ri=i4Ri(c);const s=i4SealPeek(n);const N=mode==="testout"?I4C.testOutN:I4C.probeN[ri];
+  const fixed=mode==="unaided"&&!s.tries.some(t=>t.k==="p"||t.k==="g"||t.k==="t")?i4FixedItems(n):null;return i4Form(n,N,{fixed})}
+function i4ProbeCan(n,mode){const c=i4Ch(n);if(c.boss)return false;const s=i4SealPeek(n);if(s.pass||s.to)return false;
+  if(mode==="testout")return !s.grey&&i4Words(n).introOk&&!s.tries.some(t=>t.k==="t"&&t.d===todayKey());
+  if(mode==="guided")return !s.grey&&i4GuidedOk(n)&&i4ProbeOpen(c);
+  return !s.grey&&i4ProbeOpen(c)&&i4Wait(n)===0}
+// record a finished probe; returns {pass,grey,right,N}
+function i4ProbeRecord(n,mode,res,guess){const c=i4Ch(n),ri=i4Ri(c),s=i4Seal(n),t=todayKey();const N=res.length,right=res.filter(r=>r.ok).length;
+  const cut=mode==="testout"?I4C.testOutCut:mode==="guided"?Math.ceil(N/2):I4C.probeCut[ri];const pass=right>=cut&&(mode!=="testout"||i4Words(n).introOk);
+  s.tries.push({d:t,i:i4Uid(),k:mode==="testout"?"t":mode==="guided"?"g":"p",r:right,N,ok:pass,g:guess==null?undefined:guess,h:res.map(r=>evHash(r.it.key))});if(s.tries.length>30)s.tries=s.tries.slice(-30);
+  if(mode!=="guided")s.best=Math.max(s.best,Math.round(100*right/Math.max(1,N)));
+  if(pass){if(mode==="guided"){if(!s.grey)s.grey=t}else{if(!s.pass)s.pass=t;if(mode==="testout"&&!s.to)s.to=t}}
+  try{logEvent("exam",`${mode==="guided"?"Begleitete Probe":mode==="testout"?"Sofort-Probe":"Siegelprobe"} Kapitel ${n} · ${right}/${N}`,Math.round(100*right/Math.max(1,N)))}catch(e){}
+  i4Emit("probe.done",{n,right,N,pass:pass&&mode!=="guided",grey:pass&&mode==="guided",testout:mode==="testout"});saveSoon();return {pass,grey:pass&&mode==="guided",right,N,cut}}
+// open the probe of chapter n in a box (Focus sheet or the reader's task box); done(result) after the result screen
+function i4ProbeOpenIn(box,n,mode,done){n=+n;const c=i4Ch(n),ri=i4Ri(c);if(!i4ProbeCan(n,mode)){box.innerHTML=`<div class="card"><p>${esc(i4WhyNot(n,mode))}</p></div>`;if(done)done(null);return}
+  const items=i4ProbeForm(n,mode);const N=items.length;const guided=mode==="guided";
+  const start=guess=>i4Run(box,items,{title:guided?"Begleitete Probe":mode==="testout"?"Sofort zur Probe":"Siegelprobe",kind:"probe",guided,onAnswer:(it,ok)=>i4Log(n,it,ok,guided),
+    onDone:res=>{const r=i4ProbeRecord(n,mode,res,guess);let cal="";try{if(guess!=null&&typeof calRecord==="function"){const l=calRecord("seal",n,guess,r.right,N);if(Array.isArray(l))cal=pkSay(l);else if(l)cal=`<p class="muted">${esc(String(l))}</p>`}}catch(e){}
+      const w=i4Wait(n);const wTxt=w<=0?"heute noch einmal":w===1?"morgen":`in ${w} Tagen`;const fx=typeof PROBE_FIXED!=="undefined"&&PROBE_FIXED[n];
+      const fails=i4Fails(n).length;let tail="";
+      if(r.pass&&!r.grey)tail=(fx&&fx.close&&mode==="unaided"?`<div class="card">${fx.close[0]==="M"?pkSay([fx.close[1],fx.close[2]]):`<p class="pk-nar">${esc(fx.close[1])}</p><small class="muted ui">${esc(fx.close[2]||"")}</small>`}</div>`:"")+`<div class="card orn">${i4Say("sealPass",{r:r.right,n:N})}</div>`;
+      else if(r.grey)tail=`<div class="card orn">${i4Say("grey")}</div>`;
+      else tail=`<div class="card orn">${i4Say("sealFail",{r:r.right,n:N,w:wTxt})}</div>`+(fails===I4C.lessonBackAfter?`<div class="card">${i4Say("lessonBack",{t:(i4Lessons(n).L[0]||{}).t||""})}</div>`:"")+(i4GuidedOk(n)?`<div class="card"><p>Nach ${fails} Versuchen dürfen Sie die <b>Begleitete Probe</b> machen: Die Regel steht bei jeder Aufgabe, das Ergebnis ist ein graues Siegel und ein Schuldschein.</p><button class="sm" data-act="probeGuided" data-id="${n}">Begleitete Probe</button></div>`:"");
+      const ready=i4T("ready",()=>pkGate(c).ready,false);
+      box.innerHTML=`<div class="stack s" style="max-width:680px;margin:0 auto"><h2 style="text-align:center">${r.right} von ${N}${r.pass?" · bestanden":""}</h2>${tail}${cal}${i4Wounds(res)}${ready&&c.n===P().ch&&!(P().sealed||{})[c.n]&&!done?`<button class="go" data-act="pkSeal">☩ Siegel brechen</button>`:""}${done?`<button class="go i4-done">Weiter</button>`:""}</div>`;
+      const b=box.querySelector(".i4-done");if(b)b.onclick=()=>done(r)}});
+  // calibration first (I6 §4.11, i3's helpers)
+  const intro=`<div class="card">${i4Say(guided?"guided":mode==="testout"?"testOutCh":"probeIntro",{N})}</div>`;
+  if(typeof calHTML==="function"&&!guided){box.innerHTML=`<div class="stack s" style="max-width:680px;margin:0 auto">${intro}${calHTML(N)}<button class="go i4-start">Beginnen</button></div>`;box.querySelector(".i4-start").onclick=()=>{let g=null;try{g=calValue(box)}catch(e){}start(g)}}
+  else{box.innerHTML=`<div class="stack s" style="max-width:680px;margin:0 auto">${intro}<button class="go i4-start">Beginnen</button></div>`;box.querySelector(".i4-start").onclick=()=>start(null)}}
+function i4WhyNot(n,mode){const s=i4SealPeek(n),c=i4Ch(n);if(c.boss)return "In Bosskapiteln gibt es keine Siegelprobe, sondern die Stufenprüfung.";if(s.pass)return "Diese Siegelprobe ist schon bestanden.";
+  if(mode==="testout")return i4Words(n).introOk?"Die Sofort-Probe gibt es einmal am Tag.":"Für die Sofort-Probe müssen 90 % der Wörter des Kapitels eingeführt sein.";
+  if(mode==="guided")return "Die Begleitete Probe gibt es nach vier Versuchen ohne Hilfe.";
+  if(!i4ProbeOpen(c))return "Die Siegelprobe öffnet sich, wenn Lektionen, Wörter, Aufgabe und Kann-Beschreibungen so weit sind.";
+  const w=i4Wait(n);return w>0?`Die Siegelprobe ist wieder möglich in ${w} Tag${w===1?"":"en"}.`:"Die Siegelprobe ist gerade nicht möglich."}
+function i4Sheet(title,sub){return Focus.open({title,sub:sub||"",onClose:()=>{try{if(R.tab==="pakt"||R.tab==="home")rerender()}catch(e){}}})}
+ACT.probeGo=el=>{const n=+(el&&el.dataset&&el.dataset.id)||P().ch;i4ProbeOpenIn(i4Sheet("Siegelprobe",`Kapitel ${n} · ${i4Ch(n).t}`),n,"unaided")};
+ACT.probeGuided=el=>{const n=+(el&&el.dataset&&el.dataset.id)||P().ch;i4ProbeOpenIn(i4Sheet("Begleitete Probe",`Kapitel ${n} · graues Siegel`),n,"guided")};
+ACT.probeTestOut=el=>{const n=+(el&&el.dataset&&el.dataset.id)||P().ch;i4ProbeOpenIn(i4Sheet("Sofort zur Probe",`Kapitel ${n} · 16 Aufgaben, 15 richtig`),n,"testout")};
+ACT.gateOpen=()=>go("pakt");
+ACT.i4Read=el=>{try{pkRead(+(el&&el.dataset&&el.dataset.id)||P().ch)}catch(e){i4Err("read",e)}};
+ACT.i4Words=()=>{try{go("learn")}catch(e){}};
+ACT.i4Duel=el=>{const id=el&&el.dataset&&el.dataset.id;if(!id)return;try{if(typeof Duel!=="undefined"&&Duel&&typeof Duel.start==="function")return Duel.start(id,{real:true});if(typeof bossDuel==="function")return bossDuel(id)}catch(e){i4Err("duel",e)}};
+
+// ---------------------------------------------------------------- retention check (14 days after a seal; 7 after test-out) and repair
+function i4RetDue(){const se=P().sealed||{};const t=todayKey();let best=null;Object.keys(se).map(Number).forEach(n=>{const s=i4SealPeek(n);if(!s.pass||s.mig||s.ret||i4Ch(n).boss)return;
+  const d=i4D(s.pass,t);if(d>=(s.to?I4C.retDaysTestOut:I4C.retDays)&&(!best||s.pass<i4SealPeek(best).pass))best=n});return best}
+function i4RetItems(n,k){const G=i4ChapterPool(n);const L=G.les.filter(i=>i.cr&&!i.eng);return shuffle(L.length>=k?L:L.concat(G.les,G.w,G.cd)).filter((x,i,a)=>a.findIndex(y=>y.key===x.key)===i).slice(0,k)}
+function i4RetRecord(n,res){const s=i4Seal(n),t=todayKey();const r=res.filter(x=>x.ok).length;s.ret=t;s.tries.push({d:t,i:i4Uid(),k:"r",r,N:res.length,ok:r>=I4C.retCut});
+  if(r<I4C.retCut){s.crk=t;i4Emit("seal.cracked",{n})}saveSoon();return r}
+function i4RepRecord(n,res){const s=i4Seal(n),t=todayKey();const r=res.filter(x=>x.ok).length;const ok=r>=I4C.repairCut;s.tries.push({d:t,i:i4Uid(),k:"x",r,N:res.length,ok});if(ok)s.rep=t;saveSoon();return ok}
+ACT.retGo=el=>{const n=+(el&&el.dataset&&el.dataset.id)||i4RetDue();if(!n)return toast("Keine Siegelprüfung fällig.");const box=i4Sheet("Hält das Siegel?",`Kapitel ${n} · drei Fragen`);const s=i4SealPeek(n);
+  i4Run(box,i4RetItems(n,I4C.retN),{title:"Siegelprüfung",kind:"ret",pause:false,onAnswer:(it,ok)=>i4Log(n,it,ok,false),onDone:res=>{const r=i4RetRecord(n,res);
+    box.innerHTML=`<div class="stack s" style="max-width:680px;margin:0 auto"><h2 style="text-align:center">${r} von ${res.length}</h2><div class="card orn">${r<I4C.retCut?i4Say("crack",{n,r}):i4Say("retOk",{t:s.to?"einer Woche":"zwei Wochen"})}</div>${r<I4C.retCut?`<button class="go" data-act="repairGo" data-id="${n}">Reparatur (${I4C.repairN} Aufgaben)</button>`:""}${i4Wounds(res)}</div>`}})};
+ACT.repairGo=el=>{const n=+(el&&el.dataset&&el.dataset.id)||i4Cracked()[0];if(!n)return toast("Kein Siegel hat einen Riss.");const box=i4Sheet("Reparatur",`Kapitel ${n} · ${I4C.repairN} Aufgaben, ${I4C.repairCut} richtig`);
+  i4Run(box,i4RetItems(n,I4C.repairN),{title:"Reparatur",kind:"repair",pause:false,onAnswer:(it,ok)=>i4Log(n,it,ok,false),onDone:res=>{const ok=i4RepRecord(n,res);const r=res.filter(x=>x.ok).length;
+    box.innerHTML=`<div class="stack s" style="max-width:680px;margin:0 auto"><h2 style="text-align:center">${r} von ${res.length}</h2><div class="card orn">${ok?i4Say("repaired"):`<p>Noch nicht. ${I4C.repairCut} richtig sind nötig – Sie dürfen sofort noch einmal.</p>`}</div>${ok?"":`<button class="go" data-act="repairGo" data-id="${n}">Noch einmal</button>`}${i4Wounds(res)}</div>`}})};
+
+// ---------------------------------------------------------------- realm level test, part 1 "Die Probe" (I6 §4.5)
+function i4RealmWait(ri){const D=I4_CP[I4R[ri]];const e=i4CpPeek(D.id);if(e.written)return 0;const f=e.tries.filter(t=>!t.ok&&!t.to);if(!f.length)return 0;return Math.max(0,I4C.realmRetake[ri]-i4D(f[f.length-1].d,todayKey()))}
+// ---- the realm proof's fallback (owner's rule: nobody is ever stuck): failed Probe → Wundversorgung des Reichs (repair loop on the weakest can-dos,
+//      10 items, 7 right) → Begleitete Realmprobe (rule on every item, ≥ 50 %) → grey realm seal + one IOU. Available as soon as the repair loop is
+//      passed after a failure, and at the latest 3 days after the first failure. Realms IV/V (results read from l9/i6): after 7 days in the boss chapter.
+function i4RealmFailed(ri){const e=i4CpPeek(I4_CP[I4R[ri]].id);return e.tries.filter(t=>!t.ok&&!t.to&&t.k!=="g"&&t.k!=="x")}
+function i4RealmDaysIn(){try{return Math.max(0,i4D(P().chStart||todayKey(),todayKey()))}catch(e){return 0}}
+// stuck = a failed Probe, or (Probe passed but quota still missing) 10 days into the boss chapter, or (realms IV/V, read from l9/i6) 7 days in
+function i4RealmQuotaOk(ri){try{const r=cdRealm(ri);return r.secured>=r.need}catch(e){return true}}
+function i4RealmStuckSince(ri){const f=i4RealmFailed(ri);if(f.length)return f[0].d;const e=i4CpPeek(I4_CP[I4R[ri]].id);const k=e.written?10:ri>=3?7:0;
+  if(k&&!(e.written&&i4RealmQuotaOk(ri))&&i4RealmDaysIn()>=k)return addDays(P().chStart||todayKey(),k);return ""}
+function i4RealmRepCan(ri){const e=i4CpPeek(I4_CP[I4R[ri]].id);return !e.pass&&!(e.written&&i4RealmQuotaOk(ri))&&!e.grey&&!e.to&&!!i4RealmStuckSince(ri)&&i4Ch(8*ri+8).n===P().ch}
+function i4RealmGuidedCan(ri){if(!i4RealmRepCan(ri))return false;const e=i4CpPeek(I4_CP[I4R[ri]].id);const since=i4RealmStuckSince(ri);return (e.rep&&e.rep>=since)||i4D(since,todayKey())>=3}
+function i4RealmGuidedWait(ri){if(!i4RealmRepCan(ri)||i4RealmGuidedCan(ri))return 0;return Math.max(0,3-i4D(i4RealmStuckSince(ri),todayKey()))}
+function i4RealmRepItems(ri,k){const A=typeof cdAll==="function"?cdAll():{};const weak=(typeof CANDO!=="undefined"?CANDO:[]).filter(c=>c.lv===ri+1&&(A[c.id]||{}).st<3).sort((a,b)=>((A[a.id]||{}).pct||0)-((A[b.id]||{}).pct||0));
+  const out=[],seen=new Set();const add=L=>shuffle(L).forEach(it=>{if(out.length<k&&!seen.has(it.key)&&!it.eng){seen.add(it.key);out.push(it)}});
+  weak.slice(0,4).forEach(cd=>add(cd.ev.filter(q=>["g","v","ge","st"].includes(q.src)).flatMap(q=>i4FromPool(q)).slice(0,Math.ceil(k/3))));
+  add(i4GramItems(i4RealmLessons(ri)).filter(i=>i.cr));add(i4GramItems(i4RealmLessons(ri)));return out.slice(0,k)}
+function i4RealmRepRecord(ri,res){const e=i4Cp(I4_CP[I4R[ri]].id),t=todayKey();const r=res.filter(x=>x.ok).length;const ok=r>=Math.ceil(.7*res.length);e.tries.push({d:t,i:i4Uid(),k:"x",pct:Math.round(100*r/Math.max(1,res.length)),ok});if(ok&&(!e.rep||e.rep<t))e.rep=t;saveSoon();return ok}
+function i4RealmGuidedForm(ri){if(ri<=2){const F=i4LvForm(ri);if(F&&F.items.length)return F}
+  const items=i4RealmRepItems(ri,16).map(x=>Object.assign(x,{part:"Begleitet",w:1}));return {D:I4_CP[I4R[ri]],items,parts:[{name:"Begleitet",pts:items.length,n:items.length}]}}
+function i4RealmGuidedRecord(ri,F,res){const e=i4Cp(F.D.id),t=todayKey();const sc=i4LvScore(F,res);const ok=sc.pct>=50;e.tries.push({d:t,i:i4Uid(),k:"g",pct:sc.pct,ok});if(ok&&!e.grey)e.grey=t;
+  i4Emit("realm.proof",{realm:I4R[ri],part:"probe",pass:false,grey:ok});saveSoon();return Object.assign({grey:ok},sc)}
+ACT.lvRepairGo=el=>{const r=(el&&el.dataset&&el.dataset.id)||pkCh().r;const ri=Math.max(0,I4R.indexOf(r));if(!i4RealmRepCan(ri))return toast("Die Wundversorgung gibt es nach einer gescheiterten Probe.");
+  const box=i4Sheet("Wundversorgung des Reichs",`Reich ${r} · 10 Aufgaben zu Ihren schwächsten Kann-Beschreibungen · 7 richtig`);
+  i4Run(box,i4RealmRepItems(ri,10),{title:"Wundversorgung",kind:"lvrep",pause:false,guided:true,onAnswer:(it,ok)=>{try{evLog(it.key,ok?1:0,{f:(EVF.TEST||8)})}catch(e){}},onDone:res=>{const ok=i4RealmRepRecord(ri,res);const n=res.filter(x=>x.ok).length;
+    box.innerHTML=`<div class="stack s" style="max-width:680px;margin:0 auto"><h2 style="text-align:center">${n} von ${res.length}</h2><div class="card orn">${ok?i4Say("realmRepair"):`<p>Noch nicht – 7 richtig sind nötig. Sie dürfen sofort noch einmal.</p>`}</div>${ok?`<button class="go" data-act="lvGuidedGo" data-id="${r}">Begleitete Realmprobe</button>`:`<button class="go" data-act="lvRepairGo" data-id="${r}">Noch einmal</button>`}${i4Wounds(res)}</div>`}})};
+ACT.lvGuidedGo=el=>{const r=(el&&el.dataset&&el.dataset.id)||pkCh().r;const ri=Math.max(0,I4R.indexOf(r));if(!i4RealmGuidedCan(ri))return toast("Die Begleitete Realmprobe öffnet sich nach der Wundversorgung, spätestens drei Tage nach der ersten Probe.",4500);
+  const F=i4RealmGuidedForm(ri);const box=i4Sheet("Begleitete Realmprobe",`Reich ${r} · Regel bei jeder Aufgabe · 50 % · graues Siegel`);
+  box.innerHTML=`<div class="stack s" style="max-width:680px;margin:0 auto"><div class="card">${i4Say("realmGuided")}</div><button class="go i4-start">Beginnen</button></div>`;
+  box.querySelector(".i4-start").onclick=()=>i4Run(box,F.items,{title:"Begleitete Realmprobe",kind:"lvg",pause:false,guided:true,onAnswer:(it,ok)=>{try{if(it.type!=="ct"&&it.type!=="write")evLog(it.key,ok?1:0,{f:(EVF.TEST||8)|(EVF.HELP||16)})}catch(e){}},
+    onDone:res=>{const r2=i4RealmGuidedRecord(ri,F,res);box.innerHTML=`<div class="stack s" style="max-width:680px;margin:0 auto"><h2 style="text-align:center">${r2.pct} %${r2.grey?" · graues Siegel":""}</h2><div class="card orn">${r2.grey?i4Say("grey"):`<p>Noch nicht. Die Hälfte genügt – mit der Regel vor Augen. Sie dürfen sofort noch einmal.</p>`}</div>${r2.grey&&i4T("rdy",()=>pkGate(pkCh()).ready,false)?`<button class="go" data-act="pkSeal">☩ Siegel brechen</button>`:""}${i4Wounds(res)}</div>`}})};
+function i4RealmLessons(ri){try{return SYLLABUS.filter(r=>PROG.realm(r.n)===ri).flatMap(r=>PROG.lessons(r.n))}catch(e){return []}}
+function i4TextFresh(L){const seen=S.evSeen||{};const used=k=>Object.keys(seen).some(x=>x.indexOf(k)===0);return L.slice().sort((a,b)=>(used(a.kind+":"+a.id+":")?1:0)-(used(b.kind+":"+b.id+":")?1:0)||Math.random()-.5)}
+function i4LvForm(ri,o){o=o||{};const D=I4_CP[I4R[ri]];if(!D||!D.parts)return null;const items=[];const parts=[];const tts=typeof TTS_OK==="undefined"||!!TTS_OK;const rl=new Set(i4RealmLessons(ri));
+  D.parts.forEach(([name,pts,srcs])=>{const P0=[];
+    srcs.forEach(([src,sel,k])=>{try{
+      if(src==="h"){if(!tts||o.noAudio)return;const T=i4TextFresh((HOEREN||[]).filter(h=>h.level===sel.lv).map(h=>({kind:"h",id:h.id,h}))).slice(0,sel.texts);
+        T.forEach(x=>(x.h.questions||[]).forEach((q,qi)=>P0.push({key:`h:${x.id}:${qi}`,src:"h",ref:x.id,type:q.kind==="rf"?"rf":q.kind==="who"?"who":"mc",q:q.q,o:q.opts,a:q.answer,stim:{kind:"h",id:x.id}})));P0.splice(k)}
+      else if(src==="r"){const T=i4TextFresh((TEXTS||[]).filter(t=>t.level===sel.lv&&(t.questions||[]).length).map(t=>({kind:"r",id:t.id,t}))).slice(0,sel.texts);
+        T.forEach(x=>(x.t.questions||[]).slice(0,Math.ceil(k/sel.texts)).forEach((q,qi)=>P0.push({key:`r:${x.id}:${qi}`,src:"r",ref:x.id,type:"mc",q:q.q,o:q.o,a:q.a,why:q.why,stim:{kind:"r",id:x.id}})))}
+      else if(src==="ct"){const T=i4TextFresh((TEXTS||[]).filter(t=>t.level===sel.lv).map(t=>({kind:"ct",id:t.id,t})))[0];if(!T||typeof ctest!=="function")return;
+        const c=ctest(T.t.paras.map(p=>p.de).join(" "),2*k);P0.push({key:`ct:${T.id}`,src:"ct",ref:T.id,type:"ct",html:c.html,gaps:c.gaps,pts:k,q:"C-Test"})}
+      else if(src==="g"){let ids=(sel.ids||[]).filter(id=>rl.has(id)||!rl.size);if(!ids.length)ids=[...rl];const L=shuffle(i4GramItems(ids,sel.types).filter(i=>i.cr&&!i.eng));P0.push(...(L.length>=k?L:L.concat(shuffle(i4GramItems([...rl]).filter(i=>i.cr)))).slice(0,k))}
+      else if(src==="ge"){P0.push(...shuffle(allCards().filter(c=>sel.lv.includes(c.level)&&/^(der|die|das) \S+$/.test(c.de||""))).slice(0,k).map(i4GeItem).filter(Boolean))}
+      else if(src==="st"){P0.push(...shuffle((typeof STARK!=="undefined"?STARK:[]).filter(v=>sel.lv.includes(v[5]))).slice(0,k).map(i4StItem).filter(Boolean))}
+      else if(src==="pl"){P0.push(...shuffle(i4GramItems([...rl]).filter(i=>i.cr&&!i.eng)).slice(0,k))}   // plural forms are not computable before P1's pluralOf: grammar items of the realm instead
+      else if(src==="w"){const L=(TASKS||[]).filter(t=>sel.pick.includes(t.t));const t=L.length?L[Math.floor(Math.random()*L.length)]:null;if(t)P0.push({key:`w:${t.t}`,src:"w",ref:t.t,type:"write",t,pts})}}catch(e){i4Err("lvForm "+src,e)}});
+    if(!P0.length){parts.push({name,pts,n:0,skip:true});return}
+    const unit=pts/P0.reduce((a,x)=>a+(x.pts||1),0);P0.forEach(x=>{x.part=name;x.w=unit;items.push(x)});parts.push({name,pts,n:P0.length})});
+  return {D,items,parts}}
+function i4LvScore(F,res){const by={};F.parts.forEach(p=>by[p.name]={name:p.name,pts:p.pts,got:0,max:0,skip:!!p.skip});
+  res.forEach(r=>{const b=by[r.it.part];if(!b)return;const w=r.it.w||1;b.got+=w*r.pts;b.max+=w*(r.max||1)});
+  const parts=Object.values(by).map(b=>Object.assign(b,{pct:b.max?Math.round(100*b.got/b.max):null}));const m=parts.filter(p=>p.max);const tot=m.reduce((a,p)=>a+p.max,0);
+  const pct=tot?Math.round(100*m.reduce((a,p)=>a+p.got,0)/tot):0;return {pct,parts}}
+function i4LvRecord(ri,F,res,mode){const D=F.D,e=i4Cp(D.id),t=todayKey();const sc=i4LvScore(F,res);const to=mode==="testout";const cut=to?I4C.realmTestOutPct:D.cut;
+  const pass=sc.pct>=cut&&sc.parts.every(p=>p.pct==null||p.pct>=D.secCut);e.tries.push({d:t,i:i4Uid(),pct:sc.pct,ok:pass,to:to?1:undefined,parts:sc.parts.map(p=>[p.name,p.pct])});if(e.tries.length>20)e.tries=e.tries.slice(-20);
+  if(pass){if(!e.written)e.written=t;e.wPct=Math.max(e.wPct,sc.pct);if(to)i4StormRealm(ri)}
+  i4Emit("realm.proof",{realm:I4R[ri],part:"probe",pass,testout:to});try{logEvent("exam",`${to?"Stufentest":"Die Probe"} Reich ${I4R[ri]} · ${sc.pct} %`,sc.pct)}catch(e){}saveSoon();return Object.assign({pass,cut},sc)}
+// realm IV (Goethe B2 simulation, l9) and V (station bv17, i6): read their results; nothing to run here
+function i4RealmAuto(ri){const D=I4_CP[I4R[ri]];const e=i4CpPeek(D.id);if(e.written)return;const t=todayKey();
+  if(ri===3){const since=addDays(t,-(D.within||14));const rows=(S.examRes||[]).filter(r=>r&&(r.ex==="goethe"||/^g/.test(r.id||""))&&(r.date||"")>=since&&(r.sim||r.mock));if(!rows.length)return;
+    const mods={};rows.forEach(r=>{const m=r.m;if(!m)return;(mods[m]=mods[m]||[]).push(r)});const pct=m=>{const L=mods[m]||[];return L.length?Math.round(L.reduce((a,r)=>a+(+r.pct||0),0)/L.length):null};
+    const all=D.mods.map(pct);if(all.some(x=>x==null||x<D.secCut))return;const rated=["Schreiben","Sprechen"].every(m=>(mods[m]||[]).some(r=>r.by&&r.by!=="self"||r.rated));
+    const E=i4Cp(D.id);E.written=t;E.wPct=Math.round(all.reduce((a,b)=>a+b,0)/all.length);if(rated)E.full=t;E.tries.push({d:t,i:i4Uid(),pct:E.wPct,ok:true,parts:D.mods.map((m,i)=>[m,all[i]])});
+    i4Emit("realm.proof",{realm:"IV",part:"probe",pass:true});saveSoon();return}
+  if(ri===4){let ok=false,pct=0;try{const b=(P().bv||{})[D.station];if(b&&(b.strict||b.mode==="strict"||b.strict===undefined)&&+b.tot>=D.stationMin){const dims=b.dims&&typeof b.dims==="object"?Object.values(b.dims).map(Number):[];
+        ok=dims.every(v=>(v<=1?v:v/5)>=D.dimMin);pct=Math.round(100*b.tot/20)}}catch(e){}
+    if(!ok&&typeof BVE==="undefined"){const f=(S.fsp||[]).filter(x=>(x.score||0)>=3.5);if(f.length){ok=true;pct=Math.round(20*Math.max(...f.map(x=>x.score)))}}   // without i6: the 13.0 FSP rule as stand-in
+    if(ok){const E=i4Cp(D.id);E.written=t;E.wPct=pct;E.tries.push({d:t,i:i4Uid(),pct,ok:true});i4Emit("realm.proof",{realm:"V",part:"probe",pass:true});saveSoon()}}}
+function lvTest(realm,mode){const ri=typeof realm==="number"?realm:Math.max(0,I4R.indexOf(String(realm)));const D=I4_CP[I4R[ri]];mode=mode||"probe";
+  if(ri===3){try{if(typeof examSim==="function")return examSim({real:true});go("practice")}catch(e){}return toast("Goethe-B2-Simulation: alle vier Module unter Zeit, jedes ≥ 60 %.",4500)}
+  if(ri===4){try{if(typeof bvOpen==="function")return bvOpen(D.station,{strict:true});if(ACT.fsp)return ACT.fsp({dataset:{}})}catch(e){}return}
+  const box=i4Sheet(mode==="testout"?`Stufentest Reich ${I4R[ri]}`:`Die Probe · Reich ${I4R[ri]}`,`${I4LV[ri]} · ${D.min} Minuten · ${mode==="testout"?I4C.realmTestOutPct:D.cut} %, jeder Teil ≥ ${D.secCut} %`);
+  const F=i4LvForm(ri);if(!F||!F.items.length){box.innerHTML="<p>Für diese Probe fehlt Material.</p>";return}
+  box.innerHTML=`<div class="stack s" style="max-width:680px;margin:0 auto"><div class="card">${mode==="testout"?i4Say("testOut"):`<p>Die schriftliche Probe des Reichs: ${F.parts.map(p=>`${p.name}${p.skip?" (nicht gemessen)":` (${p.pts} Punkte)`}`).join(" · ")}. Keine Hilfe, kein Englisch.</p>`}</div>
+    ${F.parts.some(p=>p.skip&&p.name==="Hören")?`<p class="muted ui">Keine deutsche Stimme auf diesem Gerät: Hören wird nicht gemessen und nicht gewertet.</p>`:""}<button class="go i4-start">Beginnen</button></div>`;
+  box.querySelector(".i4-start").onclick=()=>i4Run(box,F.items,{title:mode==="testout"?"Stufentest":"Die Probe",kind:"lv",pause:false,onAnswer:(it,ok)=>{try{if(it.type!=="ct"&&it.type!=="write")evLog(it.key,ok?1:0,{f:(EVF.TEST||8)})}catch(e){}},
+    onDone:res=>{const r=i4LvRecord(ri,F,res,mode);const B=typeof BOSSES!=="undefined"&&BOSSES[D.boss];
+      box.innerHTML=`<div class="stack s" style="max-width:680px;margin:0 auto"><h2 style="text-align:center">${r.pct} %${r.pass?" · bestanden":""}</h2><div class="card"><div class="list">${r.parts.map(p=>`<div class="li" style="cursor:default"><span class="t">${esc(p.name)}</span><span class="pill ${p.pct==null?"":p.pct>=D.secCut?"good":"bad"}">${p.pct==null?"nicht gemessen":p.pct+" %"}</span></div>`).join("")}</div></div>
+        <div class="card orn">${mode==="testout"&&r.pass?i4Say("storm",{r:I4R[ri]}):r.pass?i4Say("realmPass",{p:r.pct,b:B?B.n:"das Duell"}):i4Say("realmFail",{p:r.pct,w:mode==="testout"?I4C.realmTestOutEvery:I4C.realmRetake[ri]})}</div>${i4Wounds(res)}</div>`}})}
+ACT.lvTestGo=el=>lvTest((el&&el.dataset&&el.dataset.id)||pkCh().r,"probe");
+ACT.lvTestOut=el=>{const r=(el&&el.dataset&&el.dataset.id)||"I";if(!i4StormCan(Math.max(0,I4R.indexOf(r))))return toast("Der Stufentest ist jetzt nicht möglich (ein Versuch in sieben Tagen; frühere Reiche zuerst).",4000);lvTest(r,"testout")};
+// realm test-out: placed above the realm; earlier realms done; one attempt in 7 days
+function i4RealmFinished(ri){const se=P().sealed||{};const bossN=8*(ri+1);return !!se[bossN]||!!i4RealmDone()[I4R[ri]]}
+function i4StormCan(ri){if(ri>2)return false;for(let k=0;k<ri;k++)if(!i4RealmFinished(k))return false;if(i4RealmFinished(ri))return false;
+  const e=i4CpPeek(I4_CP[I4R[ri]].id);const last=e.tries.filter(t=>t.to).slice(-1)[0];return !last||i4D(last.d,todayKey())>=I4C.realmTestOutEvery}
+function i4StormRealm(ri){const p=P(),t=todayKey();const D=I4_CP[I4R[ri]],e=i4Cp(D.id);if(!e.to)e.to=t;if(!e.pass)e.pass=t;const rd=i4RealmDone();if(!rd[I4R[ri]])rd[I4R[ri]]=t;
+  for(let n=8*ri+1;n<=8*ri+8;n++){if(!p.sealed[n]){p.sealed[n]=t;if(Array.isArray(p.faust)&&!p.faust.includes(n))p.faust.push(n)}const s=i4Seal(n);if(!s.pass&&!i4Ch(n).boss){s.pass=t;s.to=t}}
+  S.cdTest=S.cdTest&&typeof S.cdTest==="object"?S.cdTest:{};(typeof CANDO!=="undefined"?CANDO:[]).filter(c=>c.lv===ri+1).forEach(c=>{S.cdTest[c.id]={d:t,by:"cp"}});
+  if(p.ch<=8*ri+8){p.ch=Math.min(CHAPTERS.length,8*ri+9);p.chStart=t;p.chSess=0}try{CD_CACHE=null}catch(x){}saveSoon()}
+
+// ---------------------------------------------------------------- placement (I6 §4.9): adaptive, from the existing banks
+const I4_PLP=d=>d<=-1?.93:d===0?.8:d===1?.45:d===2?.2:.08;
+function i4plNew(prior){return {post:prior?prior.slice():[1/6,1/6,1/6,1/6,1/6,1/6],n:0,log:[]}}
+function i4plUpdate(st,lv,ok,guess){const g=guess||0;const post=st.post.map((p,l)=>{const pc=g+(1-g)*I4_PLP(lv-l);return p*(ok?pc:1-pc)});const s=post.reduce((a,b)=>a+b,0)||1;st.post=post.map(x=>x/s);st.n++;st.log.push([lv,ok?1:0]);return st}
+function i4plMean(st){return st.post.reduce((a,p,i)=>a+p*i,0)}
+function i4plNext(st){return Math.max(1,Math.min(5,Math.round(i4plMean(st)+.5)))}
+function i4plDone(st,min,max){return st.n>=max||(st.n>=min&&Math.max(...st.post)>=.85)}
+function i4plResult(st){const lv=st.post.indexOf(Math.max(...st.post));let acc=0,lo=lv,hi=lv;st.post.map((p,i)=>[p,i]).sort((a,b)=>b[0]-a[0]).some(([p,i])=>{acc+=p;lo=Math.min(lo,i);hi=Math.max(hi,i);return acc>=.9});return {lv,lo,hi,p:Math.round(100*st.post[lv])}}
+function i4plWord(lv,typed){const L=allCards().filter(c=>c.level===I4LV[lv-1]&&c.kind!=="satz"&&c.en&&c.de&&!/\s.*\s/.test(c.de));if(!L.length)return null;const c=L[Math.floor(Math.random()*L.length)];
+  if(typed)return {key:`v:${c.id}:prod`,type:"word",q:c.en,a:String(c.de).split(" / ")[0],alt:String(c.de).split(" / ").slice(1),lv,guess:0};
+  const ds=shuffle(L.filter(x=>x.id!==c.id&&x.en!==c.en)).slice(0,2).map(x=>x.en);const o=shuffle([c.en].concat(ds));return {key:`v:${c.id}:rec`,type:"mc",q:c.de,o,a:o.indexOf(c.en),lv,guess:1/3}}
+function i4plStruct(lv){const ids=(I4_PL.B[lv]||[]).filter(i4Les);const L=i4GramItems(ids).filter(i=>i.cr);if(!L.length)return null;return Object.assign(L[Math.floor(Math.random()*L.length)],{lv,guess:0})}
+// the runner: self-estimate → A words (≤ 14) → B structures (≤ 12) → C two C-tests → D two listening texts (if a voice) → result
+function plRun(box,o){o=o||{};const st={A:i4plNew(),B:null,C:null,D:null};let self=null;const log=[];const tts=typeof TTS_OK==="undefined"||!!TTS_OK;
+  const step=(title,it,cb)=>{if(!it)return cb(null);i4Run(box,[it],{title,kind:"place",pause:false,onDone:res=>cb(res[0])})};
+  const blockA=()=>{let k=0;const nx=()=>{if(i4plDone(st.A,8,14))return blockB();k++;const lv=i4plNext(st.A);step("Einstufung · Wörter",i4plWord(lv,k%2===0),r=>{if(r){i4plUpdate(st.A,lv,r.ok,r.it.guess);log.push(["A",lv,r.ok?1:0])}else st.A.n++;nx()})};nx()};
+  const blockB=()=>{st.B=i4plNew(st.A.post);let k=0;const nx=()=>{if(k>=12||(k>=8&&Math.max(...st.B.post)>=.85))return blockC();k++;const lv=i4plNext(st.B);step("Einstufung · Strukturen",i4plStruct(lv),r=>{if(r){i4plUpdate(st.B,lv,r.ok,0);log.push(["B",lv,r.ok?1:0])}nx()})};nx()};
+  const ctItem=lv=>{const id=(I4_PL.C[lv]||[]).find(x=>(TEXTS||[]).some(t=>t.id===x));const T=(TEXTS||[]).find(t=>t.id===id);if(!T||typeof ctest!=="function")return null;const c=ctest(T.paras.map(p=>p.de).join(" "),20);return {key:`ct:${id}`,src:"ct",ref:id,type:"ct",html:c.html,gaps:c.gaps,pts:1,lv,q:"C-Test"}};
+  const blockC=()=>{st.C=i4plNew(st.B.post);let lv=i4plNext(st.C);const one=(lv,cb)=>{const it=ctItem(lv);step("Einstufung · C-Test",it,r=>{if(r){const right=Math.round(r.pts*it.gaps.length);I4_PL.ctThr.forEach(th=>i4plUpdate(st.C,lv,right>=th,0));log.push(["C",lv,right]);cb(right)}else cb(null)})};
+    one(lv,r1=>{const lv2=Math.max(1,Math.min(5,r1!=null&&r1>=14?lv+1:lv-1));one(lv2,()=>blockD())})};
+  const hItems=lv=>{const id=(I4_PL.D[lv]||[])[0];const H=(HOEREN||[]).find(h=>h.id===id);if(!H)return [];return (H.questions||[]).map((q,qi)=>({key:`h:${id}:${qi}`,type:q.kind==="rf"?"rf":q.kind==="who"?"who":"mc",q:q.q,o:q.opts,a:q.answer,stim:{kind:"h",id},lv,guess:q.kind==="rf"?.5:1/3}))};
+  const blockD=()=>{if(!tts)return finish(false);st.D=i4plNew(st.A.post);let lv=Math.max(1,i4plNext(st.C)-1);const one=(lv,cb)=>{const its=hItems(lv);if(!its.length)return cb(0);
+      i4Run(box,its,{title:"Einstufung · Hören",kind:"place",pause:false,onDone:res=>{res.forEach(r=>i4plUpdate(st.D,lv,r.ok,r.it.guess));const right=res.filter(r=>r.ok).length;log.push(["D",lv,right]);cb(right/its.length)}})};
+    one(lv,f=>{one(Math.max(1,Math.min(5,f>=.67?lv+1:lv-1)),()=>finish(true))})};
+  const finish=heard=>{const L=i4plResult(st.C).lv,Sx=i4plResult(st.B).lv,H=heard?i4plResult(st.D).lv:null;const lv={L,S:Sx,I:Math.max(0,Math.min(L,Sx)-1),M:Math.max(0,Math.min(L,Sx)-1)};if(H!=null)lv.H=H;
+    const rec=GATE.placeRecord({lv,self,items:log.length,heard});const band=`${i4LVN(rec.min)}`;
+    box.innerHTML=`<div class="stack s" style="max-width:680px;margin:0 auto"><h2 style="text-align:center">Einstufung: ${esc(band)}</h2><div class="card orn">${i4Say("placed",{band})}</div>
+      <div class="card"><div class="list">${[["Lesen",L],["Schreiben (aus den Strukturen)",Sx],["Hören",H],["Interaktion und Mediation (nicht geprüft, abgeleitet)",lv.I],["Sprechen",null]].map(([k,v])=>`<div class="li" style="cursor:default"><span class="t">${esc(k)}</span><span class="pill">${v==null?"nicht gemessen":esc(i4LVN(v))}</span></div>`).join("")}</div>
+      <p class="muted ui">Ihre eigene Schätzung: ${esc(self==null?"–":I4_PL.self[self])}. Die Zahlen des Modells sind Annahmen (I6 §4.9).</p></div>
+      ${[0,1,2].filter(ri=>rec.min>ri&&i4StormCan(ri)).map(ri=>`<button class="go" data-act="lvTestOut" data-id="${I4R[ri]}">Reich ${I4R[ri]} (${I4LV[ri]}) im Sturm nehmen · Stufentest ${I4C.realmTestOutPct} %</button>`).join("")}
+      <button class="sm ghost" data-act="i4Close">Fertig</button></div>`;if(o.onDone)o.onDone(rec)};
+  box.innerHTML=`<div class="stack s" style="max-width:680px;margin:0 auto"><div class="card">${i4Say("place")}</div><div class="eyebrow">Was glauben Sie? Wo stehen Sie?</div>
+    <div class="opts">${I4_PL.self.map((t,k)=>`<button data-k="${k}"><span class="k">${k+1}</span>${esc(t)}</button>`).join("")}</div><p class="muted ui">Danach etwa 15 Minuten: Wörter, Strukturen, zwei C-Tests${tts?", zwei Hörtexte":" (ohne deutsche Stimme kein Hören)"}.</p></div>`;
+  [...box.querySelectorAll("[data-k]")].forEach(b=>b.onclick=()=>{self=+b.dataset.k;blockA()})}
+function i4LVN(v){return v==null?"–":["unter A1","A1","A2","B1","B2","C1"][Math.max(0,Math.min(5,+v))]}
+GATE.placeRecord=function(r){const t=todayKey();const prev=S.place&&typeof S.place==="object"?S.place:{};const min=Math.min(...["L","S","H"].map(k=>r.lv[k]).filter(x=>x!=null));
+  S.place={date:t,lv:r.lv,self:r.self,items:r.items,heard:!!r.heard,offer:prev.offer||"",skip:prev.skip||"",v:1};
+  S.cdTest=S.cdTest&&typeof S.cdTest==="object"?S.cdTest:{};(typeof CANDO!=="undefined"?CANDO:[]).filter(c=>c.lv<=min).forEach(c=>{const o=S.cdTest[c.id];if(!o||o.by==="mig")S.cdTest[c.id]={d:t,by:"place"}});
+  try{CD_CACHE=null}catch(e){}saveSoon();return {min}};
+ACT.placeGo=()=>plRun(i4Sheet("Einstufung","Wörter · Strukturen · C-Test · Hören"));
+ACT.placeSkip=()=>{S.place=Object.assign({},S.place&&typeof S.place==="object"?S.place:{},{skip:todayKey()});saveSoon();try{rerender()}catch(e){}};
+
+// ---------------------------------------------------------------- migration (R4), once: S.syl.mig = 1 (migrated) · 2 (Mephisto has said why)
+function i4Migrate(){try{S.syl=S.syl&&typeof S.syl==="object"?S.syl:{};if((+S.syl.mig||0)>=1)return false;const p=P(),t=todayKey();
+    const se=p.sealed||{};Object.keys(se).forEach(k=>{const n=+k;if(!(n>=1&&n<=40))return;const s=i4Seal(n);const d=typeof se[k]==="string"?se[k]:t;if(!s.pass&&!s.grey){s.pass=d;s.mig=d}
+      if(i4Ch(n).boss){const rd=i4RealmDone();const r=i4Ch(n).r;if(!rd[r])rd[r]=d}});
+    S.cdTest=S.cdTest&&typeof S.cdTest==="object"?S.cdTest:{};const sealedN=new Set(Object.keys(se).map(Number));
+    (typeof CANDO!=="undefined"?CANDO:[]).forEach(c=>{if(sealedN.has(c.ch)&&!S.cdTest[c.id])S.cdTest[c.id]={d:t,by:"mig"}});
+    if(p.signed&&!p.chStart)p.chStart=t;
+    S.syl.mig=p.signed&&(sealedN.size||p.ch>1)?1:2;try{CD_CACHE=null}catch(e){}saveSoon();return true}catch(e){i4Err("migrate",e);return false}}
+setTimeout(()=>{i4Migrate();try{if(window.EV&&EV.on)EV.on("state.replaced",()=>setTimeout(i4Migrate,0))}catch(e){}},0);
+
+// ---------------------------------------------------------------- reader: the probe at the chapter's end (TL "sp", RD pass 25)
+i4T("tl",()=>{if(typeof TL==="undefined")return;
+  TL.reg("sp",{card(line,c){const n=+String(line[1]).slice(2);const ri=i4Ri(n);return `<div class="eyebrow">Siegelprobe · Kapitel ${n}</div><p>${I4C.probeN[ri]} Aufgaben ohne Hilfe, ${I4C.probeCut[ri]} richtig. Keine Uhr.</p>`},
+    open(box,id,done){const n=+String(id).slice(2);i4ProbeOpenIn(box,n,"unaided",r=>{const fx=typeof PROBE_FIXED!=="undefined"&&PROBE_FIXED[n];
+      done({pass:!!(r&&r.pass),grey:false,p:r?r.right:0,max:r?r.N:0,lines:r&&r.pass&&fx&&fx.close?[fx.close.slice()]:[["M","Das Siegel hält. Noch.","The seal holds. For now."]]})})},
+    state(id){const n=+String(id).slice(2);const s=i4SealPeek(n);return {pass:!!(s.pass||s.to),grey:!!s.grey&&!s.pass,best:s.best,max:I4C.probeN[i4Ri(n)]}}})});
+i4T("rd",()=>{if(typeof RD==="undefined")return;RD.pass("i4",25,function(lines,c,ctx){try{if(!ctx||ctx.kind!=="chapter"||!c||c.boss||c.n!==P().ch||(P().sealed||{})[c.n])return;
+    if(!i4ProbeCan(c.n,"unaided"))return;ctx.insert("end",[["T","sp"+c.n]])}catch(e){i4Err("rd",e)}})});
+
+// ---------------------------------------------------------------- l5 plan provider (PLAN-L §2.2): repair > retention > probe
+i4T("lx",()=>{if(typeof LX==="undefined"||typeof LX.reg!=="function")return;
+  LX.reg({id:"i.probe",skill:"pruefung",pocket:true,next(){try{const k=i4Cracked()[0];if(k)return {ref:"x:"+k,title:`Reparatur · Siegel von Kapitel ${k}`,lv:i4Ri(k),min:5,why:"ein Siegel hat einen Riss"};
+      const r=i4RetDue();if(r)return {ref:"r:"+r,title:`Siegelprüfung · Kapitel ${r}`,lv:i4Ri(r),min:2,why:"hält das Siegel nach zwei Wochen?"};
+      const n=P().ch;if(i4ProbeCan(n,"unaided"))return {ref:"p:"+n,title:`Siegelprobe · Kapitel ${n}`,lv:i4Ri(n),min:12,why:"alles andere im Kapitel steht"}}catch(e){}return null},
+    run(el,ref,done){const [k,n]=String(ref).split(":");const t0=Date.now();const fin=res=>done({ok:res?res.filter(x=>x.ok).length/Math.max(1,res.length):0,n:res?res.length:0,right:res?res.filter(x=>x.ok).length:0,sec:Math.round((Date.now()-t0)/1000)});
+      if(k==="p")return i4ProbeOpenIn(el,+n,"unaided",r=>done({ok:r&&r.pass?1:0,n:r?r.N:0,right:r?r.right:0,sec:Math.round((Date.now()-t0)/1000)}));
+      i4Run(el,i4RetItems(+n,k==="x"?I4C.repairN:I4C.retN),{title:k==="x"?"Reparatur":"Siegelprüfung",pause:false,onAnswer:(it,ok)=>i4Log(+n,it,ok,false),onDone:res=>{if(k==="x")i4RepRecord(+n,res);else i4RetRecord(+n,res);fin(res)}})}})});
+
+// ---------------------------------------------------------------- screens (MOD.after)
+function i4HomeCards(){const p=P();if(!p.signed)return "";const out=[];const n=p.ch,c=i4Ch(n);
+  if((+(S.syl||{}).mig||0)===1){let soul="?";try{soul=(Math.round(10*pkSoul())/10).toLocaleString("de-DE")}catch(e){}out.push(`<div class="card orn i4-mig">${i4Say("migrate",{p:soul})}<div class="row"><button class="sm" data-act="i4MigOk">Verstanden</button></div></div>`)}
+  const pl=S.place&&typeof S.place==="object"?S.place:{};if(!pl.date&&!pl.skip)out.push(`<div class="card i4-place"><div class="eyebrow">Einstufung · etwa 15 Minuten</div>${i4Say("place")}<div class="row"><button class="go sm" data-act="placeGo">Einstufung beginnen</button><button class="sm ghost" data-act="placeSkip">Nicht jetzt</button></div></div>`);
+  const k=i4Cracked()[0];if(k)out.push(`<div class="card i4-crack"><div class="eyebrow">Riss im Siegel · Kapitel ${k}</div><p>Fünf Minuten Reparatur (${I4C.repairN} Aufgaben, ${I4C.repairCut} richtig), bevor das nächste Siegel bricht.</p><button class="sm" data-act="repairGo" data-id="${k}">Reparieren</button></div>`);
+  const r=i4RetDue();if(r&&!k)out.push(`<div class="card i4-ret"><div class="eyebrow">Hält das Siegel? · Kapitel ${r}</div><p>Drei Fragen aus Kapitel ${r}. Zwei richtig, und es hält.</p><button class="sm" data-act="retGo" data-id="${r}">Drei Fragen</button></div>`);
+  if(!c.boss&&i4ProbeCan(n,"unaided"))out.push(`<div class="card i4-probe"><div class="eyebrow">Die Siegelprobe wartet · Kapitel ${n}</div><p>${I4C.probeN[i4Ri(c)]} Aufgaben ohne Hilfe, ${I4C.probeCut[i4Ri(c)]} richtig. Sie dürfen sie auf zwei Sitzungen verteilen.</p><button class="go sm" data-act="probeGo" data-id="${n}">Zur Siegelprobe</button></div>`);
+  const f=i4Fails(n).length;if(!c.boss&&f>=I4C.lessonBackAfter&&!i4SealPeek(n).pass&&!i4SealPeek(n).grey){const L=i4Lessons(n).L[0];if(L)out.push(`<div class="card i4-back">${i4Say("lessonBack",{t:L.t})}<button class="sm" data-act="pkLesson" data-id="${esc(L.id)}">Zur Lektion</button></div>`)}
+  return out.join("")}
+ACT.i4Close=()=>{try{Focus.close()}catch(e){}};
+ACT.i4MigOk=()=>{S.syl=S.syl||{};S.syl.mig=2;saveSoon();try{rerender()}catch(e){}};
+i4T("home",()=>MOD.after("viewHome","i4",function(m){if(!i4Ok())return;const h=i4HomeCards();if(!h)return;const d=document.createElement("div");d.className="stack s i4-home";d.innerHTML=h;
+  const anchor=m.querySelector(".i2-weg")||m.querySelector(".hero");if(anchor&&anchor.after)anchor.after(d);else (m.querySelector(".view")||m).prepend(d)}));
+i4T("pakt",()=>MOD.after("viewPakt","i4",function(m){if(!i4Ok()||!P().signed)return;const p=P(),n=p.ch,c=i4Ch(n),s=i4SealPeek(n);const b=[];
+  if(!c.boss){if(i4ProbeCan(n,"unaided"))b.push(`<button class="go sm" data-act="probeGo" data-id="${n}">Siegelprobe</button>`);
+    if(i4ProbeCan(n,"guided"))b.push(`<button class="sm" data-act="probeGuided" data-id="${n}">Begleitete Probe (graues Siegel)</button>`);
+    if(i4ProbeCan(n,"testout")&&!s.tries.length)b.push(`<button class="sm ghost" data-act="probeTestOut" data-id="${n}">Sofort zur Probe (16 Aufgaben, 15 richtig)</button>`)}
+  else{const ri=i4Ri(c);const e=i4CpPeek(I4_CP[c.r].id);if(!e.written&&!e.grey&&i4RealmWait(ri)===0)b.push(`<button class="go sm" data-act="lvTestGo" data-id="${c.r}">Die Probe · Reich ${c.r}</button>`);
+    if(i4RealmRepCan(ri))b.push(`<button class="sm" data-act="lvRepairGo" data-id="${c.r}">Wundversorgung des Reichs (10 Aufgaben)</button>`);
+    if(i4RealmGuidedCan(ri))b.push(`<button class="sm" data-act="lvGuidedGo" data-id="${c.r}">Begleitete Realmprobe (graues Siegel)</button>`);
+    else{const w=i4RealmGuidedWait(ri);if(w>0)b.push(`<span class="muted ui">Begleitete Realmprobe: nach der Wundversorgung, spätestens in ${w} Tag${w===1?"":"en"}</span>`)}}
+  [0,1,2].forEach(ri=>{const pl=S.place&&S.place.lv;const mn=pl?Math.min(...["L","S","H"].map(k=>pl[k]).filter(x=>x!=null)):0;if(mn>ri&&i4StormCan(ri))b.push(`<button class="sm ghost" data-act="lvTestOut" data-id="${I4R[ri]}">Reich ${I4R[ri]} im Sturm nehmen (Stufentest ${I4C.realmTestOutPct} %)</button>`)});
+  const pl=S.place&&typeof S.place==="object"?S.place:{};if(!pl.date)b.push(`<button class="sm ghost" data-act="placeGo">Einstufung</button>`);
+  const tries=s.tries.filter(t=>t.k==="p"||t.k==="g"||t.k==="t");
+  const html=`<div class="card i4-pk"><div class="eyebrow">Siegelprobe und Stufenprüfung · Kapitel ${n}</div>${tries.length?`<p class="muted ui">Versuche: ${tries.map(t=>`${i4Fmt(t.d)} ${t.r}/${t.N}${t.k==="g"?" (begleitet)":t.k==="t"?" (sofort)":""}`).join(" · ")}</p>`:""}<div class="row" style="flex-wrap:wrap;gap:.4rem">${b.join("")||`<span class="muted ui">Nichts zu tun – die Liste oben sagt, was noch fehlt.</span>`}</div></div>`;
+  const d=document.createElement("div");d.innerHTML=html;const cards=m.querySelectorAll(".card");const at=cards[1]||cards[0];if(at&&at.after)at.after(d.firstElementChild);else (m.querySelector(".view")||m).appendChild(d.firstElementChild)}));
+i4T("reset",()=>{if(typeof RESET_GROUPS!=="undefined"&&RESET_GROUPS.story&&Array.isArray(RESET_GROUPS.story.k))["seal","cp","place","realmDone"].forEach(k=>{if(!RESET_GROUPS.story.k.includes(k))RESET_GROUPS.story.k.push(k)})});
+
+// ---------------------------------------------------------------- merge rules (PLAN-I §2.7) — commutative, associative, idempotent (tests/i4_node.js)
+function i4MinD(a,b){a=typeof a==="string"?a:"";b=typeof b==="string"?b:"";return !a?b:!b?a:a<b?a:b}
+function i4MaxD(a,b){a=typeof a==="string"?a:"";b=typeof b==="string"?b:"";return a>b?a:b}
+function i4Tries(a,b,cap){const m=new Map();[].concat(Array.isArray(a)?a:[],Array.isArray(b)?b:[]).forEach(t=>{if(!t||typeof t!=="object")return;const k=(t.d||"")+"|"+(t.i||"");const o=m.get(k);if(!o||JSON.stringify(t)>JSON.stringify(o))m.set(k,t)});
+  return [...m.keys()].sort().map(k=>m.get(k)).slice(-cap)}
+function i4MergeSealOne(a,b){a=a&&typeof a==="object"?a:{};b=b&&typeof b==="object"?b:{};const o={tries:i4Tries(a.tries,b.tries,30),best:Math.max(+a.best||0,+b.best||0)};
+  ["pass","to","mig","grey"].forEach(k=>{const v=i4MinD(a[k],b[k]);if(v)o[k]=v});["crk","rep","ret"].forEach(k=>{const v=i4MaxD(a[k],b[k]);if(v)o[k]=v});if(o.pass)delete o.grey;return o}
+function i4MergeSeal(a,b){a=a&&typeof a==="object"?a:{};b=b&&typeof b==="object"?b:{};const o={};new Set([...Object.keys(a),...Object.keys(b)]).forEach(k=>{o[k]=i4MergeSealOne(a[k],b[k])});return o}
+function i4MergeCpOne(a,b){a=a&&typeof a==="object"?a:{};b=b&&typeof b==="object"?b:{};const o={tries:i4Tries(a.tries,b.tries,20),wPct:Math.max(+a.wPct||0,+b.wPct||0)};["written","full","duel","pass","to","grey"].forEach(k=>{const v=i4MinD(a[k],b[k]);if(v)o[k]=v});const rp=i4MaxD(a.rep,b.rep);if(rp)o.rep=rp;if(o.pass)delete o.grey;return o}
+function i4MergeCp(a,b){a=a&&typeof a==="object"?a:{};b=b&&typeof b==="object"?b:{};const o={};new Set([...Object.keys(a),...Object.keys(b)]).forEach(k=>{o[k]=i4MergeCpOne(a[k],b[k])});return o}
+function i4PlaceKey(x){const c=Object.assign({},x);delete c.offer;delete c.skip;return (c.date||"")+"\u0001"+JSON.stringify(c)}
+function i4MergePlace(a,b){a=a&&typeof a==="object"?a:{};b=b&&typeof b==="object"?b:{};const w=i4PlaceKey(a)>=i4PlaceKey(b)?a:b;const o=Object.assign({},w);const of=i4MaxD(a.offer,b.offer),sk=i4MaxD(a.skip,b.skip);if(of)o.offer=of;else delete o.offer;if(sk)o.skip=sk;else delete o.skip;return o}
+function i4MergeRealm(a,b){a=a&&typeof a==="object"?a:{};b=b&&typeof b==="object"?b:{};const o={};new Set([...Object.keys(a),...Object.keys(b)]).forEach(k=>{const v=i4MinD(a[k],b[k]);if(v)o[k]=v});return o}
+setTimeout(()=>{try{if(typeof MERGE_RULES!=="undefined"&&MERGE_RULES){MERGE_RULES.seal=(a,b)=>i4MergeSeal(a,b);MERGE_RULES.cp=(a,b)=>i4MergeCp(a,b);MERGE_RULES.place=(a,b)=>i4MergePlace(a,b);MERGE_RULES.realmDone=(a,b)=>i4MergeRealm(a,b)}}catch(e){}},0);
+
+// ===== Mephisto · track I · c_i5.js (owner i5) — the task engine for the chapter tasks (data: v2/x_i5_tasks.js).
+// Contract: PLAN-I §1 R2, §2.6, §2.7 and package i5. The reader is i1's RD: this file registers RD.pass("i5",20) (puts ["T",id] at the scene's
+// @task anchor) and TL.reg("t",…) (card, open, state). It never reassigns st3Play / st3Scene / st3Line / ACT.st3Pick and never writes S.saga.
+// Section 1 is pure (no DOM) and is unit-tested in Node (tests/i5_node.js).
+// Public: tkNorm tkCheck tkPoints tkRun tkState tkById tkOfChapter tkGateItem tkMerge tkBoon TASKS40 (data).
+// State: P().tk = {<id>:{best,max,pass,grey,tries,fails,d,last,busse,cur:{i,res,sig,d}}, bag:[{id,i,d}≤24], flag:{name:day}, boon:{"candle+1"|"hp-15":{ch,d,used?}}}
+//        merge = tkMerge (registered as PAKT_RULES.tk). Read-only for s4 through IQ.cond("tk.<id>.pass" | "tk.<id>.grey" | "tk.flag.<name>").
+// Effects (R2): candle+1, hp-15 → P().tk.boon (i7 reads it and sets .used) · debt-1 → ECON.relief(1,"i5") or P().debt−1 · flag:x → P().tk.flag.x.
+// Nothing here throws at load.
+// ---------------------------------------------------------------- 1. pure checkers
+function tkNorm(s){try{if(typeof normT==="function")return normT(String(s==null?"":s))}catch(e){}
+  return String(s==null?"":s).toLowerCase().replace(/ß/g,"ss").replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/[.,!?;:„"“”‚‘’'()«»–—-]/g," ").replace(/\s+/g," ").trim()}
+function tkWords(s){return tkNorm(s).split(" ").filter(Boolean).length}
+// one step → {ok, part 0..1, fb?, miss?[], res?[], bad?[]}.  inp: mc → option index · gap/fix/type/write/order → string · spot → [indices] · sort → [bin per item] · form → [strings]
+function tkCheck(st,inp){const k=st&&st.k;const any=(a,g)=>[].concat(a).some(x=>tkNorm(x)===g);
+  try{
+  if(k==="pick")return {ok:true,part:1};
+  if(k==="mc"){const ok=+inp===st.a;return {ok,part:+ok}}
+  if(k==="gap"){const ok=any(st.a,tkNorm(inp));return {ok,part:+ok}}
+  if(k==="fix"||k==="order"){const g=tkNorm(inp);const ok=!!g&&[].concat(st.a).some(x=>tkNorm(x)===g||(typeof v2Same==="function"&&v2Same(x,inp)));return {ok,part:+ok}}
+  if(k==="type"){const g=st.raw?String(inp==null?"":inp).trim():tkNorm(inp);if(!g)return {ok:false,part:0};const bad=(st.not||[]).find(r=>r[0].test(g));if(bad)return {ok:false,part:0,fb:bad[1]};
+    if(st.min&&tkWords(inp)<st.min)return {ok:false,part:0,fb:"Zu kurz: mindestens "+st.min+" Wörter."};
+    const miss=(st.re||[]).filter(r=>!r.test(g));return {ok:!miss.length,part:miss.length?0:1}}
+  if(k==="spot"){const sel=[...new Set(inp||[])];const hit=sel.filter(i=>st.bad.includes(i)).length,wrong=sel.length-hit;const part=Math.max(0,(hit-wrong)/st.bad.length);return {ok:hit===st.bad.length&&wrong<=(st.tol||0),part,miss:st.bad.filter(i=>!sel.includes(i))}}
+  if(k==="sort"){const n=st.items.length;const miss=[];st.items.forEach((it,i)=>{if(+(inp||[])[i]!==it[1])miss.push(i)});return {ok:!miss.length,part:(n-miss.length)/n,miss}}
+  if(k==="form"){const miss=[];st.fields.forEach((f,i)=>{const raw=String((inp||[])[i]||"").trim();const g=f.raw?raw:tkNorm(raw);if(!f.re.test(g)||(f.not&&f.not.test(g)))miss.push(i)});const n=st.fields.length;return {ok:!miss.length,part:(n-miss.length)/n,miss}}
+  if(k==="write"){const g=tkNorm(inp);const bad=(st.not||[]).filter(r=>r[0].test(g));const res=st.groups.map(G=>{const c=G.any.filter(r=>r.test(g)).length;return {n:G.n,ok:c>=(G.need||1),c}});
+    let part=res.filter(r=>r.ok).length/res.length;const short=st.min&&tkWords(inp)<st.min;if(short)part=Math.min(part,.5);part=Math.max(0,part-.15*bad.length);
+    return {ok:part>=(st.ok||.75)&&!short,part,res,bad:bad.map(b=>b[1]),fb:short?"Zu kurz: mindestens "+st.min+" Wörter.":""}}
+  }catch(e){}
+  return {ok:false,part:0}}
+// results[i] = {part, hint 0|1|2|3}; hint 2 (Flüstern) halves the step, hint 3 (Vorsagen) zeroes it. Dynamic steps (dyn) raise max; the pass mark scales with it.
+function tkPoints(t,results,steps){steps=steps||t.steps;let p=0,max=0;steps.forEach((st,i)=>{const w=st.w||1;max+=w;const r=results[i];if(!r)return;p+=w*(r.part||0)*(r.hint===3?0:r.hint===2?.5:1)});
+  const base=t.steps.reduce((a,st)=>a+(st.w||1),0);const need=max===base?t.pass:Math.round(t.pass/base*max*10)/10;p=Math.round(p*100)/100;return {p,max,need,pass:p>=need}}
+// lines of a task in the current address form: [text, English]
+function tkDu(){try{return typeof st3Du==="function"&&!!st3Du()}catch(e){return false}}
+function tkFill(s){s=String(s==null?"":s);try{if(typeof st3Fill==="function")return st3Fill(s)}catch(e){}return s}
+function tkL(x){if(!x)return ["",""];return [tkFill(tkDu()&&x[2]?x[2]:x[0]),tkFill(x[1]||"")]}
+function tkLine(x){const l=tkL(x);return ["M",x[0],x[1]||"",x[2]||""]}   // reader line: st3Line picks the du twin itself
+const TK_GREY=["Gemeinsam also. § 6: Der Unterzeichnete kann jederzeit um Hilfe bitten. Das Siegel bleibt grau, bis Sie es allein können.","Together, then. § 6: the undersigned may ask for help at any time. The seal stays grey until you can do it alone.","Gemeinsam also. § 6: Der Unterzeichnete kann jederzeit um Hilfe bitten. Das Siegel bleibt grau, bis du es allein kannst."];
+// ---------------------------------------------------------------- 2. data access and state
+function tkData(){try{return typeof TASKS40!=="undefined"?TASKS40:{}}catch(e){return {}}}
+function tkById(id){const T=tkData();for(const k in T){if(T[k]&&T[k].id===id&&!T[k].station)return T[k]}return null}
+function tkOfChapter(n){const t=tkData()[n];return t||null}
+function tkP(){try{const p=P();if(!p.tk||typeof p.tk!=="object")p.tk={};return p.tk}catch(e){return {}}}
+function tkRec(id){const tk=tkP();return tk[id]&&typeof tk[id]==="object"?tk[id]:null}
+function tkDay(){try{return todayKey()}catch(e){return new Date().toISOString().slice(0,10)}}
+function tkSave(){try{saveSoon()}catch(e){}}
+// state for TL / the gate: {pass,grey,best,max,tries,fails}
+function tkState(id){if(typeof id==="number"){const t=tkOfChapter(id);if(!t)return {};if(t.station){try{return (typeof TL!=="undefined"&&TL.get(t.id))?TL.state(t.id):{}}catch(e){return {}}}id=t.id}
+  const r=tkRec(id)||{};return {pass:!!r.pass,grey:!!r.grey&&!r.pass,best:+r.best||0,max:+r.max||0,tries:+r.tries||0,fails:+r.fails||0}}
+// pre-task: the chapter's lesson opened once (I4 P6); no lesson or unknown lesson → open
+function tkLocked(t,c){try{const L=c&&c.lesson;if(!L)return false;const G=typeof GRAMMAR!=="undefined"?GRAMMAR:[];if(!G.some(g=>g.id===L))return false;return !((S.lessons||{})[L]||(S.gram||{})[L])}catch(e){return false}}
+function tkPhase(t){const r=tkRec(t.id)||{};const f=+r.fails||0;return {fails:f,busse:!r.pass&&f>=2&&r.busse!==tkDay(),walk:!r.pass&&f>=3}}
+function tkEffects(t,list){const tk=tkP();const d=tkDay();String(list||"").split(",").map(x=>x.trim()).filter(Boolean).forEach(f=>{try{
+    if(f==="candle+1"||f==="hp-15"){tk.boon=tk.boon||{};tk.boon[f]={ch:t.n,d}}
+    else if(f==="debt-1"){if(typeof ECON!=="undefined"&&ECON&&typeof ECON.relief==="function")ECON.relief(1,"i5");else{const p=P();p.debt=Math.max(0,(+p.debt||0)-1)}}
+    else if(f.indexOf("flag:")===0){tk.flag=tk.flag||{};const k=f.slice(5);if(!tk.flag[k])tk.flag[k]=d}}catch(e){}});tkSave()}
+// active boons for a chapter (i7): {"candle+1":true,…}; i7 marks one used with P().tk.boon[k].used=todayKey()
+function tkBoon(ch){const b=tkP().boon||{};const o={};Object.keys(b).forEach(k=>{const x=b[k];if(x&&(ch==null||x.ch===ch)&&!(x.used&&x.used>=x.d))o[k]=true});return o}
+// ---------------------------------------------------------------- 3. merge (PAKT_RULES.tk) — commutative, associative, idempotent
+function tkMerge(a,b){if(!a||typeof a!=="object")return b&&typeof b==="object"?JSON.parse(JSON.stringify(b)):b;if(!b||typeof b!=="object")return JSON.parse(JSON.stringify(a));
+  const o={};const mx=(x,y)=>x==null?y:y==null?x:(x>y?x:y);const mn=(x,y)=>x==null?y:y==null?x:(x<y?x:y);const js=x=>JSON.stringify(x);
+  const keys=new Set(Object.keys(a).concat(Object.keys(b)));
+  keys.forEach(k=>{let x=a[k],y=b[k];
+    if(k==="bag"){const m=new Map();[].concat(x||[],y||[]).forEach(e=>{if(!e||e.id==null)return;const key=e.id+":"+e.i;const old=m.get(key);if(!old||String(e.d||"")>String(old.d||""))m.set(key,{id:e.id,i:e.i,d:e.d||""})});
+      o.bag=[...m.values()].sort((p,q)=>String(p.d).localeCompare(String(q.d))||String(p.id+":"+p.i).localeCompare(String(q.id+":"+q.i))).slice(-24);return}
+    if(k==="flag"){const f={};[x||{},y||{}].forEach(z=>Object.keys(z).forEach(n=>{f[n]=mn(f[n],z[n])}));o.flag=f;return}
+    if(k==="boon"){const f={};[x||{},y||{}].forEach(z=>Object.keys(z).forEach(n=>{const v=z[n]||{},w=f[n]||{};const r={ch:mx(w.ch,v.ch),d:mx(w.d,v.d)};const u=mx(w.used,v.used);if(u!=null)r.used=u;f[n]=r}));o.boon=f;return}
+    const isO=v=>v!=null&&typeof v==="object"&&!Array.isArray(v);
+    if(!isO(x)&&!isO(y)){if(x==null)o[k]=y;else if(y==null)o[k]=x;else o[k]=js(x)>=js(y)?x:y;return}
+    if(!isO(x))x={};if(!isO(y))y={};
+    const r={};const pass=!!(x.pass||y.pass);if(pass)r.pass=1;if(!pass&&(x.grey||y.grey))r.grey=1;
+    ["best","max","tries","fails"].forEach(f=>{const v=mx(x[f],y[f]);if(v!=null)r[f]=v});["last","busse"].forEach(f=>{const v=mx(x[f],y[f]);if(v!=null)r[f]=v});
+    const d=mn(x.d,y.d);if(d!=null)r.d=d;
+    if(!pass){const cx=x.cur,cy=y.cur;let c=null;if(cx&&cy)c=(String(cx.d||"")>String(cy.d||"")||(String(cx.d||"")===String(cy.d||"")&&js(cx)>=js(cy)))?cx:cy;else c=cx||cy;if(c)r.cur=JSON.parse(js(c))}
+    o[k]=r});
+  return o}
+setTimeout(()=>{try{if(typeof PAKT_RULES!=="undefined")PAKT_RULES.tk=tkMerge}catch(e){}},0);
+// ---------------------------------------------------------------- 4. evidence and errors
+function tkEmit(name,d){try{if(typeof EV!=="undefined"&&EV&&EV.emit)EV.emit(name,d)}catch(e){}}
+function tkEvf(n){try{return (typeof EVF!=="undefined"&&EVF&&EVF[n])||0}catch(e){return 0}}
+function tkWant(st){try{if(st.k==="mc")return String(st.o[st.a]);if(st.k==="spot")return st.bad.map(i=>st.text[i]).join(" · ");if(st.k==="sort")return st.items.map(x=>st.bins[x[1]]+" "+x[0]).join(" · ");
+  if(st.k==="form")return st.fields.map(f=>f.model||"").join(" · ");return tkFill(st.model||[].concat(st.a||[])[0]||"")}catch(e){return ""}}
+function tkMissErrors(t,st,val,r){try{if(typeof addErrors!=="function")return;const L=[];const ty=st.err||"Grammatik";
+    if(typeof val==="string"&&val.trim()&&(st.model||st.a)&&st.k!=="write"&&st.k!=="mc")L.push({type:ty,original:val.trim().slice(0,80),fix:tkWant(st),why:st.why||""});
+    if(st.k==="sort")(r.miss||[]).forEach(i=>{const it=st.items[i];const got=st.bins[+(val||[])[i]];L.push({type:"Genus",original:(got||"?")+" "+it[0],fix:st.bins[it[1]]+" "+it[0],why:it[2]||st.why||""})});
+    if(st.k==="spot")(r.miss||[]).forEach(i=>{const fx=(st.whyEach||{})[i];if(fx)L.push({type:"Genus",original:st.text[i],fix:String(fx).split(/\s*[–→=]\s*/).pop(),why:st.why||""})});
+    if(L.length)addErrors(L,"pakt")}catch(e){}}
+// ---------------------------------------------------------------- 5. UI: the step runner (renders INTO box; never calls Focus.open/body inside the reader)
+const TK_CSS=`.tk-run{max-width:680px;margin:0 auto}.tk-run .tk-q{font-size:1.05rem}.tk-frak{font-family:var(--frak),serif;font-size:1.4rem;line-height:1.5}
+.tk-spot,.tk-sort{display:flex;flex-direction:column;gap:.35rem}.tk-spot button[aria-pressed="true"],.tk-sort button[aria-pressed="true"]{outline:2px solid var(--accent,#F08A3F);background:var(--sunk)}
+.tk-form label{display:flex;flex-direction:column;gap:.15rem;margin:.35rem 0}.tk-form label span{font-family:var(--ui);font-size:.85rem}
+.tk-chips{display:flex;flex-wrap:wrap;gap:.35rem}.tk-built{min-height:2.2rem;padding:.4rem .6rem;border:1px dashed var(--line,#888);border-radius:6px}
+.tk-ch{display:flex;flex-direction:column;gap:.4rem}.tk-ch button{text-align:left}.tk-dark{background:#000;color:#ccc;padding:.6rem;border-radius:8px}
+.tk-step .tk-out:empty{display:none}.tk-flash{font-family:var(--ui);font-size:.95rem}`;
+function tkStyle(){try{if(document.getElementById("tk-sty"))return;const s=document.createElement("style");s.id="tk-sty";s.textContent=TK_CSS;document.head.appendChild(s)}catch(e){}}
+function tkE(s){try{return esc(s)}catch(e){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}}
+function tkG(s){try{return typeof glossify==="function"?glossify(s):tkE(s)}catch(e){return tkE(s)}}
+function tkI(n){try{return typeof ic==="function"?ic(n):""}catch(e){return ""}}
+function tkSayHTML(l){try{return pkSay(tkL(l))}catch(e){const x=tkL(l);return `<div class="pk-say"><div><div class="de">${tkE(x[0])}</div><div class="en">${tkE(x[1])}</div></div></div>`}}
+function tkHear(text,btn){let ok=false;try{ok=typeof hasDeVoice==="function"?hasDeVoice():(typeof TTS_OK!=="undefined"&&!!TTS_OK)}catch(e){}
+  if(ok){try{say(text)}catch(e){}return}
+  try{const el=btn.closest(".tk-step").querySelector(".tk-flash");el.textContent=text;el.hidden=false;setTimeout(()=>{el.hidden=true;el.textContent=""},1200+55*String(text).length)}catch(e){}}
+// sober while a sober task runs (pronunciation, clinical, consent); restored when the box leaves the page
+function tkSober(box,on){try{if(!on)return;const h=document.documentElement;const was=h.dataset.sober;h.dataset.sober="1";const iv=setInterval(()=>{try{if(!box.isConnected||box.dataset.tkDone==="1"){clearInterval(iv);if(was==null)delete h.dataset.sober;else h.dataset.sober=was}}catch(e){clearInterval(iv)}},1500)}catch(e){}}
+// dynamic steps (I4 P2 type 7): the learner's own mistakes / the bag (items taken with Vorsagen)
+function tkDynSteps(t){const out=[];try{if(!t.dyn)return out;const n=+String(t.dyn).split(":")[1]||3;
+  if(String(t.dyn).indexOf("bag")===0){(tkP().bag||[]).slice().reverse().forEach(b=>{if(out.length>=n)return;const T=tkById(b.id);const st=T&&T.steps&&T.steps[b.i];if(st&&!["spot","sort","form","write"].includes(st.k))out.push(Object.assign({},st,{_dyn:1,do:"Aus der Tasche · Kapitel "+T.n}))})}
+  else{(S.mistakes||[]).slice(-60).reverse().forEach(m=>{if(out.length>=n)return;const x=String(m.text||"").match(/\{\{c1::(.+?)\}\} \(nicht: (.+)\)$/);if(!x)return;const fix=x[1].trim(),bad=x[2].trim();if(fix.split(" ").length<2||tkNorm(fix)===tkNorm(bad))return;
+    if(out.some(o=>o.a[0]===fix))return;out.push({k:"fix",_dyn:1,do:"Ihr eigener Fehler. Korrigieren Sie ihn.",q:bad,a:[fix],model:fix,why:m.extra||"",err:m.type||"Grammatik"})})}
+  }catch(e){}return out.reverse()}
+function tkSig(steps){return steps.length+":"+steps.map(s=>String(s.q||s.say||s.k).slice(0,12)).join("|").length}
+// run a task in box. o: {c, onDone({pass,grey,p,max,lines}), only:[idx], prev:[res], walk, standalone}
+function tkRun(box,t,o){o=o||{};if(typeof t==="string")t=tkById(t);if(!box||!t)return;tkStyle();const walk=!!o.walk;
+  const dyn=(o.steps?[]:(walk||o.only)?[]:tkDynSteps(t));const steps=o.steps||dyn.concat(t.steps);const ndyn=o.ndyn!=null?o.ndyn:dyn.length;const sig=tkSig(steps);
+  const rec=tkRec(t.id)||{};let res=o.prev?o.prev.slice():[];let idx=o.only||steps.map((_,k)=>k);let j=0;
+  if(!o.only&&!walk&&rec.cur&&rec.cur.sig===sig&&Array.isArray(rec.cur.res)&&rec.cur.i>0&&rec.cur.i<idx.length){res=rec.cur.res.slice();j=rec.cur.i}
+  let i=0,hint=0,plays=0,first=true;const lesson=t.lesson||(o.c&&o.c.lesson)||"";const lv=t.lv||0;
+  if(j===0&&!o.only)tkSober(box,!!t.sober);
+  const ty=(TK_TYPES||{})[t.type]||{de:"Aufgabe",en:"task"};
+  const head=()=>`<div class="eyebrow">${tkE(ty.de)} <span class="en">${tkE(ty.en)}</span> · ${j+1} / ${idx.length}${walk?" · § 6 mit Mephisto":""}</div>`;
+  function stepHTML(st){const du=tkDu();const say=du&&st.sayDu?st.sayDu:st.say;
+    const q=st.q?`<div class="tk-q">${tkG(tkFill(st.q))}</div>`:"";const frak=st.frak?`<div class="tk-frak">${tkE(st.frak)}</div>`:"";
+    const who=say?`<div class="card st-x"><div class="eyebrow">${tkE(st.who||"")}</div><div class="st-de">${tkG(tkFill(say))}</div></div>`:"";
+    const hear=(st.hear)?`<div class="row"><button class="go sm tk-play">${tkI("vol")} Anhören <span class="en">listen</span></button><span class="tk-flash" hidden></span></div>`:"";
+    const doL=st.do?`<div class="eyebrow">${tkE(st.do)}</div>`:"";let body="";
+    if(st.k==="mc")body=`<div class="tk-ch">${st.o.map((x,k)=>({x,k})).sort(()=>Math.random()-.5).map(({x,k})=>`<button class="tk-o" data-k="${k}">${tkE(tkFill(x))}</button>`).join("")}</div>`;
+    else if(st.k==="gap")body=`<div class="typed row"><input class="tk-in" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Antwort"><button class="primary tk-ok">Prüfen</button></div>`;
+    else if(st.k==="fix"||st.k==="type")body=`<textarea class="tk-in ft-in" rows="2" spellcheck="false" placeholder="Auf Deutsch …" aria-label="Antwort"></textarea><div class="row"><button class="icon tk-mic need-sr" aria-label="Diktieren">${tkI("mic")}</button><button class="primary tk-ok">Prüfen</button></div>`;
+    else if(st.k==="write")body=`<textarea class="tk-in ft-in" rows="9" spellcheck="false" placeholder="Auf Deutsch …" aria-label="Text"></textarea><div class="row between"><span class="muted ui tk-wc">0 Wörter${st.min?" · mindestens "+st.min:""}</span><span class="row"><button class="icon tk-mic need-sr" aria-label="Diktieren">${tkI("mic")}</button><button class="primary tk-ok">Abgeben</button></span></div>`;
+    else if(st.k==="order"){const w=st.words.map((x,k)=>({x,k})).sort(()=>Math.random()-.5);body=`<div class="tk-built">…</div><div class="tk-chips">${w.map(({x,k})=>`<button class="sm" data-k="${k}">${tkE(x)}</button>`).join("")}</div><div class="row"><button class="sm ghost tk-undo">Zurück</button></div>`}
+    else if(st.k==="spot")body=`<div class="tk-spot">${st.text.map((x,k)=>`<button data-k="${k}" aria-pressed="false">${tkE(x)}</button>`).join("")}</div><div class="row"><button class="primary tk-ok">Fertig</button></div>`;
+    else if(st.k==="sort")body=`<div class="tk-sort">${st.items.map((it,k)=>`<div class="row between" data-k="${k}"><b>${tkE(it[0])}</b><span class="row">${st.bins.map((b,jj)=>`<button class="sm" data-b="${jj}" aria-pressed="false">${tkE(b)}</button>`).join("")}</span></div>`).join("")}</div><div class="row"><button class="primary tk-ok">Siegeln</button></div>`;
+    else if(st.k==="form")body=`<div class="st-doc no-sig tk-form">${st.title?`<div class="st-doc-h">${tkE(st.title)}</div>`:""}${st.fields.map((f,k)=>`<label><span>${tkE(f.l)}</span><input data-k="${k}" autocomplete="off" spellcheck="false" placeholder="${tkE(f.ph||"")}"></label>`).join("")}</div><div class="row"><button class="primary tk-ok">Abgeben</button></div>`;
+    return `<div class="stack s tk-step${t.dark?" tk-dark":""}">${head()}${who}${frak}${hear}${doL}${q}${body}<div class="tk-out"></div>
+      <div class="row tk-hints"><button class="sm ghost" data-h="1">Regel <span class="en">rule</span></button><button class="sm ghost" data-h="2">Flüstern (½)</button><button class="sm ghost" data-h="3">Vorsagen (0)</button></div><div class="row tk-nav"></div></div>`}
+  function draw(){if(j>=idx.length)return end();i=idx[j];const st=steps[i];hint=walk?3:0;plays=0;first=true;
+    const setup=(j===0&&!o.only&&t.setup)?`<div class="card orn">${tkSayHTML(t.setup)}</div>`:"";
+    box.innerHTML=`<div class="stack tk-run">${setup}${stepHTML(st)}</div>`;
+    const $q=s=>box.querySelector(s),$a=s=>[...box.querySelectorAll(s)];const inp=$q(".tk-in");
+    const pl=$q(".tk-play");if(pl){const max=lv>=3?2:3;pl.onclick=()=>{if(plays>=max){try{toast("Nur "+max+"-mal. Wie am Telefon.")}catch(e){}return}plays++;tkHear(st.hear,pl)};setTimeout(()=>{try{if(pl.isConnected)pl.click()}catch(e){}},400)}
+    const mic=$q(".tk-mic");if(mic&&inp)mic.onclick=()=>{try{dictateInto(mic,inp)}catch(e){}};
+    if(walk){const m=tkWant(st);if(m)$q(".tk-out").innerHTML=`<div class="card" style="background:var(--sunk)"><div class="eyebrow">§ 6 · Mephisto sagt vor – übernehmen Sie es</div><div class="st-de">${tkE(m)}</div></div>`}
+    if(st.k==="write"&&inp)inp.oninput=()=>{const w=$q(".tk-wc");if(w)w.textContent=tkWords(inp.value)+" Wörter"+(st.min?" · mindestens "+st.min:"")};
+    const ok=$q(".tk-ok");
+    if(st.k==="mc")$a(".tk-ch [data-k]").forEach(b=>b.onclick=()=>submit(+b.dataset.k));
+    else if(st.k==="order"){const built=[];const upd=()=>{$q(".tk-built").textContent=built.map(k=>st.words[k]).join(" ").replace(/ ([.,!?])/g,"$1")||"…"};
+      $a(".tk-chips [data-k]").forEach(b=>b.onclick=()=>{built.push(+b.dataset.k);b.disabled=true;upd();if(built.length===st.words.length)submit(built.map(k=>st.words[k]).join(" ").replace(/ ([.,!?])/g,"$1"))});
+      $q(".tk-undo").onclick=()=>{const k=built.pop();if(k!=null){$q(`.tk-chips [data-k="${k}"]`).disabled=false;upd()}}}
+    else if(st.k==="spot"){$a(".tk-spot [data-k]").forEach(b=>b.onclick=()=>b.setAttribute("aria-pressed",b.getAttribute("aria-pressed")==="true"?"false":"true"));ok.onclick=()=>submit($a('.tk-spot [aria-pressed="true"]').map(b=>+b.dataset.k))}
+    else if(st.k==="sort"){$a(".tk-sort [data-b]").forEach(b=>b.onclick=()=>{[...b.parentNode.children].forEach(x=>x.setAttribute("aria-pressed","false"));b.setAttribute("aria-pressed","true")});ok.onclick=()=>submit($a(".tk-sort [data-k]").map(r=>{const p=r.querySelector('[aria-pressed="true"]');return p?+p.dataset.b:-1}))}
+    else if(st.k==="form")ok.onclick=()=>submit($a(".tk-form input").map(x=>x.value));
+    else if(ok&&inp){ok.onclick=()=>submit(inp.value);if(st.k==="gap")inp.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();e.stopPropagation();submit(inp.value)}};setTimeout(()=>{try{inp.focus()}catch(e){}},300)}
+    $a(".tk-hints [data-h]").forEach(b=>b.onclick=()=>{const h=+b.dataset.h;const out=$q(".tk-out");
+      if(h===1){out.innerHTML=`<div class="card" style="background:var(--sunk)"><div class="eyebrow">Regel <span class="en">rule</span></div><div>${tkE(st.why||"")}</div></div>`;return}
+      hint=Math.max(hint,h);const m=tkWant(st);
+      out.innerHTML=h===2?`<div class="card pk-shadow"><div class="eyebrow">Dein Schatten flüstert</div><div class="sh-de">${tkE(tkFill(st.whisper||String(m).split(" ").slice(0,2).join(" ")+" …"))}</div></div>`
+        :`<div class="card" style="background:var(--sunk)"><div class="eyebrow">Mephisto sagt vor – übernehmen Sie es</div><div class="st-de">${tkE(m)}</div></div>`})}
+  function submit(val){const st=steps[i];if(box.dataset.tkBusy==="1")return;box.dataset.tkBusy="1";setTimeout(()=>{delete box.dataset.tkBusy},250);
+    const r=tkCheck(st,val);res[i]={part:r.part,hint,ok:r.ok};try{if(typeof fb==="function")fb(r.ok)}catch(e){}
+    const base=i-ndyn;if(hint===3&&!walk&&base>=0&&!st._dyn){const tk=tkP();tk.bag=(tk.bag||[]).filter(b=>!(b.id===t.id&&b.i===base)).concat([{id:t.id,i:base,d:tkDay()}]).slice(-24)}
+    if(!r.ok)tkMissErrors(t,st,val,r);
+    tkEmit("ex.answer",{kind:"task",src:"tk",ref:t.id,lesson,type:st.k,q:String(st.q||st.say||"").slice(0,160),ok:!!r.ok,part:r.part,given:typeof val==="string"?val.slice(0,120):JSON.stringify(val||"").slice(0,120),want:tkWant(st).slice(0,120),
+      key:"tk:"+t.id+":"+(st._dyn?"d"+i:base),flags:(first?tkEvf("FIRST"):0)|(hint>=2||walk?tkEvf("HELP"):0)|(st.k==="mc"&&st.o.length<=3?tkEvf("MC3"):0),ch:t.n});first=false;
+    const out=box.querySelector(".tk-out");const sol=tkWant(st);
+    const detail=st.k==="spot"?st.bad.map(k=>`<div><b>${tkE(st.text[k])}</b> – ${tkE((st.whyEach||{})[k]||"")}</div>`).join("")
+      :st.k==="sort"?(r.miss||[]).map(k=>`<div><b>${tkE(st.bins[st.items[k][1]]+" "+st.items[k][0])}</b>${st.items[k][2]?" – "+tkE(st.items[k][2]):""}</div>`).join("")
+      :st.k==="form"?(r.miss||[]).map(k=>`<div><b>${tkE(st.fields[k].l)}</b> – ${tkE(st.fields[k].model||"")}</div>`).join("")
+      :st.k==="write"?(r.res||[]).map(g=>`<div>${g.ok?"✓":"○"} ${tkE(g.n)}</div>`).join("")+(r.bad||[]).map(b=>`<div>✗ ${tkE(b)}</div>`).join(""):"";
+    out.innerHTML=`<div class="card ${r.ok?"":"ab-bad"} fade-in"><b>${r.ok?"Richtig.":r.part>0?"Teilweise.":"Falsch."}</b> ${r.fb?tkE(r.fb):""}${!r.ok&&sol&&st.k!=="write"&&st.k!=="form"&&st.k!=="sort"&&st.k!=="spot"?`<div class="st-de">${tkE(sol)}</div>`:""}${detail}${st.why?`<small class="muted ui">${tkE(st.why)}</small>`:""}${st.k==="write"&&st.model?`<details><summary>Musterlösung</summary><div class="st-de" style="white-space:pre-wrap">${tkE(tkFill(st.model))}</div></details>`:""}${st.k==="write"&&st.coach?`<details class="tk-coachd"><summary>Ausführliche Rückmeldung <span class="en">coach</span></summary><div class="tk-coach"></div></details>`:""}</div>`;
+    if(st.k==="write"&&st.coach){try{const cd=out.querySelector(".tk-coach");if(cd&&typeof teachRender==="function"&&typeof val==="string"&&val.trim())teachRender(cd,val,{t:st.coach})}catch(e){}}
+    box.querySelectorAll(".tk-ok,.tk-ch button,.tk-chips button,.tk-hints button,.tk-undo").forEach(b=>b.disabled=true);
+    try{if(!o.only&&!walk){const rr=tkRec(t.id)||{};const tk=tkP();tk[t.id]=Object.assign({tries:0,fails:0,best:0},rr,{cur:{i:j+1,res:res.map(x=>x&&{part:x.part,hint:x.hint}),sig,d:tkDay()}});tkSave()}}catch(e){}
+    const nav=box.querySelector(".tk-nav");nav.innerHTML=`<button class="go tk-next">Weiter <span class="en">next</span></button>`;nav.querySelector(".tk-next").onclick=()=>{j++;draw()};
+    try{out.scrollIntoView({block:"nearest",behavior:"smooth"})}catch(e){}}
+  function end(){const sc=tkPoints(t,res,steps);const pass=sc.pass&&!walk;const tk=tkP();const was=tkRec(t.id)||{};const d=tkDay();
+    const r=Object.assign({tries:0,fails:0,best:0},was);delete r.cur;r.tries=(+r.tries||0)+1;r.last=d;r.max=sc.max;r.best=Math.max(+r.best||0,sc.p);
+    const firstPass=pass&&!was.pass;if(pass){if(!r.pass)r.d=d;r.pass=1;delete r.grey}else if(walk){if(!r.pass){r.grey=1;r.d=r.d||d}}else r.fails=(+r.fails||0)+1;
+    tk[t.id]=r;tkSave();if(firstPass)tkEffects(t,t.fx&&t.fx.win);
+    try{if(pass&&typeof SND!=="undefined")SND.fx("seal")}catch(e){}
+    try{logDay("task")}catch(e){}try{logEvent("task",`Kapitel ${t.n} · ${t.title} · ${sc.p}/${sc.max}`,Math.round(100*sc.p/Math.max(1,sc.max)))}catch(e){}
+    tkEmit("task.done",{id:t.id,ch:t.n,pass,grey:!pass&&walk,p:sc.p,max:sc.max,tries:r.tries});
+    const missed=steps.map((st,k)=>({st,r:res[k]})).filter(x=>x.r&&!x.r.ok);const ph=tkPhase(t);
+    const line=pass?t.win:walk?TK_GREY:t.lose;
+    box.innerHTML=`<div class="stack tk-run"><div class="card orn">${tkSayHTML(line)}</div><p class="ui" style="text-align:center">${sc.p} / ${sc.max} Punkte · bestanden ab ${sc.need}${walk?" · graues Siegel":""}</p>
+      ${missed.length?`<div class="card stack s"><div class="eyebrow">Sprachfokus <span class="en">language focus</span></div>${missed.map(m=>`<div><b>${tkE(tkFill(m.st.q||m.st.say||m.st.do||""))}</b> → ${tkE(tkWant(m.st))}${m.st.why?`<br><small class="muted ui">${tkE(m.st.why)}</small>`:""}</div>`).join("")}</div>`:""}
+      <div class="row tk-endnav" style="flex-wrap:wrap;gap:.4rem"></div></div>`;
+    const nav=box.querySelector(".tk-endnav");
+    const fin=(res2)=>{box.dataset.tkDone="1";try{if(o.onDone)o.onDone(res2)}catch(e){}};
+    if(pass||walk){nav.innerHTML=`<button class="go tk-done">Weiter in der Geschichte <span class="en">on with the story</span></button>`;
+      nav.querySelector(".tk-done").onclick=()=>fin({pass,grey:!pass,p:sc.p,max:sc.max,lines:[tkLine(line)].concat((t.after||[]).map(l=>l.slice()))});return}
+    nav.innerHTML=`<button class="sm ghost tk-later">Später <span class="en">later</span></button>${ph.walk?`<button class="sm tk-walk">§ 6: mit Mephisto gemeinsam</button>`:""}<button class="go tk-again">${ph.busse&&tkBusseOk(t,o)?"Erst die Buße, dann noch einmal":"Nur die Fehler noch einmal"}</button>`;
+    nav.querySelector(".tk-later").onclick=()=>{if(o.standalone){fin({pass:false,p:sc.p,max:sc.max})}else box.innerHTML=`<div class="card"><p class="ui">Die Geschichte wartet hier. <span class="en">The story waits here.</span></p><button class="go sm tk-re">Noch einmal versuchen</button></div>`;const re=box.querySelector(".tk-re");if(re)re.onclick=()=>tkRun(box,t,Object.assign({},o,{only:null,prev:null}))};
+    const w=nav.querySelector(".tk-walk");if(w)w.onclick=()=>tkRun(box,t,Object.assign({},o,{walk:true,only:null,prev:null,steps:t.steps,ndyn:0}));
+    nav.querySelector(".tk-again").onclick=()=>{if(ph.busse&&tkBusseOk(t,o))return tkBusse(box,t,o);const keep=steps.map((_,k)=>k).filter(k=>!res[k]||!res[k].ok);tkRun(box,t,Object.assign({},o,{only:keep,prev:res,steps,ndyn}))}}
+  draw()}
+// Buße before the third attempt (I4 P5.3): eight exercises of the chapter's lesson through gramRunner, once per day
+function tkBusseOk(t,o){try{const id=t.lesson||(o.c&&o.c.lesson);const g=(typeof GRAMMAR!=="undefined"?GRAMMAR:[]).find(x=>x.id===id);return !!(g&&g.ex&&g.ex.length&&typeof gramRunner==="function"&&typeof pickEx==="function")}catch(e){return false}}
+function tkBusse(box,t,o){const id=t.lesson||(o.c&&o.c.lesson);const g=(typeof GRAMMAR!=="undefined"?GRAMMAR:[]).find(x=>x.id===id);
+  const open=()=>{const r=tkRec(t.id);if(r){r.busse=tkDay();tkSave()}tkRun(box,t,Object.assign({},o,{only:null,prev:null}))};
+  try{box.innerHTML=`<div class="card orn">${tkSayHTML(["Erst die Buße. Acht Übungen aus der Lektion. Dann öffne ich die Aufgabe wieder.","Penance first. Eight exercises from the lesson. Then I open the task again.","Erst die Buße. Acht Übungen aus der Lektion. Dann öffne ich die Aufgabe wieder."])}</div><div class="tk-bx"></div>`;
+    gramRunner(box.querySelector(".tk-bx"),pickEx(g.ex,8),{lesson:g.id,onDone:open})}catch(e){open()}}
+// ---------------------------------------------------------------- 6. the reader: RD pass 20 + TL handler "t"
+function tkCard(line,c){const id=String(line[1]||"");const t=tkById(id);if(!t)return "";const ty=(TK_TYPES||{})[t.type]||{de:"Aufgabe",en:"task"};const st=tkState(id);
+  const locked=!st.pass&&!st.grey&&tkLocked(t,c);const rec=tkRec(id)||{};
+  return `<div class="eyebrow">Aufgabe · ${tkE(ty.de)} <span class="en">${tkE(ty.en)}</span></div><h3 style="margin:.2rem 0">${tkE(t.title)}</h3>${st.pass||st.grey?"":tkSayHTML(t.setup)}
+    ${locked?`<p class="muted ui">Erst die Vorbereitung: die Lektion dieses Kapitels einmal öffnen. <span class="en">Prepare first: open this chapter's lesson once.</span></p><button class="sm" data-act="tkLesson" data-id="${tkE(c.lesson)}">Zur Lektion</button>`:""}
+    ${!st.pass&&!st.grey&&rec.cur?`<small class="muted ui">Angefangen – es geht dort weiter, wo Sie aufgehört haben.</small>`:""}`}
+const TK_TL={
+  card:(line,c)=>tkCard(line,c),
+  state:id=>tkState(id),
+  open(box,id,done,api){const t=tkById(id);if(!t){done({pass:false});return}const c=(api&&api.c)||(typeof pkCh==="function"?pkCh(t.n):null);
+    if(!tkState(id).pass&&tkLocked(t,c)){box.innerHTML=`<div class="card"><p class="ui">Erst die Vorbereitung: die Lektion einmal öffnen. Dann wartet die Aufgabe hier.</p><button class="go sm" data-act="tkLesson" data-id="${tkE(c.lesson)}">Zur Lektion <span class="en">to the lesson</span></button></div>`;return}
+    tkRun(box,t,{c,onDone:r=>done(r)})}};
+try{if(typeof TL!=="undefined"&&TL.reg)TL.reg("t",TK_TL)}catch(e){}
+// pass 20: the chapter's task line at @task (chapters 1–39). 34/36/38 → i6's station ids (kept only when i6 registers "bv"; RD drops unknown T).
+function tkPass(L,c,ctx){try{if(!ctx||ctx.kind!=="chapter"||!c)return;const t=tkOfChapter(c.n);if(!t)return;
+    if(L.some(l=>Array.isArray(l)&&l[0]==="T"&&l[1]===t.id))return;
+    const line=t.station?["T",t.id,{ch:c.n,part:t.part}]:["T",t.id];ctx.insert("task",[line])}catch(e){}}
+try{if(typeof RD!=="undefined"&&RD.pass)RD.pass("i5",20,tkPass)}catch(e){}
+ACT.tkLesson=el=>{try{const id=el.dataset.id;try{if(Focus.isOpen())Focus.close(true)}catch(e){}go("learn","id:"+id)}catch(e){}};
+// ---------------------------------------------------------------- 7. the gate item (i4's provider i4.task reads tkGateItem / tkState)
+function tkGateItem(n){try{const c=typeof pkCh==="function"?pkCh(n):null;const t=tkOfChapter(n);if(!t)return null;
+    if(t.station&&!(typeof TL!=="undefined"&&TL.get(t.id)))return null;const st=tkState(n);const r=t.station?{}:(tkRec(t.id)||{});
+    let de=`Aufgabe: ${t.title}`;if(st.pass)de+=r.d?` · bestanden am ${(typeof fmtDate==="function"?fmtDate(r.d):r.d)}`:" · bestanden";else if(st.grey)de+=" · graues Siegel (mit Hilfe)";else if(st.fails)de+=` · ${st.fails} Versuch${st.fails===1?"":"e"}`;
+    return {k:"task",ok:!!(st.pass||st.grey),grey:!!st.grey&&!st.pass,de,en:"the chapter task: "+(((TK_TYPES||{})[t.type]||{}).en||"task"),act:"tkGate",id:String(n)}}catch(e){return null}}
+// standalone run from the gate (outside the reader): a Focus box of its own
+ACT.tkGate=el=>{try{const n=+(el&&el.dataset&&el.dataset.id)||P().ch;const t=tkOfChapter(n);if(!t)return;const c=pkCh(n);
+    if(t.station){try{if(typeof bvOpen==="function")return bvOpen(t.id,{ch:n,part:t.part})}catch(e){}return}
+    const box=Focus.open({title:`Kapitel ${n} · ${t.title}`,sub:"Aufgabe",onClose:()=>{try{rerender()}catch(e){}}});
+    tkRun(box,t,{c,standalone:true,onDone:()=>{try{Focus.close()}catch(e){}}})}catch(e){try{logError(e)}catch(x){}}};
+// fallback while i4's GATE is absent: the task item joins the 13.0 gate (declared MOD.around on pkGate, inactive once GATE exists)
+(function(){try{if(typeof MOD==="undefined"||!MOD.around||typeof pkGate!=="function")return;
+  MOD.around("pkGate","i5",function(orig,c){const g=orig(c);try{if(typeof GATE!=="undefined"||!g||!Array.isArray(g.items)||!c)return g;if(c.n>=CHAPTERS.length)return g;
+      const it=tkGateItem(c.n);if(!it||g.items.some(x=>x.k==="task"))return g;g.items.unshift(it);if(!it.ok)g.ready=false}catch(e){}return g})}catch(e){}})();
+
+// ===== Mephisto · i6 · c_i6_bett.js — BVE, the offline patient-dialogue engine of Station Bett vier (pure; no DOM, no state).
+// I10 §4 reference engine with all 17 principles, wrapped and published as window.BVE. PLAN-I R3: fspPatient / FSP_CASES / c_fix / c_r4 are NOT touched;
+// BVE.fromCase(fspCase) builds a station from an FSP case so the FSP simulator can adopt this engine later with one call.
+// API: BVE.patient(st|id,{now}) → {ask(text)→{a,k,flags}, M, min(), left()} · BVE.score(st,M) → {dims,max,tot,mx,pct,pass,miss}
+//      BVE.get(id) · BVE.all() · BVE.resolve(st) · BVE.fromCase(c) · BVE.night(seed,{lv}) · BVE.penance(st,sc,M) · BVE.norm · BVE.re · BVE.lay(text)
+// Globals: BVE, bvNorm (station rubric functions call it).
+var BVE=(function(){
+"use strict";
+const G=typeof window!=="undefined"?window:(typeof globalThis!=="undefined"?globalThis:this);
+const bvNorm=s=>String(s||"").toLowerCase().replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/ß/g,"ss").replace(/[„“"‚‘’']/g,"").replace(/\s+/g," ").trim();
+const RE_CACHE=new Map();
+const bvRe=p=>{let r=RE_CACHE.get(p);if(!r){r=new RegExp(bvNorm(p),"i");RE_CACHE.set(p,r)}return r};
+// [id, rubric, priority, kind q|s|x, pattern] — I10 BV_INT (60 intents)
+const BV_INT=[
+ ["du","",99,"x","\\b(du|dich|dir|dein\\w*|bist du|hast du|kannst du|sag mal)\\b"],
+ ["greet","open",90,"s","^(guten (tag|morgen|abend)|hallo|grüß gott|grüss gott|servus|moin)\\b"],
+ ["intro","open",91,"s","\\b(ich bin|mein name ist|ich heiße)\\b.{0,40}\\b(dr\\.?|doktor|arzt|ärztin|assistenzarzt|diensthabend)"],
+ ["spell","pd",89,"q","buchstabier|wie schreibt man (das|ihren)|schreibt sich das"],
+ ["name","pd",88,"q","wie heißen sie|wie ist ihr (vor|nach|familien)?name|ihren? (vor|nach|familien)?namen? (bitte|nennen|sagen)|\\bwer sind sie|mit wem spreche ich|wie war (noch mal )?ihr name"],
+ ["dob","pd",87,"q","wann sind sie geboren|geburtsdatum|wann haben sie geburtstag|wann (ist|wurde) .{0,20}geboren|wie alt (sind sie|ist (er|sie|ihr|der|die))|ihr alter"],
+ ["size","pd",86,"q","wie groß (sind|ist)|wie viel wiegen|wie viel wiegt|wie schwer (sind|ist)|ihr (aktuelles )?gewicht\\b|körpergröße|größe und gewicht"],
+ ["gp","pd",85,"q","hausarzt|hausärztin|wer behandelt sie sonst"],
+ ["consent","open",84,"q","darf ich sie (kurz |jetzt )?(untersuchen|abhören|abtasten)|sind sie (damit )?einverstanden|ist das (für sie )?in ordnung|darf ich ihnen (ein paar|einige) fragen"],
+ ["drugs","nox",80,"q","drogen|rauschgift|cannabis|kiffen|kokain|heroin|andere substanzen"],
+ ["smoke","nox",79,"q","rauch|zigarett|nikotin|tabak|schachtel"],
+ ["alcohol","nox",78,"q","alkohol|trinken sie (bier|wein|schnaps|regelmäßig)|\\b(bier|wein|schnaps)\\b|wie viel trinken sie (am|pro)"],
+ ["allergy","all",77,"q","allergi|vertragen sie|unverträglich|überempfindlich|reagieren sie (auf|gegen)|heuschnupfen"],
+ ["ops","pmh",76,"q","operiert|operation|\\bop\\b|eingriff|im krankenhaus (gewesen|gelegen|behandelt)|schon (ein)?mal im krankenhaus|stationär"],
+ ["meds","meds",75,"q","medikament|tablette|arznei|was nehmen sie|nehmen sie (regelmäßig|etwas|irgendwelche|zurzeit|blut)|einnehm|blutverdünn|\\bpille\\b|\\bspray|insulin|schmerzmittel|medikamentenplan"],
+ ["selfmed","hpi",74,"q","(selbst|schon) (schon )?etwas (dagegen )?(ein)?genommen|dagegen (ein)?genommen|etwas (versucht|probiert)|hat (das|es) geholfen"],
+ ["pmh","pmh",73,"q","vorerkrank|grunderkrank|chronisch|leiden sie (an|unter)|andere krankheiten|bekannte erkrank|bluthochdruck|hoher blutdruck|zuckerkrank|diabetes|herzkrank|lungenkrank|schilddrüse|in (ärztlicher )?behandlung|sonst gesund|ernsthaft krank"],
+ ["family","fam",72,"q","famil|ihre eltern|ihr vater|ihre mutter|geschwister|erbkrank|erblich|verwandtschaft|leben ihre eltern"],
+ ["gyn","gyn",71,"q","periode|regelblutung|letzte regel|menstruation|schwanger|wechseljahre|geburten|verhütung|frauenarzt|frauenärztin"],
+ ["vacc","vacc",70,"q","geimpft|impfung|impfpass|impfheft|tetanus|grippeimpf|u-heft"],
+ ["travel","travel",69,"q","ausland|verreist|\\breise|urlaub|geflogen|langen flug|lange (auto|bus)fahrt"],
+ ["job","soc",68,"q","beruf|was arbeiten sie|arbeiten sie (noch|als)|was machen sie beruflich|berufstätig|in rente|berentet|was haben sie gearbeitet|stress (bei|im|in) |schwere arbeit|körperlich (schwer|anstrengend)"],
+ ["home","soc",67,"q","wie wohnen|wo wohnen|wohnen sie|leben sie (allein|zusammen|mit)|mit wem leben|verheiratet|familienstand|haben sie kinder|\\bpartner|treppen steigen|stockwerk|im wievielten stock|aufzug|kommen sie (zu hause )?(allein )?zurecht|versorgen sie sich|pflegedienst|wer kümmert sich|haustier|\\bhund"],
+ ["onset","hpi",60,"q","seit wann|wann (hat|haben|ist|fing|begann|ging) |wie lange (haben|geht|besteht|ist das)|plötzlich|schleichend|allmählich|auf einmal"],
+ ["site","hpi",59,"q","wo (genau )?(tut|haben|ist|spüren|sitzt|drückt)|zeigen sie (mir|bitte)|darauf zeigen|mit (einem|dem) finger|an welcher stelle|wo genau"],
+ ["radiation","hpi",58,"q","strahlt|ausstrahl|zieht (der schmerz|es|das) |wandert (der|es)"],
+ ["severity","hpi",57,"q","skala|von (0|null|1|eins) bis (10|zehn)|wie stark|wie schlimm"],
+ ["character","hpi",56,"q","wie fühlt (sich|es)|wie würden sie (den|die|das)|beschreiben sie|können sie (den|die|das) .{0,25}beschreiben|eher (drückend|stechend|dumpf|brennend)|drückend oder|stechend oder|was für (ein|eine) (schmerz|gefühl)|art von schmerz"],
+ ["timing","hpi",55,"q","dauernd|die ganze zeit|ständig da|kommt und geht|in wellen|anfallsweise|wie oft (kommt|haben|passiert)|wie lange dauert|immer da|durchgehend"],
+ ["modify","hpi",54,"q","\\bbesser\\b|schlimmer|schlechter|linder|verstärk|auslös|hilft (ihnen )?(etwas|irgendetwas)|wodurch|bei (bewegung|belastung|anstrengung)|in ruhe|beim (atmen|einatmen|essen|liegen|gehen|laufen|treppensteigen|husten)|wenn sie (liegen|gehen|sich bewegen|sich hinlegen)|im liegen"],
+ ["context","hpi",53,"q","was haben sie (gerade |da )?gemacht|wobei ist|in welcher situation|wie ist (es|das) (dazu )?(gekommen|passiert)|wie ist das passiert"],
+ ["prior","hpi",52,"q","schon (ein)?mal (gehabt|passiert|so)|hatten sie (das|so etwas|solche|diese) .{0,25}(schon|früher)|kennen sie (das|diese|solche)|zum ersten mal|das erste mal|ist ihnen (das|so etwas) schon"],
+ ["a_dys","hpi",50,"q","luftnot|atemnot|kurzatmig|bekommen sie (gut |schlecht )?luft|schwer atmen|außer atem|schnauf"],
+ ["a_cough","hpi",49,"q","husten|auswurf|schleim"],
+ ["a_fever","hpi",48,"q","fieber|temperatur gemessen|schüttelfrost|erhöhte temperatur"],
+ ["a_nausea","hpi",47,"q","übel|erbr|übergeben|brechen müssen|gebrochen"],
+ ["a_chest","hpi",46,"q","brustschmerz|schmerzen in der brust|druck (auf|in) der brust|engegefühl|brustenge"],
+ ["a_palp","hpi",45,"q","herzrasen|herzklopfen|herzstolpern|herz (rast|stolpert|klopft)|unregelmäßig(er|en)? (puls|herzschlag)"],
+ ["a_edema","hpi",44,"q","geschwollen|dicke (beine|füße|knöchel)|wasser in den (beinen|füßen)|schwellung|schuhe .{0,15}(eng|passen)"],
+ ["a_dizzy","hpi",43,"q","schwind|schwarz vor (den )?augen|ohnmächt|bewusstlos|umgekippt|kollabiert|das bewusstsein verloren"],
+ ["a_sweat","hpi",42,"q","schwitz|schweißausbr|nachtschweiß|kaltschweiß"],
+ ["a_head","hpi",41,"q","kopfschmerz|kopfweh"],
+ ["a_neuro","hpi",40,"q","lähmung|taub(heit)?|kribbel|probleme beim sprechen|sehstörung|doppelbilder|kraft in (den|ihren)"],
+ ["v_app","veg",35,"q","appetit|hunger|essen sie (normal|gut|weniger)|wann haben sie zuletzt gegessen|zuletzt gegessen"],
+ ["v_weight","veg",34,"q","abgenommen|zugenommen|gewicht (verloren|verändert|zugelegt)|ab- oder zugenommen|wiegen sie (mehr|weniger)"],
+ ["v_stool","veg",33,"q","stuhlgang|\\bstuhl\\b|durchfall|verstopf|teerstuhl|schwarzer stuhl|schwarze farbe|blut im stuhl"],
+ ["v_urine","veg",32,"q","wasserlassen|wasser lassen|\\burin|pinkeln|harndrang|brennen beim|nachts (raus|auf die toilette|zur toilette)|toilette gehen"],
+ ["v_sleep","veg",31,"q","schlafen sie|\\bschlaf\\b|durchschlafen|flach liegen|kissen|nachts (wach|aufwachen)"],
+ ["v_thirst","veg",30,"q","durst|trinken sie (viel|mehr|genug|ausreichend)|wie viel trinken sie am tag|trinkmenge"],
+ ["ros","ros",25,"q","sonst noch (etwas|beschwerden|irgendetwas)|andere beschwerden|noch etwas aufgefallen|von kopf bis fuß|probleme mit (den augen|dem hören|dem schlucken|den gelenken|der haut)"],
+ ["cc","hpi",24,"q","was führt sie|was kann ich für sie tun|wie kann ich (ihnen )?helfen|was fehlt ihnen|weshalb sind sie|warum sind sie (hier|heute|gekommen)|was ist (denn )?(passiert|los)|worum geht es|welche beschwerden|was haben sie für beschwerden|erzählen sie|wie geht es ihnen|was ist das problem|wo drückt der schuh"],
+ ["ice","emp",23,"q","was glauben sie|was vermuten sie|was denken sie selbst|haben sie (selbst )?eine (idee|vermutung)|wovor haben sie angst|was befürchten|was macht ihnen (am meisten )?sorgen|was erwarten sie|was wünschen sie sich"],
+ ["summary","struct",22,"s","habe ich (sie|das) richtig verstanden|ich fasse (kurz )?zusammen|darf ich (kurz )?zusammenfassen|stimmt das so|um das zusammenzufassen|wenn ich sie richtig versteh"],
+ ["signpost","struct",21,"s","als nächstes (möchte|würde|frage)|jetzt (möchte|würde) ich (ihnen )?(gern )?(ein paar|einige|noch)|ich (möchte|würde) (ihnen )?(jetzt |nun |gern )?(ein paar|einige) fragen|kommen wir (jetzt |nun )?zu|(ich habe|habe ich) (jetzt |nun )?noch (ein paar|einige) fragen|fragen zu (ihren|ihrer|ihrem)|zum schluss|zuerst .{0,30}dann"],
+ ["empathy","emp",20,"s","tut mir (sehr )?leid|kann (ich )?(gut |sehr gut )?(verstehen|nachvollziehen|mir vorstellen)|ich sehe,? dass|ich merke,? dass|das (ist|war|klingt) (sicher|bestimmt|wirklich) |das muss .{0,30}(sein|gewesen sein)|sie (wirken|sind) (sehr )?(besorgt|ängstlich|erschöpft)|das macht ihnen (angst|sorgen)|ich (bleibe|bin) (bei ihnen|für sie da)|wir kümmern uns|lassen sie sich zeit|keine sorge|danke,? dass sie|das ist verständlich|das verstehe ich"],
+ ["explain","expl",19,"s","ich vermute|ich denke,? dass|ich gehe davon aus|mein verdacht|es (könnte|handelt) sich|wahrscheinlich|wir (werden|machen|müssen|nehmen|möchten|würden)|das (bedeutet|heißt),? dass|um das (zu klären|abzuklären|herauszufinden)"],
+ ["close","close",18,"q","haben sie (noch |dazu )?fragen|noch etwas (wichtiges|auf dem herzen)|gibt es (noch )?etwas,? (das|was) ich|möchten sie (noch )?etwas (wissen|fragen)|habe ich etwas vergessen|(das|was) ich nicht gefragt"],
+ ["bye","close",17,"s","auf wiedersehen|gute besserung|ich komme (gleich|später) (wieder|zurück)|bespreche .{0,40}(oberarzt|oberärztin)|bis (gleich|später)|alles gute"]
+];
+const BV_I=BV_INT.map(r=>({id:r[0],rub:r[1],pr:r[2],kind:r[3],re:bvRe(r[4])}));
+const BV_NEAR=[["schmerz|weh","Meinen Sie, wo es wehtut – oder seit wann?"],["essen|trinken","Meinen Sie, ob ich Appetit habe?"],["zu hause|daheim","Fragen Sie, wie ich wohne?"],["früher|vorher|vergangen","Meinen Sie, ob ich früher schon krank war?"],["nehmen|schlucken","Meinen Sie meine Tabletten?"],["arbeit","Sie wollen wissen, was ich arbeite?"],["herz|lunge|magen|niere","Fragen Sie, ob ich damit schon einmal etwas hatte?"]].map(([p,a])=>[bvRe(p),a]);
+const BV_FALL=["Wie bitte? Das habe ich nicht verstanden.","Entschuldigung, können Sie das einfacher sagen?","Was meinen Sie damit, Herr Doktor?","Das war mir jetzt zu schnell. Noch einmal, bitte.","Ich weiß nicht, was Sie von mir wissen wollen."];
+const BV_MHM=["Mhm.","Ja.","Aha.","Gut.","Ja, ist recht."];
+const FACH_CORE="dyspnoe|thorax|abdomen|emesis|nausea|vertigo|synkope|ödeme?|miktion|defäkation|hypertonie|diabetes mellitus|myokardinfarkt|apoplex|appendizitis|pneumonie|analgetik\\w*|antikoagul\\w*|diuretik\\w*|pleurapunktion|pleuraerguss|kardial\\w*|dekompens\\w*|herzinsuffizienz|vorhofflimmern|nüchternheit|palpitation\\w*|anamnese|noxen|vegetativ\\w*|intravenös|subkutan|exazerbation|orthopnoe|nykturie|inappetenz|obstipation|diarrhoe?|hämatemesis|meläna|fraktur|commotio|sedierung|intoxikation|tachykard\\w*|hypoton\\w*|febril\\w*|progredient\\w*|rezidivier\\w*";
+let FACH=bvRe("\\b("+FACH_CORE+")\\b"),FACH_N=0;
+// Principle 11: the lay filter = core list ∪ first word (≥ 6 letters) of the Fach column of FSP_TERMS.terms, minus any word a patient of the 20 stations says herself.
+function fachInit(){try{if(FACH_N||typeof FSP_TERMS==="undefined"||!FSP_TERMS||!Array.isArray(FSP_TERMS.terms))return;
+    const said=new Set();try{all().forEach(st=>{const take=v=>{if(typeof v==="string")bvNorm(v).split(/[^a-z]+/).forEach(w=>w&&said.add(w));else if(Array.isArray(v))v.forEach(take)};Object.values(st.ans||{}).forEach(take);Object.values(st.ans2||{}).forEach(take);(st.hid||[]).forEach(h=>take(h.a));take(st.open)})}catch(e){}
+    const add=new Set();FSP_TERMS.terms.forEach(t=>{const w=bvNorm(String(t.fach||"").replace(/^(der|die|das|ein|eine)\s+/i,"")).split(/[^a-z]+/).filter(Boolean)[0];if(w&&w.length>=6&&!said.has(w))add.add(w.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"))});
+    if(add.size){FACH=new RegExp("\\b("+bvNorm(FACH_CORE)+"|"+[...add].join("|")+")\\b","i");FACH_N=add.size}}catch(e){}}
+// Principle 16 (I10 BV_ERR, 24 patterns for Arabic- and English-speaking learners)
+const BV_ERR=[["\\bich (arzt|doktor)\\b","„Ich bin Arzt.“ – das Verb „sein“ fehlt (im Arabischen steht hier kein Verb).","g2"],["\\bich bin ein (arzt|doktor)\\b","„Ich bin Arzt.“ – Beruf ohne Artikel (englisch: a doctor).","g58"],
+ ["wie alt haben sie|wie viele? jahre haben sie","„Wie alt sind Sie?“ – Alter mit „sein“, nicht mit „haben“.","g2"],["(seit wann|wie lange) haben sie .{0,40}(gehabt|gewesen)","„Seit wann haben Sie die Schmerzen?“ – seit + Präsens (englisch: have you had).","g9"],
+ ["seit (\\w+) (tage|monate|jahre)\\b","„seit drei Tagen / Monaten / Jahren“ – Dativ Plural mit -n.","g5"],["allergi(e|sch) (von|fuer|mit|zu)\\b","„allergisch gegen …“ (nicht von/für/zu).","g35"],["nehmen sie medizin|medizin (nehmen|genommen)","„Nehmen Sie Medikamente?“ – „Medizin“ ist das Fach (englisch: medicine).","p5"],
+ ["wie fuehlen sie\\b(?! sich)","„Wie fühlen Sie sich?“ – reflexiv.","g38"],["\\bich will (sie|ihnen|jetzt|ihre)","„Ich möchte / Ich werde …“ – „ich will“ heißt „I want“, nicht „I will“.","g7"],["was ist (ihr|das) problem","Zu schroff. „Was führt Sie zu uns?“ / „Was kann ich für Sie tun?“","m1"],
+ ["\\b(weil|dass|ob|wenn) (sie|ich|er|wir|es) (haben|hat|habe|sind|ist|bin|koennen|kann|muessen|muss|werden|wird|nehmen|nimmt)(?= \\w)","Nebensatz: Das Verb steht am Ende – „…, weil Sie Schmerzen haben.“","g40"],["^(heute|jetzt|dann|gestern|zuerst|danach|morgen|hier) (ich|wir|sie) ","Verb auf Platz zwei: „Jetzt untersuche ich Sie.“","g3"],
+ ["^(was|wo|wann|wie|warum) (sie|du) (haben|sind|nehmen|fuehlen|machen)","W-Frage: Verb direkt nach dem Fragewort – „Was haben Sie …?“","g32"],["haben sie (einen )?schmerz\\b","„Haben Sie Schmerzen?“ – fast immer im Plural.","g33"],["schmerzen in (kopf|bauch|brust|ruecken|bein|arm)\\b","Artikel fehlt: „im Bauch“, „in der Brust“, „im Rücken“.","g6"],
+ ["bazient|batient|broblem|blatz|pabier|bitte nehmen sie blatz","p, nicht b: Patient, Problem, Platz, Papier.","g1"],["ich moechte (ihnen )?fragen (sie|einige|ein paar)|ich moechte untersuchen sie","Satzklammer: „Ich möchte Ihnen einige Fragen stellen.“ – Infinitiv ans Ende.","g7"],["erzaehlen sie (mir )?ueber","„Erzählen Sie mir von …“ (englisch: tell me about).","g5"],
+ ["\\bsitzen sie (bitte|sich|hier)","„Setzen Sie sich bitte.“ – sitzen = Zustand, sich setzen = Bewegung.","g59"],["(ich|wir) (helfe|helfen) sie\\b|ich frage ihnen","helfen + Dativ: „Ich helfe Ihnen.“ · fragen + Akkusativ: „Ich frage Sie.“","g39"],["wie viel (zigaretten|tabletten|kinder|kissen)","„wie viele“ bei zählbaren Dingen.","g36"],
+ ["nehmen sie (alkohol|zigaretten)","„Trinken Sie Alkohol?“ · „Rauchen Sie?“ – nicht „nehmen“.","m3"],["\\bin (19|20)\\d\\d\\b","„2019“ oder „im Jahr 2019“ – nie „in 2019“.","g36"],["\\b(mit|von|bei|zu) sie\\b","Dativ nach mit/von/bei/zu: „mit Ihnen“.","g5"]].map(r=>[new RegExp(r[0],"i"),r[1],r[2]]);
+const BV_OPEN=bvRe("^(was führt|erzählen sie|wie kann ich|was kann ich|beschreiben sie|wie geht es|was ist passiert|und (dann|weiter)|was noch|wie war das)");
+const BV_FU={hpi:"Das kann ich nicht genauer sagen.",veg:"Genau weiß ich es nicht. Ich habe nicht darauf geachtet.",pmh:"Das ist lange her. Es war alles in Ordnung damals.",meds:"Das steht alles auf dem Plan.",all:"Ich habe Ausschlag bekommen, am ganzen Körper.",nox:"So wie ich gesagt habe. Nicht mehr.",fam:"Mehr weiß ich darüber nicht.",soc:"Wie ich gesagt habe.",pd:"Wie gesagt."};
+const BV_NEG={a_dys:"Nein, Luft bekomme ich gut.",a_cough:"Nein, Husten habe ich nicht.",a_fever:"Nein, Fieber hatte ich nicht.",a_nausea:"Nein, übel ist mir nicht.",a_chest:"Nein, in der Brust tut nichts weh.",a_palp:"Nein, das Herz schlägt ganz ruhig.",a_edema:"Nein, die Beine sind nicht dick.",a_dizzy:"Nein, schwindelig war mir nicht.",a_sweat:"Nein, geschwitzt habe ich nicht.",a_head:"Nein, Kopfschmerzen habe ich keine.",a_neuro:"Nein, da ist alles wie immer.",
+ v_app:"Der Appetit ist wie immer.",v_weight:"Mein Gewicht ist gleich geblieben.",v_stool:"Der Stuhlgang ist normal.",v_urine:"Beim Wasserlassen ist alles normal.",v_sleep:"Ich schlafe eigentlich gut.",v_thirst:"Ich trinke so wie immer.",
+ radiation:"Nein, das bleibt an einer Stelle.",timing:"Das ist die ganze Zeit da.",modify:"Nein, das ändert sich nicht.",context:"Nichts Besonderes.",prior:"Nein, so etwas hatte ich noch nie.",selfmed:"Nein, ich habe nichts genommen.",
+ drugs:"Nein, so etwas nehme ich nicht.",travel:"Nein, ich war nicht weg.",vacc:"Ich glaube, ich habe alle Impfungen. Das Heft liegt zu Hause.",gyn:"Das ist bei mir lange vorbei.",ros:"Nein, sonst fehlt mir nichts.",ice:"Ich weiß es nicht. Sie sind der Arzt.",
+ smoke:"Nein, ich rauche nicht.",alcohol:"Alkohol trinke ich fast nie.",pmh:"Nein, ich bin sonst gesund.",meds:"Nein, ich nehme keine Medikamente.",family:"In meiner Familie sind alle gesund.",job:"Ich arbeite ganz normal.",home:"Ich wohne mit meiner Familie zusammen.",onset:"Das weiß ich nicht mehr genau.",site:"Das kann ich nicht genau sagen.",severity:"Das ist schwer zu sagen.",character:"Das kann ich schlecht beschreiben.",name:"Das steht doch auf dem Bogen.",spell:"So, wie man es spricht.",dob:"Das steht auf meiner Karte.",cc:"Mir geht es nicht gut.",
+ ops:"Nein, operiert worden bin ich nie.",allergy:"Nein, Allergien habe ich keine.",gp:"Ich habe keinen festen Hausarzt.",size:"Das weiß ich nicht genau.",consent:"Ja, natürlich.",close:"Nein, im Moment nicht. Danke.",bye:"Danke, Herr Doktor.",greet:"Guten Tag, Herr Doktor.",intro:"Guten Tag, Herr Doktor."};
+const BV_T={greet:M=>M.n.greet||M.n.intro,intro:M=>M.n.intro,open:M=>M.open>0,sum:M=>M.sum>0,sign:M=>M.sign>0,expl:M=>M.expl>0,close:M=>M.n.close||M.n.bye,emp1:M=>M.emp>=1,emp2:M=>M.emp>=2,cue:M=>M.cue&&M.mood>=0,ice:M=>M.n.ice,
+ lead:M=>(M.leadOk||0)>=1,leadall:(M,st)=>(M.leadOk||0)>=(st.lead||[]).length,noerr:M=>(M.errs||[]).length<=1,nodu:M=>M.du===0,nofach:M=>M.jarg.length===0,fewmiss:M=>M.miss.length<=2,norep:M=>M.rep<=1,back:M=>M.log.filter(l=>l.t==="back"&&l.ok).length>=1,h1:M=>M.hid.has("h1"),h2:M=>M.hid.has("h2"),h3:M=>M.hid.has("h3"),hid1:M=>M.hid.size>=1,hid2:M=>M.hid.size>=2,hid3:M=>M.hid.size>=3};
+// ---------------------------------------------------------------- station registry
+let ALL=null;
+function all(){if(ALL)return ALL;const L=[];try{if(typeof BV_ST!=="undefined"&&Array.isArray(BV_ST))BV_ST.forEach(s=>L.push(s))}catch(e){}ALL=L;return L}
+function get(id){return all().find(s=>s.id===id)||null}
+function resolve(st,list){if(!st)return null;if(!st.ext)return st;const b=resolve((list||all()).find(x=>x.id===st.ext),list);if(!b)return st;
+  return Object.assign({},st,{ans:Object.assign({},b.ans,b.ans2||{},st.ans),ans2:Object.assign({},st.ans2||{}),xint:(st.xint||[]).concat((b.xint||[]).filter(x=>!(st.xint||[]).some(y=>y.id===x.id))),neg:Object.assign({},b.neg||{},st.neg||{})})}
+// ---------------------------------------------------------------- the patient
+function patient(st0,opt){opt=opt||{};fachInit();let st=typeof st0==="string"?resolve(get(st0)):resolve(st0);if(!st)throw new Error("BVE: no station "+st0);
+  const now=opt.now||(()=>Date.now());const t0=now();
+  const M={n:{},turns:0,miss:[],cons:0,rub:new Set(),emp:0,empLast:-9,open:0,jarg:[],du:0,rep:0,hid:new Set(),back:[],backOpen:null,cue:0,mood:0,log:[],expl:0,sum:0,sign:0,errs:[],said:"",lead:0,leadOk:0,ltry:0,late:0};
+  st=Object.assign({},st,{ans:Object.assign({},st.ans,st.ans2||{})});
+  const xi=(st.xint||[]).map(x=>({id:x.alias||x.id,rub:x.rub||"hpi",pr:x.pr||95,kind:x.kind||"q",re:bvRe(x.pat)}));const I=xi.concat(BV_I).sort((a,b)=>b.pr-a.pr);
+  const ERRS=BV_ERR.concat((st.err||[]).filter(e=>e[0]).map(e=>[bvRe(e[0]),e[1],e[2]]));
+  const backs=(st.back||[]).map(b=>Object.assign({},b,{_tries:0}));
+  const pick=(k,v)=>Array.isArray(v)?v[Math.min(M.n[k]||0,v.length-1)]:v;
+  const cut=a=>M.mood<0?String(a).split(/(?<=[.!?])\s+/)[0]:a;
+  const min=()=>(now()-t0)/60000;
+  function hidden(k,raw){let out="";(st.hid||[]).forEach(h=>{if(M.hid.has(h.id)||h.on!==k)return;
+      const ok=h.if==="any"||(h.if==="emp"&&M.turns-M.empLast<=3)||(h.if==="open"&&M.open>0)||(h.if==="twice"&&(M.n[k]||0)>=1)||(h.if&&h.if.slice(0,3)==="re:"&&bvRe(h.if.slice(3)).test(raw));
+      if(ok){M.hid.add(h.id);out+=" "+h.a}});return out}
+  function backQ(){const b=backs.find(b=>!M.back.includes(b.q)&&((b.after&&b.after.every(k=>M.rub.has(k)||M.n[k]))||(b.min!=null&&min()>=b.min)||(b.on==="explain"&&M.expl>0)||(b.turn&&M.turns>=b.turn)));
+    if(b){M.back.push(b.q);M.backOpen=b;return b.q}return ""}
+  function ask(text){const raw=bvNorm(text);M.turns++;if(!M.said)M.said=String(text).slice(0,200);
+    ERRS.forEach(e=>{if(e[0].test(raw))M.errs.push({said:text,fix:e[1],lesson:e[2]})});
+    // 0 · partner-led opening
+    if(st.lead&&M.lead<st.lead.length){const L=st.lead[M.lead];const ok=bvRe(L.want).test(raw)&&!(L.bad&&bvRe(L.bad).test(raw));M.ltry++;
+      if(ok||M.ltry>=2){M.leadOk+=ok?1:0;M.lead++;M.ltry=0;const nx=st.lead[M.lead];M.log.push({t:"lead",q:text,ok});return {a:(ok?L.ok:L.no+" ["+L.model+"]")+(nx?" "+nx.say:""),k:[ok?"lead+":"lead-"],flags:[],who:L.who,next:nx?nx.who:null}}
+      M.log.push({t:"lead",q:text,ok:false,retry:true});return {a:L.no,k:[],flags:["lead-retry"],who:L.who}}
+    const words=raw.split(" ").length;const out={a:"",k:[],flags:[]};
+    // 1 · her pending question is answered first
+    if(M.backOpen){const b=M.backOpen;M.backOpen=null;const bad=(b.bad||[]).find(x=>bvRe(x[0]).test(raw));
+      if(bad){M.log.push({t:"back",q:b.q,said:text,ok:false,bad:true});M.mood=-1;b._tries++;if(b._tries<2)M.backOpen=b;return {a:bad[1],k:[],flags:["back-bad"]}}
+      const good=words>=4&&(!b.want||bvRe(b.want).test(raw))&&(st.fach||!FACH.test(raw));M.log.push({t:"back",q:b.q,said:text,ok:good});
+      if(/tut mir|versteh|sorge|angst/.test(raw)){M.emp++;M.empLast=M.turns}if(good&&/\b(vermute|verdacht|wahrscheinlich|wir (machen|werden|nehmen))\b/.test(raw))M.expl++;
+      out.a=good?(b.ok||"Gut. Danke, dass Sie mir das sagen."):(b.no||"Das habe ich jetzt nicht verstanden. Können Sie es mir mit einfachen Worten sagen?");
+      if(!good){b._tries++;if(b._tries<2)M.backOpen=b}out.flags.push(good?"back+":"back-");return out}
+    // 2 · du
+    if(I.find(i=>i.id==="du").re.test(raw)&&!st.duOk){M.du++;out.a=st.duLine||"(irritiert) Entschuldigung … kennen wir uns? Ich bin es gewohnt, dass man mich siezt.";out.flags.push("du");M.log.push({t:"turn",q:text,k:[],a:out.a,f:"du"});return out}
+    // 3 · Fach term towards a lay person
+    const fm=!st.fach&&raw.match(FACH);if(fm){M.jarg.push(fm[0]);out.a=fm[0].slice(0,Math.min(4,fm[0].length)).replace(/^./,c=>c.toUpperCase())+"… was? Das Wort kenne ich nicht, Herr Doktor.";out.flags.push("fach:"+fm[0]);M.log.push({t:"turn",q:text,k:[],a:out.a,f:"fach"});return out}
+    // 4 · sentence by sentence, best intent per sentence, at most two answers per turn
+    const parts=raw.split(/(?<=[.?!])\s+|\s+und\s+(?=(?:haben|sind|nehmen|rauchen|trinken|wie|wo|wann|seit)\b)/).filter(x=>x&&x.length>2);const hits=[];
+    parts.forEach(p=>{const q=/\?$/.test(p)||/^(wie|wo|was|wann|warum|weshalb|wer|seit wann|welche\w*|haben|hatten|sind|waren|nehmen|rauchen|trinken|koennen|darf|ist|gibt|leiden|leben|wohnen|arbeiten|strahlt|tut|hat|wird|war|kennen|koennten|wuerden|duerfte|moechten|erzaehlen sie|beschreiben sie|zeigen sie|sagen sie|nennen sie|schildern sie|und (wie|wo|wann|was|seit))\b/.test(p);
+      const c=I.filter(i=>i.id!=="du"&&i.re.test(p)&&(q||i.kind!=="q"||i.pr>=95));if(c.length){const best=c[0];if(!hits.some(h=>h.id===best.id))hits.push(best)}
+      if(BV_OPEN.test(p))M.open++});
+    if(!hits.length&&M.last&&words<=7&&/^(und )?(wie viel|wie viele|wie oft|wie lange|wann|seit wann|woran|wie aeussert|wie zeigt|wo genau|welche|was genau|warum|wie alt|und (dann|danach|sonst))/.test(raw)){const h=I.find(i=>i.id===M.last);if(h){hits.push(h);out.flags.push("followup")}}
+    if(!hits.length){const stmt=!/\?/.test(text)&&!/^(wie|wo|was|wann|warum|wer|haben|sind|nehmen|koennen|darf)\b/.test(raw);
+      if(stmt&&words>=3){out.a=BV_MHM[M.turns%BV_MHM.length];M.log.push({t:"turn",q:text,k:[],a:out.a,f:"mhm"});return out}
+      M.cons++;M.miss.push(text);const near=BV_NEAR.find(([re])=>re.test(raw));
+      out.a=M.cons>=3?(st.hint||"Fragen Sie mich doch einfach, was mir fehlt und seit wann – ich sage es Ihnen gern."):near&&M.cons===1?near[1]:BV_FALL[(M.miss.length-1)%BV_FALL.length];out.flags.push("miss");M.log.push({t:"turn",q:text,k:[],a:out.a,f:"miss"});return out}
+    M.cons=0;const say=[];
+    hits.slice(0,2).forEach(h=>{const k=h.id;out.k.push(k);if(h.rub)M.rub.add(h.rub);
+      if(k==="empathy"){M.emp++;M.empLast=M.turns;if(M.mood<0)M.mood=0;say.push(pick(k,st.ans.empathy||"Danke, Herr Doktor."));M.n[k]=(M.n[k]||0)+1;return}
+      if(k==="explain"){M.expl++;const b=backQ();say.push(b||pick(k,st.ans.explain||"Aha. Und was heißt das für mich?"));if(b)out.flags.push("back?");M.n[k]=(M.n[k]||0)+1;return}
+      if(k==="summary"){M.sum++;M.n[k]=(M.n[k]||0)+1;say.push(pick(k,st.ans.summary||"Ja, genau so ist es."));return}
+      if(k==="signpost"){M.sign++;M.n[k]=(M.n[k]||0)+1;say.push(pick(k,st.ans.signpost||"Ja, fragen Sie nur."));return}
+      let a=st.ans[k];if(a==null)a=st.ans[h.rub+"_"]||(st.neg&&st.neg[k])||BV_NEG[k]||"Dazu kann ich Ihnen nichts sagen.";
+      const seen=M.n[k]||0;let txt=pick(k,a);if(seen>=1&&!Array.isArray(a)){M.rep++;txt=(seen===1?"Wie gesagt: ":"Das haben Sie mich jetzt schon zweimal gefragt, Herr Doktor. ")+String(a).split(/(?<=[.!?])\s+/)[0]}
+      if(out.flags.includes("followup")){const d=(st.fu||{})[k]||BV_FU[h.rub]||"Mehr kann ich dazu nicht sagen.";const hx=hidden(k,raw);txt=hx?hx.trim():d;M.rep=Math.max(0,M.rep-(seen>=1&&!Array.isArray(a)?1:0))}else txt=cut(txt)+hidden(k,raw);
+      M.n[k]=seen+1;M.last=k;say.push(txt)});
+    out.a=say.join(" ");
+    // 5 · emotional cue
+    if(st.cue&&!M.cue&&st.cue.on.some(k=>out.k.includes(k))){M.cue=M.turns;out.a+=" "+st.cue.line;out.flags.push("cue")}
+    else if(st.cue&&M.cue>0&&M.cue===M.turns-1){if(!out.k.includes("empathy")&&!out.k.includes("ice")){M.mood=-1;out.flags.push("cue-missed")}else{out.a+=" "+(st.cue.good||"");out.flags.push("cue+")}}
+    // 6 · her own question
+    if(!out.flags.includes("cue")&&!out.flags.includes("back?")){const b=backQ();if(b){out.a+=" – "+b;out.flags.push("back?")}}
+    M.log.push({t:"turn",q:text,k:out.k,a:out.a});return out}
+  return {ask,M,st,min,left:()=>Math.max(0,(st.t||10)-min())}}
+// ---------------------------------------------------------------- scoring (6/5/4/5; pass ≥ 12/20 and ≥ 40 % in every dimension)
+function test(t,M,st){try{return typeof t==="function"?!!t(M,st):BV_T[t]?!!BV_T[t](M,st):String(t).split("+").every(k=>M.n[k]||M.rub.has(k))}catch(e){return false}}
+function score(st,M){st=typeof st==="string"?resolve(get(st)):resolve(st);const dims={lang:0,struct:0,emp:0,compl:0},max={lang:0,struct:0,emp:0,compl:0},miss=[];
+  // honest numbers: with fewer than five turns there is too little German to judge — language points and the "no error" criteria are not given away
+  const thin=(M.turns||0)<5,FREE=new Set(["nodu","noerr","fewmiss","nofach","norep"]);
+  Object.keys(st.rub).forEach(d=>st.rub[d].forEach(([pts,label,t])=>{max[d]+=pts;const ok=!(thin&&(d==="lang"||FREE.has(t)))&&test(t,M,st);if(ok)dims[d]+=pts;else miss.push({d,label,pts,test:typeof t==="string"?t:"fn"})}));
+  const tot=Object.values(dims).reduce((a,b)=>a+b,0),mx=Object.values(max).reduce((a,b)=>a+b,0);
+  return {dims,max,tot,mx,pct:Math.round(100*tot/mx),pass:tot/mx>=.6&&Object.keys(dims).every(d=>dims[d]/max[d]>=.4),miss,backOk:M.log.filter(l=>l.t==="back"&&l.ok).length}}
+// ---------------------------------------------------------------- Buße (I10 §7.3): missed criteria → drill sources
+const FIX={nodu:{deck:"sign",tag:"Beginn",say:"Sie-Form: fünf Eröffnungen laut sprechen"},nofach:{deck:"lay",say:"Laiensprache: die Fachwörter dieser Station"},noerr:{lesson:true,say:"die Grammatik deiner Fehler, mit deinen eigenen Sätzen"},
+ fewmiss:{replay:"miss",say:"jede nicht verstandene Frage noch einmal – mit der Musterformulierung daneben"},intro:{deck:"sign",tag:"Beginn"},greet:{deck:"sign",tag:"Beginn"},sign:{deck:"sign",tag:"Übergang"},sum:{deck:"sign",tag:"Zusammenfassung"},close:{deck:"sign",tag:"Schluss"},
+ cue:{deck:"emp",say:"ihr Satz noch einmal; du antwortest mit einem Empathiesatz deiner Stufe"},emp1:{deck:"emp"},emp2:{deck:"emp"},back:{replay:"back",say:"ihre Frage noch einmal, drei Versuche, dann die Musterantwort"},ice:{deck:"emp",tag:"E"},
+ x_tb:{deck:"tb"},x_risk:{deck:"consent"},x_right:{deck:"refuse"},x_limit:{deck:"anger"},x_feel:{deck:"anger"},lead:{deck:"consult"},leadall:{deck:"orders"},x_rb:{deck:"orders",say:"Anordnung hören, zurücklesen"},x_know:{deck:"spikes"},x_warn:{deck:"spikes"},
+ hid:{replay:"hid",say:"„Was sie dir nicht gesagt hat“: du tippst die Frage, die den Satz geöffnet hätte"},compl:{replay:"phrase",say:"die fehlende Frage, mit einer Formulierung, die funktioniert"}};
+function penance(st,sc,M){st=typeof st==="string"?resolve(get(st)):resolve(st);const out=[],seen=new Set();
+  (sc.miss||[]).forEach(m=>{const t=m.test;let key=typeof t==="string"&&t!=="fn"?t.split("+")[0]:m.d==="compl"?"compl":"hid";if(/^h(id)?\d$/.test(key))key="hid";
+    const f=FIX[key]||(m.d==="emp"?FIX.cue:m.d==="lang"?FIX.noerr:m.d==="struct"?FIX.sign:FIX.compl);const sig=JSON.stringify(f)+(f.replay==="phrase"?key:"");if(seen.has(sig))return;seen.add(sig);out.push({why:m.label,key,fix:f,intent:key})});
+  if((M.errs||[]).length&&!out.some(o=>o.fix.lesson))out.push({why:"eigene Fehler",key:"noerr",fix:FIX.noerr});
+  if((M.miss||[]).length&&!out.some(o=>o.fix.replay==="miss"))out.push({why:"nicht verstandene Fragen",key:"fewmiss",fix:FIX.fewmiss});
+  return out.slice(0,6)}
+// ---------------------------------------------------------------- FSP adapter (I10 P2): build a station from an FSP case (P3's `lay` overlay when present)
+const CHART=/;|\(|\bz\. ?n\.|\bpy\b|gold|stadium|mmst|\bg\d\/p\d|\d-\d-\d|\bv\. ?a\.|\bmg\b|\bi\.v\./i;
+const lay=s=>{s=String(s||"").trim();return s&&!CHART.test(s)?s:""};
+const SAFE="Das weiß ich nicht so genau – das steht in meinem Arztbrief vom Hausarzt.";
+function fromCase(c){if(!c)return null;const L=c.lay||{},V=L.veg||{};const w=c.sex==="w"||/^frau\b/i.test(c.name||"");
+  const ans={};const put=(k,v)=>{v=lay(v);if(v)ans[k]=v};
+  const sur=String(c.name||"").replace(/^(frau|herr)\s+/i,"");
+  put("name",(c.vn?c.vn+" "+sur:sur)||"");if(c.geb)put("dob","Am "+c.geb+".");if(c.cm&&c.kg)put("size","Ich bin "+c.cm+" Zentimeter groß und wiege "+c.kg+" Kilo.");if(c.ha)put("gp",c.ha+".");
+  put("pmh",L.pmh);put("ops",L.ops);put("meds",L.meds);put("allergy",L.all);put("family",L.fam);put("drugs",L.drugs);put("character",L.char);put("radiation",L.rad);put("modify",L.mod);put("prior",L.prev);put("selfmed",L.self);put("vacc",L.vacc);put("travel",L.reise);put("gyn",L.gyn);
+  if(L.nox){const s=String(L.nox).split(/(?<=[.!?])\s+/);put("smoke",s.find(x=>/rauch|zigarett/i.test(x))||s[0]);put("alcohol",s.find(x=>/alkohol|wein|bier|trink/i.test(x))||s[s.length-1])}
+  if(L.soc){const s=String(L.soc).split(/(?<=[.!?])\s+/);put("job",s.find(x=>/arbeit|beruf|rente|studier|schaff|bin .{0,20}(von beruf|lehrer|ingenieur)/i.test(x))||s[0]);put("home",s.find(x=>/wohn|leb|verheirat|kinder|allein/i.test(x))||s[s.length-1])}
+  put("v_app",V.appetit);put("v_weight",V.gewicht);put("v_stool",V.stuhl);put("v_urine",V.wasser);put("v_sleep",V.schlaf);put("a_fever",V.fieber);
+  // HPI: the patient's own sentences (first person) → onset/site/… by pattern; leftovers walk through cc
+  const hpiS=String(L.open?L.open+" ":"").concat(String(c.hpi||"").replace(/^\([^)]*\)\s*/,"")).split(/(?<=[.!?])\s+/).map(x=>x.trim()).filter(Boolean).filter(lay);
+  const rest=[];const pat={onset:/seit|gestern|heute|vorhin|plötzlich|angefangen|begonnen|tagen|wochen|stunden/i,site:/\b(links|rechts|oben|unten|mitte|bauch|brust|kopf|rücken|bein|arm)\b/i,severity:/\b(\d{1,2}) von (10|zehn)\b|unerträglich|kaum auszuhalten/i,a_nausea:/übel|erbrochen|erbrech/i,a_dys:/luft|atem/i};
+  hpiS.forEach(s=>{const k=Object.keys(pat).find(k=>!ans[k]&&pat[k].test(s));if(k&&rest.length)ans[k]=s;else rest.push(s)});
+  ans.cc=rest.length?rest:[lay(c.cc)?c.cc:"Mir geht es nicht gut."];
+  const neg={};["pmh","ops","meds","allergy","family","smoke","alcohol","drugs","job","home"].forEach(k=>{if(!ans[k])neg[k]=SAFE});
+  const base=resolve(get("bv17"))||{rub:{lang:[[6,"Sie-Form","nodu"]],struct:[[5,"Begrüßung","intro"]],emp:[[4,"Empathie","emp1"]],compl:[[5,"Medikamente","meds"]]}};
+  const back=(c.patientQs||[]).map((q,i)=>({q,on:i===0?"explain":undefined,min:i?8+4*i:undefined,want:".{20,}",ok:"Danke. Das beruhigt mich etwas.",no:"Das habe ich nicht verstanden. Können Sie es einfacher sagen?"}));
+  return {id:"fsp:"+(c.id||sur),n:0,lv:"C1",realm:"V",ch:34,t:20,strict:true,title:c.name||"FSP",en:"FSP case",who:"fsp",with:[],mode:"lay",setting:c.job?c.name+", "+c.age+", "+c.job:"",goal:"FSP Teil 1",
+    open:lay(L.open)||"Guten Tag, Herr Doktor.",ans,neg,hid:[],back,cue:null,vit:c.vit||"",find:"",doc:{note:"",anam:c.brief||"",brief:c.brief||""},isbar:{I:"",S:"",B:"",A:"",R:""},
+    exam:(c.oberarztQs||[]).map((q,i)=>[q,((c.kw||[])[i]||[]).join?((c.kw||[])[i]||[]).join(", "):""]),rub:base.rub,err:[],story:{pre:["","",""],hi:["","",""],lo:["","",""]},fromCase:true,sex:w?"w":"m"}}
+// ---------------------------------------------------------------- Nachtdienst feed for i10 (BVE.night): ten short patients, deterministic per seed
+const NIGHT_K=["cc","onset","meds","allergy","pmh","modify","a_dys","v_sleep","home","prior"];
+function rng(seed){let s=0;String(seed==null?"night":seed).split("").forEach(ch=>s=(s*31+ch.charCodeAt(0))>>>0);return ()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296}}
+function night(seed,o){o=o||{};const r=rng(seed);const lv=o.lv!=null?o.lv:4;const LVS=["A1","A2","B1","B2","C1"];
+  const pool=all().map(s=>resolve(s)).filter(s=>LVS.indexOf(s.lv)<=lv&&s.mode!=="fach");const out=[];let guard=0;
+  while(out.length<10&&pool.length&&guard++<200){const st=pool[Math.floor(r()*pool.length)];const ks=NIGHT_K.filter(k=>{const a=st.ans[k];return typeof a==="string"&&a.length>6&&!(G.BV_PHRASE&&!G.BV_PHRASE[k])});if(!ks.length)continue;
+    const k=ks[Math.floor(r()*ks.length)];if(out.some(x=>x.st===st.id&&x.k===k))continue;const cast=(G.BV_CAST||{})[st.who]||{};
+    const heard=String(st.ans[k]).split(/(?<=[.!?])\s+/).slice(0,2).join(" ");const note=String((st.doc&&st.doc.note)||"").split(/(?<=[.!?])\s+/)[0];
+    out.push({id:st.id+":"+k,st:st.id,k,lv:st.lv,who:st.who,name:cast.short||cast.name||st.who,q:(G.BV_PHRASE||{})[k]||"",heard,doc:note,tts:cast.tts||null})}
+  return out}
+function layCheck(text){fachInit();const m=bvNorm(text).match(FACH);return m?m[0]:""}
+const api={norm:bvNorm,re:bvRe,INT:BV_INT,ERR:BV_ERR,NEG:BV_NEG,T:BV_T,FIX,patient,score,resolve,get,all,fromCase,night,penance,lay:layCheck,fachN:()=>(fachInit(),FACH_N),_reset(){ALL=null;FACH_N=0}};
+G.bvNorm=bvNorm;
+return api})();
+if(typeof module!=="undefined")module.exports=BVE;
+
+// ===== Mephisto · i6 · c_i6.js — Station Bett vier: screens, scoring record, Buße, Visite, fate, Hilde's board, reader seam.
+// Engine: BVE (c_i6_bett.js). Data: BV_ST, BV_CAST, BV_DRILL, BV_MODEL. PLAN-I R1/R3 and i6.
+// State: ONE key, P().bv (pact state):  {<stationId>:{tot,dims,pass,grey,backOk,said,d,n,fails,buss,du,doc,t3,vis:[d10,d30],first}, drill:[{st,why,d}], miss:[≤200 strings], due12:"yyyy-mm-dd", o:{voice}}
+//   Merge (PAKT_RULES.bv / MERGE_RULES.bv, or an around on mergeCore): per station id the record with the higher tot (tie: newer d); pass/grey OR; n/fails max;
+//   buss/first/t3/doc max; vis element-wise max; drill/miss union (miss newest 200); due12 min; o newer side.  Never touches S.bv (that is s7's).
+// Hooks: MOD.after viewHome/viewPractice ("i6") · RD.pass("i6",20) · TL.reg("bv") · GATE.add("i6.station") / LX.reg("i.visite") when present · EV emits.
+// Mephisto never appears inside a station (only before the door and after it); every station root has data-sober="1"; no horror while a station is open.
+(function(){"use strict";
+const LVS=["A1","A2","B1","B2","C1"];const lvN=l=>Math.max(0,LVS.indexOf(l));
+const E=()=>typeof BVE!=="undefined"?BVE:null;
+const today=()=>{try{return todayKey()}catch(e){return new Date().toISOString().slice(0,10)}};
+const plus=(k,n)=>{try{return addDays(k,n)}catch(e){const d=new Date(k+"T12:00:00");d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)}};
+const H=s=>{try{return esc(s)}catch(e){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}};
+const pk=()=>{try{return P()}catch(e){return {}}};
+const du=()=>{try{return typeof st3Du==="function"?st3Du():pk().du===true}catch(e){return false}};
+const M3=a=>!a?"":(du()&&a[2]?a[2]:a[0]);            // [Sie, en, du] → the right German
+const EN=a=>a&&a[1]?a[1]:"";
+const last=()=>{try{const n=String(pk().name||"").trim().split(/\s+/);return n.length?n[n.length-1]:""}catch(e){return ""}};
+const fill=s=>String(s||"").replace(/\{LAST\}/g,last()||"…").replace(/\{NAME\}/g,String(pk().name||"…")).replace(/\{DATE\+6\}/g,fmt(plus(today(),6))).replace(/\{DATE\}/g,fmt(today()));
+const fmt=k=>{const [y,m,d]=String(k).split("-");return d+"."+m+"."+y};
+const lvNow=()=>{try{return typeof learnerLv==="function"?+learnerLv()||0:0}catch(e){return 0}};
+const save=()=>{try{saveSoon()}catch(e){}};
+const emit=(n,d)=>{try{if(typeof EV!=="undefined"&&EV&&EV.emit)EV.emit(n,d)}catch(e){}};
+function bvS(){const p=pk();if(!p.bv||typeof p.bv!=="object")p.bv={};const b=p.bv;if(!Array.isArray(b.drill))b.drill=[];if(!Array.isArray(b.miss))b.miss=[];if(!b.o||typeof b.o!=="object")b.o={};return b}
+const REC_KEYS=new Set(["drill","miss","due12","o"]);
+function rec(id){const b=bvS();return b[id]&&typeof b[id]==="object"?b[id]:null}
+function st(id){try{return E()?E().resolve(E().get(id)):null}catch(e){return null}}
+function cast(who){return (typeof BV_CAST!=="undefined"&&BV_CAST[who])||{name:who,short:who}}
+const BRANDT=s=>s&&(s.who==="brandt"||(s.with||[]).includes("brandt"));
+// ---------------------------------------------------------------- unlock: chapter sealed (or the Bett-vier boss won) AND learnerLv() ≥ level; bv12 the day after the poodle scene
+function bossWon(b){try{return !!((S.bossWins||{})[b])}catch(e){return false}}
+function sealed(n){try{const p=pk();return !!((p.sealed||{})[n])||!!p.done}catch(e){return false}}
+function bvUnlock(id){const s=st(id);if(!s)return {ok:false,why:["Unbekannte Station.","unknown station"]};
+  const lvOk=lvNow()>=lvN(s.lv);
+  // a chapter-task station (34 · 36 · 38) opens when its chapter is reached (it is part of that chapter's seal); bv20 only after the Kommission (or the pact's end)
+  const isTask=typeof BV_TASKCH!=="undefined"&&Object.keys(BV_TASKCH).some(n=>BV_TASKCH[n][0]===id&&+n===s.ch);
+  const chOk=id==="bv20"?(bossWon("kommission")||!!pk().done):(sealed(s.ch)||(s.after&&bossWon(s.after))||(isTask&&(+pk().ch||1)>=s.ch));
+  if(!chOk)return {ok:false,why:[s.after?"Erst nach dem Kampf in Kapitel "+s.ch+".":"Ab Kapitel "+s.ch+", wenn es versiegelt ist.",s.after?"after the duel of chapter "+s.ch:"once chapter "+s.ch+" is sealed"]};
+  if(!lvOk)return {ok:false,why:["Ab Stufe "+s.lv+" – deine Stufe: "+LVS[Math.min(4,lvNow())]+".","from level "+s.lv],meph:MEPH_BV&&MEPH_BV.locked};
+  if(id==="bv12"){const d=bvS().due12;if(d&&today()<d)return {ok:false,why:["Morgen. Das Bett steht noch.","tomorrow"],meph:MEPH_BV&&MEPH_BV.wait12}}
+  const r=rec(id);if(r&&!r.pass&&!r.grey&&r.needBuss)return {ok:true,buss:true,why:["Erst die Buße, dann das Bett.","penance first"]};
+  return {ok:true}}
+function bvBest(id){const r=rec(id)||{};return {tot:+r.tot||0,max:20,pass:!!r.pass,grey:!!r.grey,dims:r.dims||null,n:+r.n||0,d:r.d||"",backOk:+r.backOk||0}}
+// ---------------------------------------------------------------- fate (I10 §7.2): points per key from the best attempt; she never dies
+function fatePts(s,r){if(!r||!r.pass)return 0;let p=1;if((r.tot||0)>=17)p=2;if(s.fate.max===3&&(r.backOk||0)>=3)p=3;return Math.min(p,s.fate.max)}
+function bvFate(skip){let n=0;(E()?E().all():[]).forEach(s=>{if(!s.fate||s.id===skip)return;n+=fatePts(s,rec(s.id))});return n}
+function bvFateTier(){const s=bvFate();return s>=14?"hi":s>=8?"mid":"lo"}
+function bvArrival(){const s=bvFate("bv20");return s>=12?"hi":s>=6?"mid":"lo"}
+function bvWeak(){let lo=null;(E()?E().all():[]).forEach(s=>{if(!s.fate)return;const p=fatePts(s,rec(s.id))/s.fate.max;if(!lo||p<lo.p)lo={p,k:s.fate.key}});const w=(typeof BV_WEAK!=="undefined"&&lo&&BV_WEAK[lo.k])||["nach dem, was Sie diesmal nicht gefragt haben","about what you did not ask this time"];return w}
+function tailOf(t){const T=typeof BV_TAIL_SRC!=="undefined"?BV_TAIL_SRC[t]:null;if(!T)return null;const w=bvWeak();return [T[0].replace("{WEAK}",w[0]),T[1].replace("{WEAK}",w[1])]}
+const BV_TAIL={};["hi","mid","lo"].forEach(t=>Object.defineProperty(BV_TAIL,t,{enumerable:true,get:()=>tailOf(t)}));
+function bvTailLine(t){const x=tailOf(t||bvFateTier());return x?["N",x[0],x[1]]:null}
+function bvEndLine(){const t=bvFateTier();return MEPH_BV?M3(MEPH_BV[t==="hi"?"endHi":t==="mid"?"endMid":"endLo"]):""}
+// Chronik data for S1's page „Frau Brandts Kurve“ (I10 §7.2 point 2): one point per fate station + her line when the cue was met + the learner's first sentence at the bed
+function bvChart(){const L=E()?E().all():[];const keys=L.filter(s=>s.fate).map(s=>{const r=rec(s.id);return {key:s.fate.key,st:s.id,title:s.title,pts:fatePts(s,r),max:s.fate.max,line:r&&r.cueOk&&s.cue?s.cue.good:"—",tot:r?r.tot||0:0}});
+  const said=["bv04","bv08","bv12","bv16","bv20"].map(id=>({id,said:(rec(id)||{}).said||""}));return {keys,total:bvFate(),max:20,tier:bvFateTier(),arrival:bvArrival(),said}}
+// ---------------------------------------------------------------- recording a run
+function record(s,sc,M,o){const b=bvS();const r=b[s.id]=b[s.id]||{};const d=today();r.n=(r.n||0)+1;r.lastTot=sc.tot;r.lastD=d;
+  const better=sc.tot>(r.tot||0)||(sc.tot===(r.tot||0)&&!r.d);
+  if(better){r.tot=sc.tot;r.dims=sc.dims;r.backOk=Math.max(r.backOk||0,sc.backOk||0);r.d=d;r.said=M.said||r.said||"";r.cueOk=!!(M.cue&&M.mood>=0)}
+  if(sc.pass&&!o.guided){if(!r.pass)r.first=d;r.pass=true;r.fails=0}else if(sc.pass&&o.guided){r.grey=true;r.fails=0}else{r.fails=(r.fails||0)+1;r.lastFail=d;r.needBuss=true}
+  r.du=M.du||0;r.jarg=(M.jarg||[]).length;
+  (M.miss||[]).forEach(q=>b.miss.push(s.id+" · "+String(q).slice(0,160)));if(b.miss.length>200)b.miss=b.miss.slice(-200);
+  save();emit("station.done",{id:s.id,tot:sc.tot,pass:!!sc.pass&&!o.guided,grey:!!(sc.pass&&o.guided),dims:sc.dims,fate:bvFate()});
+  try{if(typeof logDay==="function")logDay("sim")}catch(e){}try{if(typeof logEvent==="function")logEvent("sim","Bett vier · "+s.title+" · "+sc.tot+"/20",sc.pct)}catch(e){}
+  try{if(typeof addErrors==="function"&&(M.errs||[]).length)addErrors(M.errs.slice(0,6).map(x=>({type:"Grammatik",original:x.said,fix:x.fix})),"bv")}catch(e){}
+  return r}
+// ---------------------------------------------------------------- styles (sober: no plates, no motion beyond a fade)
+function style(){try{if(document.getElementById("i6-sty"))return;const x=document.createElement("style");x.id="i6-sty";x.textContent=`
+.bv{display:grid;gap:.8rem}.bv .bv-top{display:flex;justify-content:space-between;align-items:center;gap:.5rem;font-family:var(--ui)}
+.bv .bv-clock{font-variant-numeric:tabular-nums;font-weight:700}.bv .bv-clock.late{color:var(--warn,#c80)}.bv .bv-clock.over{color:var(--bad,#c33)}
+.bv .dl{max-height:52vh;overflow:auto;padding-right:.2rem}.bv .turn.lead{background:var(--accent-tint,rgba(240,138,63,.12))}
+.bv textarea{width:100%;min-height:4.2rem;font:inherit;padding:.55rem;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--fg)}
+.bv .bv-in{display:grid;gap:.45rem}.bv .bv-btns{display:flex;flex-wrap:wrap;gap:.4rem}
+.bv .bv-bars{display:grid;grid-template-columns:auto 1fr auto;gap:.25rem .6rem;align-items:center;font-family:var(--ui);font-size:.86rem}
+.bv .bv-bar{height:.5rem;border-radius:4px;background:var(--sunk);overflow:hidden}.bv .bv-bar i{display:block;height:100%;background:var(--accent,#F08A3F)}
+.bv .bv-miss li,.bv .bv-err li{margin:.2rem 0}.bv .bv-note{border-left:3px solid var(--line2);padding-left:.6rem;color:var(--muted);font-family:var(--ui);font-size:.9rem}
+.bv .bv-hint{border-left:3px solid var(--accent,#F08A3F);padding:.3rem .6rem;font-family:var(--ui);font-size:.88rem}
+.bv-mini{display:inline-grid;grid-template-columns:repeat(4,.42rem);gap:2px;align-items:end;height:1rem;vertical-align:middle}.bv-mini i{display:block;background:var(--accent,#F08A3F);border-radius:1px;min-height:2px}
+.bv-dot{display:inline-block;width:.55rem;height:.55rem;border-radius:50%;border:1px solid var(--muted);margin-left:.3rem;vertical-align:middle}.bv-dot.f1{background:var(--accent-soft,#f5c49c)}.bv-dot.f2,.bv-dot.f3{background:var(--accent,#F08A3F)}
+.bv-board{font-family:var(--ui)}.bv-board .bv-name{font-size:1.15rem;letter-spacing:.02em}.bv-board .bv-name.pencil{color:var(--muted);font-style:italic;border-bottom:1px dashed var(--line2)}
+.bv-board .bv-name.marker{font-weight:800}.bv-board .bv-name s{opacity:.6;margin-right:.4rem}
+.bv .bv-ord button{text-align:left}.bv .bv-chart svg{width:100%;height:auto;max-height:9rem}`;document.head.appendChild(x)}catch(e){}}
+// ---------------------------------------------------------------- the station runner: intro → Gespräch → Dokumentation → Übergabe → Prüferfragen → Ergebnis
+// box: a container (Focus body or the reader's .rd-box). o: {embedded, step:"teil3"|"visite", guided, onDone(result)}
+function bvRun(box,id,o){o=o||{};style();const s=st(id);if(!s||!E()){box.innerHTML=`<p class="muted ui">Station nicht verfügbar.</p>`;return}
+  const html=document.documentElement;const prevSober=html.dataset.sober;html.dataset.sober="1";
+  const restore=()=>{try{if(prevSober==null)delete html.dataset.sober;else html.dataset.sober=prevSober}catch(e){}};
+  const shift=(()=>{try{return !!(S.shifts&&S.shifts[today()])}catch(e){return false}})();
+  const voice=bvS().o.voice!==false;let timer=null;const notes={t:""};const res={sc:null,M:null,doc:null,isbar:null,exam:null};
+  const root=document.createElement("div");root.className="bv";root.dataset.sober="1";root.dataset.bv=s.id;box.innerHTML="";box.appendChild(root);
+  const C=cast(s.who);const withN=(s.with||[]).map(w=>cast(w).short||w).join(", ");
+  const speak=(t,who)=>{if(!voice)return;try{say(String(t).replace(/\[[^\]]*\]/g,"").replace(/\([^)]*\)/g,""),{silent:true})}catch(e){}};
+  const stop=()=>{try{if(timer)clearInterval(timer)}catch(e){}timer=null};
+  const finish=r=>{stop();restore();if(o.onDone)try{o.onDone(r)}catch(e){}};
+  if(o.step==="visite")return visite();if(o.step==="teil3")return examStep(true);
+  intro();
+  function intro(){const u=bvUnlock(s.id);const pre=s.story&&s.story.pre&&s.story.pre[0]?s.story.pre:(s.id==="bv12"&&typeof MEPH_BV!=="undefined"?MEPH_BV.back12:null);
+    root.innerHTML=`<div class="head"><div class="row wrap"><span class="pill">${H(s.lv)}</span><span class="pill">${s.t} Min.${s.strict?" · streng":""}</span>${BRANDT(s)?`<span class="pill">Frau Brandt</span>`:""}</div>
+      <h1>${H(s.title)} <span class="en">${H(s.en||"")}</span></h1><p class="ui muted">${H(C.name||"")}${withN?" · mit "+H(withN):""}</p></div>
+      ${pre?`<div class="card"><div class="eyebrow">Vor der Tür <span class="en">before the door</span></div><p>${H(fill(M3(pre)))}</p><p class="en">${H(EN(pre))}</p></div>`:""}
+      <div class="card stack s"><p>${H(fill(s.setting))}</p><p class="bv-note"><b>Ziel:</b> ${H(fill(s.goal))}</p>${shift?`<p class="bv-note">Dienst heute: nur das Gespräch, ohne Dokumentation und Prüferfragen.</p>`:""}
+      ${o.guided?`<p class="bv-hint">${H(M3(MEPH_BV.guided))}<br><span class="en">${H(EN(MEPH_BV.guided))}</span></p>`:""}
+      ${u.ok&&!u.buss?`<div class="row wrap"><button class="primary bv-go">An das Bett treten <span class="en">step up to the bed</span></button>${!o.guided&&TASKIDS.has(s.id)&&(rec(s.id)||{}).fails>=3&&!(rec(s.id)||{}).pass?`<button class="sm bv-guided">Mit Mephisto gemeinsam (§ 6) <span class="en">guided · grey</span></button>`:""}${o.embedded?"":`<button class="sm ghost bv-x">Zurück</button>`}</div>`:
+        `<p class="bv-note">${H(u.why[0])} <span class="en">${H(u.why[1])}</span></p>${u.meph?`<p>${H(M3(u.meph))}</p>`:""}${u.buss?`<button class="primary bv-buss">Buße · 5 Minuten</button>`:""}${o.embedded?"":`<button class="sm ghost bv-x">Zurück</button>`}`}</div>`;
+    const g=root.querySelector(".bv-go");if(g)g.onclick=talk;const x=root.querySelector(".bv-x");if(x)x.onclick=()=>finish(null);const b=root.querySelector(".bv-buss");if(b)b.onclick=()=>{const r=rec(s.id)||{};penance(r.plan&&r.plan.length?r.plan:[{why:"",fix:{replay:"miss"},key:"fewmiss"}],null,()=>intro())};
+    const gd=root.querySelector(".bv-guided");if(gd)gd.onclick=()=>{o=Object.assign({},o,{guided:true});intro()}}
+  // ---- step 1 · Gespräch
+  function talk(){const P=E().patient(s);const t0=Date.now(),lim=(s.t||10)*60;let warned=false,locked=false,extra=0;const hints=o.guided;
+    const first=(s.lead&&s.lead.length)?[s.lead[0].who||"",fill(s.lead[0].say)]:[s.id==="bv04"?"Patientin":C.short,fill(s.id==="bv20"&&s.openBy?s.openBy[bvArrival()]:s.open)];
+    const log=[];if(first[1])log.push({who:first[0],t:first[1],lead:!!(s.lead&&s.lead.length)});
+    const vit=s.id==="bv20"&&s.vitBy?s.vitBy[bvArrival()]:s.vit;
+    root.innerHTML=`<div class="bv-top"><span><b>${H(C.short||C.name)}</b>${withN?` <small class="muted">· ${H(withN)}</small>`:""}</span><span class="bv-clock" aria-live="off">--:--</span></div>
+      <div class="dl bv-log" aria-live="polite"></div>
+      <div class="bv-in"><textarea class="bv-ta" rows="2" placeholder="Was sagst du? (Enter = senden)" aria-label="Deine Frage oder Antwort"></textarea>
+       <div class="bv-btns"><button class="primary sm bv-send">Senden</button>${typeof dictateInto==="function"&&(window.SpeechRecognition||window.webkitSpeechRecognition)?`<button class="sm bv-mic" aria-label="Diktieren">${typeof ic==="function"?ic("mic"):"Mikro"}</button>`:""}
+       <button class="sm ghost bv-sil">(schweigt)</button><button class="sm ghost bv-sum">Zusammenfassen</button><button class="sm ghost bv-vit">Befunde</button><button class="sm ghost bv-notes">Notizen</button><button class="sm ghost bv-voice">${voice?"Ton an":"Ton aus"}</button><button class="sm bv-end">Gespräch beenden</button></div>
+       <div class="bv-vitbox" hidden><p class="bv-note">${H(fill(vit||""))}${s.find?"<br>"+H(fill(s.find)):""}</p></div>
+       <textarea class="bv-nt" hidden rows="3" placeholder="Notizen (gehen in die Dokumentation mit)"></textarea>${hints?`<div class="bv-hint bv-gh"></div>`:""}</div>`;
+    const L=root.querySelector(".bv-log"),ta=root.querySelector(".bv-ta"),clk=root.querySelector(".bv-clock");
+    const draw=()=>{L.innerHTML=log.map(x=>`<div class="turn${x.me?" me":""}${x.lead?" lead":""}"><div class="who"><span>${H(x.me?"Du":x.who||C.short)}</span></div><div>${H(x.t)}</div></div>`).join("");L.scrollTop=L.scrollHeight};
+    const guide=()=>{if(!hints)return;const sc=E().score(s,P.M);const m=sc.miss.find(x=>x.d!=="lang")||sc.miss[0];const g=root.querySelector(".bv-gh");if(!g)return;
+      if(!m){g.textContent="Alles Wichtige ist da. Beende das Gespräch.";return}const k=(m.test||"").split("+").find(k=>BV_PHRASE&&BV_PHRASE[k]);g.innerHTML=`<b>Hinweis:</b> ${H(m.label)}${k?` – zum Beispiel: „${H(fill(BV_PHRASE[k]))}“`:""}`};
+    draw();speak(first[1]);guide();
+    const tick=()=>{if(!root.isConnected){stop();restore();return}const left=Math.max(0,lim-Math.round((Date.now()-t0)/1000));clk.textContent=String(Math.floor(left/60)).padStart(2,"0")+":"+String(left%60).padStart(2,"0");
+      if(!warned&&left<=lim*.25){warned=true;clk.classList.add("late");const line=s.mode==="fach"?"Kommen Sie zum Punkt.":"Sie schauen auf die Uhr, Herr Doktor.";log.push({who:s.mode==="fach"&&s.lead&&s.lead.length?s.lead[s.lead.length-1].who:C.short,t:line});draw()}
+      if(left===0&&!locked){clk.classList.add("over");if(s.strict){locked=true;log.push({who:"",t:"Die Zeit ist um."});draw();setTimeout(end,600)}}};
+    stop();timer=setInterval(tick,1000);tick();
+    const send=txt=>{txt=String(txt||"").trim();if(!txt||locked)return;if(!s.strict&&clk.classList.contains("over")){extra++;if(extra>2){end();return}}
+      log.push({me:true,t:txt});const r=P.ask(txt);const who=r.who||C.short;
+      let a=fill(r.a);if(s.lead&&P.M.lead>=s.lead.length&&r.k&&/^lead/.test(r.k[0]||"")&&!r.next&&s.open)a+=" "+fill(s.open);
+      log.push({who:r.who||(s.id==="bv04"&&!P.M.n.name&&!P.M.n.intro?"Patientin":C.short),t:a,lead:/^lead/.test((r.k||[])[0]||"")||r.flags.includes("lead-retry")});draw();speak(a);guide();
+      const intent=(r.k||[])[0]||(r.flags.includes("miss")?"miss":r.flags[0]||"turn");emit("ex.answer",{src:"bv",ref:s.id,key:"bv:"+s.id+":"+intent,ok:!r.flags.includes("miss")&&!r.flags.some(f=>/^fach|^du$/.test(f)),flags:0});
+      ta.value="";ta.focus()};
+    root.querySelector(".bv-send").onclick=()=>send(ta.value);ta.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send(ta.value)}});
+    const mic=root.querySelector(".bv-mic");if(mic)mic.onclick=()=>{try{dictateInto(mic,ta)}catch(e){}};
+    root.querySelector(".bv-sil").onclick=()=>send("(schweigt)");root.querySelector(".bv-sum").onclick=()=>{ta.value="Darf ich kurz zusammenfassen? ";ta.focus()};
+    root.querySelector(".bv-vit").onclick=()=>{const v=root.querySelector(".bv-vitbox");v.hidden=!v.hidden};
+    root.querySelector(".bv-notes").onclick=()=>{const n=root.querySelector(".bv-nt");n.hidden=!n.hidden;if(!n.hidden)n.focus()};
+    root.querySelector(".bv-nt").oninput=e=>{notes.t=e.target.value};
+    root.querySelector(".bv-voice").onclick=e=>{const b=bvS();b.o.voice=b.o.voice===false;save();e.target.textContent=b.o.voice===false?"Ton aus":"Ton an"};
+    root.querySelector(".bv-end").onclick=end;setTimeout(()=>{try{ta.focus()}catch(e){}},60);
+    function end(){if(res.M)return;stop();try{if(typeof stopSpeech==="function")stopSpeech()}catch(e){}res.M=P.M;res.sc=E().score(s,P.M);res.log=log.slice();
+      if(shift||o.guided)return selfRate();docStep()}}
+  // ---- step 2 · Dokumentation (A1–A2 Notiz · B1 Anamnese · B2–C1 Brief); the model only after submitting
+  function docStep(){const k=lvN(s.lv)<=1?"note":lvN(s.lv)===2?"anam":"brief";const model=fill((s.doc||{})[k]||"");if(!model)return isbarStep();
+    const label={note:"Kurze Notiz (drei Zeilen)",anam:"Anamnese als Absatz (Konjunktiv I)",brief:"Arztbrief (g70: Präteritum, Konjunktiv I, Befund im Telegrammstil)"}[k];
+    root.innerHTML=`<div class="head"><div class="eyebrow">Schritt 2 von 4 · Dokumentation</div><h2>${H(label)}</h2></div><div class="card stack s">
+      ${notes.t?`<p class="bv-note">Deine Notizen: ${H(notes.t)}</p>`:""}<textarea class="bv-doc" rows="${k==="brief"?12:5}" placeholder="Schreib hier."></textarea>
+      <div class="row wrap"><button class="primary sm bv-ok">Abgeben</button><button class="sm ghost bv-skip">Überspringen</button></div><div class="bv-docres"></div></div>`;
+    root.querySelector(".bv-skip").onclick=isbarStep;
+    root.querySelector(".bv-ok").onclick=()=>{const t=root.querySelector(".bv-doc").value;const c=coverage(t,model);res.doc=c.pct;
+      root.querySelector(".bv-docres").innerHTML=`<p class="ui"><b>${c.pct} %</b> der Fakten aus dem Muster sind drin.${c.miss.length?` Es fehlt: ${H(c.miss.slice(0,10).join(", "))}`:""}</p><details open><summary class="ui">Muster</summary><p style="white-space:pre-wrap">${H(model)}</p></details><button class="primary sm bv-next">Weiter</button>`;
+      root.querySelector(".bv-next").onclick=isbarStep;root.querySelector(".bv-ok").disabled=true}}
+  // ---- step 3 · Übergabe (ISBAR); A1–A2: the five sentences in the right order
+  function isbarStep(){const I=s.isbar||{};const K="ISBAR".split("").filter(k=>I[k]);if(!K.length)return examStep();const NAME={I:"Identifikation",S:"Situation",B:"Hintergrund",A:"Einschätzung",R:"Empfehlung"};
+    if(lvN(s.lv)<=1){const order=K.map(k=>({k,t:fill(I[k])}));const sh=order.slice().sort(()=>Math.random()-.5);const got=[];
+      root.innerHTML=`<div class="head"><div class="eyebrow">Schritt 3 von 4 · Übergabe an Schwester Hilde</div><h2>Bring die Sätze in die Reihenfolge I – S – B – A – R.</h2></div><div class="card stack s"><div class="opts bv-ord">${sh.map((x,i)=>`<button data-i="${i}">${H(x.t)}</button>`).join("")}</div><ol class="bv-got"></ol><div class="bv-ires"></div></div>`;
+      root.querySelectorAll(".bv-ord button").forEach(b=>b.onclick=()=>{b.disabled=true;got.push(sh[+b.dataset.i]);root.querySelector(".bv-got").innerHTML=got.map(x=>`<li>${H(x.t)}</li>`).join("");
+        if(got.length===sh.length){const ok=got.filter((x,i)=>x.k===order[i].k).length;res.isbar=Math.round(100*ok/order.length);root.querySelector(".bv-ires").innerHTML=`<p class="ui"><b>${ok} von ${order.length}</b> an der richtigen Stelle.</p><ol>${order.map(x=>`<li><b>${x.k}</b> ${H(x.t)}</li>`).join("")}</ol><button class="primary sm bv-next">Weiter</button>`;root.querySelector(".bv-next").onclick=()=>examStep()}});return}
+    root.innerHTML=`<div class="head"><div class="eyebrow">Schritt 3 von 4 · Übergabe (ISBAR)</div><h2>Fünf Felder, je ein bis zwei Sätze.</h2></div><div class="card stack s">${K.map(k=>`<label class="ui"><b>${k}</b> · ${NAME[k]}<textarea data-k="${k}" rows="2"></textarea></label>`).join("")}
+      <div class="row wrap"><button class="primary sm bv-ok">Vergleichen</button><button class="sm ghost bv-skip">Überspringen</button></div><div class="bv-ires"></div></div>`;
+    root.querySelector(".bv-skip").onclick=()=>examStep();
+    root.querySelector(".bv-ok").onclick=()=>{let sum=0;const rows=K.map(k=>{const v=root.querySelector(`textarea[data-k="${k}"]`).value;const c=coverage(v,fill(I[k]));sum+=c.pct;return `<li><b>${k}</b> ${c.pct} % · <span class="muted">${H(fill(I[k]))}</span></li>`});res.isbar=Math.round(sum/K.length);
+      root.querySelector(".bv-ires").innerHTML=`<p class="ui"><b>${res.isbar} %</b> Übereinstimmung mit dem Muster.</p><ul>${rows.join("")}</ul><button class="primary sm bv-next">Weiter</button>`;root.querySelector(".bv-next").onclick=()=>examStep();root.querySelector(".bv-ok").disabled=true}}
+  // ---- step 4 · Prüferfragen (also the whole of chapter 38's task: Teil 3)
+  function examStep(only){const X=(s.exam||[]).slice(0,5);if(!X.length)return only?finish({pass:false,p:0,max:0}):selfRate();let i=0,good=0;
+    const one=()=>{const q=X[i];root.innerHTML=`<div class="head"><div class="eyebrow">${only?"FSP Teil 3 · Prüferfragen":"Schritt 4 von 4 · Prüferfragen"} · ${i+1} / ${X.length}</div><h2>${H(fill(q[0]))}</h2></div>
+      <div class="card stack s"><textarea class="bv-ex" rows="3" placeholder="Antwort (Fachsprache, ganze Sätze)"></textarea>${typeof dictateInto==="function"&&(window.SpeechRecognition||window.webkitSpeechRecognition)?`<button class="sm bv-mic">${typeof ic==="function"?ic("mic"):"Mikro"}</button>`:""}<div class="row wrap"><button class="primary sm bv-ok">Antworten</button></div><div class="bv-eres"></div></div>`;
+      speak(fill(q[0]));const mic=root.querySelector(".bv-mic");if(mic)mic.onclick=()=>{try{dictateInto(mic,root.querySelector(".bv-ex"))}catch(e){}};
+      root.querySelector(".bv-ok").onclick=()=>{const c=coverage(root.querySelector(".bv-ex").value,fill(q[1]));if(c.pct>=40)good++;root.querySelector(".bv-ok").disabled=true;
+        root.querySelector(".bv-eres").innerHTML=`<p class="ui"><b>${c.pct} %</b> der Punkte aus der Musterantwort.</p><p class="bv-note">${H(fill(q[1]))}</p><button class="primary sm bv-next">${i+1<X.length?"Nächste Frage":"Fertig"}</button>`;
+        root.querySelector(".bv-next").onclick=()=>{i++;if(i<X.length)one();else{res.exam=Math.round(100*good/X.length);if(only){const r=bvS()[s.id]=bvS()[s.id]||{};r.t3=Math.max(r.t3||0,res.exam);r.t3d=today();save();
+            const pass=good>=3;emit("station.done",{id:s.id,part:"teil3",tot:good,pass,dims:null,fate:bvFate()});
+            root.innerHTML=`<div class="card stack s"><h2>${good} von ${X.length} Fragen beantwortet.</h2><p class="ui muted">Ab drei zählt Teil 3 als bestanden.</p><button class="primary sm bv-done">Weiter</button></div>`;root.querySelector(".bv-done").onclick=()=>finish({pass,grey:false,p:good,max:X.length,lines:[]});return}
+          selfRate()}}}};one()}
+  // ---- forced self-rating before the score (I10 §8.3), then the result
+  function selfRate(){root.innerHTML=`<div class="card stack s"><div class="eyebrow">Bevor du die Punkte siehst</div><h2>Würdest du dich von dir behandeln lassen?</h2><p class="ui muted">1 = nein · 5 = ja, sofort</p><div class="row wrap">${[1,2,3,4,5].map(n=>`<button class="sm" data-n="${n}">${n}</button>`).join("")}</div></div>`;
+    root.querySelectorAll("[data-n]").forEach(b=>b.onclick=()=>{res.self=+b.dataset.n;result()})}
+  function result(){const sc=res.sc,M=res.M;const r=record(s,sc,M,o);const tier=sc.tot>=17?"hi":sc.tot<12?"lo":"mid";const y=s.story||{};const after=y[tier]&&y[tier][0]?y[tier]:(tier==="mid"?null:null);
+    const plan=sc.pass?[]:E().penance(s,sc,M);r.plan=plan.map(p=>({why:p.why,key:p.key,fix:p.fix}));if(!sc.pass){const b=bvS();plan.forEach(p=>b.drill.push({st:s.id,why:p.why,d:today()}));if(b.drill.length>60)b.drill=b.drill.slice(-60)}save();
+    const D={lang:"Sprache",struct:"Struktur",emp:"Empathie",compl:"Vollständigkeit"};const outro=s.outro?s.outro[tier]:"";
+    const errs=(M.errs||[]).slice(0,8),miss=(M.miss||[]).slice(0,8);
+    root.innerHTML=`<div class="head"><div class="eyebrow">${H(s.title)}</div><h1>${sc.tot} / 20 · ${sc.pass?(o.guided?"§ 6 · grau":"bestanden"):"nicht bestanden"}</h1><p class="ui muted">Bestanden ab 12 von 20 und mindestens 40 % in jedem Bereich. Deine Selbsteinschätzung: ${res.self||"–"} / 5.</p></div>
+      <div class="card"><div class="bv-bars">${Object.keys(D).map(d=>`<span>${D[d]}</span><span class="bv-bar"><i style="width:${Math.round(100*sc.dims[d]/sc.max[d])}%"></i></span><span>${sc.dims[d]}/${sc.max[d]}</span>`).join("")}</div>
+      ${res.doc!=null||res.isbar!=null||res.exam!=null?`<p class="ui muted" style="margin-top:.5rem">Dokumentation ${res.doc==null?"–":res.doc+" %"} · Übergabe ${res.isbar==null?"–":res.isbar+" %"} · Prüferfragen ${res.exam==null?"–":res.exam+" %"} <span class="en">(not part of the 20)</span></p>`:""}</div>
+      ${outro?`<div class="card"><p>${H(fill(outro))}</p></div>`:""}
+      ${sc.miss.length?`<div class="card"><div class="eyebrow">Was gefehlt hat</div><ul class="bv-miss">${sc.miss.map(m=>{const k=(m.test||"").split("+").find(k=>BV_PHRASE&&BV_PHRASE[k]);return `<li>${H(m.label)} <small class="muted">(${m.pts})</small>${k?`<br><small>„${H(fill(BV_PHRASE[k]))}“</small>`:""}</li>`}).join("")}</ul></div>`:""}
+      ${errs.length?`<div class="card"><div class="eyebrow">Deine Sätze · Korrektur</div><ul class="bv-err">${errs.map(e=>`<li><s>${H(e.said)}</s><br>${H(e.fix)}${e.lesson?` <small class="muted">· ${H(e.lesson)}</small>`:""}</li>`).join("")}</ul></div>`:""}
+      ${miss.length?`<div class="card"><div class="eyebrow">Nicht verstanden</div><ul>${miss.map(q=>`<li>${H(q)}</li>`).join("")}</ul><p class="ui muted">Sag es kürzer, mit einem Fragewort am Anfang und „Sie“.</p></div>`:""}
+      ${after?`<div class="card"><div class="eyebrow">Nach der Tür <span class="en">after the door</span></div><p>${H(fill(M3(after)))}</p><p class="en">${H(EN(after))}</p></div>`:""}
+      ${!sc.pass&&MEPH_BV?`<div class="card"><p>${H(M3(MEPH_BV.fail))}</p><p>${H(M3(MEPH_BV.drill))}</p></div>`:""}
+      <details class="card"><summary class="ui">So hätte es klingen können <span class="en">a model run</span></summary>${modelHTML(s.id)}</details>
+      <div class="row wrap">${!sc.pass?`<button class="primary bv-buss">Buße · 5 Minuten</button>`:""}${sc.pass?`<button class="sm ghost bv-again">Nochmal</button>`:""}<button class="${sc.pass?"primary":"sm ghost"} bv-done">Weiter</button></div>`;
+    const lines=after?[["M",fill(after[0]),after[1]||"",fill(after[2]||after[0])]]:[];
+    const out={pass:!!sc.pass&&!o.guided,grey:!!(sc.pass&&o.guided),p:sc.tot,max:20,lines,tot:sc.tot};
+    const bb=root.querySelector(".bv-buss");if(bb)bb.onclick=()=>penance(plan,M,()=>{const u=bvUnlock(s.id);root.innerHTML=`<div class="card stack s"><h2>Buße getan.</h2><p class="ui muted">Die Station ist wieder offen.</p><div class="row wrap">${u.ok?`<button class="primary sm bv-again">Noch einmal an das Bett</button>`:""}<button class="sm ghost bv-done">Weiter</button></div></div>`;
+      const a=root.querySelector(".bv-again");if(a)a.onclick=()=>{res.M=null;res.sc=null;res.doc=res.isbar=res.exam=null;intro()};root.querySelector(".bv-done").onclick=()=>finish(out)});
+    const ag=root.querySelector(".bv-again");if(ag)ag.onclick=()=>{res.M=null;res.sc=null;res.doc=res.isbar=res.exam=null;intro()};
+    root.querySelector(".bv-done").onclick=()=>finish(out);
+    try{if(typeof fb==="function")fb(!!sc.pass)}catch(e){}}
+  // ---- Buße (I10 §7.3): up to six short items built from what was missed; replay allowed afterwards
+  function penance(plan,M,then){const items=[];const lv=lvN(s.lv);const D=typeof BV_DRILL!=="undefined"?BV_DRILL:{};
+    (plan||[]).forEach(p=>{const f=p.fix||{};
+      if(f.deck&&Array.isArray(D[f.deck])){let deck=D[f.deck].filter(x=>Array.isArray(x)?(!x[2]||!/^[ABC][12]$/.test(x[2])||lvN(x[2])<=lv):(!x.lv||lvN(x.lv)<=lv));if(f.tag)deck=deck.filter(x=>Array.isArray(x)&&String(x[3]||"").includes(f.tag)).concat(deck.length?[]:[]);
+        if(f.deck==="lay")deck=D.lay.filter(x=>String(x[3]||"").includes(s.id)).concat(D.lay.slice(0,20));
+        deck.slice(0,30).sort(()=>Math.random()-.5).slice(0,2).forEach(x=>items.push({k:f.deck==="lay"?"lay":Array.isArray(x)?"say":"read",x,why:p.why}))}
+      else if(f.replay==="back"&&s.back&&s.back.length)items.push({k:"back",b:s.back[0],why:p.why});
+      else if(f.replay==="hid"&&s.hid&&s.hid.length){const h=s.hid.find(h=>!(M&&M.hid&&M.hid.has(h.id)))||s.hid[0];items.push({k:"hid",h,why:p.why})}
+      else if(f.replay==="phrase"||f.replay==="miss"){const key=String(p.key||"").split("+").find(k=>BV_PHRASE&&BV_PHRASE[k]);if(key)items.push({k:"phrase",key,why:p.why});else if(M&&M.miss&&M.miss.length)items.push({k:"miss",q:M.miss[0],why:p.why})}
+      else if(f.lesson&&M&&(M.errs||[]).length)items.push({k:"lesson",e:M.errs.slice(0,4),why:p.why})});
+    if(!items.length)items.push({k:"phrase",key:"empathy",why:"Empathie"});const L=items.slice(0,6);let i=0;
+    const done=()=>{const r=bvS()[s.id]=bvS()[s.id]||{};r.buss=today();r.needBuss=false;save();emit("station.drill",{id:s.id,n:L.length});then&&then()};
+    const step=()=>{if(i>=L.length)return done();const it=L[i];let q="",model="",check=null;
+      if(it.k==="say"){q=`Sag es auf Deutsch: <b>${H(it.x[1])}</b>${it.x[3]?` <small class="muted">· ${H(it.x[3])}</small>`:""}`;model=fill(it.x[0]);check=v=>coverage(v,model).pct>=60}
+      else if(it.k==="lay"){q=`Sag es Frau Brandt, ohne Fachwort: <b>${H(it.x[0])}</b>`;model=it.x[1];const stem=E().norm(model).split(/[^a-z]+/).filter(w=>w.length>=4&&!/^(der|die|das|eine?n?|nicht|wenn|dass|oder)$/.test(w))[0]||"";check=v=>!E().lay(v)&&(!stem||E().norm(v).includes(stem.slice(0,5)))}
+      else if(it.k==="read"){const x=it.x;q=`Lies laut und tippe den wichtigsten Satz ab: <b>${H(x.title||x.name||x.to||"")}</b>`;model=fill(Object.values(x).filter(v=>typeof v==="string"&&v.length>25).slice(0,3).join(" "));check=v=>v.trim().split(/\s+/).length>=4}
+      else if(it.k==="back"){q=`${H(cast(s.who).short)} fragt: <b>„${H(fill(it.b.q))}“</b>`;model=(BV_MODEL&&BV_MODEL[s.id]||[]).filter(x=>/^@ /.test(x)).map(x=>fill(x.slice(2)))[0]||"";check=v=>E().norm(v).split(" ").length>=4&&(!it.b.want||E().re(it.b.want).test(E().norm(v)))}
+      else if(it.k==="hid"){q=`Das hat sie dir nicht gesagt: <b>„${H(it.h.a)}“</b><br>Welche Frage hätte es geöffnet?${it.h.if==="emp"?" (Mit einem Satz Empathie davor.)":""}`;model=(BV_PHRASE&&BV_PHRASE[it.h.on])||"";
+        check=v=>{const P=E().patient(s);if(it.h.if==="emp")P.ask("Das tut mir leid, das klingt schwer.");if(it.h.if==="open")P.ask("Erzählen Sie bitte.");P.ask(v);if(it.h.if==="twice")P.ask(v);return P.M.hid.has(it.h.id)}}
+      else if(it.k==="phrase"){q=`Was gefehlt hat: <b>${H(it.why)}</b><br>Stell die Frage so, dass sie verstanden wird.`;model=fill(BV_PHRASE[it.key]);check=v=>{const P=E().patient(s);const r=P.ask(v);return (r.k||[]).includes(it.key)||!r.flags.includes("miss")&&(r.k||[]).length>0}}
+      else if(it.k==="miss"){q=`Das hat sie nicht verstanden: <b>„${H(it.q)}“</b><br>Sag es anders – kurz, mit Fragewort und „Sie“.`;check=v=>{const P=E().patient(s);const r=P.ask(v);return !r.flags.includes("miss")}}
+      else if(it.k==="lesson"){root.innerHTML=`<div class="card stack s"><div class="eyebrow">Buße ${i+1} / ${L.length} · deine Fehler</div><ul class="bv-err">${it.e.map(e=>`<li><s>${H(e.said)}</s><br>${H(e.fix)}${e.lesson?` <small class="muted">· Lektion ${H(e.lesson)}</small>`:""}</li>`).join("")}</ul><p class="ui muted">Diese Sätze liegen jetzt als Karten in deinen Fehlern.</p><button class="primary sm bv-n">Weiter</button></div>`;root.querySelector(".bv-n").onclick=()=>{i++;step()};return}
+      let tries=0;root.innerHTML=`<div class="card stack s"><div class="eyebrow">Buße ${i+1} / ${L.length} <span class="en">penance</span></div><p>${q}</p><textarea class="bv-pa" rows="2"></textarea><div class="row wrap"><button class="primary sm bv-ok">Prüfen</button><button class="sm ghost bv-show">Muster</button></div><div class="bv-pr"></div></div>`;
+      const ta=root.querySelector(".bv-pa"),pr=root.querySelector(".bv-pr");setTimeout(()=>{try{ta.focus()}catch(e){}},40);
+      const next=()=>{pr.innerHTML+=`<button class="primary sm bv-n">Weiter</button>`;root.querySelector(".bv-n").onclick=()=>{i++;step()}};
+      root.querySelector(".bv-show").onclick=()=>{pr.innerHTML=model?`<p class="bv-note">${H(model)}</p>`:"";if(!root.querySelector(".bv-n"))next()};
+      root.querySelector(".bv-ok").onclick=()=>{tries++;let ok=false;try{ok=check?check(ta.value):true}catch(e){ok=true}try{if(typeof fb==="function")fb(ok)}catch(e){}
+        pr.innerHTML=`<p class="ui"><b>${ok?"So geht es.":"Noch nicht."}</b></p>${(ok||tries>=3)&&model?`<p class="bv-note">${H(model)}</p>`:""}`;if(ok||tries>=3)next()}};
+    step()}
+  // ---- Visite (10 and 30 days after a pass): she opens, the cue, one of her questions — five minutes
+  function visite(){const P=E().patient(s);const hello=BRANDT(s)&&typeof BV_VISIT_HELLO!=="undefined"?BV_VISIT_HELLO[bvFateTier()]:fill(s.open||"Guten Tag, Herr Doktor.");let stage=0,pts=0;
+    const cue=s.cue?s.cue.line:"";const bq=(s.back||[])[0];
+    root.innerHTML=`<div class="bv-top"><span><b>Visite</b> · ${H(s.title)}</span><span class="muted">5 Min.</span></div><div class="dl bv-log"></div><div class="bv-in"><textarea class="bv-ta" rows="2"></textarea><div class="bv-btns"><button class="primary sm bv-send">Senden</button></div></div>`;
+    const L=root.querySelector(".bv-log"),ta=root.querySelector(".bv-ta");const log=[{who:cast(s.who).short,t:hello+(cue?" "+cue:"")}];
+    const draw=()=>{L.innerHTML=log.map(x=>`<div class="turn${x.me?" me":""}"><div class="who"><span>${H(x.me?"Du":x.who)}</span></div><div>${H(x.t)}</div></div>`).join("")};draw();speak(log[0].t);
+    root.querySelector(".bv-send").onclick=()=>{const v=ta.value.trim();if(!v)return;ta.value="";log.push({me:true,t:v});
+      if(stage===0){const r=P.ask(v);const ok=(r.k||[]).some(k=>k==="empathy"||k==="ice"||/^x_(feel|nurse|stay|calm)/.test(k));if(ok)pts++;stage=1;log.push({who:cast(s.who).short,t:(ok&&s.cue&&s.cue.good?s.cue.good+" ":"")+(bq?fill(bq.q):"")});if(!bq)stage=2}
+      else if(stage===1){const ok=E().norm(v).split(" ").length>=4&&(!bq.want||E().re(bq.want).test(E().norm(v)));if(ok)pts++;stage=2;log.push({who:cast(s.who).short,t:ok?fill(bq.ok||"Danke."):fill(bq.no||"Hm.")})}
+      draw();speak(log[log.length-1].t);
+      if(stage===2){const r=bvS()[s.id]=bvS()[s.id]||{};r.vis=Array.isArray(r.vis)?r.vis:["",""];const due=bvVisitDue(s.id);if(due===10)r.vis[0]=today();else if(due===30)r.vis[1]=today();save();
+        emit("station.visite",{id:s.id,pts,max:bq?2:1});root.querySelector(".bv-in").innerHTML=`<p class="ui"><b>Visite: ${pts} / ${bq?2:1}</b></p><button class="primary sm bv-done">Fertig</button>`;root.querySelector(".bv-done").onclick=()=>finish({visite:true,pts})}}}
+  function modelHTML(id){const m=(typeof BV_MODEL!=="undefined"&&BV_MODEL[id])||[];return m.length?`<ol class="ui">${m.map(x=>/^@ /.test(x)?`<li><i>auf ihre Frage:</i> ${H(fill(x.slice(2)))}</li>`:`<li>${H(fill(x))}</li>`).join("")}</ol>`:""}
+}
+// key-fact coverage: numbers and content words (≥ 5 letters) of the model found in the text
+function coverage(text,model){const N=E()?E().norm:(x=>String(x).toLowerCase());const t=N(text);const stop=/^(sie|ihre?n?|haben|hatte|wurde|werden|nicht|sowie|einer?|einen|dieser?|diese[mns]?|bitte|durch|unter|nach|beim|seit|wegen|zwischen|danach|dann|noch|auch|schon|etwa|sehr|unsere?[mnrs]?|wir|kollegin|kollege|geehrte[r]?|freundlichen|kollegialen|grüßen|gruessen|berichten|patientin|patienten?)$/;
+  const facts=[...new Set((N(model).match(/\d+(?:[.,]\d+)?|[a-z]{5,}/g)||[]).filter(w=>!stop.test(w)))].slice(0,40);if(!facts.length)return {pct:100,miss:[]};
+  const miss=facts.filter(f=>!t.includes(/^\d/.test(f)?f:f.slice(0,Math.max(5,f.length-2))));return {pct:Math.round(100*(facts.length-miss.length)/facts.length),miss}}
+function bvVisitDue(id){const r=rec(id);if(!r||!r.pass||!r.first)return 0;const v=Array.isArray(r.vis)?r.vis:["",""];const t=today();if(!v[0]&&t>=plus(r.first,10))return 10;if(v[0]&&!v[1]&&t>=plus(r.first,30))return 30;return 0}
+function bvVisits(){return (E()?E().all():[]).filter(s=>bvVisitDue(s.id)).map(s=>({id:s.id,title:s.title,due:bvVisitDue(s.id)}))}
+// ---------------------------------------------------------------- entry points
+function bvOpen(id,o){o=o||{};if(o.box)return bvRun(o.box,id,o);try{const s=st(id);const box=Focus.open({title:"Station Bett vier",sub:s?s.title:id,onClose:()=>{try{if(document.documentElement.dataset.sober==="1")delete document.documentElement.dataset.sober}catch(e){}if(o.onClose)o.onClose()}});bvRun(box,id,Object.assign({},o,{onDone:r=>{try{Focus.close(true)}catch(e){}if(o.then)try{o.then(r)}catch(e){}else try{ACT.bvList()}catch(e){}}}))}catch(e){try{console.error(e)}catch(x){}}}
+function mini(r){if(!r||!r.dims)return "";const mx={lang:6,struct:5,emp:4,compl:5};return `<span class="bv-mini" title="Sprache · Struktur · Empathie · Vollständigkeit">${["lang","struct","emp","compl"].map(d=>`<i style="height:${Math.max(10,Math.round(100*(r.dims[d]||0)/mx[d]))}%"></i>`).join("")}</span>`}
+function listHTML(){const L=E()?E().all():[];const R=["I","II","III","IV","V"];const vis=bvVisits();const ch=bvChart();
+  const svg=(()=>{const k=ch.keys;const w=280,h=70;const pts=k.map((x,i)=>[10+i*(w-20)/Math.max(1,k.length-1),h-8-(h-16)*x.pts/3]);return `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Frau Brandts Kurve"><polyline fill="none" stroke="currentColor" stroke-width="1.5" points="${pts.map(p=>p.join(",")).join(" ")}"/>${pts.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="2.5" fill="currentColor"/>`).join("")}</svg>`})();
+  return `<div class="bv stack s" data-sober="1"><p class="muted">Zwanzig Stationen in einer Notaufnahme in Heidelberg. Du sprichst – getippt oder diktiert –, die Patienten antworten, und am Ende zählt, was du gefragt, erklärt und gehört hast: Sprache 6 · Struktur 5 · Empathie 4 · Vollständigkeit 5.</p>
+   ${vis.length?`<div class="card"><div class="eyebrow">Visite fällig</div>${vis.map(v=>`<button class="li" data-act="bvVisite" data-id="${v.id}"><span class="t"><b>${H(v.title)}</b><small>${v.due} Tage nach dem Bestehen · 5 Minuten</small></span></button>`).join("")}</div>`:""}
+   ${R.map(r=>{const S2=L.filter(s=>s.realm===r);if(!S2.length)return "";return `<div class="eyebrow">Reich ${r}</div><div class="list">${S2.map(s=>{const u=bvUnlock(s.id),b=rec(s.id),c=cast(s.who);const f=s.fate?`<span class="bv-dot f${b&&b.pass?fatePts(s,b):0}" title="Frau Brandt"></span>`:"";
+     return `<button class="li" data-act="bvOpen" data-id="${s.id}"${u.ok?"":` aria-disabled="true"`}><span class="n">${H(s.lv)}</span><span class="t"><b>${H(s.title)}</b><small>${H(c.short||c.name||"")}${u.ok?"":" · "+H(u.why[0])}</small></span><span class="m">${b&&b.tot?`${mini(b)} <span class="pill ${b.pass?"good":b.grey?"":"o"}">${b.tot}/20</span>`:""}${f}</span></button>`}).join("")}</div>`}).join("")}
+   <details class="card bv-chart"><summary class="ui">Frau Brandts Kurve · ${ch.total} / 20</summary>${svg}<ul class="ui">${ch.keys.map(k=>`<li>${H(k.title)} · ${k.pts}/${k.max} · <span class="muted">${H(k.line)}</span></li>`).join("")}</ul></details>
+   <details class="card"><summary class="ui">Was die Patienten nicht verstanden haben (${(bvS().miss||[]).length})</summary><textarea readonly rows="6">${H((bvS().miss||[]).join("\n"))}</textarea></details></div>`}
+ACT.bvList=()=>{style();const box=Focus.open({title:"Station Bett vier",sub:"Notaufnahme Heidelberg"});box.innerHTML=listHTML()};
+ACT.bvOpen=el=>{const id=el&&el.dataset?el.dataset.id:el;const u=bvUnlock(id);if(!u.ok){try{toast(u.why[0],3200)}catch(e){}return}bvOpen(id)};
+ACT.bvVisite=el=>{const id=el&&el.dataset?el.dataset.id:el;bvOpen(id,{step:"visite"})};
+// a non-waiting station card in the reader (after a Bett-vier scene): run inside the card
+ACT.bvRdGo=el=>{try{const id=el.dataset.id;const card=el.closest(".rd-t");const box=card&&card.querySelector(".rd-box");if(!box)return bvOpen(id);try{el.closest(".row").remove()}catch(e){}
+  bvRun(box,id,{embedded:true,onDone:r=>{box.innerHTML=r&&r.tot!=null?`<p class="ui muted">${r.tot} / 20 · ${r.pass?"bestanden":"nicht bestanden"}</p>`:""}})}catch(e){}};
+// ---------------------------------------------------------------- reader seam: RD pass 20 + TL handler "bv"
+function taskLine(n){const t=typeof BV_TASKCH!=="undefined"?BV_TASKCH[n]:null;return t?["T",t[0]].concat(t[1]?[t[1]]:[]):null}
+function hasBv(lines){return lines.some(l=>Array.isArray(l)&&l[0]==="T"&&/^bv\d\d/.test(String(l[1])))}
+function bossOfCh(n){try{return Object.keys(BOSSES).find(k=>BOSSES[k].ch===n)||""}catch(e){return ""}}
+function rdPass(lines,c,ctx){try{if(!ctx||hasBv(lines))return;const kind=ctx.kind;const n=ctx.n||(c&&c.n)||0;
+    const atBett=ctx.at&&ctx.at("bett_end")>=0;
+    if(kind==="bett"||atBett){const boss=ctx.boss||bossOfCh(n);const id=typeof BV_AFTER!=="undefined"?BV_AFTER[boss]:null;
+      if(id&&id!=="bv20"){if(id==="bv12"&&!rec("bv12")&&!bvS().due12){bvS().due12=plus(today(),1);save();return}ctx.insert("bett_end",[["T",id]]);return}}
+    if(kind==="finale"||(kind==="chapter"&&ctx.at&&ctx.at("finale")>=0)){if((rec("bv20")||{}).n)return;const i=lines.findIndex(l=>Array.isArray(l)&&l[0]==="N"&&/03:07 Uhr\. Bett vier/.test(String(l[1])));
+      if(i>=0){lines.splice(i,0,["T","bv20"]);return}ctx.insert("end",[["T","bv20"]]);return}
+    if(kind==="chapter"){const t=taskLine(n);if(t)ctx.insert("task",[t])}}catch(e){}}
+const TASKIDS=new Set(Object.values(typeof BV_TASKCH!=="undefined"?BV_TASKCH:{}).map(x=>x[0]));
+const TLH={card(line,c){const id=String(line[1]);const s=st(id);if(!s)return "";const u=bvUnlock(id),b=bvBest(id);const t3=line[2]==="teil3";const C=cast(s.who);
+    const wt=TLH.wait(line);const mine=!wt&&u.ok&&!u.buss;
+    return `<div class="eyebrow">Station Bett vier ${t3?"· FSP Teil 3":""} <span class="en">${H(s.en||"")}</span></div><p class="ui" style="margin:.3rem 0"><b>${H(s.title)}</b> · ${H(s.lv)} · ${H(C.short||"")}${b.tot?` · beste ${b.tot}/20`:""}</p>
+      ${u.ok?"":`<p class="ui muted">${H(u.why[0])}</p>`}${mine?`<div class="row" style="margin-top:.4rem"><button class="go sm" data-act="bvRdGo" data-id="${H(id)}">An das Bett treten <span class="en">step up</span></button></div>`:""}`},
+  open(box,id,done,api){const l=api&&api.line||[];bvRun(box,id,{embedded:true,step:l[2]==="teil3"?"teil3":undefined,onDone:r=>done(r?{pass:!!r.pass,grey:!!r.grey,p:r.p||0,max:r.max||20,lines:r.lines||[]}:{pass:false,grey:false,p:0,max:20,lines:[]})})},
+  state(id){const b=bvBest(id);return {pass:b.pass,grey:b.grey,best:b.tot,max:20}},
+  // chapter-task stations wait until attempted once (the gate counts the pass); Bett-vier offers never block the reader
+  wait(line){const id=String(line[1]);if(!TASKIDS.has(id)&&id!=="bv20")return false;const u=bvUnlock(id);if(!u.ok||u.buss)return false;const r=rec(id)||{};return line[2]==="teil3"?!r.t3d:!r.n}};
+// ---------------------------------------------------------------- screens
+function boardHTML(){const B=bvS();const L=E()?E().all():[];const passed=L.filter(s=>(rec(s.id)||{}).pass).length;const played=L.some(s=>rec(s.id));const vis=bvVisits();
+  if(!played&&!L.some(s=>bvUnlock(s.id).ok))return "";const nm=String(pk().name||"").trim()||"Doktor";const struck=L.some(s=>{const r=rec(s.id);return r&&r.du>0&&!s.duOk});
+  return `<div class="card bv-board" data-sober="1"><div class="eyebrow">Notaufnahme · die Tafel <span class="en">the board</span></div>
+    <p class="bv-name ${passed>=5?"marker":"pencil"}">${struck?`<s>${H(nm)}</s>`:""}${H(nm)}</p><p class="ui muted">${passed>=5?"Mit Filzstift. Schwester Hilde radiert nicht mehr.":"Mit Bleistift – "+passed+" von 5 Stationen bis zum Filzstift."}</p>
+    ${vis.slice(0,2).map(v=>`<button class="li" data-act="bvVisite" data-id="${v.id}"><span class="t"><b>Bett vier · Visite · 5 Minuten</b><small>${H(v.title)}</small></span></button>`).join("")}
+    <div class="row"><button class="sm" data-act="bvList">Station Bett vier</button></div></div>`}
+function install(){
+  try{MOD.after("viewHome","i6",function(m){if(!m||m.querySelector(".bv-board"))return;const h=boardHTML();if(!h)return;style();const a=m.querySelector(".wdt")||m.querySelector(".weg")||m.querySelector(".hero");if(a)a.insertAdjacentHTML("afterend",h);else m.insertAdjacentHTML("beforeend",h)})}catch(e){}
+  try{MOD.after("viewPractice","i6",function(m){if(!m||m.querySelector("[data-act=bvList]"))return;const t=m.querySelector(".tile[data-act=fsp]")||m.querySelector(".tile[data-act=abzw]");
+    const tile=`<button class="tile" data-act="bvList"><b>Station Bett vier</b><small>20 Patienten · Gespräch, Brief, Übergabe</small></button>`;if(t)t.insertAdjacentHTML("afterend",tile);else{const T=[...m.querySelectorAll(".tiles")].pop();if(T)T.insertAdjacentHTML("beforeend",tile)}})}catch(e){}
+  try{if(typeof RD!=="undefined"&&RD.pass)RD.pass("i6",20,rdPass)}catch(e){}
+  try{if(typeof TL!=="undefined"&&TL.reg)TL.reg("bv",TLH)}catch(e){}}
+install();
+// late registrations (GATE from i4, LX from l5, merge rules from the integrator's c_cloud) — all optional
+// merge rule: every field independently (OR / max / min / lexicographic max of a block), so it is commutative, associative and idempotent
+const lexMax=(p,q,ks)=>{for(const k of ks){const a=p[k]==null?"":typeof p[k]==="object"?JSON.stringify(p[k]):String(p[k]).padStart(typeof p[k]==="number"?6:0,"0"),b=q[k]==null?"":typeof q[k]==="object"?JSON.stringify(q[k]):String(q[k]).padStart(typeof q[k]==="number"?6:0,"0");if(a!==b)return a>b?p:q}return p};
+const pickBlock=(x,y,ks,order)=>{const w=lexMax(x,y,order);const o={};ks.forEach(k=>{if(w[k]!==undefined)o[k]=w[k]});return o};
+const mxS=(p,q)=>p==null?q:q==null?p:(p>q?p:q),mnS=(p,q)=>p==null?q:q==null?p:(p<q?p:q);
+function recMerge(x,y){const r={};const BEST=["tot","d","said","dims","cueOk"],LASTB=["lastD","lastTot","du","jarg"];
+  Object.assign(r,pickBlock(x,y,BEST,["tot","d","said","dims","cueOk"]),pickBlock(x,y,LASTB,["lastD","lastTot","du","jarg"]));
+  r.pass=!!(x.pass||y.pass);r.grey=!!(x.grey||y.grey);["n","backOk","buss","lastFail","t3","t3d","doc"].forEach(k=>{const v=mxS(x[k],y[k]);if(v!=null)r[k]=v});
+  r.fails=r.pass?0:(mxS(x.fails,y.fails)||0);r.needBuss=!!(x.needBuss&&y.needBuss)&&!r.pass;const f=mnS(x.first,y.first);if(f!=null)r.first=f;
+  const vx=x.vis||["",""],vy=y.vis||["",""];r.vis=[mxS(vx[0]||"",vy[0]||""),mxS(vx[1]||"",vy[1]||"")];
+  Object.keys(x).concat(Object.keys(y)).forEach(k=>{if(k in r||BEST.includes(k)||LASTB.includes(k)||k==="plan"||k==="vis"||k==="first")return;const a=x[k],b=y[k];r[k]=a===undefined?b:b===undefined?a:(JSON.stringify(a)>=JSON.stringify(b)?a:b)});return r}
+function bvMerge(a,b){a=a||{};b=b||{};const o={};const ks=new Set([...Object.keys(a),...Object.keys(b)]);
+  ks.forEach(k=>{const x=a[k],y=b[k];
+    if(k==="drill"){const m=new Map();[].concat(x||[],y||[]).forEach(r=>{const key=r.d+"|"+r.st+"|"+r.why;m.set(key,{st:r.st,why:r.why,d:r.d})});o.drill=[...m.keys()].sort().slice(-60).map(q=>m.get(q));return}
+    if(k==="miss"){o.miss=[...new Set([].concat(x||[],y||[]))].sort().slice(-200);return}
+    if(k==="due12"){const v=mnS(x,y);if(v!=null)o.due12=v;return}
+    if(k==="o"){const p=x||{},q=y||{};const r={};new Set([...Object.keys(p),...Object.keys(q)]).forEach(n=>{const u=p[n],v=q[n];r[n]=typeof u==="boolean"||typeof v==="boolean"?!(u===false||v===false):mxS(u,v)});o.o=r;return}
+    const X=x&&typeof x==="object"&&!Array.isArray(x)?x:null,Y=y&&typeof y==="object"&&!Array.isArray(y)?y:null;
+    if(!X&&!Y){o[k]=x===undefined?y:y===undefined?x:(JSON.stringify(x)>=JSON.stringify(y)?x:y);return}
+    o[k]=recMerge(X||Y,Y||X)});return o}
+setTimeout(function(){
+  try{if(typeof GATE!=="undefined"&&GATE.add)GATE.add("i6.station",function(c){const n=c&&c.n;const t=typeof BV_TASKCH!=="undefined"?BV_TASKCH[n]:null;if(!t)return [];const s=st(t[0]);if(!s)return [];const r=rec(t[0])||{};
+      if(t[1]==="teil3")return [{k:"bv",id:t[0],ok:(r.t3||0)>=60,de:"FSP Teil 3: die Prüferfragen zu Frau Brandt (3 von 5)",en:"FSP part 3",act:"bvOpen"}];
+      return [{k:"bv",id:t[0],ok:!!(r.pass||r.grey),grey:!!(r.grey&&!r.pass),de:"Station „"+s.title+"“ bestehen (12 von 20)",en:"pass the station",act:"bvOpen"}]})}catch(e){}
+  try{if(typeof LX!=="undefined"&&LX&&typeof LX.reg==="function")LX.reg("i.visite",{label:"Bett vier · Visite",min:5,due:()=>bvVisits().length,items:()=>bvVisits().map(v=>({id:v.id,title:"Visite · "+v.title,act:"bvVisite",min:5})),open:id=>ACT.bvVisite(id)})}catch(e){}
+  let ok=false;try{if(typeof PAKT_RULES!=="undefined"&&PAKT_RULES){PAKT_RULES.bv=bvMerge;ok=true}}catch(e){}
+  if(!ok)try{if(typeof mergeCore==="function"&&typeof MOD!=="undefined"&&MOD.around)MOD.around("mergeCore","i6",function(orig,L,R){const out=orig(L,R);try{const a=L&&L.pakt&&L.pakt.bv,b=R&&R.pakt&&R.pakt.bv;if((a||b)&&out&&out.pakt)out.pakt.bv=bvMerge(a,b)}catch(e){}return out})}catch(e){}},0);
+// ---------------------------------------------------------------- public
+Object.assign(window,{bvOpen,bvRun,bvBest,bvUnlock,bvFate,bvFateTier,bvArrival,BV_TAIL,bvTailLine,bvEndLine,bvChart,bvVisits,bvMerge,bvCoverage:coverage});
+})();
+
+// ===== Mephisto · track I · c_i7.js (owner: i7) — the duel engine and the five bosses (PLAN-I R6; I5 P1–P10).
+// Each boss is the performance half of its realm's level test ("Das Duell", after i4's "Die Probe") and fights with the learner's
+// own weak points. Data: v2/x_i7_boss.js (BOSS2, BOSS_MEMORY, BOSS2_UI). c_boss.js (P1) keeps BOSSES, its CSS and its gate row.
+// Declared replacements (PLAN-I §2.1): bossDuel (MOD.around, never calls the 13.0 duel) and bossPool (MOD.around: realm lessons,
+//   options shuffled). Also replaced: ACT.pkDuel, ACT.duels (practice list). Around-change on Focus.close (needed, listed in MANIFEST):
+//   during a live duel gamepad B / Escape need a second press within 1.5 s, and gamepad Start pauses instead of leaving.
+// Rules (I5 P1): 3 candles (+1 relit per phase, never above 3; boon "candle+1" = one 4th candle), hits per phase, a first mistake curses
+//   the item (it returns two turns later, no candle), a second mistake on it costs a candle, boss action every 5th turn (Kerzenlicht: 4th)
+//   with a telegraph, speed gives no damage, feedback stays until "Weiter", no timer during telegraph/feedback/phase lines, pause on hide,
+//   quit after the first answer = a recorded loss. Options of every multiple-choice item are shuffled at display time.
+// State: S.duel = {log,prac,drill,rec,tg,vz,sd,pace,zettel,brief} + S.bossWins (shape {d,acc} kept; adds best,hard). Merge: MERGE_RULES.duel,
+//   MERGE_RULES.bossWins (registered in setTimeout). Events (window.EV, when present): boss.answer, boss.won, boss.lost, boss.left, realm.proof.
+(function(){
+const W=typeof window!=="undefined"?window:globalThis;
+const I7={err:[],ver:"13.2-i7",items:{},index:null,escAt:0,qAt:0,selfClose:false};
+W.I7=I7;
+function i7Try(name,f,d){try{return f()}catch(e){I7.err.push(name+": "+(e&&e.message||e));try{if(typeof logError==="function")logError({message:"i7 "+name+": "+(e&&e.message||e)})}catch(x){}return d}}
+const today=()=>typeof todayKey==="function"?todayKey():new Date().toISOString().slice(0,10);
+const wc=s=>String(s||"").split(/\s+/).filter(Boolean).length;
+const nT=s=>typeof normT==="function"?normT(String(s||"")):String(s||"").toLowerCase();
+const norm=s=>nT(s).replace(/[.,!?;:„“"()«»‚‘’]/g," ").replace(/\s+/g," ").trim();
+const shuf=a=>{const b=a.slice();for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));const t=b[i];b[i]=b[j];b[j]=t}return b};
+const uniqBy=(a,f)=>{const s=new Set();return a.filter(x=>{const k=f(x);if(s.has(k))return false;s.add(k);return true})};
+const H=s=>{if(typeof esc==="function")return esc(s);{return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c])}};
+const LVN7=["A1","A2","B1","B2","C1","C2"];
+const lvI=s=>{if(typeof lvIdx==="function")return lvIdx(s);const m=String(s||"").match(/[ABC][12]/);return m?LVN7.indexOf(m[0]):0};
+const Pk=()=>{try{return P()}catch(e){return {ch:1}}};
+const save=()=>{try{saveSoon()}catch(e){}};
+const fx=n=>{if(typeof SND!=="undefined")try{SND.fx(n)}catch(e){}};
+const evE=(n,p)=>{try{if(W.EV&&typeof W.EV.emit==="function")W.EV.emit(n,p)}catch(e){}};
+const EVF_TEST=()=>{try{return (typeof EVF!=="undefined"&&EVF.TEST)||8}catch(e){return 8}};
+const hash=s=>{let h=0;s=String(s||"");for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return (h>>>0).toString(36)};
+const du=()=>{try{return P().du===true}catch(e){return false}};
+const fill=(s,o)=>{s=String(s==null?"":s);o=o||{};s=s.replace(/\{(WORD|GIVEN|CH|L)\}/g,(m,k)=>o[k]!=null?o[k]:m);try{if(typeof st3Fill==="function")s=st3Fill(s)}catch(e){}return s};
+const REALM_CH={hexe:[1,8],golem:[9,16],pudel:[17,24],caligari:[25,32],kommission:[33,40]};
+const ROMAN=["I","II","III","IV","V"];
+const SPK={H:"Die Hexe",G:"Der Golem",P:"Der Pudel",C:"Caligari",V:"Die Kommission",N:"",M:"Mephisto"};
+
+// ---------------------------------------------------------------- state
+function DS(){if(typeof S==="undefined")return {log:{},prac:{},drill:{},rec:{},tg:{},vz:{},sd:{}};if(S.duel&&I7._ds===S.duel)return S.duel;if(!S.duel||typeof S.duel!=="object")S.duel={};const d=S.duel;["log","prac","drill","rec","tg","vz","sd"].forEach(k=>{if(!d[k]||typeof d[k]!=="object"||Array.isArray(d[k]))d[k]={}});I7._ds=d;return d}
+function recOf(id){const R=DS().rec;return R[id]=R[id]||{wins:0,losses:0,quits:0}}
+const ikey=x=>(x.type||"?")+"|"+String(x.q||x.text||(x.pre?x.pre+" ":"")+(x.a||"")||"").slice(0,60);
+
+// ---------------------------------------------------------------- items
+function sealItem(g,n,en,why,extra){return Object.assign({type:"mc",ui:"seal",ph:1,tag:"genus",q:n,sub:en||"",o:[g].concat(["der","die","das"].filter(x=>x!==g)),a:0,why:g+" "+n+(why?" — "+why:""),noun:n,g},extra||{})}
+// integrator 13.6: the plural builder (c_i7_ui pluralUI) forms only –, -e, -er, -n/-en/-nen, -s, each ± umlaut. Since L1/P1 the deck carries full
+// irregular plurals (die Antibiotika, die Ergebnisse …) that it cannot form — such an item could never be answered, so it is not asked.
+function i7PlOK(n,pl){try{n=String(n);pl=String(pl).replace(/^die /,"");const um=s=>{const m=s.match(/^(.*)(au|a|o|u)([^aouäöü]*)$/i);if(!m)return s;const map={a:"ä",o:"ö",u:"ü",A:"Ä",O:"Ö",U:"Ü",au:"äu",Au:"Äu"};return m[1]+(map[m[2]]||m[2])+m[3]};
+  const nEnd=s=>/(e|el|er)$/.test(s)?"n":/in$/.test(s)?"nen":"en";for(const u of [false,true])for(const e of ["","e","er","n","s"]){if((u?um(n):n)+(e==="n"?nEnd(n):e)===pl)return true}return false}catch(x){return false}}
+function pluralItem(g,n,pl,why){if(!pl||!i7PlOK(n,pl))return null;return {type:"gap",ui:"plural",ph:3,tag:"plural",q:"ein"+(g==="die"?"e":"")+" "+n+", zwei ___",a:pl,alt:[],why:"die "+pl+(why?" — "+why:""),noun:n,g}}
+function palWhy(g,n){if(typeof palRule!=="function")return "";try{const r=palRule(n);if(!r)return "";return r.g===g?r.r:"Ausnahme! (Regel: "+r.r+")"}catch(e){return ""}}
+function itemsOf(id){if(I7.items[id])return I7.items[id];const C=(typeof BOSS2!=="undefined"&&BOSS2[id])||null;if(!C)return [];let L=(C.items||[]).map(x=>Object.assign({},x));
+  if(id==="hexe")(C.nouns||[]).forEach(r=>{L.push(sealItem(r[0],r[1],r[3],r[4],{pl:r[2],plWhy:r[5],table:1}));const p=pluralItem(r[0],r[1],r[2],r[5]);if(p)L.push(p)});
+  i7Try("bossx",()=>{const X=typeof BOSS_X!=="undefined"?BOSS_X:{};
+    if(id==="golem"&&X.golem&&Array.isArray(X.golem.last))X.golem.last.forEach(x=>{if(!x||!Array.isArray(x.o))return;const o=[x.o[x.a]].concat(x.o.filter((_,i)=>i!==x.a));L.push({ph:2,tag:"klammer",type:"mc",q:(X.golem.ask||"Welches Wort steht ganz am Ende?")+" – „"+x.q+"“",o,a:0,why:x.why,en:x.en,src:"s2"})});
+    if(id==="caligari"&&X.caligari&&Array.isArray(X.caligari.falsch))X.caligari.falsch.forEach(r=>{if(!r||r.length<5)return;L.push({ph:1,tag:"ff",type:"mc",q:r[0]+" – Was sagt der Satz auf Deutsch wirklich?",o:[r[1],r[2],r[3]],a:0,why:r[4],src:"s3",med:r[5]})})});
+  L.forEach((x,i)=>{x.ix=i;x.boss=id;if(x.type==="fix"&&!x.err){const d=diffSpan(x.q,x.a);if(d){x.err=d.err;x.repl=d.repl}}if(x.type==="fix"&&x.err&&x.repl==null){const d=replOf(x.q,x.err,x.a);if(d!=null)x.repl=d}if(x.type==="fix"&&x.repl==null)x.typed=1;if(x.type==="spot"&&x.repl==null)x.repl=x.a;x.key=ikey(x)});
+  return I7.items[id]=L}
+function index(){if(I7.index)return I7.index;const M={};["hexe","golem","pudel","caligari","kommission"].forEach(id=>itemsOf(id).forEach(x=>{M[x.key]=x}));return I7.index=M}
+// word-level diff: the part of `bad` that differs from `good` (common prefix/suffix removed) and its replacement
+function toks(s){return String(s||"").split(/\s+/).filter(Boolean)}
+function diffSpan(bad,good){const A=toks(bad),B=toks(good);if(!A.length||!B.length)return null;let p=0;while(p<A.length&&p<B.length&&A[p]===B[p])p++;let s=0;while(s<A.length-p&&s<B.length-p&&A[A.length-1-s]===B[B.length-1-s])s++;
+  let a=A.slice(p,A.length-s),b=B.slice(p,B.length-s);if(!a.length){if(p>0){p--;a=A.slice(p,A.length-s);b=B.slice(p,B.length-s)}else return null}
+  const err=a.join(" ");if(String(bad).split(err).length!==2||a.length>4)return null;return {err,repl:b.join(" ")}}
+function replOf(q,err,a){const i=String(q).indexOf(err);if(i<0)return null;const pre=q.slice(0,i),suf=q.slice(i+err.length);if(String(a).startsWith(pre)&&String(a).endsWith(suf)&&a.length>=pre.length+suf.length)return a.slice(pre.length,a.length-suf.length).trim();return null}
+const FAM=[["der","die","das","den","dem","des"],["ein","eine","einen","einem","einer","eines"],["kein","keine","keinen","keinem","keiner","keines"],["dieser","diese","dieses","diesen","diesem"],["mein","meine","meinen","meinem","meiner"],["sein","seine","seinen","seinem","seiner"],["ihr","ihre","ihren","ihrem","ihrer"],["mit","von","zu","aus","bei","nach"],["auf","an","in","für","über","gegen"],["habe","bin","hat","ist","haben","sind"]];
+const cap=(w,like)=>like&&/^[A-ZÄÖÜ]/.test(like)?w.charAt(0).toUpperCase()+w.slice(1):w;
+function variants(tok){const lw=tok.toLowerCase().replace(/[.,!?;:]$/,"");const tail=tok.slice(lw.length);const out=new Set();
+  FAM.forEach(f=>{if(f.includes(lw))f.forEach(v=>{if(v!==lw)out.add(cap(v,tok)+tail)})});
+  if(!out.size&&lw.length>3&&/(e|en|er|em|es)$/.test(lw)){const st=lw.replace(/(en|er|em|es|e)$/,"");["e","en","er","em","es"].forEach(e=>{if(st+e!==lw)out.add(cap(st+e,tok)+tail)})}
+  if(!out.size&&/^ge/.test(lw)&&lw.length>5){out.add(cap(lw.slice(2),tok)+tail);out.add(cap(lw.replace(/(t|en)$/,m=>m==="t"?"en":"t"),tok)+tail)}
+  if(!out.size&&lw.length>3){out.add(cap(lw+"e",tok)+tail);out.add(cap(lw.replace(/.$/,""),tok)+tail)}
+  return [...out]}
+function neighbours(repl,err){const R=toks(repl);const out=new Set();R.forEach((t,i)=>variants(t).forEach(v=>{const c=R.slice();c[i]=v;out.add(c.join(" "))}));if(R.length>1){out.add(R.slice().reverse().join(" "));out.add(shuf(R).join(" "))}
+  [repl,err].forEach(x=>out.delete(x));const L=shuf([...out].filter(x=>norm(x)!==norm(repl)));while(L.length<2)L.push(err&&!L.includes(err)&&norm(err)!==norm(repl)?err:repl+(L.length?" ":"")+"!".repeat(L.length+1));return L.slice(0,2)}
+// corrupt a correct sentence for a boss action (Golem stamp, Kommission Rückfrage): returns a fix item or null
+function verbIdx(T){let set=null;try{set=new Set([...tVForms()].map(w=>nT(w)))}catch(e){}if(set){for(let i=1;i<T.length;i++){const w=nT(T[i].replace(/[.,!?]/g,""));if(set.has(w)&&!/^ge/.test(w))return i}}return 1}
+function corrupt(x,mode){const good=(x.pre?x.pre+" ":"")+String(x.a||"");const sent=String(x.a||"").replace(/\s+([.,!?])/g,"$1");const T=toks(sent);if(T.length<3)return null;let B=T.slice(),err="";
+  if(mode==="swap"){const i=verbIdx(T);if(i+1>=T.length||/^[.,!?]$/.test(T[i+1]))return null;const a=B[i],b=B[i+1].replace(/[.,!?]$/,""),pb=B[i+1].slice(b.length);B[i]=b;B[i+1]=a+pb;err=b+" "+a}
+  else if(mode==="last"){const last=T.length-1;const w=T[last].replace(/[.,!?]$/,""),p=T[last].slice(w.length);if(T.length<4)return null;B=T.slice(0,last);B[B.length-1]=B[B.length-1]+p;B.splice(2,0,w);err=w}
+  else{let done=false;for(let i=0;i<T.length&&!done;i++){const lw=T[i].toLowerCase();const f=FAM.slice(0,3).find(F=>F.includes(lw));if(f){const v=shuf(f.filter(z=>z!==lw))[0];B[i]=cap(v,T[i]);err=B[i];done=true}}if(!done)return null}
+  const q=(x.pre?x.pre+" ":"")+B.join(" ");if(q.split(err).length!==2)return null;const r=replOf(q,err,(x.pre?x.pre+" ":"")+sent);if(r==null)return null;
+  return {type:"fix",q,a:(x.pre?x.pre+" ":"")+sent,err,repl:r,tag:x.tag,ph:x.ph,why:x.why||"",boss:x.boss,stamp:1}}
+
+// ---------------------------------------------------------------- the learner's data (I5 P8, PLAN-I R6)
+function opened(g){try{return !!(S.lessons&&S.lessons[g])}catch(e){return false}}
+function lesson(g){if(typeof lessonById==="function")return lessonById(g);return typeof GRAMMAR!=="undefined"?GRAMMAR.find(x=>x.id===g)||null:null}
+function realmLessons(id){const R=REALM_CH[id];if(!R)return [];let mk="";try{mk=id+"|"+Object.keys(S.lessons||{}).length+"|"+(typeof SYLLABUS!=="undefined")+"|"+(typeof CHAPTERS!=="undefined"?CHAPTERS.length:0)}catch(e){}I7.rl=I7.rl||{};const hit=I7.rl[id];if(hit&&hit.k===mk&&Date.now()-hit.t<5000)return hit.v;let ids=[];
+  i7Try("realmLessons",()=>{if(typeof PROG!=="undefined"&&PROG&&typeof PROG.lessons==="function"&&typeof SYLLABUS!=="undefined"&&Array.isArray(SYLLABUS)&&SYLLABUS.length>=R[1]){for(let n=R[0];n<=R[1];n++)ids=ids.concat(PROG.lessons(n)||[])}
+    else if(typeof CHAPTERS!=="undefined"){CHAPTERS.filter(c=>c.n>=R[0]&&c.n<=R[1]).forEach(c=>{ids=ids.concat(c.lessons||(c.lesson?[c.lesson]:[]))});
+      (typeof BOSS_GR!=="undefined"&&BOSS_GR[id]||[]).forEach(g=>{if(!ids.includes(g)&&S.lessons&&S.lessons[g]&&(S.lessons[g].best||0)>=60)ids.push(g)})}});
+  const v=[...new Set(ids.filter(Boolean))];I7.rl[id]={k:mk,t:Date.now(),v};return v}
+function needOf(x,id,D){if(x.need)return x.need;const C=BOSS2[id];const g=C&&C.drill&&C.drill[x.tag];if(g&&realmLessons(id).includes(g))return g;return null}
+function needOK(x,id,D){const n=needOf(x,id,D);if(!n)return true;if(D&&D.hardAny&&id==="hexe"&&x.tag==="dat")return true;return opened(n)}
+function tagStr(t){return String((DS().tg||{})[t]||"")}
+function tagAcc(t,min){const s=tagStr(t);if(!s.length||s.length<(min||1))return null;return s.split("").filter(c=>c==="1").length/s.length}
+function tagPush(t,ok){if(!t)return;const d=DS();d.tg[t]=(tagStr(t)+(ok?"1":"0")).slice(-30)}
+function lmWeakIds(){if(!W.LM)return [];return i7Try("lm",()=>W.LM&&typeof W.LM.weakLessons==="function"?W.LM.weakLessons(6).map(x=>x.id):[],[])}
+function lmNemDe(){if(!W.LM)return [];return i7Try("lmn",()=>W.LM&&typeof W.LM.nemeses==="function"?W.LM.nemeses(20).map(x=>String(x.de||"")):[],[])}
+// Hexe phase 1: the learner's own nouns first (S.palace misses, lapsed cards, LM nemeses), then the table; D9 filters
+function hexePool(D){if(D&&D._hp)return D._hp;const r=hexePool0(D);if(D)D._hp=r;return r}
+function hexePool0(D){return i7Try("hexePool",()=>{const out=[];const seen=c=>{const s=S.cards&&S.cards[c.id];return !!(s&&(s.reps||0)>0)};const nem=new Set(lmNemDe());
+  let cards=[];try{cards=allCards().filter(c=>/^(der|die|das) [A-ZÄÖÜ][^\s]+$/.test(c.de)&&lvI(c.level)<=0&&!/nur Plural/i.test(c.info||""))}catch(e){}
+  const m={},two=new Set();cards.forEach(c=>{const [g,n]=c.de.split(" ");if(m[n]&&m[n]!==g)two.add(n);m[n]=g});
+  const byDe={};cards.forEach(c=>{byDe[c.de]=c});const pal=S.palace||{};
+  cards.filter(c=>seen(c)&&!two.has(c.de.split(" ")[1])).forEach(c=>{const [g,n]=c.de.split(" ");const st=S.cards[c.id]||{};const pv=pal[n];let pl="";if(typeof c.pl==="string"&&/^(die )?[A-ZÄÖÜ]\S+$/.test(c.pl.trim()))pl=c.pl.trim().replace(/^die /,"");
+    out.push(sealItem(g,n,c.en||"",palWhy(g,n),{pl,w:(pv&&pv.miss>pv.ok?3*(pv.miss-pv.ok):0)+Math.min(3,st.lapses||0)+(nem.has(c.de)?2:0),own:1,card:c.id}))});
+  const story=new Set((BOSS2.hexe.story||[]));const have=new Set(out.map(x=>x.q));
+  itemsOf("hexe").filter(x=>x.ui==="seal"&&x.table&&!have.has(x.q)).forEach(x=>{const c=byDe[x.g+" "+x.q];const ok=(c&&seen(c))||story.has(x.q)||(typeof palRule==="function"&&(()=>{try{const r=palRule(x.q);return r&&r.g===x.g}catch(e){return false}})());if(ok)out.push(Object.assign({},x,{w:0}))});
+  if(out.length<14)itemsOf("hexe").filter(x=>x.ui==="seal"&&x.table&&!out.some(y=>y.q===x.q)).forEach(x=>out.push(Object.assign({},x,{w:-1})));
+  out.forEach(x=>{x.boss="hexe";x.key=ikey(x)});return out},[])}
+// Pudel: "he wears the learner's most-missed items" (I5 P4 shadowDraw + LM confusions + l4 S.errq)
+function shadowDraw(n,lvMax){return i7Try("shadow",()=>{const C=[];const t=today();const age=d=>{try{return Math.max(0,(new Date(t)-new Date(d||t))/864e5)}catch(e){return 99}};const done=DS().sd;
+  const typeN=S.errors||{};const seen=new Set();(S.mistakes||[]).slice().reverse().forEach(m=>{const x=String(m.text||"").match(/\{\{c1::(.+?)\}\}\s*\(nicht:\s*(.+?)\)\s*$/);if(!x)return;const key=x[2]+"→"+x[1];if(seen.has(key)||wc(x[1])>12||wc(x[2])>12)return;seen.add(key);
+    const d=diffSpan(x[2],x[1]);const it=d?{type:"fix",q:x[2],a:x[1],err:d.err,repl:d.repl}:{type:"transform",q:"Korrigieren Sie: "+x[2],a:x[1],alt:[]};
+    C.push({w:3+Math.min(3,(typeN[m.type]||0)/5)+(age(m.date)<30?1:0)-(done[key]?2:0),src:"coach",item:Object.assign(it,{why:m.extra||m.type||"",tag:"shadow",say:"Ihr Schatten",date:m.date,sdk:key})})});
+  const IX=index();Object.entries(DS().log).forEach(([k,r])=>{if(!r||r.miss<=r.ok)return;const it=IX[k];if(it&&it.boss!=="kommission"&&lvI((BOSSES[it.boss]||{}).lv)<=lvMax)C.push({w:2+(r.miss-r.ok)+(age(r.d)<14?1:0),src:"duel",item:Object.assign({},it,{say:"Ihr Schatten",given:r.g})})});
+  try{if(typeof STARK!=="undefined")STARK.forEach(v=>{const s=(S.stark||{})[v[0]];if(!s||!s.miss||(s.ok||0)>=3||lvI(v[5])>lvMax)return;C.push({w:2+s.miss-(s.ok||0),src:"stark",item:{type:"gap",q:"Präteritum, er/sie/es: "+v[0],a:v[3],alt:[],why:v[0]+", "+v[3]+", "+v[4],tag:"praet",say:"Ihr Schatten"}})})}catch(e){}
+  try{(S.errq||[]).forEach(e=>{if(!e||!e.bad||!e.good||wc(e.good)>12)return;const d=diffSpan(e.bad,e.good);if(!d)return;C.push({w:1.5+Math.min(3,e.n||1),src:"errq",item:{type:"fix",q:e.bad,a:e.good,err:d.err,repl:d.repl,why:e.rule||e.type||"",tag:"shadow",say:"Ihr Schatten"}})})}catch(e){}
+  try{if(W.LM&&typeof W.LM.confusions==="function")W.LM.confusions(20).forEach(c=>{if(!c||c.n<2||String(c.want).length>40||String(c.got).length>40||norm(c.want)===norm(c.got))return;C.push({w:1+Math.min(3,c.n/2),src:"lm",item:{type:"gap",q:"Ihr Schatten schrieb: „"+c.got+"“. Richtig ist:",a:c.want,alt:[],why:"Sie haben das schon "+c.n+"-mal verwechselt.",tag:"shadow",say:"Ihr Schatten"}})})}catch(e){}
+  realmLessons("pudel").forEach(id=>{const L=(S.lessons||{})[id];if(!L||(L.lastScore==null?L.best:L.lastScore)>=80)return;const g=lesson(id);(g&&g.ex||[]).filter(e=>(e.type==="fix"||e.type==="transform")&&lvI(g.level)<=lvMax).forEach(e=>C.push({w:1+(80-(L.lastScore||L.best||0))/20,src:"lesson",item:lesItem(e,id,"shadow")}))});
+  C.forEach(c=>{c.item=Object.assign({},c.item);c.item.key=c.item.key||ikey(c.item);c.item.boss=c.item.boss||"pudel"});
+  C.sort((a,b)=>b.w-a.w||Math.random()-.5);const out=[],per={},keys=new Set();for(const c of C){if(keys.has(c.item.key))continue;per[c.src]=(per[c.src]||0)+1;if(per[c.src]>Math.ceil(n/2))continue;keys.add(c.item.key);out.push(c.item);if(out.length>=n)break}return out},[])}
+function lesItem(e,gid,tag){const x=Object.assign({},e,{tag:tag||e.tag||gid,lesson:gid,src:"les"});if(x.type==="order"){x.a=x.a||(x.words||[]).join(" ").replace(/\s+([.,!?])/g,"$1")}
+  if(x.type==="fix"){const d=diffSpan(x.q,x.a);if(d){x.err=d.err;x.repl=d.repl}}if(x.type==="mc"&&(!Array.isArray(x.o)||new Set(x.o).size!==x.o.length))return null;x.key=ikey(x);return x}
+function lessonPool(id,P,D){return i7Try("lessonPool",()=>{if(!P.les)return [];const B=BOSSES[id];const R=new Set(realmLessons(id));const weak=new Set(lmWeakIds());const out=[];
+  P.les.filter(g=>R.has(g)&&opened(g)).forEach(g=>{const L=lesson(g);if(!L||lvI(L.level)>lvI(B.lv))return;const st=(S.lessons||{})[g]||{};const w=(st.lastScore!=null&&st.lastScore<80?1.5:0)+(weak.has(g)?1.5:0);
+    (L.ex||[]).forEach(e=>{if(!e||!/^(mc|gap|order|fix|transform)$/.test(e.type))return;if(e.type==="order"&&(e.words||[]).length>8)return;const x=lesItem(e,g,(P.tags||[])[0]);if(x){x.w=w;x.boss=id;x.ph=D.ph+1;out.push(x)}})});return out},[])}
+
+// ---------------------------------------------------------------- bossDraw (I5 P8 + R6)
+function bossDraw(id,ph,n,D){D=D||{};const cfg=BOSS2[id];if(!cfg)return [];const P=cfg.phases[Math.min(ph,cfg.phases.length-1)]||{};D.used=D.used||new Set();const used=D.used;const log=DS().log;const weak=new Set(lmWeakIds());
+  let pool=itemsOf(id).filter(x=>x.ph===ph+1&&!x.act&&!x.intr&&!x.resume&&needOK(x,id,D)&&!used.has(x.key)&&!(x.ui==="seal"&&x.table));
+  if(id==="hexe"&&ph===0)pool=hexePool(D).filter(x=>!used.has(x.key));
+  if(id==="hexe"&&ph===2)pool=(D.sealed||[]).filter(x=>x.pl&&i7PlOK(x.q,x.pl)).map(x=>Object.assign(pluralItem(x.g,x.q,x.pl,x.plWhy||""),{boss:"hexe",w:2})).filter(x=>{x.key=ikey(x);return !used.has(x.key)}).concat(pool);
+  if(id==="hexe"&&ph===1&&D.hardAny)pool=pool.concat(itemsOf("hexe").filter(x=>x.tag==="dat"&&!used.has(x.key)&&!pool.includes(x)));
+  if(id==="caligari"&&ph===2&&!opened("g52")){let k=0;pool=pool.filter(x=>x.tag!=="koll"||k++<3)}
+  const score=x=>{const r=log[x.key];const seen=r?(r.ok+r.miss):0;const wk=r?Math.max(0,r.miss-r.ok):0;const ta=tagAcc(x.tag,4);
+    return 3*wk+2*(1-(ta==null?.7:ta))+(ta!=null&&ta<.6?1.5:0)-1.5*Math.min(seen,3)+(x.w||0)+(x.src==="s3"?2.5:0)+(x.src==="s2"?.5:0)+(x.lesson&&weak.has(x.lesson)?1.5:0)
+      -(x.chain&&D.lastChains&&D.lastChains.includes(x.chain)?4:0)+Math.random()};
+  const own=Math.round(n*(P.own||0));let mine=[];
+  if(own&&id==="pudel")mine=shadowDraw(own,lvI(BOSSES.pudel.lv)).filter(x=>!used.has(x.key));
+  else if(own){mine=lessonPool(id,P,D).filter(x=>!used.has(x.key)).sort((a,b)=>score(b)-score(a)).slice(0,own)}
+  const out=mine.slice(0,own).concat(pool.sort((a,b)=>score(b)-score(a)).slice(0,Math.max(0,n-Math.min(own,mine.length))));
+  if(id==="kommission"){if(ph===0){const g=pool.find(x=>x.head==="Begrüßung");if(g&&!out.includes(g)){out.pop();out.unshift(g)}}out.sort((a,b)=>(a.ix||0)-(b.ix||0))}
+  out.forEach(x=>{used.add(x.key);if(x.chain){D.lastChains=(D.lastChains||[]).concat([x.chain]).slice(-2)}});return out.map(x=>Object.assign({},x))}
+// boss actions (I5 P2–P6): an item, or null (then a fresh item is drawn)
+function bossAct(D,kind){return i7Try("act:"+kind,()=>{const id=D.id,used=D.used,all=itemsOf(id);const free=f=>shuf(all.filter(x=>!used.has(x.key)&&f(x)));let it=null;
+  if(kind==="steal"){const pal=S.palace||{};const P=hexePool(D);it=shuf(P.filter(x=>pal[x.q]&&pal[x.q].miss>pal[x.q].ok&&!used.has(x.key)))[0]||shuf(P.filter(x=>!used.has(x.key)))[0];if(it)it=Object.assign({},it,{steal:1,secs:6})}
+  else if(kind==="swap"){const c=free(x=>x.ph===2&&x.type==="mc"&&/___/.test(x.q)&&needOK(x,id,D))[0];if(c){const q=c.q.replace("___",c.o[1]);if(q.split(c.o[1]).length===2){it={type:"fix",q,a:c.q.replace("___",c.o[0]),err:c.o[1],repl:c.o[0],tag:c.tag,ph:2,why:c.why,boss:id};used.add(c.key)}}}
+  else if(kind==="throwback"){const s=shuf((D.sealed||[]).filter(x=>x.pl&&!(D.thrown||[]).includes(x.q)))[0];if(s){D.thrown=(D.thrown||[]).concat([s.q]);it=Object.assign(pluralItem(s.g,s.q,s.pl,s.plWhy||""),{boss:id})}else it=free(x=>x.ph===3)[0]}
+  else if(kind==="stamp"){const b=shuf((D.built||[]).filter(x=>x.type==="order"&&!x.pre))[0];if(b)it=corrupt(b,D.ph===1?"last":"swap");if(!it)it=free(x=>x.ph===D.ph+1&&x.type==="fix")[0]}
+  else if(kind==="mauer"){it=free(x=>x.act==="mauer")[0]}
+  else if(kind==="shift"){const tags=new Set(BOSS2.pudel.phases.slice(0,D.ph+1).flatMap(p=>p.tags));const B=free(x=>x.chain&&tags.has(x.tag)&&x.ph<=D.ph+1)[0];if(B){const A=shuf(all.filter(x=>x.chain===B.chain&&x.shape!==B.shape))[0];if(A)it=Object.assign({},B,{shiftFrom:A.q,shiftShape:A.shape,shiftMs:3000})}}
+  else if(kind==="shadow"){it=shadowDraw(1,lvI(BOSSES.pudel.lv)).filter(x=>!used.has(x.key))[0]||(D.cursedAll.length?Object.assign({},D.cursedAll[D.cursedAll.length-1].x):null)||free(x=>x.ph===3)[0]}
+  else if(kind==="sugg"){it=free(x=>x.act==="sugg")[0]}
+  else if(kind==="diktat"){const c=free(x=>x.ph===3&&x.type==="transform")[0];if(c)it=Object.assign({},c,{secsAdj:-10})}
+  else if(kind==="intr"){it=free(x=>x.intr&&x.ph===1)[0]}
+  else if(kind==="rueck"){const b=shuf((D.built||[]).filter(x=>x.ph===2&&(x.type==="order"||x.type==="transform")))[0];if(b)it=corrupt(b,"case");if(!it)it=free(x=>x.ph===2&&x.type==="fix")[0]}
+  else if(kind==="zwischen"){it=free(x=>x.intr&&x.ph===3)[0]}
+  if(!it)return null;it=Object.assign({},it);it.key=it.key||ikey(it);used.add(it.key);it.boss=id;return it},null)}
+
+// ---------------------------------------------------------------- answers
+const DUEL_SECS={mc:x=>Math.min(25,7+.5*wc(x.q)+.4*wc((x.o||[]).join(" "))),gap:x=>16+2*wc(x.a),order:x=>8+3*(x.words||[]).length,fix:x=>20+1.2*wc(x.q),transform:x=>25+2.5*wc(x.a),spot:x=>30+.8*wc(x.text)};
+function okStr(all,g){const G=String(g==null?"":g);const ok=all.filter(Boolean).some(a=>norm(a)===norm(G)||(wc(a)>=4&&typeof v2Same==="function"&&(()=>{try{return v2Same(a,G)}catch(e){return false}})()));let spell="";if(ok&&typeof spellNote==="function")try{spell=spellNote(G,all)||""}catch(e){}return {ok,spell}}
+function spanHit(x,e){if(e==null)return false;const E=norm(x.err),G=norm(e);return !!G&&(E===G||E.split(" ").includes(G))}
+function check(x,given){if(!x)return {ok:false};
+  if(x.type==="mc"){if(typeof given==="number")return {ok:given===x.a};const all=[x.ui==="seal"?x.o[x.a]+" "+x.q:x.o[x.a]].concat(x.alt||[]);return okStr(all,given)}
+  if((x.type==="fix"||x.type==="spot")&&given&&typeof given==="object"){const hit=spanHit(x,given.err);if(x.type==="spot")return {ok:hit&&norm(given.fix)===norm(x.a),found:hit};return {ok:hit&&okStr([x.a].concat(x.alt||[]),given.fix).ok,found:hit}}
+  if(x.type==="spot")return okStr([String(x.text).replace(x.err,x.a)],given);
+  if(x.type==="order"&&Array.isArray(given))given=given.join(" ").replace(/\s+([.,!?])/g,"$1");
+  return okStr([x.a].concat(x.alt||[]),given)}
+function answerText(x){if(!x)return "";if(x.type==="mc")return x.ui==="seal"?x.o[x.a]+" "+x.q:x.o[x.a];if(x.type==="order")return (x.pre?x.pre+" ":"")+x.a;if(x.type==="spot")return x.a+"  ("+x.err+" → "+x.a+")";return x.a}
+function solve(x){if(x.type==="mc")return x.a;if(x.type==="fix"&&x.err)return {err:x.err,fix:x.a};if(x.type==="spot")return {err:x.err,fix:x.a};return x.a}
+function duelNote(D,x,ok,given){i7Try("note",()=>{const d=DS();const k=x.key||ikey(x);const r=d.log[k]=d.log[k]||{ok:0,miss:0};r.b=x.boss||D.id;r.t=x.tag||x.type;ok?r.ok++:r.miss++;r.d=today();if(!ok&&given!=null)r.gd=today(),r.g=String(typeof given==="object"?(given.fix||given.err||""):typeof given==="number"?(x.o||[])[given]:given).slice(0,60);
+  if(x.ui==="seal"){S.palace=S.palace||{};const st=S.palace[x.q]=S.palace[x.q]||{g:x.o[x.a],ok:0,miss:0};ok?st.ok++:(st.miss++,st.wrong=typeof given==="number"?x.o[given]:String(given||""));st.d=today()}
+  if(x.ui==="plural"&&x.g){S.gruft=S.gruft||{};const gk=x.g+" "+x.noun;const st=S.gruft[gk]=S.gruft[gk]||{ok:0,miss:0};ok?st.ok++:st.miss++}
+  const keys=Object.keys(d.log);if(keys.length>400)keys.sort((a,b)=>(d.log[a].d<d.log[b].d?-1:d.log[a].d>d.log[b].d?1:a<b?-1:1)).slice(0,keys.length-400).forEach(k=>delete d.log[k]);save()})}
+function bossRecord(id,win,o){o=o||{};S.bossWins=S.bossWins||{};const L=recOf(id);const t=today();
+  if(!win){o.quit?L.quits++:L.losses++;L.last=t;L.lastLoss=t;if(L.lossDay===t)L.lossN=(L.lossN||0)+1;else{L.lossDay=t;L.lossN=1}save();return}
+  L.wins++;L.last=t;const w=S.bossWins[id];const hard=Object.assign({},w&&w.hard||{},o.hard||{});
+  S.bossWins[id]=w?Object.assign({},w,{best:Math.max(w.best||w.acc||0,o.acc||0),acc:Math.max(w.acc||0,o.acc||0),hard}):{d:t,acc:o.acc||0,best:o.acc||0,hard};if(o.clean)L.clean=1;save()}
+function duelRecord(id){const w=(S.bossWins||{})[id]||null;const L=(DS().rec||{})[id]||{wins:0,losses:0,quits:0};let fd=w&&w.d;try{if(fd)fd=fmtDate(w.d)}catch(e){}
+  const parts=[];if(w)parts.push("besiegt am "+fd,"bester Kampf "+(w.best||w.acc||0)+" %");if(L.wins)parts.push(L.wins+" Sieg"+(L.wins===1?"":"e"));if(L.losses)parts.push(L.losses+" Niederlage"+(L.losses===1?"":"n"));if(L.quits)parts.push(L.quits+"× verlassen");
+  return {d:w&&w.d||null,best:w?(w.best||w.acc||0):0,acc:w?w.acc:0,wins:L.wins||0,losses:L.losses||0,quits:L.quits||0,hard:w&&w.hard||{},clean:!!L.clean,line:parts.join(" · ")}}
+
+// ---------------------------------------------------------------- entry, boons
+function realOf(id,opt){const B=BOSSES[id];const ch=Pk().ch||1;if(opt.practice)return {real:false,why:"practice"};if(opt.real)return {real:true};
+  if((S.bossWins||{})[id])return {real:ch>=B.ch,rematch:true};if(ch<B.ch)return {real:false,why:"ch"};
+  if(typeof W.DUEL_ENTRY==="function"){const r=i7Try("entry",()=>W.DUEL_ENTRY(id),null);return {real:!!(r&&r.ok),why:"probe"}}
+  if(typeof GATE!=="undefined"&&GATE&&typeof GATE.probe==="function")return {real:false,why:"probe"};
+  return {real:true}}
+function boons(id){return i7Try("boons",()=>{const p=Pk();const b=p.tk&&p.tk.boon;const B=BOSSES[id];const L=[];const add=v=>{if(typeof v==="string")L.push(v);else if(Array.isArray(v))v.forEach(add);else if(v&&typeof v==="object"){if(v.eff)(!v.boss||v.boss===id)&&L.push(v.eff);else if(v[id]!=null)add(v[id]);else if(v[B.ch]!=null)add(v[B.ch])}};add(b);
+  return {candle:L.filter(x=>/candle\+1/.test(x)).length?1:0,hp:L.filter(x=>/hp-15/.test(x)).length?2:0}},{candle:0,hp:0})}
+
+// ---------------------------------------------------------------- the state machine (I5 P1)
+const Duel=(function(){let D=null;const L={};const emit=(n,p)=>(L[n]||[]).forEach(f=>{try{f(p,D)}catch(e){I7.err.push("on "+n+": "+e.message)}});
+  function secs(x){const P=D.cfg.phases[D.ph]||{};let s;if(x.secs)s=x.secs;else if(P.secs&&!D.inFin)s=P.secs;else{const f=DUEL_SECS[x.type]||DUEL_SECS.gap;s=typeof f==="function"?f(x):f}if(x.ui==="seal"&&!x.secs&&D.aidsOff)s=6;s+=x.secsAdj||0;return Math.max(5,s)*D.pace}
+  function lines(){return D.cfg.lines||{}}
+  function next(){if(!D)return;clearTimeout(D.t);
+    if(D.candles<=0)return go("lose");
+    if(!D.inFin&&D.hp[D.ph]<=0){const C=D.cfg,f=D.fresh[D.ph];
+      if(C.passMark&&!D.refilled[D.ph]&&f.n>=3&&f.ok/f.n<C.passMark){D.refilled[D.ph]=1;D.hp[D.ph]+=C.refill;D.hpMax[D.ph]+=C.refill;D.note=lines().unconvinced;emit("unconvinced",{ph:D.ph});D.st=D.view="note";emit("state");return}
+      if(D.ph<D.cfg.phases.length-1)return go("phaseOut");return startFinisher()}
+    if(D.inFin&&!D.fin.length)return go("win");
+    D.turn++;
+    if(D.inFin){D.item=D.fin.shift();D.kind="fin";return go("ask")}
+    if(D.resumeNext){D.resumeNext=false;const r=shuf(itemsOf(D.id).filter(x=>x.resume&&x.ph===D.ph+1&&!D.used.has(x.key)))[0]||shuf(itemsOf(D.id).filter(x=>x.resume&&!D.used.has(x.key)))[0];if(r){D.used.add(r.key);D.item=Object.assign({},r);D.kind="fresh";return go("ask")}}
+    const due=D.curses.find(c=>c.at<=D.turn);if(due){D.curses.splice(D.curses.indexOf(due),1);D.item=due.item;D.item._given=due.given;D.kind="cursed";return go("ask")}
+    const P=D.cfg.phases[D.ph];const every=P.act?((D.hard.kerze||D.ahead)?Math.min(4,P.act.every):P.act.every):0;
+    if(P.act&&D.turn%every===0){const it=bossAct(D,P.act.kind);if(it){D.item=it;D.kind="act";D.tele=(lines().tele||{})[P.act.kind]||null;emit("tele",{kind:P.act.kind,text:D.tele});return go("telegraph")}}
+    let it=D.queue[D.ph].shift()||bossDraw(D.id,D.ph,1,D)[0];
+    if(!it)it=fallback(D,D.ph);
+    if(!it){D.hp[D.ph]=0;D.turn--;return next()}
+    D.item=it;D.kind="fresh";go("ask")}
+  function fallback(D,ph){const base=itemsOf(D.id).filter(x=>x.ph===ph+1&&!x.act&&!x.intr&&!x.resume&&!(x.ui==="seal"&&x.table&&D.id==="hexe"&&ph>0));let any=shuf(base.filter(x=>needOK(x,D.id,D)&&!D.used.has(x.key)));
+    if(!any.length){any=shuf(base.filter(x=>!D.used.has(x.key)));if(any.length)D.unopened=(D.unopened||0)+1}if(!any.length)any=shuf(base.filter(x=>needOK(x,D.id,D)));if(!any.length)any=shuf(base);if(!any[0])return null;D.used.add(any[0].key);return Object.assign({},any[0])}
+  function answer(given,timeout){if(!D||(D.st!=="ask"&&D.st!=="defend"))return;const x=D.item;const r=timeout?{ok:false}:check(x,given);D.n++;D.last={x,given,r,timeout,kind:D.kind};
+    duelNote(D,x,r.ok,given);tagPush(x.tag,r.ok);
+    evE("boss.answer",{id:D.id,ok:r.ok,src:"du",ref:D.id,key:"du:"+D.id+":"+hash(x.key||ikey(x)),flags:EVF_TEST(),tag:x.tag||"",type:x.type,q:String(x.q||x.text||"").slice(0,160),given:String(typeof given==="object"&&given?given.fix||"":typeof given==="number"?(x.o||[])[given]:given||"").slice(0,120),want:String(answerText(x)).slice(0,120),timeout:!!timeout,real:D.real,kind:D.kind,genus:x.ui==="seal"?x.o[x.a]:undefined,ms:Date.now()-(D.askAt||Date.now())});
+    if(D.kind==="fresh"){const f=D.fresh[D.ph];f.n++;if(r.ok)f.ok++;const tg=D.tagRes[x.tag]=D.tagRes[x.tag]||[0,0];tg[1]++;if(r.ok)tg[0]++}
+    if(r.ok){D.hits++;const n=D.kind==="cursed"?2:1;if(!D.inFin)D.hp[D.ph]-=n;else D.finDone++;
+      if(D.kind==="cursed"){D.lifted++;if(D.id==="caligari")D.trance=Math.max(D.hard.eigen?1:0,D.trance-1);emit("lift",{item:x})}
+      if(/^(order|transform|fix)$/.test(x.type))D.built.push(Object.assign({},x,{ph:D.inFin?4:D.ph+1}));
+      if(x.ui==="seal")D.sealed.push(x);if(x.ans)D.notes.push(x.ans);
+      if(D.id==="kommission"&&D.ph===1&&!D.inFin&&/^(transform|order)$/.test(x.type))D.brief.push(answerText(x));
+      if(x.chain)(D.chainLog[x.chain]=D.chainLog[x.chain]||[]).push(answerText(x));
+      if(x.sdk){DS().sd[x.sdk]=1}
+      if(D.inFin&&D.id==="golem"&&x.type==="spot")DS().zettel={d:today(),text:String(x.text).replace(x.err,x.a),word:x.a};
+      emit("hit",{n,cursed:D.kind==="cursed"})}
+    else{const second=D.kind==="cursed"||D.kind==="act"||D.kind==="fin";if(second){D.candles--;D.lost++;emit("candle",{left:D.candles})}
+      if(D.kind==="fresh"||D.kind==="cursed"){D.curses.push({item:x,at:D.turn+2,given});D.cursedAll.push({x,given});emit("curse",{item:x,given})}
+      if(D.kind==="fin"){D.cursedAll.push({x,given});D.fin.push(D.cfg.finisher.redraw?(bossDraw(D.id,3,1,D)[0]||x):x)}
+      if(D.kind==="fresh"&&D.cfg.grow&&!D.inFin&&D.grown[D.ph]<D.cfg.growCap){D.hp[D.ph]+=D.cfg.grow;D.hpMax[D.ph]+=D.cfg.grow;D.grown[D.ph]+=D.cfg.grow;emit("grow",{})}
+      if(D.id==="caligari"&&D.kind==="fresh"){D.trance++;D.tranceMax=Math.max(D.tranceMax,D.trance);if(D.trance>=3){D.candles--;D.lost++;D.trance=1;D.slept=1;emit("candle",{left:D.candles,sleep:true})}}
+      D.heat++;emit("miss",{item:x,given,second})}
+    if(D.kind==="act"&&x.intr)D.resumeNext=true;
+    go("feedback")}
+  function startFinisher(){const f=D.cfg.finisher,lastPh=D.cfg.phases.length-1;let L0=[];const cx=D.cursedAll.map(c=>c.x);const u=uniqBy(cx,x=>x.key||ikey(x));
+    if(f.kind==="curses")L0=u.slice(-f.n);
+    else if(f.kind==="draw")L0=bossDraw(D.id,3,f.n,D);
+    else if(f.kind==="shadow"){L0=shadowDraw(f.n,lvI(BOSSES[D.id].lv)).filter(x=>!D.used.has(x.key));if(L0.length<f.n)L0=L0.concat(u.slice(-(f.n-L0.length)))}
+    else if(f.kind==="urteil"){for(let r=0;r<3;r++){const c=u.filter(x=>x.ph===r+1&&!x.intr).slice(-1)[0];L0.push(c||bossDraw(D.id,r,1,D)[0]||fallback(D,r))}}
+    L0=L0.filter(Boolean);while(L0.length<f.n){const z=bossDraw(D.id,f.kind==="draw"?3:lastPh,1,D)[0]||fallback(D,f.kind==="draw"?3:lastPh);if(!z)break;L0.push(z)}
+    if(D.candles<D.cfg.candles&&!D.hard.kerze)D.candles=Math.min(D.cfg.candles,D.candles+D.cfg.relight);D.fin=L0.map(x=>Object.assign({},x));D.finTotal=D.fin.length;D.finDone=0;D.curses=[];D.inFin=true;D.st=D.view="phaseIn";D.phIn="fin";emit("phase",{i:"fin"});emit("state")}
+  function go(st){D.st=D.view=st;
+    if(st==="telegraph"){const P=D.cfg.phases[D.ph];D.t=setTimeout(()=>{if(D&&D.st==="telegraph"){D.st="defend";D.view="ask";D.askAt=Date.now();emit("act",{kind:P.act.kind});emit("state")}},P.act.ms)}
+    if(st==="ask")D.askAt=Date.now();
+    if(st==="phaseOut"){D.ph++;if(D.candles<D.cfg.candles&&!D.hard.kerze)D.candles=Math.min(D.cfg.candles,D.candles+D.cfg.relight);D.queue[D.ph]=bossDraw(D.id,D.ph,D.cfg.phases[D.ph].hp+3,D);emit("phase",{i:D.ph});D.st=D.view="phaseIn";D.phIn=D.ph}
+    if(st==="win"||st==="lose")finish(st==="win");emit("state")}
+  function finish(win){if(D.done)return;D.done=true;const acc=Math.round(100*D.hits/Math.max(1,D.n));D.acc=acc;const id=D.id;const d=DS();const t=today();
+    D.firstWin=win&&D.real&&!(S.bossWins||{})[id];
+    i7Try("finish",()=>{
+      if(D.real){bossRecord(id,win,{acc,hard:win?D.hardMarks():{},quit:D.quit,clean:win&&D.lost===0&&!(id==="caligari"&&D.tranceMax>1)});if(win&&typeof kabGrant==="function"){try{kabGrant("boss_"+id)}catch(e){}}}
+      else{const r=d.prac[id]=d.prac[id]||{n:0,best:0};r.n++;if(win)r.best=Math.max(r.best||0,acc);r.d=t}
+      const R=recOf(id);const tags={};Object.keys(D.tagRes).forEach(k=>{const v=D.tagRes[k];if(v[1])tags[k]=Math.round(100*v[0]/v[1])});R.fights=(R.fights||[]).concat([{d:t,acc,win:win?1:0,tags}]).slice(-3);
+      if(id==="kommission"){R.rooms=R.rooms||{};D.fresh.forEach((f,i)=>{if(!win&&D.hp[i]<=0&&f.n&&f.ok/f.n>=D.cfg.skipAt)R.rooms[i+1]=t});if(win)R.rooms={};if(D.brief.length)d.brief={d:t,lines:D.notes.concat(D.brief).slice(0,24)}}
+      if(D.n>=5){try{logDay("duel")}catch(e){}}
+      if(!win){const items=uniqBy(D.cursedAll,c=>c.x.key||ikey(c.x)).slice(0,8).map(c=>({x:slim(c.x),g:typeof c.given==="object"&&c.given?String(c.given.fix||c.given.err||""):typeof c.given==="number"?(c.x.o||[])[c.given]:String(c.given==null?"":c.given)}));
+        const worst=Object.entries(D.tagRes).map(([k,v])=>[k,v[1]-v[0]]).sort((a,b)=>b[1]-a[1])[0];const failed=D.ph+1;
+        d.drill[id]={d:t,items,done:items.length?false:true,real:D.real?1:0,tag:worst&&worst[1]>0?worst[0]:(items[0]&&items[0].x.tag)||"",room:failed}}
+      else delete d.drill[id];save()});
+    if(typeof SND!=="undefined")try{SND.hush(false)}catch(e){}
+    if(win)evE("boss.won",{id,acc,real:D.real,turns:D.turn,hard:D.hardMarks(),first:D.firstWin});else evE("boss.lost",{id,acc,real:D.real,quit:!!D.quit,turns:D.turn});
+    if(D.real)evE("realm.proof",{realm:BOSSES[id].realm,part:"duel",pass:!!win,id});
+    emit("end",{win,acc,turns:D.turn,curses:D.cursedAll.map(c=>c.x)})}
+  const slim=x=>{const o={};["type","ui","q","o","a","alt","why","tag","words","pre","err","repl","text","x","sub","noun","g","pl","ph","key","boss","say","shape","chain"].forEach(k=>{if(x[k]!=null)o[k]=x[k]});return o};
+  function start(id,opt){opt=opt||{};if(typeof BOSS2==="undefined"||!BOSS2[id]||typeof BOSSES==="undefined"||!BOSSES[id])return null;const cfg=BOSS2[id],B=BOSSES[id];const ro=realOf(id,opt);const bo=ro.real?boons(id):{candle:0,hp:0};
+    const hard=Object.assign({},opt.hard||{});const ds=DS();const won=!!(S.bossWins||{})[id];
+    D={id,cfg,B,real:ro.real,why:ro.why,rematch:!!ro.rematch,opt,hard,boon:bo,pace:(ds.pace==="ruhig"?1.5:1)*(hard.sanduhr?.7:1),st:"idle",view:"idle",ph:0,hp:cfg.phases.map(p=>p.hp),hpMax:null,candles:cfg.candles+bo.candle,turn:0,n:0,hits:0,lost:0,lifted:0,
+      curses:[],cursedAll:[],queue:[],fin:[],inFin:false,used:new Set(),sealed:[],built:[],notes:[],brief:[],chainLog:{},thrown:[],grown:cfg.phases.map(()=>0),fresh:cfg.phases.map(()=>({n:0,ok:0})),refilled:[],tagRes:{},trance:hard.eigen&&id==="caligari"?1:0,tranceMax:0,heat:0,
+      hardAny:Object.keys(hard).some(k=>hard[k]),wonBefore:won,aidsOff:false,ahead:false};
+    D.hp[0]=Math.max(3,D.hp[0]-bo.hp);D.hpMax=D.hp.slice();
+    D.hardMarks=()=>{const m={};["kerze","stumm","sanduhr","eigen"].forEach(k=>{if(D.hard[k])m[k]=1});return m};
+    i7Try("scale",()=>{const R=recOf(id);const f=(R.fights||[]).slice(-2);const t0=(cfg.phases[0].tags||[])[0];if(f.length===2&&f.every(x=>(x.tags||{})[t0]>=90))D.aidsOff=true;
+      try{if(typeof learnerLv==="function"){const lv=learnerLv();if(lvI(lv)>lvI(B.lv))D.ahead=true}}catch(e){}});
+    if(id==="kommission"&&!won)i7Try("skip",()=>{const R=recOf(id);const rooms=R.rooms||{};const t=today();for(let r=0;r<2;r++){const d=rooms[r+1];if(d&&(new Date(t)-new Date(d))/864e5<=cfg.skipDays&&r===D.ph){D.hp[r]=0;D.ph=r+1;D.skipped=(D.skipped||0)+1}else break}});
+    if(typeof BOSS_MUSIC!=="undefined")try{BOSS_NOW=id;BOSS_AT=0}catch(e){}if(typeof SND!=="undefined")try{SND.setRealm(B.realm)}catch(e){}
+    const pend=ds.drill[id];D.memory=memoryLine(id);
+    if(pend&&!pend.done&&D.real){D.st=D.view="drill"}else{D.queue[D.ph]=bossDraw(id,D.ph,cfg.phases[D.ph].hp+3,D);D.st=D.view="intro"}
+    D.cold=coldToday(id);
+    try{if(typeof DuelUI!=="undefined"&&DuelUI.mount)DuelUI.mount(D)}catch(e){I7.err.push("mount: "+e.message)}
+    emit("state");return D}
+  function send(ev,p){if(!D)return;
+    if(ev==="GO"){if(D.st!=="intro")return;D.startedAt=Date.now();D.queue[D.ph]=D.queue[D.ph]||bossDraw(D.id,D.ph,D.cfg.phases[D.ph].hp+3,D);D.st=D.view="phaseIn";D.phIn=D.ph;emit("state")}
+    else if(ev==="NEXT"){if(/^(phaseIn|feedback|note)$/.test(D.st))next()}
+    else if(ev==="ANSWER")answer(p&&p.given);
+    else if(ev==="TIMEOUT")answer(null,true);
+    else if(ev==="TELE_END"){if(D.st!=="telegraph")return;clearTimeout(D.t);D.st="defend";D.view="ask";D.askAt=Date.now();emit("state")}
+    else if(ev==="PAUSE"){D.paused=true;emit("state")}else if(ev==="RESUME"){D.paused=false;emit("state")}
+    else if(ev==="DRILLED"){const d=DS().drill[D.id];if(d)d.done=true;save();D.healed=true;D.queue[D.ph]=bossDraw(D.id,D.ph,D.cfg.phases[D.ph].hp+3,D);D.st=D.view="intro";D.memory=memoryLine(D.id,"afterDrill");emit("state")}
+    else if(ev==="QUIT"){const was=D;if(D.n>0&&D.st!=="win"&&D.st!=="lose"&&!D.done){D.quit=true;finish(false);evE("boss.left",{id:D.id,n:D.n})}clearTimeout(D.t);D=null;emit("closed",{d:was})}}
+  return {start,send,on(n,f){(L[n]=L[n]||[]).push(f)},off(n,f){L[n]=(L[n]||[]).filter(x=>x!==f)},state(){return D},check,solve,answerText,secs:x=>D?secs(x):0,
+    live(){return !!(D&&/^(phaseIn|ask|defend|telegraph|feedback|note)$/.test(D.st))},items:itemsOf,draw:bossDraw,act:bossAct,shadow:shadowDraw,realmLessons,record:duelRecord,
+    vzDays(id){return (DS().vz[id]||[]).length},ver:I7.ver}})();
+function memoryLine(id,force){return i7Try("memory",()=>{const M=(typeof BOSS_MEMORY!=="undefined"&&BOSS_MEMORY[id])||{};const R=recOf(id);const dr=DS().drill[id];const w=(S.bossWins||{})[id];
+  let k=force||null;if(!k){if(R.lossDay===today()&&(R.lossN||0)>=3)k="thirdLoss";else if(dr&&dr.done&&R.lastLoss)k="afterDrill";else if(dr&&!dr.done)k="afterLoss";else if(w&&R.wins>=1)k="rematchWon"}
+  const l=k&&M[k];if(!l)return null;const it=dr&&dr.items&&dr.items[0];return l.map((s,i)=>i?fill(s,{WORD:it?answerText(it.x):"",GIVEN:it?it.g:""}):s)},null)}
+function coldToday(id){const R=recOf(id);const d=DS().drill[id];return R.lossDay===today()&&(R.lossN||0)>=3&&!!d&&!!d.done}
+// display order of a multiple-choice item: a random permutation of its option indices (Caligari's 4th option only from trance 1)
+function i7DisplayOrder(x,trance){let idx=(x.o||[]).map((_,i)=>i);if(x.boss==="caligari"&&idx.length===4&&!(trance>=1))idx=idx.slice(0,3);return shuf(idx)}
+W.i7DisplayOrder=i7DisplayOrder;
+W.Duel=Duel;W.bossDraw=bossDraw;W.duelRecord=duelRecord;W.shadowDraw=shadowDraw;W.duelNote=(x,ok,g)=>duelNote({id:x.boss},x,ok,g);
+
+// ---------------------------------------------------------------- Vorzeichen (I5 P10.1): eight untimed items in the lesson look, through LX
+function vzItems(id){const D={id,used:new Set(),sealed:[],cursedAll:[],ph:0};const L=[];[[0,3],[1,3],[2,2]].forEach(([ph,n])=>{D.ph=ph;const got=bossDraw(id,ph,n,D);
+    // integrator 13.6: like the fight engine's fallback — when the realm's lessons are not opened yet (i2 binds every realm lesson), fill from the phase's written items
+    if(got.length<n){const base=itemsOf(id).filter(x=>x.ph===ph+1&&!x.act&&!x.intr&&!x.resume&&!(x.ui==="seal"&&x.table&&id==="hexe"&&ph>0)&&!D.used.has(x.key));shuf(base).slice(0,n-got.length).forEach(x=>{D.used.add(x.key);got.push(Object.assign({},x))});if(got.length)D.unopened=(D.unopened||0)+1}
+    L.push(...got)});return L.map(toEx).filter(Boolean)}
+function toEx(x){if(x.type==="mc"){const o=x.ui==="seal"?["der","die","das"]:x.o.slice(0,3);const right=x.o[x.a];const oo=x.ui==="seal"?o:shuf(o);return {type:"mc",q:x.ui==="seal"?"der, die oder das: "+x.q+(x.sub?" ("+x.sub+")":""):x.q,o:oo,a:oo.indexOf(right),why:x.why||""}}
+  if(x.type==="order")return {type:"order",words:x.words.slice(),a:x.a,alt:x.alt||[],why:(x.pre?"Davor steht: „"+x.pre+"“ — ":"")+(x.why||"")};
+  if(x.type==="spot")return {type:"fix",q:x.text,a:String(x.text).replace(x.err,x.a),why:x.why||""};
+  if(x.type==="fix")return {type:"fix",q:x.q,a:x.a,alt:x.alt||[],why:x.why||""};
+  return {type:x.type==="transform"?"transform":"gap",q:x.q,a:x.a,alt:x.alt||[],why:x.why||""}}
+i7Try("lx",()=>{W.LX=W.LX||{acts:{},order:[],feeds:[],arounds:[]};if(typeof W.LX.reg!=="function")W.LX.reg=function(a){W.LX.acts[a.id]=a;if(!W.LX.order.includes(a.id))W.LX.order.push(a.id)};
+  W.LX.reg({id:"i.vorzeichen",skill:"pruefung",pocket:false,
+    next(ctx){try{const c=pkCh();if(!c||!c.boss)return null;const id=Object.keys(BOSSES).find(k=>BOSSES[k].ch===c.n);if(!id||(S.bossWins||{})[id])return null;if((DS().vz[id]||[]).includes(today()))return null;
+      return {ref:id,title:("Vorzeichen: "+BOSSES[id].n).slice(0,60),lv:LVN7.indexOf(BOSSES[id].lv),min:8,why:BOSSES[id].n+" wartet. Das wird gefragt."}}catch(e){return null}},
+    run(el,ref,done){const t0=Date.now();const ex=vzItems(ref);if(!ex.length||typeof gramRunner!=="function"){done({ok:0,n:0,right:0,sec:0});return}
+      gramRunner(el,ex,{retry:false,onDone:sc=>{const d=DS();const L=d.vz[ref]=d.vz[ref]||[];if(!L.includes(today()))L.push(today());d.vz[ref]=L.slice(-6);save();done({ok:Math.max(0,Math.min(1,sc/100)),n:ex.length,right:Math.round(ex.length*sc/100),sec:Math.round((Date.now()-t0)/1000)})}})}})});
+W.duelVorzeichen=vzItems;
+
+// ---------------------------------------------------------------- the old pool, made honest (declared replacement of bossPool: realm lessons only, options shuffled)
+function i7Pool(id){return i7Try("pool",()=>{const q=[];realmLessons(id).filter(opened).forEach(g=>{const L=lesson(g);(L&&L.ex||[]).forEach(e=>{if(e.type==="mc"&&Array.isArray(e.o)){const idx=shuf(e.o.map((_,i)=>i));q.push({k:"mc",q:e.q,o:idx.map(i=>e.o[i]),a:idx.indexOf(e.a),why:e.why||""})}
+    else if(e.type==="order"&&(e.words||[]).length<=8)q.push({k:"order",words:e.words,ans:e.a,why:e.why||""});else if(e.type==="gap")q.push({k:"gap",q:e.q,ans:e.a,alt:e.alt||[],why:e.why||""})})});return shuf(q).slice(0,30)},[])}
+
+// ---------------------------------------------------------------- merge rules (PLAN-I §2.7) — commutative, associative, idempotent
+const newer=(a,b)=>{if(!a)return b;if(!b)return a;const da=String(a.d||""),db=String(b.d||"");if(da!==db)return da>db?a:b;const ja=JSON.stringify(a),jb=JSON.stringify(b);return ja>=jb?a:b};
+function mergeMap(a,b,f){const o={};new Set([...Object.keys(a||{}),...Object.keys(b||{})]).forEach(k=>{const x=(a||{})[k],y=(b||{})[k];o[k]=x==null?f(y,y):y==null?f(x,x):f(x,y)});return o}
+function i7MergeDuel(a,b){a=a&&typeof a==="object"?a:{};b=b&&typeof b==="object"?b:{};const o={};
+  o.log=mergeMap(a.log,b.log,(x,y)=>{const dx=String(x.d||""),dy=String(y.d||"");const r={ok:Math.max(x.ok||0,y.ok||0),miss:Math.max(x.miss||0,y.miss||0),d:dx>dy?x.d:y.d};
+    ["b","t"].forEach(k=>{const c=[x[k],y[k]].filter(v=>v!=null).map(String).sort();if(c.length)r[k]=c.pop()});
+    const c=[x,y].filter(z=>z.g!=null).map(z=>[String(z.gd||z.d||""),String(z.g)]).sort((p,q)=>p[0]<q[0]?-1:p[0]>q[0]?1:p[1]<q[1]?-1:p[1]>q[1]?1:0);if(c.length){const t=c.pop();r.g=t[1];r.gd=t[0]}return r});
+  o.prac=mergeMap(a.prac,b.prac,(x,y)=>({n:Math.max(x.n||0,y.n||0),best:Math.max(x.best||0,y.best||0),d:String(x.d||"")>String(y.d||"")?x.d:y.d}));
+  o.drill=mergeMap(a.drill,b.drill,(x,y)=>newer(x,y));
+  o.rec=mergeMap(a.rec,b.rec,(x,y)=>{const r={};["wins","losses","quits","clean"].forEach(k=>{const v=Math.max(x[k]||0,y[k]||0);if(v)r[k]=v});["last","lastLoss"].forEach(k=>{const v=[x[k],y[k]].filter(Boolean).sort().pop();if(v)r[k]=v});
+    if(x.lossDay||y.lossDay){if(x.lossDay===y.lossDay){r.lossDay=x.lossDay;r.lossN=Math.max(x.lossN||0,y.lossN||0)}else{const z=String(x.lossDay||"")>String(y.lossDay||"")?x:y;r.lossDay=z.lossDay;r.lossN=z.lossN||0}}
+    if(x.rooms||y.rooms)r.rooms=mergeMap(x.rooms,y.rooms,(p,q)=>p>q?p:q);
+    const F=uniqBy([].concat(x.fights||[],y.fights||[]),f=>JSON.stringify(f)).sort((p,q)=>{const s=JSON.stringify(p),t=JSON.stringify(q);return (p.d<q.d?-1:p.d>q.d?1:s<t?-1:s>t?1:0)});if(F.length)r.fights=F.slice(-3);return r});
+  o.tg=mergeMap(a.tg,b.tg,(x,y)=>{x=String(x);y=String(y);return x.length!==y.length?(x.length>y.length?x:y):(x>=y?x:y)});
+  o.vz=mergeMap(a.vz,b.vz,(x,y)=>[...new Set([].concat(x||[],y||[]))].sort().slice(-6));
+  o.sd=mergeMap(a.sd,b.sd,()=>1);
+  ["zettel","brief"].forEach(k=>{const v=newer(a[k],b[k]);if(v)o[k]=v});
+  const pc=[a.pace,b.pace].filter(Boolean).sort();if(pc.length)o.pace=pc[pc.length-1];
+  return o}
+function i7MergeWins(a,b){return mergeMap(a||{},b||{},(x,y)=>{const ds=[x.d,y.d].filter(Boolean).sort();const r={d:ds[0]||x.d||y.d,acc:Math.max(x.acc||0,y.acc||0),best:Math.max(x.best||x.acc||0,y.best||y.acc||0)};
+  const h={};[x.hard,y.hard].forEach(z=>Object.keys(z||{}).forEach(k=>{if(z[k])h[k]=1}));if(Object.keys(h).length||x.hard||y.hard)r.hard=h;return r})}
+W.i7MergeDuel=i7MergeDuel;W.i7MergeWins=i7MergeWins;
+setTimeout(()=>{try{if(typeof MERGE_RULES!=="undefined"){MERGE_RULES.duel=i7MergeDuel;MERGE_RULES.bossWins=i7MergeWins}}catch(e){}
+  try{if(typeof RESET_GROUPS!=="undefined"&&RESET_GROUPS.story&&!RESET_GROUPS.story.k.includes("duel"))RESET_GROUPS.story.k.push("duel")}catch(e){}},0);
+
+// ---------------------------------------------------------------- wiring: bossDuel, bossPool, ACT.pkDuel
+i7Try("wire",()=>{if(typeof MOD==="undefined")return;
+  if(typeof W.bossDuel==="function")MOD.around("bossDuel","i7",function(orig,id,opt){return Duel.start(id,opt||{})});
+  if(typeof W.bossPool==="function")MOD.around("bossPool","i7",function(orig,id){const r=i7Pool(id);return r.length?r:orig(id)})});
+if(typeof ACT!=="undefined")ACT.pkDuel=el=>{const d=el&&el.dataset||{};return W.bossDuel?W.bossDuel(d.id,{practice:d.practice==="1",rematch:d.rematch==="1"}):Duel.start(d.id,{practice:d.practice==="1"})};
+W.i7Pool=i7Pool;
+})();
+
+// ===== Mephisto · track I · c_i7_ui.js (owner: i7) — the duel screens: intro ("Was hier geprüft wird", "Ihre Lage", Tempo, hard modes),
+// the fight (renderers seal · mc · gap · plural · order · transform · fix · spot), telegraphs, feedback that waits for "Weiter",
+// pause, Wundversorgung (I5 P7), win/lose screens, Bett vier after the first real win, the practice list (ACT.duels).
+// Keeps the DOM hooks of c_final.js's boss music: .duel, a non-empty .duel-q while a question is open, .duel-lives i.on
+// (one hidden extra "on" candle is rendered so that c_final's "lives<=2" test fires at one real candle: I5 P10.4).
+(function(){
+if(typeof document==="undefined"||typeof Duel==="undefined")return;
+const W=window,I7=W.I7||{};const UI=typeof BOSS2_UI!=="undefined"?BOSS2_UI:{};
+const H=s=>{try{return esc(s)}catch(e){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c])}};
+const du=()=>{try{return P().du===true}catch(e){return false}};
+const fill=(s,o)=>{s=String(s==null?"":s);o=o||{};s=s.replace(/\{(WORD|GIVEN|CH|L)\}/g,(m,k)=>o[k]!=null?o[k]:m);try{if(typeof st3Fill==="function")s=st3Fill(s)}catch(e){}return s};
+const shuf=a=>{const b=a.slice();for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));const t=b[i];b[i]=b[j];b[j]=t}return b};
+const fx=n=>{try{SND.fx(n)}catch(e){}};
+const DS=()=>{try{return S.duel||{}}catch(e){return {}}};
+const pick=a=>a&&a.length?a[Math.floor(Math.random()*a.length)]:null;
+const SPK={H:"Die Hexe",G:"Der Golem",P:"Der Pudel",C:"Caligari",V:"Kommission"};
+const TAGN={genus:"Genus",akk:"Akkusativ",nom:"Nominativ",kein:"kein/keine",dat:"Dativ",plural:"Plural",v2:"Verb auf Platz zwei",klammer:"Satzklammer",trennbar:"trennbare Verben",perfekt:"Perfekt",neben:"Nebensätze",kasus:"Kasus",
+  praet:"Präteritum",perf:"Perfekt",passiv:"Passiv",indirekt:"indirekte Rede",konj2:"Konjunktiv II",ff:"falsche Freunde",konn:"Konnektoren",nominal:"Nominalstil",koll:"Kollokationen",register:"Register",satzbau:"Satzbau",fach:"Fachsprache",
+  konj1:"Konjunktiv I",term:"Fachbegriffe",reaktion:"Reaktion",praep:"Präpositionen",endung:"Endungen",brief:"Arztbrief",shadow:"Ihr Schatten"};
+let box=null,T={iv:null,left:0,sec:0,t0:0,on:false},prevSober=null,raf=null,padPrev=[],stepAt=0;
+const kbdFine=()=>{try{return matchMedia("(hover:hover) and (pointer:fine)").matches&&!(navigator.getGamepads&&[...navigator.getGamepads()].some(Boolean))}catch(e){return false}};
+const reduced=()=>{try{return matchMedia("(prefers-reduced-motion: reduce)").matches||S.motion===false}catch(e){return false}};
+const sober=D=>!!(D&&D.cfg&&D.cfg.sober)||document.documentElement.dataset.sober==="1";
+const hor=(f,...a)=>{const D=Duel.state();if(sober(D)||typeof HOR==="undefined"||typeof HOR[f]!=="function")return;try{HOR[f](...a)}catch(e){}};
+const setKeys=f=>{try{KEYS=f}catch(e){}};
+// ---------------------------------------------------------------- lines
+function lineHTML(l,o){if(!l)return "";const sp=l[0];let de=l[1],en=l[2];if(sp==="M"&&du()&&l[3])de=l[3];if(l.length===2&&sp==="N"){return `<p class="i7-nar en">${H(fill(de,o))}</p>`}
+  if(sp==="M"){try{return pkSay([fill(de,o),fill(en||"",o)])}catch(e){}}
+  if(sp==="N")return `<p class="i7-nar"><span class="de">${H(fill(de,o))}</span>${en?`<span class="en">${H(fill(en,o))}</span>`:""}</p>`;
+  return `<div class="i7-line"><b>${H(SPK[sp]||sp)}</b><div><div class="de">${H(fill(de,o))}</div>${en?`<div class="en">${H(fill(en,o))}</div>`:""}</div></div>`}
+const narr=l=>l?lineHTML(["N",l[0],l[1]]):"";
+function missLine(D){const x=D.last.x,L=D.cfg.lines||{};const B=D.B;const tl=(L.miss||{})[x.tag]||[];
+  const TT=typeof BOSS2_TAUNT_TAGS!=="undefined"?BOSS2_TAUNT_TAGS:{};const taunts=(B.taunt||[]).filter(t=>{const g=TT[String(t[0]).slice(0,14)];return !g||g.includes(x.tag)});
+  const sp={hexe:"H",golem:"G",pudel:"P",caligari:"C",kommission:"V"}[D.id];
+  if(tl.length&&(!taunts.length||Math.random()<.6))return pick(tl);const t=pick(taunts);return t?(D.id==="kommission"?["N",t[0],t[1]]:[sp,t[0],t[1]]):null}
+// ---------------------------------------------------------------- mount / shell
+function mount(D){const B=D.B;box=Focus.open({title:B.n,sub:`Bosskampf · Reich ${B.realm} · ${B.mech||""}${D.real?"":" · Übung"}`,onClose:()=>{Duel.send("QUIT")}});
+  if(sober(D)){prevSober=document.documentElement.dataset.sober||"";document.documentElement.dataset.sober="1"}else prevSober=null;
+  startPad();render()}
+function unmount(){stopT();stopPad();if(prevSober!=null){if(prevSober)document.documentElement.dataset.sober=prevSober;else delete document.documentElement.dataset.sober;prevSober=null}setKeys(null)}
+W.DuelUI={mount,render:()=>render(),unmount};
+Duel.on("state",()=>render());Duel.on("closed",()=>unmount());
+function art(B){try{return pkArt(B.art)}catch(e){return null}}
+function shell(D){if(box.querySelector(".duel"))return;const a=art(D.B);
+  box.innerHTML=`<div class="duel i7d" data-boss="${D.id}"><div class="duel-boss">${a?`<img src="${a.u}" alt="" class="k-${a.k}">`:""}<div class="duel-eyes"><i></i><i></i></div><div class="duel-hud"><b>${H(D.B.n)}</b> <small class="i7-ph"></small><div class="duel-hp"><i></i></div></div><div class="duel-dmg"></div></div>
+   <div class="i7-frame"></div>
+   <div class="duel-me"><span class="duel-lives"></span><span class="duel-combo i7-room"></span><button class="sm ghost i7-pz" data-act="i7Pause" aria-label="Pause">Ⅱ</button></div>
+   <div class="duel-time"><i></i></div><div class="i7-secs muted ui"></div>
+   <div class="i7-tele" hidden></div><div class="duel-q"></div><div class="duel-say"></div></div>`}
+function prog(D){const tot=D.hpMax.reduce((a,b)=>a+b,0);const done=D.hpMax.reduce((a,b,i)=>a+Math.min(b,Math.max(0,b-D.hp[i])),0);return tot?done/tot:0}
+function hud(D){if(!box.querySelector(".duel"))return;const hp=D.inFin?(D.finTotal?(D.finTotal-D.finDone)/D.finTotal:0):Math.max(0,D.hp[D.ph])/Math.max(1,D.hpMax[D.ph]);
+  box.querySelector(".duel-hp i").style.width=Math.max(D.inFin?0:4,Math.round(100*hp))+"%";
+  const n=Math.max(D.candles,D.cfg.candles+(D.boon&&D.boon.candle||0));box.querySelector(".duel-lives").innerHTML=Array.from({length:n},(_,i)=>`<i class="${i<D.candles?"on":""}"></i>`).join("")+`<i class="on i7-sent" hidden></i>`;
+  const P=D.cfg.phases[D.ph];box.querySelector(".i7-ph").textContent=D.inFin?"· Finale":`· ${D.ph+1}/3 ${P.de}`;
+  box.querySelector(".i7-room").textContent=D.id==="kommission"?(D.inFin?"Das Urteil":"Raum "+(D.ph+1)+": "+P.de):D.id==="caligari"?"Trance "+D.trance+"/3":"";
+  box.querySelector(".i7-frame").innerHTML=frame(D)}
+function frame(D){const p=prog(D);const cur=D.curses.map(c=>c.item);
+  if(D.cfg.frame==="jars"){const br=D.st==="win"?30:Math.min(29,Math.round(30*p));return `<div class="i7-jars" title="Dreißig Gläser">${Array.from({length:30},(_,i)=>`<i class="${i<br?"br":""}"></i>`).join("")}</div><span class="i7-cage${D.st==="win"?" open":""}" title="Käfig">⌂</span><div class="i7-heat"><i style="width:${Math.min(100,D.heat*10)}%"></i></div>
+    ${cur.length?`<div class="i7-shelf">${D.curses.map(c=>`<span class="i7-jar">${c.item.ui==="seal"?`<s>${H(typeof c.given==="number"?c.item.o[c.given]:"?")}</s> ${H(c.item.q)}`:H(String(c.item.q||"").slice(0,26))}</span>`).join("")}</div>`:""}`}
+  if(D.cfg.frame==="letters"){const w=[...String(D.cfg.word||"ANFÄNGER")];const off=D.st==="win"?w.length:D.inFin?w.length-1:Math.min(w.length-1,Math.floor((w.length-1)*p));
+    return `<div class="i7-letters">${w.map((c,i)=>`<span class="${i<off?"off":""}">${H(c)}</span>`).join("")}</div>${cur.length?`<div class="i7-shelf">${D.curses.map(c=>`<span class="i7-brick">${H(String(typeof c.given==="string"?c.given:c.given&&c.given.fix||"…").slice(0,40))}</span>`).join("")}</div>`:""}`}
+  if(D.cfg.frame==="shapes"){const x=D.item;const sh=x&&x.shape&&D.cfg.shapes[x.shape];const hide=D.hard.eigen||(D.wonBefore&&D.rematch);const chain=x&&x.chain&&(D.chainLog[x.chain]||[]);
+    return `${sh&&!hide?`<span class="chip i7-shape">${H(sh[0])} · ${H(sh[1])}</span>`:sh?`<span class="chip i7-shape">${H(sh[0])}</span>`:""}${chain&&chain.length?`<div class="i7-chain"><small class="muted">Sie kennen diesen Satz:</small> ${chain.map(c=>`<small>${H(c)}</small>`).join(" · ")}</div>`:""}`}
+  if(D.cfg.frame==="trance"){const ff=D.cursedAll.filter(c=>c.x.tag==="ff").slice(-4);return `<div class="i7-trance" title="Trance">${[0,1,2].map(i=>`<i class="${i<D.trance?"on":""}"></i>`).join("")}</div>${ff.length?`<div class="i7-shelf">${ff.map(c=>`<span class="i7-jar">${H(String(c.x.q).replace(/ – .*$/,"").slice(0,40))}</span>`).join("")}</div>`:""}`}
+  if(D.cfg.frame==="notepad"){const dia=D.hard.eigen&&D.cfg.dialekt||{};return D.notes.length?`<div class="i7-notepad"><small class="eyebrow">Notizblock</small>${D.notes.slice(-6).map(n=>`<div>${H(dia[n]||n)}</div>`).join("")}</div>`:""}
+  return ""}
+// ---------------------------------------------------------------- timer
+function stopT(){clearInterval(T.iv);T.iv=null;T.on=false}
+function startT(sec,from){stopT();if(!box)return;T.sec=sec;T.left=from!=null?from:sec;T.t0=Date.now();T.on=true;const bar=box.querySelector(".duel-time i"),num=box.querySelector(".i7-secs");const ruhig=DS().pace==="ruhig";
+  T.iv=setInterval(()=>{const D=Duel.state();if(!D||!box.isConnected||!Focus.isOpen()){stopT();return}if(D.paused)return;const left=T.left-(Date.now()-T.t0)/1000;const f=left/T.sec;if(bar){bar.style.width=Math.max(0,f*100)+"%";bar.style.background=f<.3?"#E0302A":""}
+    if(num)num.textContent=ruhig?Math.max(0,Math.ceil(left))+" s":"";if(left<=0){stopT();Duel.send("TIMEOUT")}},100)}
+function pauseT(){if(!T.on)return;T.left=Math.max(1,T.left-(Date.now()-T.t0)/1000);clearInterval(T.iv);T.iv=null}
+function resumeT(){if(T.on&&!T.iv)startT(T.sec,T.left)}
+document.addEventListener("visibilitychange",()=>{try{if(document.hidden&&Duel.live()){const D=Duel.state();if(!D.paused)Duel.send("PAUSE")}}catch(e){}});
+// ---------------------------------------------------------------- render
+let drawnFor=null;
+function render(){const D=Duel.state();if(!D||!box||!box.isConnected)return;
+  if(D.view==="intro")return intro(D);if(D.view==="drill")return drill(D);if(D.view==="win"||D.view==="lose")return end(D);
+  shell(D);hud(D);const q=box.querySelector(".duel-q"),say=box.querySelector(".duel-say"),tele=box.querySelector(".i7-tele");tele.hidden=true;Focus.foot(null);
+  if(D.paused){pauseT();q.innerHTML=`<div class="card stack s i7-pause"><b>Pause</b><p class="ui muted" style="margin:0">Die Uhr steht. <span class="en">The clock is stopped.</span></p><button class="go" data-act="i7Resume">Weiter</button></div>`;focusFirst(q);setKeys(e=>{if(e.key==="Enter"){e.preventDefault();ACT.i7Resume()}});return}
+  if(D.view==="phaseIn"){stopT();const L=D.cfg.lines||{};const fin=D.phIn==="fin";const pl=fin?null:(L.phase||[])[D.ph]||{};const P=D.cfg.phases[D.ph];
+    q.innerHTML=`<div class="stack s i7-phase"><div class="eyebrow">${fin?"Finale":"Phase "+(D.ph+1)+" von 3"}</div><h3 style="margin:0">${H(fin?"Das letzte Wort":P.de)}</h3>${fin?(L.fin||[]).map(l=>lineHTML(l)).join(""):Object.keys(pl).map(k=>lineHTML(pl[k])).join("")}${!fin&&P.ex?`<p class="ui muted" style="margin:0">Zum Beispiel: <i>${H(P.ex)}</i></p>`:""}<button class="go" data-act="i7Next">${fin?"Zum Finale":"Weiter"}</button></div>`;
+    say.innerHTML="";focusFirst(q);setKeys(e=>{if(e.key==="Enter"){e.preventDefault();ACT.i7Next()}});return}
+  if(D.view==="note"){stopT();q.innerHTML=`<div class="stack s">${lineHTML(D.note)}<button class="go" data-act="i7Next">Weiter</button></div>`;focusFirst(q);setKeys(e=>{if(e.key==="Enter"){e.preventDefault();ACT.i7Next()}});return}
+  if(D.view==="telegraph"){stopT();q.innerHTML="";say.innerHTML="";tele.hidden=false;tele.innerHTML=lineHTML(D.tele)||"<b>!</b>";tele.onclick=()=>Duel.send("TELE_END");return}
+  if(D.view==="ask"){if(drawnFor===D.item&&q.children.length)return;drawnFor=D.item;say.innerHTML="";return ask(D,q)}
+  if(D.view==="feedback")return feedback(D,q,say)}
+function focusFirst(el){try{const f=el.querySelector("button:not([disabled]),input,textarea");if(f)f.focus({preventScroll:true})}catch(e){}}
+function pre(D,x){let h="";if(D.kind==="cursed")h+=`<div class="i7-tag i7-cursed">Zurück aus dem ${D.cfg.frame==="jars"?"Glas":D.cfg.frame==="letters"?"Lehm":"Kabinett"}${x._given!=null?`: <s>${H(typeof x._given==="number"?(x.o||[])[x._given]:typeof x._given==="object"?x._given.fix||x._given.err||"":x._given)}</s>`:""}</div>`;
+  if(D.kind==="act")h+=`<div class="i7-tag i7-act">${H(x.say||"Angriff")}!</div>`;if(D.kind==="fin")h+=`<div class="i7-tag">Finale · ${D.finDone+1} / ${D.finTotal}</div>`;
+  if(x.say&&D.kind!=="act")h+=`<div class="i7-tag">${H(x.say)}${x.say==="Ihr Schatten"?" sagt:":""}${x.date?` <small>vom ${H(fmtD(x.date))}</small>`:""}</div>`;
+  if(x.head)h+=`<div class="eyebrow">${H(x.head)}</div>`;return h}
+const fmtD=d=>{try{return fmtDate(d)}catch(e){return d}};
+function ask(D,q){const x=D.item;const stumm=!!D.hard.stumm;const sec=Duel.secs(x);let typed=false;
+  const go=g=>{stopT();Duel.send("ANSWER",{given:g})};
+  if(x.shiftFrom&&!x._shifted){q.innerHTML=pre(D,x)+`<div class="duel-qq no-sig i7-shift">${H(x.shiftFrom)}</div><p class="ui muted" style="text-align:center">${H((D.cfg.shapes[x.shiftShape]||[""])[0])} …</p>`;
+    setTimeout(()=>{if(Duel.state()===D&&D.item===x&&D.view==="ask"){x._shifted=true;drawnFor=null;fx("flip");ask(D,q)}},x.shiftMs||3000);return}
+  const lean=D.id==="caligari"&&!reduced()?" lean"+Math.min(2,D.trance):"";q.className="duel-q"+lean+(D.id==="caligari"&&reduced()&&D.trance?" i7-dark"+D.trance:"");
+  let body="";
+  if(x.type==="mc"&&!stumm){const ord=W.i7DisplayOrder(x,D.id==="caligari"?D.trance:3);let seal=x.ui==="seal",o=ord;
+    if(seal&&!x.steal)o=["der","die","das"].map(a=>x.o.indexOf(a));
+    let wh=-1;if(D.id==="caligari"&&D.trance>=2){const g=(DS().log[x.key]||{}).g;const gi=g!=null?x.o.indexOf(g):-1;wh=gi>=0&&o.includes(gi)?gi:(Math.random()<2/3?pick(o.filter(i=>i!==x.a)):x.a)}
+    body=`<div class="duel-qq no-sig">${H(fill(x.q))}</div>${x.sub?`<div class="muted ui" style="text-align:center">${H(x.sub)}</div>`:""}<div class="duel-opts ${seal?"genus":""}${x.steal?" i7-steal":""}">${o.map((i,k)=>`<button data-i="${i}" class="${seal&&!x.steal?"g-"+x.o[i]:""}${i===wh?" i7-whisper":""}">${seal?`<i class="sig ${x.steal?"":x.o[i]}"></i>`:`<span class="k">${k+1}</span>`}${H(fill(x.o[i]))}</button>`).join("")}</div>${wh>=0?`<p class="ui muted i7-wh">Caligari: „Ich empfehle Ihnen diese Antwort.“</p>`:""}`;
+    q.innerHTML=pre(D,x)+body;q.querySelectorAll(".duel-opts button").forEach(b=>b.onclick=()=>go(+b.dataset.i));
+    setKeys(e=>{const bs=[...q.querySelectorAll(".duel-opts button")];let k=+e.key;if(seal){const m={d:"der",i:"die",a:"das"}[String(e.key).toLowerCase()];if(m)k=o.findIndex(i=>x.o[i]===m)+1}if(k>=1&&k<=bs.length){e.preventDefault();bs[k-1].click()}})}
+  else if(x.type==="order")body=orderUI(D,x,q,go);
+  else if(x.ui==="plural"&&!stumm)body=pluralUI(D,x,q,go);
+  else if((x.type==="fix"&&!x.typed)||x.type==="spot")body=fixUI(D,x,q,go,stumm);
+  else if(x.type==="transform"&&!stumm&&!kbdFine()&&!x.say)body=tilesUI(D,x,q,go);
+  else{typed=true;const long=x.type!=="gap"&&!(x.type==="mc"&&x.ui==="seal");const ph=x.type==="mc"?(x.ui==="seal"?"Artikel und Nomen, z. B. der Tisch":"Ihre Antwort …"):x.type==="gap"?"Lücke …":"Der ganze Satz …";
+    q.innerHTML=pre(D,x)+`<div class="duel-qq no-sig">${H(fill(x.type==="mc"&&x.ui==="seal"?x.q+(x.sub?" ("+x.sub+")":""):x.q))}</div>${long?`<textarea class="duel-in" rows="2" spellcheck="false" autocapitalize="off" placeholder="${ph}"></textarea>`:`<input class="duel-in" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${ph}">`}<button class="go" data-du="ok">Zuschlagen</button>`;
+    const inp=q.querySelector(".duel-in");const sub=()=>{if(inp.value.trim())go(inp.value.trim())};q.querySelector('[data-du="ok"]').onclick=sub;inp.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();sub()}};
+    if(!kbdFine()){let st=false;const s0=()=>{if(!st){st=true;startT(sec)}};inp.addEventListener("input",s0,{once:true});setTimeout(()=>{if(Duel.state()===D&&D.item===x)s0()},6000);focusFirst(q);setKeys(null);return}
+    setKeys(null)}
+  focusFirst(q);startT(sec)}
+function orderUI(D,x,q,go){const noCap=D.hard.eigen&&D.id==="golem";let words=x.words.slice();if(noCap){words=words.filter(w=>!/^[.!?]$/.test(w)).map((w,i)=>i===0&&!/^(Ich|Sie)$/.test(w)&&!/^[A-ZÄÖÜ][a-zäöüß]+$/.test(w)?w:w.charAt(0).toLowerCase()+w.slice(1))}
+  const tiles=shuf(words.map((w,i)=>({w,i})));const built=[];const slot=D.id==="golem"&&D.ph===0&&(D.slotN=(D.slotN||0)+1)<=3&&!D.aidsOff;
+  q.innerHTML=pre(D,x)+`<div class="eyebrow">Bilden Sie den Satz</div>${x.pre?`<div class="i7-pre">${H(x.pre)}</div>`:""}<div class="duel-built no-sig"></div><div class="duel-chips">${tiles.map((t,k)=>`<button data-k="${k}">${H(t.w)}</button>`).join("")}</div><div class="row"><button class="sm ghost" data-du="undo">Zurück</button><button class="go sm" data-du="ok" disabled>Prüfen</button></div>`;
+  const bl=q.querySelector(".duel-built"),ok=q.querySelector('[data-du="ok"]');const str=()=>built.map(k=>tiles[k].w).join(" ").replace(/ ([.,!?])/g,"$1");
+  const upd=()=>{bl.innerHTML=built.length?built.map((k,j)=>`<span class="i7-b${slot&&j===1?" i7-slot":""}" data-j="${j}">${H(tiles[k].w)}</span>`).join(" "):(slot?`<span class="i7-b">_</span> <span class="i7-b i7-slot">Verb</span> …`:"…");ok.disabled=built.length!==tiles.length;
+    bl.querySelectorAll("[data-j]").forEach(s=>s.onclick=()=>{const j=+s.dataset.j;const k=built.splice(j,1)[0];q.querySelector(`.duel-chips [data-k="${k}"]`).disabled=false;upd()})};upd();
+  q.querySelectorAll(".duel-chips button").forEach(b=>b.onclick=()=>{built.push(+b.dataset.k);b.disabled=true;upd();if(built.length===tiles.length)ok.focus()});
+  const undo=()=>{const k=built.pop();if(k!=null){q.querySelector(`.duel-chips [data-k="${k}"]`).disabled=false;upd()}};q.querySelector('[data-du="undo"]').onclick=undo;ok.onclick=()=>go(str());
+  setKeys(e=>{if(e.key==="Backspace"){e.preventDefault();undo()}else if(e.key==="Enter"&&!ok.disabled){e.preventDefault();ok.click()}else{const n=+e.key;if(n>=1&&n<=9){const free=[...q.querySelectorAll(".duel-chips button:not(:disabled)")];if(free[n-1]){e.preventDefault();free[n-1].click()}}}});return ""}
+function tilesUI(D,x,q,go){const T0=String(x.a).replace(/([.,!?])/g," $1").split(/\s+/).filter(Boolean);const tiles=shuf(T0.concat(x.x||[]).map((w,i)=>({w,i})));const built=[];
+  q.innerHTML=pre(D,x)+`<div class="duel-qq no-sig">${H(fill(x.q))}</div><div class="duel-built no-sig"></div><div class="duel-chips">${tiles.map((t,k)=>`<button data-k="${k}">${H(t.w)}</button>`).join("")}</div><div class="row"><button class="sm ghost" data-du="undo">Zurück</button><button class="go sm" data-du="ok" disabled>Prüfen</button></div>`;
+  const bl=q.querySelector(".duel-built"),ok=q.querySelector('[data-du="ok"]');const str=()=>built.map(k=>tiles[k].w).join(" ").replace(/ ([.,!?])/g,"$1");const upd=()=>{bl.textContent=str()||"…";ok.disabled=!built.length};upd();
+  q.querySelectorAll(".duel-chips button").forEach(b=>b.onclick=()=>{built.push(+b.dataset.k);b.disabled=true;upd()});const undo=()=>{const k=built.pop();if(k!=null){q.querySelector(`.duel-chips [data-k="${k}"]`).disabled=false;upd()}};
+  q.querySelector('[data-du="undo"]').onclick=undo;ok.onclick=()=>go(str());setKeys(e=>{if(e.key==="Backspace"){e.preventDefault();undo()}else if(e.key==="Enter"&&!ok.disabled){e.preventDefault();ok.click()}});
+  if(D.nopassBtn!==false&&D.id==="pudel"&&D.ph===1&&x.tag==="passiv"){}return ""}
+function pluralUI(D,x,q,go){const n=x.noun||String(x.q).split(",")[0].replace(/^eine? /,"");let end="",uml=false;
+  const um=s=>{const m=s.match(/^(.*)(au|a|o|u)([^aouäöü]*)$/i);if(!m)return s;const map={a:"ä",o:"ö",u:"ü",A:"Ä",O:"Ö",U:"Ü",au:"äu",Au:"Äu"};return m[1]+(map[m[2]]||m[2])+m[3]};
+  const nEnd=s=>/(e|el|er)$/.test(s)?"n":/in$/.test(s)?"nen":"en";const word=()=>(uml?um(n):n)+(end==="n"?nEnd(n):end);
+  const E=[["","–"],["e","-e"],["er","-er"],["n","-n/-en"],["s","-s"]];
+  q.innerHTML=pre(D,x)+`<div class="duel-qq no-sig">${H(x.q)}</div><div class="duel-built no-sig i7-plw"></div><div class="duel-chips i7-plural">${E.map((e,k)=>`<button data-e="${e[0]}"><span class="k">${k+1}</span>${e[1]}</button>`).join("")}<button data-u="1" class="i7-uml">¨</button></div><div class="row"><button class="go sm" data-du="ok">Prüfen</button></div>`;
+  const w=q.querySelector(".i7-plw");const upd=()=>{w.textContent="die "+word();q.querySelectorAll("[data-e]").forEach(b=>b.classList.toggle("on",b.dataset.e===end));q.querySelector(".i7-uml").classList.toggle("on",uml)};upd();
+  q.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{end=b.dataset.e;upd()});q.querySelector(".i7-uml").onclick=()=>{uml=!uml;upd()};q.querySelector('[data-du="ok"]').onclick=()=>go(word());
+  setKeys(e=>{const k=+e.key;if(k>=1&&k<=5){e.preventDefault();q.querySelectorAll("[data-e]")[k-1].click()}else if(/^u$/i.test(e.key)){e.preventDefault();q.querySelector(".i7-uml").click()}else if(e.key==="Enter"){e.preventDefault();go(word())}});return ""}
+function fixUI(D,x,q,go,stumm){const text=x.type==="spot"?x.text:x.q;const T=String(text).split(/\s+/).filter(Boolean);const nt=s=>String(s).toLowerCase().replace(/[.,!?;:„“"]/g,"");const E=String(x.err).split(/\s+/).map(nt);
+  let s0=-1;for(let i=0;i+E.length<=T.length&&s0<0;i++)if(E.every((e,j)=>nt(T[i+j])===e))s0=i;const span=s0<0?null:[s0,s0+E.length-1];
+  q.innerHTML=pre(D,x)+`<div class="eyebrow">${x.type==="spot"?"Ein Wort ist falsch. Tippen Sie es an.":"Was ist falsch? Tippen Sie es an."}</div><div class="i7-words no-sig">${T.map((t,i)=>`<button class="i7-w" data-i="${i}">${H(t)}</button>`).join(" ")}</div><div class="i7-rep"></div>`;
+  const rep=q.querySelector(".i7-rep");
+  const choose=i=>{const inSpan=span&&i>=span[0]&&i<=span[1];const sel=inSpan?span:[i,i];q.querySelectorAll(".i7-w").forEach((b,k)=>{b.disabled=true;b.classList.toggle("sel",k>=sel[0]&&k<=sel[1])});
+    const errStr=T.slice(sel[0],sel[1]+1).join(" ").replace(/[.,!?;:]$/,"");if(!inSpan){stopT();return go({err:errStr,fix:""})}
+    const before=T.slice(0,sel[0]).join(" "),after=T.slice(sel[1]+1).join(" ");const tailP=(T[sel[1]].match(/[.,!?;:]$/)||[""])[0];
+    const full=r=>[before,r+tailP,after].filter(Boolean).join(" ").replace(/\s+([.,!?])/g,"$1");
+    if(stumm||x.repl==null){rep.innerHTML=`<input class="duel-in" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Richtig heißt es …"><button class="go sm" data-du="ok">Ersetzen</button>`;const inp=rep.querySelector("input");inp.focus();const sub=()=>{if(inp.value.trim())go({err:errStr,fix:x.type==="spot"?inp.value.trim():full(inp.value.trim())})};rep.querySelector("button").onclick=sub;inp.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();sub()}};return}
+    const opts=shuf([x.repl].concat(neighbours(x.repl,errStr)));rep.innerHTML=`<div class="duel-opts">${opts.map((o,k)=>`<button data-o="${H(o)}"><span class="k">${k+1}</span>${H(o)}</button>`).join("")}</div>`;
+    rep.querySelectorAll("button").forEach(b=>b.onclick=()=>{const r=b.dataset.o;go({err:errStr,fix:x.type==="spot"?r:full(r)})});focusFirst(rep);
+    setKeys(e=>{const k=+e.key;const bs=rep.querySelectorAll("button");if(k>=1&&k<=bs.length){e.preventDefault();bs[k-1].click()}})};
+  q.querySelectorAll(".i7-w").forEach(b=>b.onclick=()=>choose(+b.dataset.i));
+  let cur=0;setKeys(e=>{const bs=[...q.querySelectorAll(".i7-w:not(:disabled)")];if(!bs.length)return;if(e.key==="ArrowRight"||e.key==="ArrowLeft"){e.preventDefault();cur=(cur+(e.key==="ArrowRight"?1:-1)+bs.length)%bs.length;bs[cur].focus()}else if(e.key==="Enter"&&document.activeElement&&document.activeElement.classList.contains("i7-w")){e.preventDefault();document.activeElement.click()}});return ""}
+function neighbours(repl,err){const R=String(repl).split(/\s+/);const out=new Set();const FAM=[["der","die","das","den","dem","des"],["ein","eine","einen","einem","einer","eines"],["kein","keine","keinen","keinem","keiner","keines"],["dieser","diese","dieses","diesen","diesem"],["mit","von","zu","aus","bei","nach"],["auf","an","in","für","über","gegen"]];
+  const cap=(w,l)=>/^[A-ZÄÖÜ]/.test(l)?w.charAt(0).toUpperCase()+w.slice(1):w;
+  R.forEach((t,i)=>{const lw=t.toLowerCase();const add=v=>{const c=R.slice();c[i]=cap(v,t);out.add(c.join(" "))};FAM.forEach(f=>{if(f.includes(lw))f.forEach(v=>v!==lw&&add(v))});
+    if(lw.length>3&&/(e|en|er|em|es)$/.test(lw)){const st=lw.replace(/(en|er|em|es|e)$/,"");["e","en","er","em","es"].forEach(e=>st+e!==lw&&add(st+e))}
+    if(/^ge/.test(lw)&&lw.length>5){add(lw.slice(2));add(lw.replace(/(t|en)$/,m=>m==="t"?"en":"t"))}});
+  if(R.length>1){out.add(R.slice().reverse().join(" "))}out.delete(repl);out.delete(err);let L=shuf([...out]);if(L.length<2&&err&&err!==repl)L.push(err);while(L.length<2)L.push(R.length>1?shuf(R).join(" "):repl+"e".repeat(L.length+1));return L.slice(0,2)}
+function feedback(D,q,say){stopT();const l=D.last;if(!l)return;const x=l.x,ok=l.r.ok;const L=D.cfg.lines||{};const bossEl=box.querySelector(".duel-boss");const dm=box.querySelector(".duel-dmg");
+  q.querySelectorAll("button,input,textarea").forEach(b=>b.disabled=true);
+  if(ok){fx(D.kind==="cursed"?"seal":"ok");if(bossEl){bossEl.classList.remove("hit");void bossEl.offsetWidth;bossEl.classList.add("hit")}hor("bleed",bossEl,D.kind==="cursed"?6:3);
+    if(dm){dm.innerHTML=`<b>${D.inFin?"✓":D.kind==="cursed"?"−2 Fluch gebrochen":"−1"}</b>`;setTimeout(()=>{if(dm.isConnected)dm.innerHTML=""},800)}
+    const hl=D.kind==="cursed"?pick(L.lift):pick(L.hit);say.innerHTML=`<div class="pk-fade good">${l.r.spell?`<p class="ui i7-spell">${l.r.spell}</p>`:""}${lineHTML(hl)}</div>`;
+    const me=Date.now();stepAt=me;setTimeout(()=>{const E=Duel.state();if(E===D&&D.view==="feedback"&&stepAt===me)Duel.send("NEXT")},800);setKeys(null);return}
+  fx("no");if(bossEl){bossEl.classList.remove("lunge");void bossEl.offsetWidth;bossEl.classList.add("lunge")}
+  const second=D.kind==="cursed"||D.kind==="act"||D.kind==="fin";if(second){fx("candle");hor("hurt",bossEl)}
+  const g=l.given;const gs=typeof g==="number"?(x.o||[])[g]:g&&typeof g==="object"?(g.fix||g.err||""):String(g==null?"":g);if(gs&&!second)hor("whisper",String(gs).slice(0,40));
+  let ln=second?(D.candles===1&&L.lastCandle?L.lastCandle:pick(L.second)):missLine(D);let extra="";
+  if(D.id==="pudel"&&gs&&L.echo&&!l.timeout)extra+=lineHTML(L.echo,{GIVEN:gs});if(D.id==="golem"&&D.kind==="fresh"&&L.grow)extra+=lineHTML(L.grow);
+  if(D.id==="caligari"&&D.kind==="fresh"&&L.trance)extra+=lineHTML(D.slept?L.trance[2]:L.trance[0]);D.slept=0;
+  const why=x.why||"";const shown=x.type==="spot"?String(x.text).replace(x.err,x.a):Duel.answerText(x);
+  q.insertAdjacentHTML("beforeend",`<div class="duel-why">${l.timeout?"Zeit abgelaufen. ":""}${gs&&!l.timeout?`<s>${H(gs)}</s><br>`:""}Richtig: <b>${H(fill(shown))}</b>${why?`<br><small>${H(why)}</small>`:""}</div><button class="go duel-next" data-act="i7Next">Weiter</button>`);
+  say.innerHTML=`<div class="pk-fade">${lineHTML(ln)}${extra}</div>`;const nx=q.querySelector(".duel-next");nx.disabled=false;nx.focus();setKeys(e=>{if(e.key==="Enter"){e.preventDefault();ACT.i7Next()}})}
+// ---------------------------------------------------------------- intro
+function lage(D){const tags=[...new Set(D.cfg.phases.flatMap(p=>p.tags))];const L=[];tags.forEach(t=>{const s=String((DS().tg||{})[t]||"");if(s.length>=8)L.push([t,Math.round(100*s.split("").filter(c=>c==="1").length/s.length)])});
+  if(!L.length)return `<p class="ui muted" style="margin:0">${H(UI.noData?UI.noData[0]:"")}</p>`;L.sort((a,b)=>b[1]-a[1]);const b=L[0],w=L[L.length-1];
+  return `<p class="ui" style="margin:0">Ihre Stärke: <b>${H(TAGN[b[0]]||b[0])} (${b[1]} %)</b>${L.length>1?` · Ihre offene Flanke: <b>${H(TAGN[w[0]]||w[0])} (${w[1]} %)</b>`:""}</p>`}
+function intro(D){stopT();const B=D.B,a=art(B);const rec=Duel.record(D.id);const won=!!(S.bossWins||{})[D.id];const ds=DS();const pend=(ds.drill||{})[D.id];
+  const head=[];if(D.healed&&UI.healed)head.push(narr(UI.healed));if(D.memory)head.push(lineHTML(D.memory));
+  if(!D.real)head.push(`<div class="card s i7-prac"><b>Übung.</b> ${H(fill((D.why==="probe"?UI.probeFirst:UI.practice||["",""])[0],{CH:B.ch}))}<br><span class="en ui">${H(fill((D.why==="probe"?UI.probeFirst:UI.practice||["",""])[1],{CH:B.ch}))}</span></div>`);
+  const ex=D.cfg.phases.map((p,i)=>`<li><b>${H(p.de)}</b> <span class="muted">— ${H(p.en)}</span>${p.ex?`<br><small>z. B. <i>${H(p.ex)}</i></small>`:""}</li>`).join("");
+  const hard=won&&D.real?`<div class="row wrap i7-hard">${[["kerze","Kerzenlicht"],["stumm","Stumm"],["sanduhr","Sanduhr"],["eigen",(D.cfg.eigen||{}).de||"Eigen"]].map(([k,n])=>`<button class="sm ${D.hard[k]?"on":"ghost"}" data-act="i7Hard" data-k="${k}">${H(n)}</button>`).join("")}</div><small class="muted ui">Kerzenlicht: keine Kerze kehrt zurück, Angriff jeden 4. Zug · Stumm: alles tippen · Sanduhr: 70 % Zeit · ${H((D.cfg.eigen||{}).en||"")}</small>`:"";
+  const bo=D.boon&&(D.boon.candle||D.boon.hp)?`<p class="ui" style="margin:0">Aus der Aufgabe mitgebracht: ${D.boon.candle?"eine vierte Kerze":""}${D.boon.candle&&D.boon.hp?" · ":""}${D.boon.hp?"Phase 1 braucht zwei Treffer weniger":""}.</p>`:"";
+  box.innerHTML=`<div class="stack i7-intro" style="max-width:640px;margin:0 auto">${a?`<figure class="pk-art k-${a.k} duel-intro"><img src="${a.u}" alt=""></figure>`:""}<h2 style="text-align:center">${H(B.n)}</h2>${head.join("")}
+    <div class="card orn">${narr(B.intro)}${(D.cfg.lines.intro||[]).map(l=>lineHTML(l)).join("")}</div>
+    <div class="card stack s"><div class="eyebrow">Was hier geprüft wird</div><ol class="ui" style="margin:0;padding-left:1.2rem">${ex}</ol><small class="muted ui">Ein Fehler verflucht das Wort: Es kommt zwei Züge später zurück. Erst ein zweiter Fehler daran kostet eine Kerze. ${D.cfg.candles} Kerzen, eine kehrt in jeder Phase zurück. Schnelligkeit zählt nicht.</small></div>
+    <div class="card stack s"><div class="eyebrow">Ihre Lage</div>${lage(D)}${bo}${rec.line?`<small class="muted ui">${H(rec.line)}</small>`:""}</div>
+    <div class="card stack s"><div class="eyebrow">Tempo</div><div class="seg">${[["normal","normal"],["ruhig","ruhig (×1,5 Zeit)"]].map(([k,n])=>`<button class="${(ds.pace||"normal")===k?"on":""}" data-act="i7Pace" data-k="${k}">${n}</button>`).join("")}</div>${hard}</div></div>`;
+  if(D.cold){Focus.foot(`<span class="ui muted">${H(D.cfg.cold?D.cfg.cold[0]:"Morgen wieder.")}</span> <button class="go" data-act="i7Lesson">Zur Lektion</button>`);return}
+  Focus.foot(`${pend&&!pend.done&&!D.real?`<button class="ghost" data-act="i7Drill">Wunden versorgen</button>`:""}<button class="go" data-act="i7Go">⚔ Kampf beginnen</button>`);
+  setTimeout(()=>{try{const b=document.querySelector('#fFoot [data-act="i7Go"]');if(b)b.focus({preventScroll:true})}catch(e){}},30);setKeys(e=>{if(e.key==="Enter"){e.preventDefault();ACT.i7Go()}})}
+// ---------------------------------------------------------------- end screens
+function kabinett(D){const d=DS();if(D.id==="hexe"){const L=Object.entries(d.log||{}).filter(([k,r])=>r.b==="hexe"&&r.t==="genus"&&r.miss>0).map(([k,r])=>{const n=k.split("|")[1];const p=(S.palace||{})[n];return [n,r.miss,p?(p.ok||0)-(p.miss||0):0]}).filter(x=>x[2]<3).slice(0,12);
+    return L.length?`<div class="card stack s"><div class="eyebrow">Was sie Ihnen gestohlen hat</div><p class="ui" style="margin:0">${L.map(x=>`${H(x[0])} ×${x[1]}`).join(" · ")}</p></div>`:""}
+  if(D.id==="golem"&&d.zettel)return `<div class="card stack s"><div class="eyebrow">Der Zettel</div><p style="margin:0">${H(d.zettel.text).replace(H(d.zettel.word),`<b style="color:var(--accent)">${H(d.zettel.word)}</b>`)}</p></div>`;
+  if(D.id==="pudel"){const n=Object.keys(d.sd||{}).length;return n?`<div class="card s"><div class="eyebrow">Der Schatten</div><p class="ui" style="margin:0">${n} seiner Sätze haben Sie ihm für immer genommen.</p></div>`:""}
+  if(D.id==="caligari"){const n=Object.values(d.log||{}).filter(r=>r.b==="caligari"&&r.t==="ff"&&r.ok>=2).length;return n?`<div class="card s"><div class="eyebrow">Cesares Kasten</div><p class="ui" style="margin:0">${n} falsche Freunde widerstanden.</p></div>`:""}
+  if(D.id==="kommission"&&d.brief)return `<div class="card stack s"><div class="eyebrow">Mein erster Arztbrief: Frau Brandt</div>${d.brief.lines.map(l=>`<div style="font-family:var(--body)">${H(l)}</div>`).join("")}</div>`;return ""}
+function end(D){stopT();setKeys(null);const B=D.B,a=art(B),win=D.view==="win";const L=D.cfg.lines||{};
+  const lines=(win?(L.win||[]):(L.lose||[])).map(l=>lineHTML(l)).join("")+narr(win?B.win:B.lose);
+  const w=D.cursedAll.filter((c,i,A)=>A.findIndex(z=>z.x.key===c.x.key)===i).slice(0,10);
+  box.innerHTML=`<div class="stack i7-end" style="max-width:640px;margin:0 auto">${a?`<figure class="pk-art k-${a.k} duel-intro ${win?"dead":""}"><img src="${a.u}" alt=""></figure>`:""}<h2 style="text-align:center">${win?"Sieg":"Niederlage"}${D.real?"":" · Übung"}</h2>
+    ${D.cfg.frame==="jars"||D.cfg.frame==="letters"?`<div class="i7-frame">${frame(D)}</div>`:""}<div class="card orn">${lines}</div>
+    <p class="ui" style="text-align:center">${D.hits} Treffer · ${D.acc} % · ${D.candles} Kerze${D.candles===1?"":"n"} übrig${win&&D.lost===0?" · makellos":""}</p>
+    ${!win&&w.length?`<div class="card stack s"><div class="eyebrow">Ihre Wunden</div>${w.map(c=>{const g=c.given;const gs=typeof g==="number"?(c.x.o||[])[g]:g&&typeof g==="object"?(g.fix||g.err||""):String(g==null?"":g);return `<div>${gs?`<s>${H(gs)}</s> → `:""}<b>${H(fill(Duel.answerText(c.x)))}</b>${c.x.why?`<br><small class="muted ui">${H(c.x.why)}</small>`:""}</div>`}).join("")}</div>`:""}
+    ${win?kabinett(D):""}</div>`;
+  if(win)fx("sealbreak");if(win){try{if(typeof confetti==="function"&&!sober(D))confetti()}catch(e){}}
+  Focus.foot(win?`<button class="go" data-act="i7Done">Weiter</button>`:`<button class="ghost" data-act="closeFocus">Später</button><button class="go" data-act="i7Drill">Wunden versorgen</button>`);
+  setTimeout(()=>{try{const b=document.querySelector("#fFoot .go");if(b)b.focus({preventScroll:true})}catch(e){}},30)}
+// ---------------------------------------------------------------- Wundversorgung (I5 P7)
+let DR=null;
+function drill(D){stopT();const d=(DS().drill||{})[D.id];if(!d){Duel.send("DRILLED");return}
+  if(!DR||DR.id!==D.id){DR={id:D.id,Q:(d.items||[]).map(o=>({x:o.x,g:o.g,need:2})),phase:"items",done:0}}
+  const head=`<div class="eyebrow">${H(UI.drillHead?UI.drillHead[0]:"Wundversorgung")} · ${H(D.B.n)}</div><p class="ui muted" style="margin:0">${H(UI.drillRule?UI.drillRule[0]:"")}</p>`;
+  if(DR.phase==="items"&&!DR.Q.length)DR.phase="key";
+  if(DR.phase==="items"){const it=DR.Q[0];const x=Object.assign({},it.x);box.innerHTML=`<div class="stack i7-drill" style="max-width:640px;margin:0 auto">${head}<div class="duel"><div class="duel-q"></div><div class="duel-say"></div></div><small class="muted ui">${DR.Q.length} offen</small></div>`;Focus.foot(null);
+    const q=box.querySelector(".duel-q");const fake={id:D.id,cfg:D.cfg,hard:{},kind:"cursed",item:x,trance:0,curses:[],cursedAll:[],chainLog:{},notes:[],ph:Math.max(0,(x.ph||1)-1),finDone:0,finTotal:0};x._given=it.g;
+    const after=g=>{const r=Duel.check(x,g);DR.Q.shift();if(r.ok){it.need--;if(it.need>0)DR.Q.splice(Math.min(2,DR.Q.length),0,it);fx("ok")}else{DR.Q.push(it);fx("no")}
+      q.querySelectorAll("button,input,textarea").forEach(b=>b.disabled=true);q.insertAdjacentHTML("beforeend",`<div class="duel-why" style="border-left-color:${r.ok?"var(--good)":"var(--bad)"}">${r.ok?"Richtig.":"Richtig: <b>"+H(fill(Duel.answerText(x)))+"</b>"}${x.why?`<br><small>${H(x.why)}</small>`:""}</div><button class="go" data-act="i7DrillNext">Weiter</button>`);
+      const nb=q.querySelector('[data-act="i7DrillNext"]');nb.disabled=false;nb.focus();setKeys(e=>{if(e.key==="Enter"){e.preventDefault();drill(D)}})};
+    drillAsk(fake,x,q,after);return}
+  // key exercise: six items of the lesson for the worst tag
+  const C=D.cfg;const gid=D.id==="kommission"?C.drill["room"+(d.room||1)]:C.drill[d.tag];let L=null;try{L=gid&&lessonById(gid)}catch(e){}
+  const ex=L&&(L.ex||[]).length&&typeof gramRunner==="function"?L.ex:null;
+  if(!ex){finishDrill(D);return}
+  box.innerHTML=`<div class="stack i7-drill" style="max-width:720px;margin:0 auto">${head}<p class="ui">${H(fill(UI.keyEx?UI.keyEx[0]:"",{L:L.title}))}</p><div class="i7-key"></div></div>`;Focus.foot(null);
+  const run=()=>{const six=(typeof pickEx==="function"?pickEx(ex,6):shuf(ex).slice(0,6)).map(e=>{if(e.type!=="mc"||!Array.isArray(e.o))return e;const idx=shuf(e.o.map((_,i)=>i));return Object.assign({},e,{o:idx.map(i=>e.o[i]),a:idx.indexOf(e.a)})});
+    gramRunner(box.querySelector(".i7-key"),six,{retry:false,lesson:gid,onDone:sc=>{if(sc>=83){Focus.foot(`<button class="go" data-act="i7DrillDone">Zurück zum Kampf</button>`)}else{Focus.foot(`<button class="go" data-act="i7DrillAgain">Noch sechs</button>`)}}})};
+  DR.run=run;run()}
+function drillAsk(D,x,q,after){const go=g=>after(g);if(x.type==="mc"){const ord=x.ui==="seal"?["der","die","das"].map(a=>x.o.indexOf(a)):W.i7DisplayOrder(x,3);
+    q.innerHTML=pre(D,x)+`<div class="duel-qq no-sig">${H(fill(x.q))}</div>${x.sub?`<div class="muted ui" style="text-align:center">${H(x.sub)}</div>`:""}<div class="duel-opts ${x.ui==="seal"?"genus":""}">${ord.map((i,k)=>`<button data-i="${i}" class="${x.ui==="seal"?"g-"+x.o[i]:""}">${x.ui==="seal"?`<i class="sig ${x.o[i]}"></i>`:`<span class="k">${k+1}</span>`}${H(fill(x.o[i]))}</button>`).join("")}</div>`;
+    q.querySelectorAll(".duel-opts button").forEach(b=>b.onclick=()=>go(+b.dataset.i));setKeys(e=>{const k=+e.key;const bs=q.querySelectorAll(".duel-opts button");if(k>=1&&k<=bs.length){e.preventDefault();bs[k-1].click()}});focusFirst(q);return}
+  if(x.type==="order")return orderUI(D,x,q,go);if(x.ui==="plural")return pluralUI(D,x,q,go);if((x.type==="fix"&&!x.typed&&x.err)||x.type==="spot")return fixUI(D,x,q,go,false);
+  q.innerHTML=pre(D,x)+`<div class="duel-qq no-sig">${H(fill(x.q))}</div><textarea class="duel-in" rows="2" spellcheck="false" autocapitalize="off"></textarea><button class="go" data-du="ok">Prüfen</button>`;const inp=q.querySelector(".duel-in");const sub=()=>{if(inp.value.trim())go(inp.value.trim())};q.querySelector('[data-du="ok"]').onclick=sub;inp.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();sub()}};inp.focus()}
+function finishDrill(D){DR=null;Duel.send("DRILLED")}
+// ---------------------------------------------------------------- actions
+if(typeof ACT!=="undefined"){
+  ACT.i7Go=()=>{const D=Duel.state();if(!D||D.st!=="intro")return;const ds=S.duel=S.duel||{};D.pace=(ds.pace==="ruhig"?1.5:1)*(D.hard.sanduhr?.7:1);D.hardAny=Object.keys(D.hard).some(k=>D.hard[k]);if(D.hardAny)D.queue[D.ph]=Duel.draw(D.id,D.ph,D.cfg.phases[D.ph].hp+3,Object.assign(D,{used:new Set()}));Focus.foot(null);box.innerHTML="";drawnFor=null;Duel.send("GO")};
+  ACT.i7Next=()=>{stepAt=0;drawnFor=null;Duel.send("NEXT")};
+  ACT.i7Pause=()=>{const D=Duel.state();if(D&&Duel.live()){pauseT();Duel.send("PAUSE")}};
+  ACT.i7Resume=()=>{drawnFor=null;Duel.send("RESUME");const D=Duel.state();if(D&&D.view==="ask"){const q=box.querySelector(".duel-q");if(q){q.innerHTML="";ask(D,q)}}};
+  ACT.i7Pace=el=>{const ds=S.duel=S.duel||{};ds.pace=el.dataset.k;try{saveSoon()}catch(e){}render()};
+  ACT.i7Hard=el=>{const D=Duel.state();if(!D)return;const k=el.dataset.k;D.hard[k]=D.hard[k]?0:1;if(D.id==="caligari"&&k==="eigen")D.trance=D.hard.eigen?1:0;render()};
+  ACT.i7Drill=()=>{const D=Duel.state();if(!D)return;DR=null;D.st=D.view="drill";render()};
+  ACT.i7DrillNext=()=>{const D=Duel.state();if(D)drill(D)};ACT.i7DrillAgain=()=>{if(DR&&DR.run){Focus.foot(null);DR.run()}};ACT.i7DrillDone=()=>{const D=Duel.state();if(D)finishDrill(D)};
+  ACT.i7Lesson=()=>{Focus.close();try{go("learn")}catch(e){}};
+  ACT.i7Done=()=>{const D=Duel.state();if(!D)return;const id=D.id,first=D.firstWin,from=D.opt&&D.opt.from;I7.selfClose=true;try{Duel.send("QUIT")}finally{I7.selfClose=false}
+    const back=()=>{Focus.close(true);try{go("pakt")}catch(e){}};
+    let bett=false;try{bett=first&&typeof BETT!=="undefined"&&BETT[id]&&!(P().bett||{})[id]&&typeof st3Bett==="function"}catch(e){}
+    if(bett){document.documentElement.classList.add("st-white");setTimeout(()=>document.documentElement.classList.remove("st-white"),900);return st3Bett(id,back)}
+    if(from==="list"&&ACT.duels)return ACT.duels();back()};
+  ACT.pkGoPakt=ACT.pkGoPakt||(()=>{Focus.close(true);try{go("pakt")}catch(e){}});
+  // practice list (replaces c_v126's ACT.duels): Üben for every reached realm, Erneut fordern after the first real win, phases of later bosses greyed
+  ACT.duels=()=>{let ri=0;try{ri=LVX.indexOf(pkCh().r)}catch(e){}const box2=Focus.open({title:"Bosskämpfe",sub:"Übungsduelle"});
+    box2.innerHTML=`<div class="stack" style="max-width:720px;margin:0 auto">${(()=>{try{return pkSay(["Üben Sie ruhig gegen meine Diener. Der echte Kampf wartet am Ende jedes Reiches.","Practise against my servants. The real fight waits at the end of each realm."])}catch(e){return ""}})()}
+     ${Object.entries(BOSSES).map(([id,B])=>{const C=typeof BOSS2!=="undefined"&&BOSS2[id];const open=(()=>{try{return LVX.indexOf(B.realm)<=ri}catch(e){return true}})();const a=art(B);const r=Duel.record(id);const won=!!(S.bossWins||{})[id];
+       return `<div class="card stack s duel-li ${open?"":"locked"}"><div class="row between" style="gap:.8rem">${a?`<img src="${a.u}" alt="" style="width:64px;height:64px;object-fit:cover;border-radius:8px">`:""}<div style="flex:1;min-width:0"><b>${H(B.n)}</b> <span class="chip">Reich ${B.realm} · ${B.lv}</span><div class="small muted ui">${H(r.line||B.mech||"")}</div>
+        ${C?`<div class="small ui ${open?"":"muted"}">${C.phases.map(p=>H(p.de)).join(" · ")}</div>`:""}</div></div>
+        <div class="row" style="justify-content:flex-end">${open?`<button class="ghost sm" data-act="pkDuel" data-id="${id}" data-practice="1" data-from="list">Üben</button>`:`<span class="muted ui small">ab Reich ${B.realm}</span>`}${won?`<button class="go sm" data-act="pkDuel" data-id="${id}" data-rematch="1" data-from="list">Erneut fordern</button>`:""}</div></div>`}).join("")}</div>`};
+  ACT.pkDuel=el=>{const d=el&&el.dataset||{};return bossDuel(d.id,{practice:d.practice==="1",rematch:d.rematch==="1",from:d.from||""})}}
+// ---------------------------------------------------------------- Steam Deck / keyboard: B and Escape need a second press, Start pauses, X/Y seal
+const padNow=()=>{try{const gp=[...(navigator.getGamepads?navigator.getGamepads():[])].find(Boolean);return gp?gp.buttons.map(b=>!!(b&&b.pressed)):[]}catch(e){return []}};
+const sealView=()=>{const D=Duel.state();return !!(D&&D.view==="ask"&&D.item&&D.item.ui==="seal"&&!D.hard.stumm&&box&&box.querySelector(".duel-opts.genus"))};
+function clickArt(a){const D=Duel.state();if(!D||!D.item)return;const b=[...box.querySelectorAll(".duel-opts button")].find(b=>D.item.o[+b.dataset.i]===a);if(b)b.click()}
+window.addEventListener("keydown",e=>{try{if(e.key!=="Escape"||!Duel.live()||I7.selfClose)return;const sh=document.getElementById("sheet");if(sh&&!sh.hidden)return;e.stopImmediatePropagation();e.preventDefault();
+  if(Date.now()-(I7.qAt||0)<=1500){I7.qAt=0;I7.selfClose=true;try{Focus.close()}finally{I7.selfClose=false}return}I7.qAt=Date.now();try{toast(UI.quit?UI.quit[0]:"Noch einmal drücken.",1500)}catch(x){}}catch(x){}},true);
+function startPad(){if(raf||!navigator.getGamepads)return;const poll=()=>{if(!box||!box.isConnected||!Focus.isOpen()){raf=null;return}const b=padNow();const edge=i=>b[i]&&!padPrev[i];
+  if(sealView()){if(edge(2))clickArt("der");if(edge(3))clickArt("die")}else if(Duel.state()&&Duel.state().view==="ask"){if(edge(3)){const u=box.querySelector(".i7-uml");if(u)u.click()}if(edge(2)){const u=box.querySelector('[data-du="undo"]');if(u)u.click()}}
+  padPrev=b;raf=requestAnimationFrame(poll)};raf=requestAnimationFrame(poll)}
+function stopPad(){if(raf)cancelAnimationFrame(raf);raf=null}
+window.addEventListener("gamepadconnected",()=>{try{if(Duel.state())startPad()}catch(e){}});
+if(typeof Focus!=="undefined"){const _fc=Focus.close;Focus.close=function(silent){try{if(Duel.live()&&!I7.selfClose){const pad=padNow();const escK=false;
+    if(pad[9]){const D=Duel.state();if(D.paused)ACT.i7Resume();else ACT.i7Pause();return}
+    if(pad[1]&&sealView()){clickArt("das");return}
+    if(pad[1]||escK){if(Date.now()-(I7.qAt||0)>1500){I7.qAt=Date.now();try{toast(UI.quit?UI.quit[0]:"Noch einmal drücken.",1500)}catch(e){}return}}
+    if(silent){const r=_fc.apply(this,arguments);Duel.send("QUIT");return r}}}catch(e){}return _fc.apply(this,arguments)}}
+// ---------------------------------------------------------------- styles
+try{const s=document.createElement("style");s.textContent=`
+.i7d .duel-hud small{font-family:var(--ui);font-size:.8rem;opacity:.85}
+.i7-frame{display:flex;flex-wrap:wrap;gap:.35rem;align-items:center;font-family:var(--ui);font-size:.85rem;min-height:1.2rem}
+.i7-jars{display:flex;flex-wrap:wrap;gap:2px;max-width:100%}.i7-jars i{width:9px;height:13px;border:1px solid #8a7a5a;border-radius:2px 2px 4px 4px;background:rgba(240,138,63,.28);transition:all .4s}.i7-jars i.br{opacity:.18;transform:rotate(28deg) translateY(3px);background:none}
+.i7-cage{font-size:1.1rem;opacity:.8}.i7-cage.open{color:var(--good,#3a7)}.i7-heat{flex-basis:100%;height:4px;background:var(--sunk);border-radius:2px;overflow:hidden}.i7-heat i{display:block;height:100%;background:linear-gradient(90deg,#F08A3F,#E0302A);transition:width .4s}
+.i7-shelf{display:flex;flex-wrap:wrap;gap:.3rem;flex-basis:100%}.i7-jar,.i7-brick{border:1px solid var(--line2);border-radius:4px;padding:.05rem .4rem;background:var(--sunk)}.i7-jar s,.duel-why s,.i7-cursed s{color:var(--bad)}
+.i7-letters{display:flex;gap:.25rem;font-family:var(--display);font-size:1.5rem;letter-spacing:.05em}.i7-letters span{color:#FFD08A;text-shadow:0 0 8px #B3261E;transition:all .5s}.i7-letters span.off{color:var(--line2);text-shadow:none;opacity:.35}
+.i7-trance{display:flex;gap:.3rem}.i7-trance i{width:11px;height:11px;border-radius:50%;border:1px solid var(--accent)}.i7-trance i.on{background:var(--accent)}
+.duel-q.lean1{transform:rotate(-1.5deg);transition:transform .6s}.duel-q.lean2{transform:rotate(-3deg);transition:transform .6s}.duel-q.i7-dark1{box-shadow:inset 0 0 0 2px rgba(179,38,30,.4)}.duel-q.i7-dark2{box-shadow:inset 0 0 0 3px rgba(179,38,30,.7)}
+.i7-whisper{animation:i7pulse 1.4s ease-in-out infinite}@keyframes i7pulse{50%{box-shadow:0 0 0 3px rgba(240,138,63,.6)}}
+.i7-tele{text-align:center;font-family:var(--display);font-size:1.25rem;padding:1rem;border:1px dashed var(--accent);border-radius:var(--r);cursor:pointer}
+.i7-tag{font-family:var(--ui);font-size:.85rem;color:var(--accent-2)}.i7-act{font-weight:700;color:var(--bad)}.i7-pre{color:var(--muted,#888);font-family:var(--body);font-size:1.1rem}
+.i7-words{display:flex;flex-wrap:wrap;gap:.2rem .1rem;font-family:var(--body);font-size:1.15rem;line-height:1.7}.i7-w{background:none;border:0;border-bottom:1px dotted var(--line2);padding:.05rem .2rem;min-height:40px;font:inherit;color:inherit}.i7-w.sel{background:rgba(240,138,63,.25);border-bottom-color:var(--accent)}.i7-w:disabled{opacity:1}
+.i7-rep{margin-top:.5rem}.i7-steal button{filter:grayscale(1)}.i7-plural button.on,.i7-hard button.on{outline:2px solid var(--accent)}.i7-plw{font-size:1.3rem}
+.duel-built .i7-b{display:inline-block;min-width:1.4rem}.duel-built .i7-slot{outline:2px solid var(--accent);border-radius:3px;padding:0 .2rem}
+.i7-notepad{flex-basis:100%;border-left:3px solid var(--accent);padding:.3rem .6rem;font-family:var(--body);font-size:.95rem;background:var(--sunk)}
+.i7-line{display:flex;gap:.6rem;align-items:flex-start;margin:.35rem 0}.i7-line>b{font-family:var(--display);font-weight:400;color:var(--accent-2);min-width:5.5rem}.i7-line .de{font-family:var(--body)}.i7-line .en,.i7-nar .en{font-size:.86em;opacity:.75;display:block}
+.i7-nar{font-style:italic;margin:.35rem 0}.i7-nar .de{display:block;font-family:var(--body)}.i7-secs{text-align:right;font-size:.8rem;min-height:.8rem}.i7-chain{flex-basis:100%}.i7-spell{margin:0 0 .3rem}
+@media (prefers-reduced-motion: reduce){.duel-q.lean1,.duel-q.lean2{transform:none}.i7-whisper{animation:none;outline:2px dashed var(--accent)}}`;document.head.appendChild(s)}catch(e){}
+})();
+
+// ===== c_i8.js · package i8 · Pact economy and motivation (PLAN-I R7; I7 P1–P6, P9, §6; systems 8.6)
+// The IOU is a promise the learner wrote for his own rota (Wochenklausel), every debt is payable within three days (Vergleich),
+// the first day back is the smallest day in the app (Rückweg), the day ends with a true account (Soll und Haben, ECON.dayClose),
+// the candle counts weeks, and 16 dropout signals are computed daily (never shown as a score).
+// State: S.pm {wk,snap,lapses,sig,ck,cl,td} + P().econ {deal,pfand,since,back,iss,fb,ts}. P().debt stays the IOU count (13.0 key, cap 7).
+// Declared replacements (PLAN-I §2.1): pkCheckDebt, pkPayCost, ACT.pkPay — each keeps the 13.0 signature and falls back to the old code on error.
+// Arounds: pkCheckDebt, pkPayCost, pkGreet (register order: return day → done today → old debt), newPool (no new cards after a long return / signals),
+// kabCards (the pledged card is marked), pkGate (only when i4's GATE is absent). After-sections: viewHome, viewPakt, viewMe, toggleShift.
+var ECON=null;
+(function(){
+const T=()=>todayKey();
+const E=(name,data)=>{try{if(typeof EV!=="undefined"&&EV&&EV.emit)EV.emit(name,data)}catch(e){}};
+const stamp=()=>{try{return new Date().toISOString()}catch(e){return ""}};
+const du=()=>{try{return P().du===true}catch(e){return false}};
+const fmt1=x=>(Math.round(x*10)/10).toFixed(1).replace(".",",");
+const pad2=n=>(n<10?"0":"")+n;
+function hsh(s){let h=0;for(const c of String(s))h=(h*31+c.charCodeAt(0))>>>0;return h}
+// ---------------------------------------------------------------- lines
+function lineOf(kind,i,v){const B=(typeof MEPH7!=="undefined"&&MEPH7[kind])||(typeof MEPH8!=="undefined"&&MEPH8[kind]);if(!B||!B.length)return ["",""];
+  const x=B[i==null?hsh(T()+kind)%B.length:Math.max(0,Math.min(B.length-1,i))];v=v||{};
+  const f=s=>String(s).replace(/\{n\}/g,v.n!=null?v.n:"").replace(/\{m\}/g,v.m!=null?v.m:"").replace(/\{w\}/g,v.w!=null?v.w:"");
+  return [f(du()&&x[2]?x[2]:x[0]),f(x[1])]}
+function sayH(l,secret){try{return pkSay(l,secret)}catch(e){return `<p>${esc(l[0])}</p>`}}
+// ---------------------------------------------------------------- state
+function pm(){if(!S.pm||typeof S.pm!=="object")S.pm={};const m=S.pm;if(!m.wk||typeof m.wk!=="object")m.wk={};if(!m.snap||typeof m.snap!=="object")m.snap={};
+  if(!Array.isArray(m.lapses))m.lapses=[];if(!m.sig||typeof m.sig!=="object")m.sig={};return m}
+function ec(){const p=P();if(!p.econ||typeof p.econ!=="object")p.econ={};const e=p.econ;if(!Array.isArray(e.iss))e.iss=[];return e}
+function touchE(){ec().ts=stamp()}
+function touchW(W){W.ts=stamp()}
+// ---------------------------------------------------------------- calendar
+const wkOf=d=>weekKey(d||T());
+const daysOf=wk=>[0,1,2,3,4,5,6].map(i=>addDays(wk,i));
+const wdOf=d=>diffDays(wkOf(d),d);
+function isoWeek(d){const [y,m,dd]=d.split("-").map(Number);const t=new Date(Date.UTC(y,m-1,dd));const n=(t.getUTCDay()+6)%7;t.setUTCDate(t.getUTCDate()-n+3);const f=new Date(Date.UTC(t.getUTCFullYear(),0,4));return 1+Math.round(((t-f)/864e5-3+((f.getUTCDay()+6)%7))/7)}
+const fmtD=d=>{try{return fmtDate(d)}catch(e){return d}};
+const short=d=>{const [y,m,dd]=d.split("-");return dd+"/"+m};
+// ---------------------------------------------------------------- day facts (activity = R7: ≥ 10 counted rows, one pocket round, a counted day; plus 10 minutes of study time)
+const lg=d=>(S.log&&S.log[d])||{};
+function rows(d){const L=lg(d);let n=(+L.rev||0)+(+L.drill||0);["les","write","listen","read","fsp","sim","exam","speak","dict","flu","book","kino"].forEach(f=>n+=5*(+L[f]||0));if(L.pen)n+=10;return n}
+const counted=d=>(+lg(d).session||0)>0;
+const pocket=d=>+lg(d).pocket||0;
+function active(d){return counted(d)||pocket(d)>0||rows(d)>=10||(()=>{try{return minutesOn(d)>=10}catch(e){return false}})()}
+function shiftMark(d){return !!(S.shifts&&S.shifts[d])}
+// ---------------------------------------------------------------- the clause (Wochenklausel, I7 P1)
+function week(wk,make){const m=pm();let W=m.wk[wk];if((!W||typeof W!=="object")&&make){W=m.wk[wk]={plan:{},stake:"",need:0,pen:"",rew:"",ifs:{},own:"",signed:"",auto:0,edits:0,off:0,res:null,asked:{},pd:"",ts:""}}
+  if(W&&typeof W==="object"){if(!W.plan)W.plan={};if(!W.ifs)W.ifs={};if(!W.asked)W.asked={}}return W||null}
+function plan(d){const W=week(wkOf(d));if(!W||!(W.signed||W.off))return null;if(W.off)return "off";return W.plan[d]||"f"}
+function lastSigned(before){const m=pm();const ks=Object.keys(m.wk).filter(k=>k<before&&m.wk[k]&&m.wk[k].signed&&!m.wk[k].off).sort();return ks.length?ks[ks.length-1]:null}
+function defaultPlan(wk){const pw=lastSigned(wk),PW=pw?week(pw):null;const o={};
+  daysOf(wk).forEach((d,i)=>{let k=PW?(PW.plan[addDays(pw,i)]||"f"):"f";if(k==="d"&&!PW)k="f";if(shiftMark(d))k="d";o[d]=k});
+  if(!PW){const su=addDays(wk,6);if(o[su]!=="d")o[su]="r"}
+  let seen=false;daysOf(wk).forEach(d=>{if(o[d]==="r"){if(seen)o[d]="f";seen=true}});return o}
+function planned(pl){return Object.keys(pl).filter(d=>pl[d]==="f"||pl[d]==="d").length}
+function needOf(pl,stake){const n=planned(pl);if(!n)return 0;if(stake==="all")return n;if(stake==="ord")return Math.max(1,n-1);return Math.min(n,Math.max(3,Math.ceil(n*.6)))}
+function weekCount(wk){return daysOf(wk).filter(counted).length}
+function penOffer(wk){const L=[];try{const kw=knownWords();const ch=P().ch||1;
+  const cond={diktat:kw>=100,gruft:typeof gruftItems==="function",verben:typeof STARK!=="undefined"&&!!(S.lessons&&S.lessons.g9),akte:(()=>{try{return shadowItems().length>=8}catch(e){return false}})(),gestaendnis:true,schweigen:ch>=8};
+  const all=Object.keys(I8_PEN).filter(k=>cond[k]);const off=isoWeek(wk)%Math.max(1,all.length);for(let i=0;i<Math.min(3,all.length);i++)L.push(all[(off+i)%all.length])}catch(e){}
+  return L.length?L:["gestaendnis"]}
+function defaultIfs(wk,pl){const pw=lastSigned(wk),PW=pw?week(pw):null;const o={};const sg=pm().sig||{};const hr=(sg.acts||{}).hour;
+  daysOf(wk).forEach((d,i)=>{const k=pl[d];const prev=PW&&PW.ifs[addDays(pw,i)];
+    if(k==="d")o[d]=prev&&IF_ANKER[prev[0]]?prev.slice(0,2):["uebergabe","cards"];
+    else if(k==="f")o[d]=prev&&!IF_ANKER[prev[0]]&&prev[0]!=null?[hr||prev[0],prev[1]||"schreibtisch"]:[hr||20,"schreibtisch"]});return o}
+function sentence(W,d,plain){const k=(W&&W.plan[d])||"f";const x=(W&&W.ifs[d])||[];const tag=I8_WDAY[wdOf(d)];
+  if(k==="d"){const a=IF_ANKER[x[0]]||IF_ANKER.uebergabe,r=IF_RUNDE[x[1]]||IF_RUNDE.cards;return plain?`${a[0]} – ${r[0]}. 5 Minuten.`:`${tag} (Dienst): ${a[0]} – ${r[0]}. 5 Minuten.`}
+  if(k==="f"){const h=+x[0]||20,o=IF_ORT[x[1]]||IF_ORT.schreibtisch;return plain?`um ${h} Uhr, ${o[0]} – die Sitzung.`:`${tag}: um ${h} Uhr, ${o[0]} – die Sitzung.`}
+  if(k==="r")return plain?"Ruhetag.":`${tag}: Ruhetag.`;return ""}
+function syncShifts(wk,W){try{S.shifts=S.shifts||{};daysOf(wk).forEach(d=>{if(d<T())return;if(W.plan[d]==="d")S.shifts[d]=1;else if(S.shifts[d])delete S.shifts[d]})}catch(e){}}
+function sign(wk,o){o=o||{};const D=o.draft||{};const W=week(wk,true);W.plan=Object.assign({},D.plan||defaultPlan(wk));W.stake=D.stake||(o.auto?"min":"ord");
+  W.pen=D.pen||penOffer(wk)[0];W.rew=W.stake==="all"?"both":(D.rew||"notiz");W.ifs=Object.assign({},D.ifs||defaultIfs(wk,W.plan));W.own=D.own||"";
+  W.need=needOf(W.plan,W.stake);W.signed=T();W.auto=o.auto||0;W.off=0;syncShifts(wk,W);touchW(W);
+  daysOf(wk).filter(d=>d<T()).forEach(rejudge);E("clause.signed",{wk});try{saveSoon()}catch(e){}return W}
+function offCount(){const m=pm(),from=addDays(T(),-365);return Object.keys(m.wk).filter(k=>k>=from&&m.wk[k]&&m.wk[k].off).length}
+function setOff(wk){if(offCount()>=4)return false;const W=week(wk,true);W.off=1;W.signed=T();W.plan={};touchW(W);try{saveSoon()}catch(e){}return true}
+function grace(wk){const PW=week(addDays(wk,-7));return !!(PW&&PW.res&&PW.res.kept&&(PW.rew==="stund"||PW.rew==="both"))}
+// ---------------------------------------------------------------- judging a past day (R7 IOU rule)
+function judge(d){const p=P();if(!p.signed)return "pre";if(p.date&&d<p.date)return "pre";if(p.done)return "free";
+  if(active(d)){const k=plan(d)||(shiftMark(d)?"d":"f");return k==="d"&&!counted(d)?"ration":"ok"}
+  const wk=wkOf(d),W=week(wk);if(W&&W.off)return "off";
+  const prior=daysOf(wk).filter(x=>x<d&&(!p.date||x>=p.date));
+  if(W&&W.signed&&d>=String(W.signed).slice(0,10)){const k=W.plan[d]||"f";if(k==="r")return "rest";
+    if(k==="d")return prior.some(x=>(W.plan[x]||"f")==="d"&&!active(x))?"iou":"shiftfree";
+    if(grace(wk)&&!prior.some(x=>(W.plan[x]||"f")==="f"&&!active(x)))return "grace";return "iou"}
+  if(shiftMark(d))return "shift";return prior.some(x=>!active(x)&&!shiftMark(x))?"iou":"rest"}
+function issue(d,why){const p=P(),e=ec();const id=why==="plan"?d:d+":"+why;if(e.iss.some(x=>x.id===id))return 0;const open=(+p.debt||0)<7;
+  e.iss.push({id,d,k:why,s:open?"o":"x"});if(e.iss.length>40)e.iss=e.iss.slice(-40);if(!open)return 0;
+  p.debt=(+p.debt||0)+1;p.debtPeak=Math.max(+p.debtPeak||0,p.debt);p.debtNew=(+p.debtNew||0)+1;if(!e.since)e.since=d;touchE();return 1}
+function sinceFix(){const p=P(),e=ec();if(!(+p.debt>0)){e.since="";return}const o=e.iss.filter(x=>x.s==="o").map(x=>x.d).sort()[0];if(o)e.since=o;else if(!e.since)e.since=T()}
+function relief(n,src){const p=P(),e=ec();n=Math.max(0,Math.min(Math.round(+n||0),+p.debt||0));if(!n)return 0;p.debt-=n;p.paid=(+p.paid||0)+n;
+  let k=n;for(const x of e.iss){if(!k)break;if(x.s==="o"){x.s="p";x.pd=T();k--}}
+  if(!p.debt){p.debtPeak=0;pfandBack()}sinceFix();touchE();try{saveSoon()}catch(x){}return n}
+function rejudge(d){if(d>=T())return;const e=ec(),p=P();const r=e.iss.find(x=>x.id===d&&x.s==="o");if(!r)return;if(judge(d)==="iou")return;
+  r.s="v";p.debt=Math.max(0,(+p.debt||0)-1);if(!p.debt){p.debtPeak=0;pfandBack()}sinceFix();touchE()}
+// ---------------------------------------------------------------- the daily check (pkCheckDebt replacement)
+function autoWeeks(){const p=P();const cw=wkOf(T());const st=p.date?wkOf(p.date):cw;const from=p.lastCheck?wkOf(addDays(p.lastCheck,1)):cw;let g=0;
+  for(let wk=from>st?from:st;wk<cw&&g++<60;wk=addDays(wk,7)){const W=week(wk);if(!W||!(W.signed||W.off))sign(wk,{auto:2})}
+  if(wdOf(T())>=2){const W=week(cw);if(!W||!(W.signed||W.off))sign(cw,{auto:1})}}
+function settle(){const cw=wkOf(T()),m=pm();Object.keys(m.wk).filter(k=>k<cw).sort().forEach(wk=>{const W=m.wk[wk];if(!W||W.res||!W.signed)return;
+  if(W.off){W.res={kept:true,off:1,cnt:0,need:0,seen:1,d:T()};touchW(W);return}
+  const cnt=weekCount(wk);const kept=cnt>=W.need;W.res={kept,cnt,need:W.need,pen:!kept&&W.auto!==2?W.pen:"",seen:W.auto===2?1:0,d:T()};touchW(W);E("clause.settled",{wk,kept})})}
+function dealOpen(){const d=ec().deal;return d&&d.open?d:null}
+function dealStart(src,o){o=o||{};const e=ec(),p=P();e.deal={open:1,src,start:T(),day:0,debt0:+p.debt||0,last:"",pause:0,amt:o.amt||null};e.fb="";touchE();return e.deal}
+function isShiftDay(d){const k=plan(d);return k==="d"||(k==null&&shiftMark(d))}
+function dealNeed(){const d=dealOpen();if(!d)return 0;const sh=isShiftDay(T());const A=d.amt?(sh?[d.amt[0],10,15]:d.amt):(sh?[10,10,15]:[10,20,30]);return A[Math.min(2,d.day)]}
+function dealStep(k){k=k||T();const p=P(),d=dealOpen();if(!d||d.last>=k)return -1;d.last=k;d.day++;d.pause=0;
+  const burn=d.day>=3?(+p.debt||0):Math.min(+p.debt||0,Math.ceil((d.debt0||0)/3));relief(burn,"deal");
+  if(d.day>=3||(!(+p.debt>0)&&d.src==="deal")){d.open=0;d.done=k}
+  if(k===T()){if(!counted(k)){try{logDay("session")}catch(x){}}try{pkOnSession()}catch(x){}}else{const L=S.log[k]=S.log[k]||{};if(!L.session){L.session=1;L.act=1}}
+  E("deal.day",{day:d.day});touchE();return burn}
+// a normal session that reviewed at least the day's amount pays the settlement day by itself (the cards come from the due queue anyway)
+function autoCredit(k){k=k||T();const rev=+lg(k).rev||0;const b=backToday();
+  if(k===T()&&b&&!b.st&&b.k==="short"&&rev>=10){relief(1,"back");b.st=1;touchE();return true}
+  const d=dealOpen();if(!d||d.last>=k||d.start>k)return false;if(k===T()&&b&&!b.st&&(b.k==="long"||b.k==="l30"))return false;
+  if(rev>=dealNeed()){dealStep(k);if(k===T()&&b&&!b.st)b.st=1;return true}return false}
+function dealPause(){const d=dealOpen();if(!d)return;const y=addDays(T(),-1);let k=addDays(d.last||d.start,1),miss=0,g=0;
+  while(k<=y&&g++<40){const pl=plan(k);if(pl!=="r"&&pl!=="off")miss++;k=addDays(k,1)}
+  d.pause=miss;if(miss>=2){d.open=0;d.lapsed=T();ec().fb=T()}touchE()}
+function gapNow(){const p=P();let k=addDays(T(),-1),n=0,from="",g=0;
+  while(g++<400){if(p.date&&k<p.date)break;if(active(k))break;const pl=plan(k);if(pl==="off"||pl==="r"){k=addDays(k,-1);continue}n++;from=k;k=addDays(k,-1)}
+  return {gap:n,from,days:Math.max(n,diffDays(k,T())-1)}}
+function backDetect(){const e=ec(),p=P();if(e.back&&e.back.d===T())return;if(active(T()))return;const {gap,from,days}=gapNow();if(gap<2)return;
+  const k=gap>=30?"l30":gap>=14?"long":gap>=4?"week":"short";e.back={d:T(),gap,days,k,st:0,from};
+  const m=pm();m.lapses.push({from,to:T(),gap:days});if(m.lapses.length>100)m.lapses=m.lapses.slice(-100);
+  if(k==="week")dealStart("back");
+  if(k==="long"||k==="l30"){dealStart("back",{amt:[20,20,30]});e.back.nn=addDays(T(),3);const W=week(wkOf(T()));if(W&&W.signed&&!W.off&&W.stake!=="min"){W.stake="min";W.need=needOf(W.plan,"min");touchW(W)}}
+  touchE();E("back.start",{gap})}
+function check(){const p=P();if(!p.signed)return;const y=addDays(T(),-1);if(!p.lastCheck){p.lastCheck=y;touchE();return}
+  if(p.lastCheck>=y){return}
+  autoWeeks();let k=addDays(p.lastCheck,1),g=0;const got=[];
+  while(k<=y&&g++<60){if(judge(k)==="iou"&&issue(k,"plan"))got.push(k);k=addDays(k,1)}
+  p.lastCheck=y;try{autoCredit(y)}catch(x){}settle();dealPause();backDetect();
+  {const m=pm();if(m.cl&&m.cl.d<T()&&m.snap[m.cl.d]&&m.snap[m.cl.d].vol==null){try{m.snap[m.cl.d].vol=Math.max(0,minutesOn(m.cl.d)-(+m.cl.min||0))}catch(x){}}}
+  if(+p.debt>=3&&!dealOpen()&&(!ec().fb||got.length))dealStart("deal");
+  if(got.length)E("debt.issued",{n:got.length,day:got[got.length-1]});sinceFix();touchE();try{saveSoon()}catch(x){}}
+// ---------------------------------------------------------------- what the next payment is
+function backToday(){const b=ec().back;return b&&b.d===T()?b:null}
+function payPlan(){const p=P(),b=backToday();
+  if(b&&!b.st){if(b.k==="short")return {kind:"back",n:10,title:"Die Rückkehrrunde",sub:"10 Karten · zählt als heute"};
+    if(b.k==="long"||b.k==="l30")return {kind:"bestand",n:20,old:true,title:"Die Bestandsaufnahme",sub:"20 alte Karten · was ist geblieben?"}}
+  const d=dealOpen();if(d){if(d.last===T())return {kind:"wait",n:0};return {kind:"deal",n:dealNeed(),day:d.day+1,title:d.src==="back"?"Der Rückweg":"Der Vergleich",sub:`Tag ${d.day+1} von 3 · ${dealNeed()} Karten`}}
+  if(!(+p.debt>0))return null;
+  if(+p.debt>=3&&!ec().fb){dealStart("deal");return {kind:"deal",n:dealNeed(),day:1,title:"Der Vergleich",sub:`Tag 1 von 3 · ${dealNeed()} Karten`}}
+  return {kind:"one",n:10,title:"Bußrunde",sub:"10 Karten · ein Schuldschein"}}
+function known(n,old){const ok=k=>!String(k).startsWith("p:")&&S.cards[k]&&((+S.cards[k].reps||0)>0||(+S.cards[k].lapses||0)>0)&&(()=>{try{return !!card(k)}catch(e){return true}})();
+  if(old){const I=k=>+S.cards[k].int||0;let L=Object.keys(S.cards).filter(k=>ok(k)&&I(k)>=21).sort((a,b)=>I(b)-I(a)).slice(0,n);
+    if(L.length<n){const s=new Set(L);L=L.concat(Object.keys(S.cards).filter(k=>ok(k)&&!s.has(k)&&I(k)>=4).sort((a,b)=>I(b)-I(a)).slice(0,n-L.length))}return L.map(k=>({key:k,id:k,mode:"rec"}))}
+  let due=[];try{due=dueKeys().filter(ok)}catch(e){}const ds=new Set(due);
+  const rest=Object.keys(S.cards).filter(k=>ok(k)&&!ds.has(k)).sort((a,b)=>(+S.cards[a].int||0)-(+S.cards[b].int||0));return due.concat(rest).slice(0,n).map(k=>({key:k,id:k,mode:"rec"}))}
+function payDone(pl,r){r=r||{};const p=P(),e=ec(),b=backToday();let msg=null;
+  if(pl.kind==="one"){relief(1,"pay");msg=p.debt?[`Ein Schuldschein verbrannt. Noch ${p.debt}.`,""]:["Alle Schuldscheine verbrannt. Vorerst.",""]}
+  else if(pl.kind==="back"){relief(1,"back");b.st=1;try{logDay("session")}catch(x){}try{pkOnSession()}catch(x){}msg=lineOf("back_done",0)}
+  else if(pl.kind==="bestand"){const pct=r.n?Math.round(100*(r.ok||0)/r.n):0;b.ret=pct;b.st=1;dealStep();if(!counted(T())){try{logDay("session")}catch(x){}}msg=lineOf("back_long",pct>=70?2:1,{n:pct})}
+  else if(pl.kind==="deal"){const burn=dealStep();if(b&&!b.st)b.st=1;const d=e.deal||{};msg=d.open?(b&&b.st===1&&d.day===1?lineOf("back_done",0):lineOf("debt",1,{n:d.day})):lineOf("deal_end",0)}
+  touchE();try{saveSoon()}catch(x){}return msg}
+// ---------------------------------------------------------------- pledge (I7 P4)
+function pfandBack(){const e=ec();if(e.pfand&&e.pfand.length){e.pfand=[];e.pfBack=T();try{setTimeout(()=>{try{toast("Mephisto: "+lineOf("debt",2)[0],4200);SND.fx("seal")}catch(x){}},400)}catch(x){}}}
+function kabOptions(){try{return kabCards().filter(c=>c.ok).slice(-6).reverse().slice(0,3)}catch(e){return []}}
+// ---------------------------------------------------------------- candle in weeks (R7)
+function weekHeld(wk){const p=P();const W=week(wk);if(W&&W.off)return null;if(p.date&&wk<wkOf(p.date))return null;if(p.date&&wk===wkOf(p.date)&&wdOf(p.date)>0)return null;
+  if(W&&W.signed&&W.res)return !!W.res.kept;if(W&&W.signed&&W.need)return weekCount(wk)>=W.need;
+  const c=weekCount(wk),sh=daysOf(wk).filter(isShiftDay).length;return c>=4||(sh>=2&&c>=3)}
+function candle(){const p=P();const out={weeks:0,lit:true,best:0,good:0};if(!p.signed||!p.date)return out;const cw=wkOf(T());let wk=wkOf(p.date),len=0,lit=true,saved=0,good=0,best=0,g=0;
+  while(wk<cw&&g++<300){const r=weekHeld(wk);if(r===true){if(lit)len++;else{good++;if(good>=2){lit=true;len=Math.max(2,saved-2);good=0}}}else if(r===false){if(lit){saved=len;lit=false;len=0}good=0}best=Math.max(best,len);wk=addDays(wk,7)}
+  return {weeks:len,lit,best,good}}
+// ---------------------------------------------------------------- snapshots and the ledger (I7 P5)
+function snapNow(){const o={};try{const ks=Object.keys(S.cards||{}).filter(k=>!k.startsWith("p:"));const I=k=>+S.cards[k].int||0;
+  o.kw=ks.filter(k=>(+S.cards[k].reps||0)>0).length;o.sure=ks.filter(k=>I(k)>=7).length;o.mat=ks.filter(k=>I(k)>=21).length}catch(e){}
+  try{o.pat=patWords().sure}catch(e){o.pat=0}try{o.l80=Object.values(S.lessons||{}).filter(l=>(+l.best||0)>=80).length}catch(e){}
+  try{o.sh=Object.keys(S.shadowDone||{}).length}catch(e){}try{o.wr=(S.corrections||[]).filter(c=>c&&c.ok).length}catch(e){}
+  try{if(typeof CANDO!=="undefined"&&typeof cdStatus==="function"){let s=0,g=0;CANDO.forEach(c=>{const v=cdStatus(c.id);if(v>=3)s++;if(v>=2)g++});o.cdS=s;o.cdG=g}}catch(e){}
+  try{o.ch=P().ch||1}catch(e){}try{o.soul=Math.round(pkSoul()*10)}catch(e){}try{o.due=dueKeys().length}catch(e){}
+  try{o.hz=S.horror==null?2:+S.horror;o.snd=S.sound?1:0;o.lk=["gothic","paper","clean","pixel"].indexOf(S.look||"gothic")}catch(e){}return o}
+function snap(){const m=pm(),t=T();if(m.snap[t])return m.snap[t];const o=snapNow();o.h=new Date().getHours();m.snap[t]=o;
+  const ks=Object.keys(m.snap).sort();while(ks.length>400)delete m.snap[ks.shift()];return o}
+function ago(n){const m=pm(),t=addDays(T(),-n);const ks=Object.keys(m.snap).filter(k=>k<=t).sort();return ks.length?m.snap[ks[ks.length-1]]:null}
+function ledger(){const now=snapNow(),p=P();let base=ago(30),label="vor 30 Tagen";const ks=Object.keys(pm().snap).sort();
+  if(!base&&ks.length){base=pm().snap[ks[0]];label="seit "+fmtD(ks[0])}
+  const rowsL=Object.keys(I8_LEDGER).filter(k=>now[k]!=null).map(k=>({k,de:I8_LEDGER[k][0],en:I8_LEDGER[k][1],now:now[k],then:base&&base[k]!=null?base[k]:null}));
+  const today=[];try{const t=T();(pm().td&&pm().td.d===t?pm().td.solid||[]:[]).slice(0,6).forEach(w=>today.push(w));}catch(e){}
+  const les=[];try{Object.keys(S.lessons||{}).forEach(id=>{const L=S.lessons[id];if(L&&L.last===T()){let t=id;try{const x=lessonById(id);t=x&&(x.title||x.t)||id}catch(e){}les.push({id,t,best:+L.best||0,sc:+L.lastScore||0})}})}catch(e){}
+  const can=[];try{if(typeof CANDO!=="undefined"&&typeof cdStatus==="function"){const ch=P().ch||1;CANDO.filter(c=>c.ch<=ch).forEach(c=>{const st=cdStatus(c.id);if(st>=2||c.ch===ch)can.push({id:c.id,de:c.de,en:c.en,st,ch:c.ch})});can.sort((a,b)=>b.st-a.st||b.ch-a.ch)}}catch(e){}
+  const m=pm();const L=m.lapses;const ret=L.filter(x=>x.to);const mean=ret.length?Math.round(ret.reduce((a,x)=>a+x.gap,0)/ret.length):0;
+  let deferred=0;try{deferred=Math.max(0,dueKeys().length-(+S.maxReviews||0))}catch(e){}
+  let low=0;try{low=Object.values(S.lessons||{}).filter(l=>(+l.best||0)<60&&(+l.n||0)>0).length}catch(e){}
+  return {label,rows:rowsL,today,les,can:can.slice(0,12),soll:{debt:+p.debt||0,deferred,low,lapses:L.length,returns:ret.length,mean}}}
+// ---------------------------------------------------------------- end of day numbers (I7 P9; i9 renders the close, this is the numbers block)
+function tomorrow(){const d=addDays(T(),1);const W=week(wkOf(d));const k=plan(d)||(shiftMark(d)?"d":W?null:"f");let de=W&&W.signed&&!W.off?sentence(W,d,true):"";
+  let goal="";try{const g=pkGate(pkCh());const open=g.items.filter(i=>!i.opt&&!i.ok);goal=g.ready?"Das Siegel ist reif.":open.length===1?"Noch eine Aufgabe bis zum Siegel: "+open[0].de:open.length?`Noch ${open.length} Aufgaben bis zum Siegel.`:""}catch(e){}
+  const dl=dealOpen();if(dl)goal=`Tag ${dl.day+1} von 3 · ${dealNeed()} Karten.`;
+  if(((pm().sig||{}).acts||{}).morgen10)goal="Zehn Minuten. Mehr verlange ich morgen nicht.";
+  return {d,k:k||"f",wd:I8_WDAY[wdOf(d)],de,goal}}
+function dayClose(){const t=T(),L=lg(t),p=P(),s0=pm().snap[t]||null,now=snapNow();const heute=[];
+  const cdNew=s0&&now.cdG!=null&&s0.cdG!=null?Math.max(0,now.cdG-s0.cdG):0;if(cdNew)heute.push([`Neu im Haben: ${cdNew} Kann-Beschreibung${cdNew>1?"en":""}.`,"new can-do statements"]);
+  const solid=(pm().td&&pm().td.d===t?(pm().td.solid||[]).length:0)||(s0&&now.mat!=null?Math.max(0,now.mat-s0.mat):0);
+  const cards=+L.rev||0,acc=cards?Math.round(100*(+L.ok||0)/cards):0;
+  if(cards||solid)heute.push([`${cards} Karten${cards?` · ${acc} % gewusst`:""}${solid?` · ${solid} ${solid>1?"Wörter sind":"Wort ist"} fest geworden`:""}`,"cards · words now solid (21 days)"]);
+  let les=null;try{Object.keys(S.lessons||{}).forEach(id=>{const x=S.lessons[id];if(x&&x.last===t&&(!les||(+x.lastScore||0)>les.sc)){let ti=id;try{const y=lessonById(id);ti=y&&(y.title||y.t)||id}catch(e){}les={id,t:ti,sc:+x.lastScore||0}}})}catch(e){}
+  if(les)heute.push([`Lektion „${les.t}“: ${les.sc} %`,"lesson score"]);
+  let soul=0;try{soul=pkSoul()}catch(e){}const sd=s0&&s0.soul!=null?soul-s0.soul/10:0;
+  const soulTxt=`Seele ${fmt1(soul)} %`+(sd>=.05?` (+${fmt1(sd)})`:sd<=-.05?` (${fmt1(sd)})`:"");
+  let gate={done:0,all:0,ready:false};try{const g=pkGate(pkCh());const it=g.items.filter(i=>!i.opt);gate={done:it.filter(i=>i.ok).length,all:it.length,ready:!!g.ready}}catch(e){}
+  heute.push([`${soulTxt} · Kapitel ${p.ch||1}: Siegel ${gate.done}/${gate.all}`,"soul · seal tasks"]);
+  const b=backToday();const sh=isShiftDay(t);const line=b?lineOf("back_done",(hsh(t+"back_done")+1)%3):(+p.debt>0)?lineOf("debt_done",null,{n:p.debt}):sh&&counted(t)?lineOf("shift",3):sh&&pocket(t)?lineOf("shift",5):lineOf("feierabend",cdNew||solid?1:0);
+  const tm=tomorrow();
+  return {d:t,cards,ok:+L.ok||0,acc,min:(()=>{try{return minutesOn(t)}catch(e){return 0}})(),solid,cdNew,lesson:les,soul,soulTxt,gate,debt:+p.debt||0,deal:dealOpen(),
+    heute:heute.slice(0,3),line,tomorrow:tm,text:heute.map(h=>h[0]).join(" · ")}}
+// ---------------------------------------------------------------- dropout signals (I7 §6) — computed once a day, never shown as a score
+function signals(force){const m=pm(),t=T();if(!force&&m.sig&&m.sig.d===t)return m.sig;const on=[];const D=n=>addDays(t,-n);const p=P();
+  try{const a7=[],a28=[];for(let i=1;i<=28;i++){const k=D(i);if(active(k)){const mn=minutesOn(k);a28.push(mn);if(i<=7)a7.push(mn)}}const mean=a=>a.reduce((x,y)=>x+y,0)/Math.max(1,a.length);
+    if(a7.length>=2&&a28.length>=6&&mean(a7)<.5*mean(a28))on.push(1)}catch(e){}
+  const cw=wkOf(t);const pw=[1,2].map(i=>week(addDays(cw,-7*i)));if(pw.every(W=>W&&W.res&&W.res.kept===false&&!W.res.off))on.push(2);
+  const b=ec().back;if(b&&b.d===t&&b.gap>=2)on.push(3);
+  if(m.lapses.filter(x=>diffDays(x.to,t)<=14).length>=2)on.push(4);
+  {let sk=0,st=0;for(let i=1,n=0;i<=21&&n<5;i++){const l=lg(D(i));if(l.i8st){sk+=+l.i8sk||0;st+=+l.i8st;n++}}if(st>=5&&sk/st>=.4)on.push(5)}
+  {const acc=[];for(let i=1;i<=21&&acc.length<7;i++){const l=lg(D(i));if((+l.rev||0)>=10)acc.push((+l.ok||0)/l.rev)}if(acc.length>=3&&acc.slice(0,3).every(x=>x<.7))on.push(6);if(acc.length>=7&&acc.every(x=>x>.97))on.push(7)}
+  try{const cap=+S.maxReviews||100;const df=k=>{const s=m.snap[k];return s&&s.due!=null?Math.max(0,s.due-cap):null};const d0=Math.max(0,dueKeys().length-cap),d1=df(D(1)),d2=df(D(2)),d3=df(D(3));
+    if(d0>3*cap||(d1!=null&&d2!=null&&d3!=null&&d0>d1&&d1>d2&&d2>d3))on.push(8)}catch(e){}
+  {const e=ec();if((+p.debt||0)>=7||(+p.debt>0&&e.since&&diffDays(e.since,t)>5))on.push(9)}
+  {let f=0,w=0;for(let i=1;i<=3;i++){const l=lg(D(i));f+=+l.i8f||0;w+=+l.i8w||0}if(w>=8&&f/w>.25)on.push(10)}
+  {let ps=0,pr=0;for(let i=1;i<=14;i++){const k=D(i);if(isShiftDay(k)){ps++;if(pocket(k)>0||counted(k))pr++}}if(ps>=2&&pr/ps<.5)on.push(11)}
+  {const W=week(cw);let offs=0;for(let i=0;i<4;i++){const X=week(addDays(cw,-7*i));if(X&&X.off)offs++}if((W&&W.auto===1)||offs>=2)on.push(12)}
+  try{if(!p.done){const sl=Object.values(p.sealed||{}).filter(Boolean).sort();const last=sl.length?sl[sl.length-1]:(p.chStart||p.date||t);let a=0,sh=0;
+    for(let k=addDays(last,1),g=0;k<t&&g<300;k=addDays(k,1),g++){if(active(k))a++}for(let i=1;i<=14;i++)if(isShiftDay(D(i)))sh++;if(a>=(sh>=6?21:14))on.push(13)}}catch(e){}
+  let hour=null;{const hs=(a,b)=>{const L=[];for(let i=a;i<=b;i++){const s=m.snap[D(i)];if(s&&s.h!=null&&active(D(i)))L.push(s.h)}L.sort((x,y)=>x-y);return L.length>=3?L[L.length>>1]:null};
+    const h1=hs(0,7),h2=hs(8,21);if(h1!=null&&h2!=null&&h1-h2>=2){on.push(14);hour=Math.min(22,h1)}}
+  try{if(p.done&&diffDays(p.done,t)<=21){let a=0,b2=0;for(let i=1;i<=7;i++)if(counted(D(i)))a++;for(let i=1;i<=7;i++)if(counted(addDays(p.done,-i)))b2++;if(b2>=2&&a<=b2/2)on.push(15)}}catch(e){}
+  try{const at=m.atk||"";if(at&&diffDays(at.slice(0,10),t)<=2){const s0=m.snap[t]||snapNow(),s1=ago(3);if(s1&&(s0.hz<s1.hz||s0.snd<s1.snd||s0.lk!==s1.lk))on.push(16)}}catch(e){}
+  const acts={preMin:on.some(x=>x===1||x===12),needDown:on.includes(2),morgen10:on.includes(1),ifsAll:on.includes(4),halfStep:on.includes(5),
+    newCap:on.includes(6)||on.includes(8)?0:on.includes(7)?5:null,r1only:on.includes(6),typeEvery3:on.includes(10),anchorAsk:on.includes(11),
+    stall:on.includes(13),hour,contract:on.includes(15),atkHalf:on.includes(16),dealOnly:on.includes(9)};
+  m.sig={d:t,on,acts};return m.sig}
+function newCap(){const b=ec().back;if(b&&b.nn&&T()<b.nn)return 0;const a=(pm().sig||{}).acts;return a&&a.newCap!=null&&pm().sig.d===T()?a.newCap:null}
+// ---------------------------------------------------------------- registers (I7 P6) — rules for s5's voice; i8 picks lines only for its own cards
+const M8={day:"",atk:[]};
+function canAttack(){const t=T();if(M8.day!==t){M8.day=t;M8.atk=[]}if(backToday())return false;const a=(pm().sig||{}).acts||{};const cap=a.atkHalf?1:a.r1only?0:3;
+  return M8.atk.length<cap&&(!M8.atk.length||Date.now()-M8.atk[M8.atk.length-1]>6e5)}
+function crackOK(){const p=P(),m=pm();if(+p.debt>0)return false;return !m.ck||diffDays(m.ck,T())>=14}
+function register(ctx){ctx=ctx||{};const p=P(),e=ec(),t=T();
+  if(backToday())return "R0";if(+p.debt>0&&e.since&&diffDays(e.since,t)>3)return "R0";
+  if(ctx.kind==="wrong"&&(ctx.isNew||(+ctx.int0||0)<7))return "R0";
+  if(ctx.kind==="event"){if(ctx.crack&&crackOK())return "R4";return "R3"}
+  if((ctx.kind==="wrong"||ctx.kind==="skip"||ctx.kind==="excuse")&&canAttack())return "R2";return "R1"}
+function bank(ctx){ctx=ctx||{};const reg=register(ctx);const ch=(P().ch||1);
+  if(reg==="R0"){if(backToday()){const b=backToday();return {reg,bank:b.st?"back_done":b.k==="short"?"back_short":b.k==="week"?"back_week":"back_long",p:1}}
+    if(ctx.kind==="wrong")return {reg,bank:"fail_honest",p:.15};return {reg,bank:"avoid",p:1}}
+  if(reg==="R4")return {reg,bank:ch>=22?"crack":"crack_early",p:.5};
+  if(reg==="R3")return {reg,bank:"grudge",p:1};
+  if(reg==="R2"){if(ctx.kind==="skip")return {reg,bank:"avoid",p:1};if(ctx.kind==="excuse")return {reg,bank:"excuse",p:1};
+    if(+ctx.ms>0&&+ctx.ms<2000&&(+ctx.int0||0)>=7)return {reg,bank:"sloppy_fast",p:.6};if((+ctx.lapses||0)>=3)return {reg,bank:"sloppy_repeat",p:.5};if((+ctx.int0||0)>=21)return {reg,bank:"sloppy_old",p:.4}}
+  return {reg,bank:null,p:.25}}
+function wagerBank(){const ch=P().ch||1;return ch<=7?"wager_g":ch<=20?"wager_i":"wager_s"}
+// ---------------------------------------------------------------- punishment due (blocks only the seal)
+function penDue(){const m=pm(),cw=wkOf(T());const ks=Object.keys(m.wk).filter(k=>k<cw&&k>=addDays(cw,-14)).sort().reverse();
+  for(const wk of ks){const W=m.wk[wk];if(W&&W.res&&!W.res.kept&&W.res.pen&&!W.pd)return {wk,pen:W.res.pen}}return null}
+function muted(){const m=pm();return Object.keys(m.wk).some(wk=>{const W=m.wk[wk];return W&&W.pd&&W.res&&W.res.pen==="schweigen"&&T()<addDays(W.pd,3)&&T()>=W.pd})}
+// ---------------------------------------------------------------- Notizbuch page for a kept week
+try{setTimeout(()=>{try{if(typeof ECON!=="undefined"&&ECON&&!ECON.notizFor)ECON.notizFor=notizFor}catch(e){}},0)}catch(e){} /* integrator 13.6: Die Mappe keeps earned pages readable (c_int.js) */
+function notizFor(wk){const m=pm();const ks=Object.keys(m.wk).filter(k=>k<=wk).sort();let n=0;ks.forEach(k=>{const W=m.wk[k];if(W&&W.res&&W.res.kept&&!W.res.off&&(W.rew==="notiz"||W.rew==="both"))n++});
+  const pages=NOTIZ.filter((x,i)=>i!==4||m.lapses.length);if(n<1||n>pages.length)return null;const pg=pages[n-1];const p=P();
+  let worst={de:"",n:0};try{Object.keys(S.cards).forEach(k=>{const c=S.cards[k];if(!k.startsWith("p:")&&(+c.lapses||0)>worst.n){const x=card(k);if(x)worst={de:x.de,n:+c.lapses}}})}catch(e){}
+  const gap=m.lapses.reduce((a,x)=>Math.max(a,x.gap||0),0);let kw=0;try{kw=knownWords()}catch(e){}
+  const f=s=>s.replace("{D}",p.date?diffDays(p.date,T()):0).replace("{KW}",kw).replace("{WORST}",worst.de||"der, die, das").replace("{N}",Math.max(2,worst.n)).replace("{GAP}",gap);return [f(pg[0]),f(pg[1])]}
+// ---------------------------------------------------------------- calendar file (.ics, local, no network)
+function ics(wk){const W=week(wk);if(!W)return "";const ie=s=>String(s).replace(/\\/g,"\\\\").replace(/;/g,"\\;").replace(/,/g,"\\,").replace(/\n/g,"\\n");
+  const st=stamp().replace(/[-:]/g,"").replace(/\.\d+/,"");const L=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Mephisto//Wochenklausel//DE","CALSCALE:GREGORIAN","METHOD:PUBLISH"];
+  daysOf(wk).forEach(d=>{const k=W.plan[d]||"f";if(k!=="f"&&k!=="d")return;const s=sentence(W,d,true);const ymd=d.replace(/-/g,"");L.push("BEGIN:VEVENT",`UID:mephisto-${ymd}-${k}@mephisto.local`,"DTSTAMP:"+st);
+    if(k==="f"){const h=+((W.ifs[d]||[])[0])||20;L.push(`DTSTART:${ymd}T${pad2(h)}0000`,`DTEND:${ymd}T${pad2(h)}3000`)}else L.push(`DTSTART;VALUE=DATE:${ymd}`,`DTEND;VALUE=DATE:${addDays(d,1).replace(/-/g,"")}`);
+    L.push("SUMMARY:"+ie("Mephisto: "+s),"BEGIN:VALARM","ACTION:DISPLAY","DESCRIPTION:"+ie(s),k==="f"?"TRIGGER:-PT10M":"TRIGGER:PT12H","END:VALARM","END:VEVENT")});
+  L.push("END:VCALENDAR");return L.join("\r\n")+"\r\n"}
+// ---------------------------------------------------------------- public API
+ECON={open:()=>+P().debt||0,add(n,src){let k=0;for(let i=0;i<(+n||0);i++){const r=issue(T(),(src||"add")+(i?i:""));k+=r}if(k)E("debt.issued",{n:k,day:T()});try{saveSoon()}catch(e){}return k},
+  relief,cost:()=>{const x=payPlan();return x&&x.n||10},plan:payPlan,deal:dealOpen,dealNeed,back:backToday,week:(wk)=>{wk=wk||wkOf(T());const W=week(wk);return W?Object.assign({},W,{cnt:weekCount(wk)}):null},
+  planOf:plan,judge,check,candle,ledger,dayClose,signals,newCap,register,bank,canAttack,noteAttack(){const t=T();if(M8.day!==t){M8.day=t;M8.atk=[]}M8.atk.push(Date.now());pm().atk=stamp()},
+  noteCrack(){pm().ck=T()},crackOK,penDue,muted,known,payDone,sign,setOff,needOf,defaultPlan,sentence,ics,snap,gap:gapNow,wagerBank,line:lineOf,
+  zLine(note,prev,v){try{const r=ZEUGNIS7[note];if(!r)return null;const x=r[prev!=null&&note>prev?1:note===1&&prev===1?1:0];v=v||{};const f=s=>String(s).replace("{n}",v.n!=null?v.n:"").replace("{m}",v.m!=null?v.m:"").replace("{w}",v.w||"");return [f(du()&&x[2]?x[2]:x[0]),f(x[1])]}catch(e){return null}},
+  v:"i8.1",_:{week,daysOf,wkOf,active,counted,rejudge,dealStart,dealStep,autoCredit,issue,settle,autoWeeks,backDetect,isoWeek,notizFor,pm,ec,offCount,penOffer,defaultIfs,lastSigned,touchW,touchE,syncShifts,shiftMark,isShiftDay,pocket,lg}};
+if(typeof window!=="undefined")window.ECON=ECON;
+// ================================================================= hooks (each guarded; 13.0 code is the fallback)
+try{MOD.around("pkCheckDebt","i8",function(orig){try{const p=P();if(!p.signed||p.done)return orig();check();return}catch(e){try{logError({message:"i8 check: "+e.message})}catch(x){}return orig()}})}catch(e){}
+try{MOD.around("pkPayCost","i8",function(orig,p){try{const x=payPlan();return x?(x.kind==="wait"?dealNeed():x.n)||10:10}catch(e){return orig(p)}})}catch(e){}
+const _pay=typeof ACT!=="undefined"?ACT.pkPay:null;
+if(typeof ACT!=="undefined")ACT.pkPay=function(el){try{const pl=payPlan();if(!pl)return toast("Keine Schuldscheine. Mephisto ist enttäuscht.",2600);
+    if(pl.kind==="wait"){const d=dealOpen();return toast(`Heute ist bezahlt. Morgen Tag ${d.day+1} von 3 · ${dealNeed()} Karten.`,3200)}
+    const q=known(pl.n,pl.old);let once=false;const fin=r=>{if(once)return;once=true;const l=payDone(pl,r);if(l&&l[0])setTimeout(()=>{try{toast((l[1]?"Mephisto: ":"")+l[0],4200);SND.fx("bell")}catch(x){}},500)};
+    // integrator 13.6: P1 rule kept (P1 and i8 both replace the IOU payment) - an IOU is never burnt for free; a round needs at least min(price,5) known cards
+    if(q.length<Math.min(pl.n,5)){toast("Noch zu wenige gelernte Karten für eine Bußrunde. Machen Sie erst die heutige Sitzung.",4400);return}
+    const box=Focus.open({title:pl.title,sub:q.length<pl.n?`${q.length} Karten (mehr kennen Sie noch nicht) · zählt trotzdem`:pl.sub||`${q.length} Karten`});
+    cardRunner(box,q,{standalone:true,onDone:r=>{fin(r);setTimeout(()=>{try{if(Focus.isOpen())Focus.close(true);go("home")}catch(x){}},900)}})}
+  catch(e){try{logError({message:"i8 pay: "+e.message})}catch(x){}if(_pay)return _pay(el)}};
+try{MOD.around("pkGreet","i8",function(orig){const g=orig();try{const p=P();if(!p.signed||p.done)return g;
+  if(muted())return {k:"mute",l:["…","(he is not speaking to you — your own punishment)"]};
+  const b=backToday();if(b){if(b.st)return {k:"back",l:lineOf("back_done")};if(b.k==="l30"&&typeof ml==="function")return {k:"secret",l:ml("back30")};
+    return {k:"back",l:lineOf(b.k==="short"?"back_short":b.k==="week"?"back_week":"back_long",b.k==="long"||b.k==="l30"?0:null,{n:b.days||b.gap})}}
+  const T0=S.today&&S.today.date===T()?S.today:null;if(T0&&T0.finished&&+p.debt>0)return {k:"done",l:lineOf("debt_done",null,{n:p.debt})};
+  const e=ec();if(+p.debt>0&&e.since&&diffDays(e.since,T())>3){const n=diffDays(e.since,T());return {k:"debt",l:lineOf("avoid",2+hsh(T())%3,{n})}}}catch(e){}return g})}catch(e){}
+try{MOD.around("newPool","i8",function(orig,...a){let c=null;try{c=newCap()}catch(e){}if(c===0)return [];if(c>0){const o=S.newPerDay;S.newPerDay=(+o||0)+c;try{return orig(...a)}finally{S.newPerDay=o}}return orig(...a)})}catch(e){}
+try{MOD.around("kabCards","i8",function(orig){const L=orig();try{const pf=ec().pfand||[];if(pf.length)L.forEach(c=>{if(pf.includes(c.id))c.t=c.t+" · verpfändet"})}catch(e){}return L})}catch(e){}
+// gate item "Erst die Klausel, dann das Siegel" — through i4's GATE when present, else a small around on pkGate
+function gateItems(){const p=P();if(!p.signed||p.done)return [];const out=[];const wk=wkOf(T()),W=week(wk);
+  const m=pm();const met=Object.keys(m.wk).some(k=>k<wk&&m.wk[k]&&m.wk[k].signed&&!m.wk[k].auto);   // only once he has written a clause himself (a migrated save is never blocked by a rule it has not met)
+  if(met&&(!W||!(W.signed||W.off)))out.push({k:"clause",ok:false,de:`Erst die Klausel, dann das Siegel. (KW ${isoWeek(wk)})`,en:"sign this week's clause first — it never blocks study",act:"i8KlOpen",id:"i8"});
+  const pd=penDue();if(pd)out.push({k:"penance",ok:false,de:`Erst die Strafe, dann das Siegel: ${I8_PEN[pd.pen][0]}`,en:"your own punishment first — then the seal",act:"i8PenGo",id:pd.wk});return out}
+setTimeout(function(){try{if(typeof GATE!=="undefined"&&GATE&&typeof GATE.add==="function"){GATE.add("i8.clause",function(){return gateItems()});ECON._gate="GATE";return}}catch(e){}
+  try{MOD.around("pkGate","i8",function(orig,c){const g=orig(c);try{const it=gateItems();if(it.length){g.items=g.items.concat(it);g.ready=false}}catch(e){}return g});ECON._gate="around"}catch(e){}},0);
+// merge rules (PLAN-I §2.7): S.pm and P().econ
+const stJ=v=>{try{return JSON.stringify(v)}catch(e){return ""}};
+const newer=(a,b,f)=>{const x=String((a&&a[f])||""),y=String((b&&b[f])||"");return x!==y?(x>y?a:b):(stJ(a)>=stJ(b)?a:b)};
+function mergeSnapDay(a,b){if(!a||typeof a!=="object")return b;if(!b||typeof b!=="object")return a;const o={};new Set([...Object.keys(a),...Object.keys(b)]).forEach(k=>{const x=a[k],y=b[k];o[k]=x==null?y:y==null?x:(typeof x==="number"&&typeof y==="number"?Math.max(x,y):(stJ(x)>=stJ(y)?x:y))});return o}
+function pmMerge(a,b){if(!a||typeof a!=="object")return b;if(!b||typeof b!=="object")return a;const o={};
+  const wk={},A=a.wk||{},B=b.wk||{};new Set([...Object.keys(A),...Object.keys(B)]).forEach(k=>{wk[k]=A[k]==null?B[k]:B[k]==null?A[k]:newer(A[k],B[k],"ts")});o.wk=wk;
+  const sn={},SA=a.snap||{},SB=b.snap||{};new Set([...Object.keys(SA),...Object.keys(SB)]).forEach(k=>sn[k]=mergeSnapDay(SA[k],SB[k]));o.snap=sn;
+  const lp=new Map();[...(a.lapses||[]),...(b.lapses||[])].forEach(x=>{if(!x||!x.from)return;const y=lp.get(x.from);lp.set(x.from,!y?x:(stJ(x)>=stJ(y)?x:y))});o.lapses=[...lp.values()].sort((x,y)=>x.from<y.from?-1:x.from>y.from?1:0);
+  o.sig=newer(a.sig||{},b.sig||{},"d");const ck=[a.ck||"",b.ck||""].sort()[1];if(ck)o.ck=ck;const at=[a.atk||"",b.atk||""].sort()[1];if(at)o.atk=at;
+  if(a.cl||b.cl)o.cl=newer(a.cl||{},b.cl||{},"d");if(a.td||b.td)o.td=newer(a.td||{},b.td||{},"d");return o}
+function econMerge(a,b){if(!a||typeof a!=="object")return b;if(!b||typeof b!=="object")return a;return newer(a,b,"ts")}
+ECON._merge={pm:pmMerge,econ:econMerge};
+setTimeout(function(){try{if(typeof MERGE_RULES!=="undefined"&&MERGE_RULES){MERGE_RULES.pm=(a,b)=>pmMerge(a,b)}if(typeof PAKT_RULES!=="undefined"&&PAKT_RULES){PAKT_RULES.econ=(a,b)=>econMerge(a,b)}}catch(e){}
+  try{if(typeof RESET_GROUPS!=="undefined"&&RESET_GROUPS.pakt&&RESET_GROUPS.pakt.k&&RESET_GROUPS.pakt.k.indexOf("pm")<0)RESET_GROUPS.pakt.k.push("pm")}catch(e){}},0);
+// events (i1's EV loads after c_cloud): fast wrong taps, solid words of today, skipped steps, day start
+setTimeout(function(){try{if(typeof EV==="undefined"||!EV||!EV.on)return;
+  EV.on("card.answer",d=>{try{if(!d||d.prod)return;const t=T(),L=S.log[t]=S.log[t]||{};const i0=d.prev?+d.prev.int||0:0;
+    if(!d.ok){L.i8w=(+L.i8w||0)+1;if(d.ms&&d.ms<2000&&i0>=7)L.i8f=(+L.i8f||0)+1}
+    if(d.ok&&i0<21&&(+d.int||0)>=21){const m=pm();if(!m.td||m.td.d!==t)m.td={d:t,solid:[]};if(m.td.solid.length<40&&d.de)m.td.solid.push(d.de)}}catch(e){}});
+  EV.on("session.step",()=>{try{const L=S.log[T()]=S.log[T()]||{};L.i8st=(+L.i8st||0)+1}catch(e){}});
+  EV.on("session.skip",()=>{try{const L=S.log[T()]=S.log[T()]||{};L.i8sk=(+L.i8sk||0)+1;L.i8st=(+L.i8st||0)+1}catch(e){}});
+  EV.on("day.rollover",()=>{try{if(P().signed){snap();signals()}}catch(e){}})}catch(e){}},0);
+// s5's voice bank: MEPH7 + MEPH8 as [sie,en,du,lv,flags] under "i8_<kind>" (s5's vcPick decides when they are spoken)
+setTimeout(function(){try{if(typeof MEPH2==="undefined"||!MEPH2||typeof MEPH2!=="object"||Array.isArray(MEPH2))return;const conv=s=>String(s).replace(/\{n\}/g,"{N}").replace(/\{m\}/g,"{M}").replace(/\{w\}/g,"{WORD}");
+  [MEPH7,MEPH8].forEach(B=>Object.keys(B).forEach(k=>{const lv=MEPH7_LV[k]||"A2";const L=Array.isArray(lv)?lv[0]:lv,F=Array.isArray(lv)?lv[1]:"";if(MEPH2["i8_"+k])return;
+    MEPH2["i8_"+k]=B[k].map(x=>[conv(x[0]),conv(x[1]),conv(x[2]||""),L,F])}));ECON._voice=1}catch(e){}},0);
+// ================================================================= screens (Home cards, the clause, the ledger, punishments)
+if(typeof document==="undefined"||typeof MOD==="undefined"||typeof ACT==="undefined")return;
+(function(){const s=document.createElement("style");s.id="i8-css";s.textContent=`
+.i8-home{gap:.6rem}.i8-card .i8-h{margin:.1rem 0 0;font-family:var(--display);font-weight:400;font-size:1.15rem}
+.i8-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:.3rem}
+.i8-day{all:unset;box-sizing:border-box;cursor:pointer;text-align:center;border:1px solid var(--line);border-radius:10px;padding:.35rem .1rem;min-height:56px;display:flex;flex-direction:column;justify-content:center;gap:.1rem;font-family:var(--ui)}
+.i8-day b{font-size:.92rem}.i8-day small{font-size:.66rem;color:var(--muted)}.i8-day i{font-style:normal;font-size:.7rem}
+.i8-day.k-d{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent)}.i8-day.k-r{opacity:.6;border-style:dashed}
+.i8-day.past{opacity:.45;cursor:default}.i8-day.today{outline:2px solid var(--accent);outline-offset:1px}.i8-day.ok b::after{content:" ✓";color:var(--accent)}
+.i8-day:focus-visible{outline:2px solid var(--accent)}
+.i8-opts{display:flex;flex-wrap:wrap;gap:.35rem}.i8-opts .chip.on,.i8-stake.on{border-color:var(--accent);color:var(--accent)}
+.i8-stake{all:unset;box-sizing:border-box;cursor:pointer;display:block;width:100%;border:1px solid var(--line);border-radius:10px;padding:.55rem .7rem;font-family:var(--ui)}
+.i8-stake b{display:block;font-size:1rem}.i8-stake small{color:var(--muted)}
+.i8-if{display:flex;flex-wrap:wrap;align-items:center;gap:.3rem;font-family:var(--body);font-size:.98rem;line-height:1.5}
+.i8-if select{display:inline-block!important;width:auto!important;min-height:0!important;font:inherit;font-family:var(--ui);font-size:.86rem!important;max-width:100%;padding:.15rem .25rem!important;margin:0!important;background:var(--bg);color:inherit;border:1px solid var(--line);border-radius:6px}
+.i8-if{border-bottom:1px dashed var(--line);padding-bottom:.25rem}
+.i8-steps{display:flex;flex-wrap:wrap;gap:.35rem;align-items:center}.i8-steps .chip.done{opacity:.55;text-decoration:line-through}
+.i8-strip{display:flex;flex-wrap:wrap;gap:.35rem}.i8-strip .chip{font-size:.8rem}
+.i8-tab{width:100%;border-collapse:collapse;font-family:var(--ui);font-size:.9rem}.i8-tab td,.i8-tab th{padding:.3rem .25rem;border-bottom:1px solid var(--line);text-align:right;vertical-align:top}
+.i8-tab td:first-child,.i8-tab th:first-child{text-align:left}.i8-tab .plus{color:var(--accent)}.i8-tab .en{display:block;font-size:.72rem;color:var(--muted)}
+.i8-run input{width:100%;box-sizing:border-box;font:inherit;padding:.5rem;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:inherit}
+.i8-note{font-family:var(--body);font-size:1.05rem;line-height:1.45;white-space:pre-wrap}
+.i8-door{text-align:center}.i8-door .big{font-size:2.6rem;line-height:1;color:var(--accent)}
+`;document.head.appendChild(s)})();
+const en=(t)=>`<span class="en">${esc(t)}</span>`;
+const Sie=(s,d)=>du()?d:s;
+function wkLabel(wk){return `KW ${isoWeek(wk)} · ${short(wk)}–${short(addDays(wk,6))}`}
+// ---------------------------------------------------------------- the clause, three steps
+let DR=null,JUST="",JUST_T=0;const just=wk=>JUST===wk&&Date.now()-JUST_T<90000;
+function draft(wk){if(!DR||DR.wk!==wk){const pl=defaultPlan(wk);const pw=lastSigned(wk),PW=pw?week(pw):null;const a=(pm().sig||{}).acts||{};const b=backToday();
+  let stake=PW&&PW.stake?PW.stake:"ord";if(a.preMin||a.needDown||(b&&b.k!=="short"))stake="min";
+  DR={wk,step:1,plan:pl,stake,pen:penOffer(wk)[0],rew:"notiz",ifs:defaultIfs(wk,pl),own:""}}return DR}
+function dayChip(d,k,o){const t=T();const cls=["i8-day","k-"+k];if(o.past)cls.push("past");if(d===t)cls.push("today");if(o.ok)cls.push("ok");
+  return `<button class="${cls.join(" ")}" data-act="i8KlDay" data-d="${d}" ${o.past?'tabindex="-1" aria-disabled="true"':""} aria-label="${I8_WDAY[wdOf(d)]} ${fmtD(d)}: ${I8_KIND[k]?I8_KIND[k][0]:k}"><b>${I8_WD[wdOf(d)]}</b><small>${short(d)}</small><i>${I8_KIND[k]?I8_KIND[k][0]:"–"}</i></button>`}
+function ifRow(D,d){const k=D.plan[d],x=D.ifs[d]||[];const tag=I8_WDAY[wdOf(d)];
+  if(k==="d"){const a=Object.keys(IF_ANKER).map(id=>`<option value="${id}"${x[0]===id?" selected":""}>${esc(IF_ANKER[id][0])}</option>`).join(""),r=Object.keys(IF_RUNDE).map(id=>`<option value="${id}"${x[1]===id?" selected":""}>${esc(IF_RUNDE[id][0])}</option>`).join("");
+    return `<div class="i8-if"><b>${tag} (Dienst):</b><select class="i8-sel" data-d="${d}" data-i="0" aria-label="Anker">${a}</select>–<select class="i8-sel" data-d="${d}" data-i="1" aria-label="Runde">${r}</select><span>5 Minuten.</span></div>`}
+  if(k==="f"){const h=IF_HOURS.map(n=>`<option value="${n}"${+x[0]===n?" selected":""}>${n}</option>`).join(""),o=Object.keys(IF_ORT).map(id=>`<option value="${id}"${x[1]===id?" selected":""}>${esc(IF_ORT[id][0])}</option>`).join("");
+    return `<div class="i8-if"><b>${tag}:</b><span>um</span><select class="i8-sel" data-d="${d}" data-i="0" aria-label="Uhrzeit">${h}</select><span>Uhr,</span><select class="i8-sel" data-d="${d}" data-i="1" aria-label="Ort">${o}</select><span>– die Sitzung.</span></div>`}
+  return ""}
+function ownCheck(s){s=String(s||"").trim();if(!s)return null;if(!/^wenn\s/i.test(s))return [false,"Beginnen Sie mit „Wenn …“."];const c=s.indexOf(",");if(c<0)return [false,"Nach dem Wenn-Satz kommt ein Komma."];
+  const L=s.slice(0,c).trim().split(/\s+/),R=s.slice(c+1).trim().replace(/[.!]$/,"").split(/\s+/);const lv=L[L.length-1]||"";const pron=/^(ich|du|er|sie|es|wir|ihr)$/i;
+  if(L.length<3||/^[A-ZÄÖÜ]/.test(lv)||pron.test(lv))return [false,"Im Wenn-Satz steht das Verb am Ende: „Wenn ich im Bus sitze, …“"];
+  let r0=R[0]||"";if(/^dann$/i.test(r0))r0=R[1]||"";if(!r0||pron.test(r0)||/^[A-ZÄÖÜ]/.test(r0))return [false,"Nach dem Komma kommt zuerst das Verb: „…, mache ich zehn Karten.“"];
+  return [true,"Richtig gebaut: im Wenn-Satz das Verb am Ende, danach das Verb zuerst."]}
+function clauseInner(wk){const W=week(wk);const t=T();
+  if(W&&(W.signed||W.off)&&!just(wk))return summaryInner(wk);
+  if(W&&(W.signed||W.off)&&just(wk))return `<div class="eyebrow">Wochenklausel · ${wkLabel(wk)}</div>${sayH(lineOf("klausel",W.off?5:hsh(wk)%2))}
+    <div class="row" style="gap:.5rem;flex-wrap:wrap">${W.off?"":`<button class="sm" data-act="i8Ics" data-wk="${wk}">In den Kalender (.ics)</button>`}<button class="sm ghost" data-act="i8KlDone" data-wk="${wk}">Gut</button></div>`;
+  const D=draft(wk);const days=daysOf(wk);const n=planned(D.plan);
+  const head=`<div class="eyebrow">Wochenklausel · ${wkLabel(wk)} ${en("the weekly clause you write yourself")}</div>`;
+  if(D.step===1)return `${head}<b>1 · ${Sie("Ihr","Dein")} Dienstplan</b> ${en("your rota — tap a day: free → shift → rest day")}
+    <div class="i8-days">${days.map(d=>dayChip(d,D.plan[d],{past:d<addDays(t,-3)})).join("")}</div>
+    <small class="muted ui">frei · die Sitzung &nbsp;·&nbsp; Dienst · Taschenrunden &nbsp;·&nbsp; Ruhetag · nichts (höchstens einer) ${en("free · the full session · shift · pocket rounds · rest day · nothing (one at most)")}</small>
+    <div class="row between" style="gap:.5rem;flex-wrap:wrap"><button class="sm ghost" data-act="i8KlOff" data-wk="${wk}">Diese Woche aussetzen (krank, Urlaub) · noch ${Math.max(0,4-offCount())}×</button><button class="go sm" data-act="i8KlNext" data-wk="${wk}">Weiter</button></div>`;
+  if(D.step===2){const pens=penOffer(wk);return `${head}<b>2 · ${Sie("Ihr","Dein")} Einsatz</b> ${en("your stake")}
+    <div class="ui small">Wenn ${Sie("Sie verlieren – Ihre","du verlierst – deine")} Strafe ${en("if you lose — your punishment")}</div>
+    <div class="i8-opts">${pens.map(k=>`<button class="chip${D.pen===k?" on":""}" data-act="i8KlPen" data-k="${k}" data-wk="${wk}" title="${esc(I8_PEN[k][2])}">${esc(I8_PEN[k][0])}</button>`).join("")}</div><small class="muted ui">${esc(I8_PEN[D.pen][1])}</small>
+    <div class="ui small">Wenn ${Sie("Sie gewinnen – Ihr","du gewinnst – dein")} Preis ${en("if you win — your prize")}</div>
+    <div class="i8-opts">${["notiz","stund"].map(k=>`<button class="chip${D.rew===k?" on":""}" data-act="i8KlRew" data-k="${k}" data-wk="${wk}" title="${esc(I8_REW[k][1])}">${esc(I8_REW[k][0])}</button>`).join("")}</div>
+    <div class="stack s" style="gap:.35rem">${["min","ord","all"].map(k=>{const nd=needOf(D.plan,k);return `<button class="i8-stake${D.stake===k?" on":""}" data-act="i8KlStake" data-k="${k}" data-wk="${wk}"><b>${I8_STAKE[k][0]}</b><small>${esc(I8_STAKE[k][1].replace("{n}",nd))} ${en(I8_STAKE[k][2].replace("{n}",nd))}</small></button>`}).join("")}</div>
+    <small class="muted ui">${n} Tage geplant · bei „Alles“ zahlt er beides ${en("planned days · at 'all' he pays both prizes")}</small>
+    <button class="sm ghost" data-act="i8KlBack" data-wk="${wk}" style="align-self:flex-start">Zurück</button>`}
+  const own=(()=>{try{return ((S.lessons||{}).g40||{}).best>=80}catch(e){return false}})();const chk=ownCheck(D.own);
+  const a=(pm().sig||{}).acts||{};
+  return `${head}<b>3 · Wenn – dann</b> ${en("if — then: when and where, for every planned day")}
+    ${a.anchorAsk?`<small class="ui" style="color:var(--accent)">Letzte Wochen blieben Dienste leer. Wählen Sie diesmal für jeden Dienst einen anderen Anker. ${en("pick a different anchor for each shift")}</small>`:""}
+    <div class="stack s" style="gap:.3rem">${daysOf(wk).filter(d=>D.plan[d]==="f"||D.plan[d]==="d").map(d=>ifRow(D,d)).join("")||`<small class="muted ui">Keine Tage geplant.</small>`}</div>
+    ${own?`<label class="ui small">${Sie("Ihr","Dein")} eigener Satz (freiwillig) ${en("your own if-then sentence, e.g. Wenn ich am Mittwoch im Bus sitze, dann mache ich zehn Karten.")}<input class="i8-own" value="${esc(D.own)}" placeholder="Wenn ich …, mache ich …" style="width:100%;box-sizing:border-box;padding:.4rem;margin-top:.2rem"></label><small class="ui i8-ownfb" style="color:${chk&&chk[0]?"var(--accent)":"var(--muted)"}">${chk?esc(chk[1]):""}</small>`:""}
+    <p class="ui small" style="margin:0">${Sie("Ihre","Deine")} Klausel: <b>${I8_STAKE[D.stake][0]}</b> · ${needOf(D.plan,D.stake)} von ${n} Tagen · Strafe: ${esc(I8_PEN[D.pen][0])} · Preis: ${esc(I8_REW[D.stake==="all"?"both":D.rew][0])}</p>
+    <div class="row between" style="gap:.5rem"><button class="sm ghost" data-act="i8KlBack" data-wk="${wk}">Zurück</button><button class="go" data-act="i8KlSeal" data-wk="${wk}">☩ Besiegeln</button></div>`}
+function summaryInner(wk){const W=week(wk);const t=T();if(W.off)return `<div class="eyebrow">Wochenklausel · ${wkLabel(wk)}</div><p class="ui" style="margin:0">Diese Woche ausgesetzt. Keine Schuldscheine. ${en("week off — no IOUs")}</p>`;
+  const cnt=weekCount(wk);const td=W.ifs[t]?sentence(W,t,false):"";
+  return `<div class="eyebrow">Wochenklausel · ${wkLabel(wk)}${W.auto===1?" · von ihm unterschrieben":""}</div>
+    <div class="row between"><b>${I8_STAKE[W.stake]?I8_STAKE[W.stake][0]:W.stake} · ${cnt} von ${W.need} Tagen</b><span class="chip">${cnt>=W.need?"gehalten":"offen"}</span></div>
+    <div class="i8-days">${daysOf(wk).map(d=>dayChip(d,W.plan[d]||"f",{past:d<addDays(t,-3),ok:counted(d)})).join("")}</div>
+    <small class="muted ui">Tippen ändert einen Tag – bis drei Tage danach. ${en("tap to re-type a day, up to three days after it")}</small>
+    ${td?`<p class="ui small" style="margin:0">Heute: „${esc(td)}“</p>`:""}
+    <p class="ui small" style="margin:0">Strafe: ${esc((I8_PEN[W.pen]||["–"])[0])} · Preis: ${esc((I8_REW[W.rew]||["–"])[0])}${grace(wk)?" · Stundung: ein geplanter Tag darf ausfallen":""}</p>
+    <div class="row" style="gap:.5rem;flex-wrap:wrap"><button class="sm" data-act="i8Ics" data-wk="${wk}">In den Kalender (.ics)</button><button class="sm ghost" data-act="i8Ledger">Soll und Haben</button></div>`}
+function clauseCard(wk){return `<div class="card orn stack s i8-card i8-kl" data-wk="${wk}">${clauseInner(wk)}</div>`}
+function redrawClause(){document.querySelectorAll(".i8-kl[data-wk]").forEach(el=>{el.innerHTML=clauseInner(el.dataset.wk)})}
+function clauseWeekDue(){const p=P();if(!p.signed||p.done)return null;const t=T(),cw=wkOf(t);const W=week(cw);if(!W||!(W.signed||W.off))return cw;
+  const nx=addDays(cw,7);const NW=week(nx);if(wdOf(t)===6&&new Date().getHours()>=18&&(!NW||!(NW.signed||NW.off)))return nx;return null}
+// ---------------------------------------------------------------- Home cards
+function backCard(){const b=backToday();if(!b)return "";const p=P(),d=ec().deal||{},sh=isShiftDay(T());
+  const steps=b.k==="short"?[["Rückkehrrunde · 10 Karten",b.st]]:b.k==="week"?[[`Tag 1 · ${sh?10:10}`,b.st],[`Tag 2 · ${sh?10:20}`,0],[`Tag 3 · ${sh?15:30}`,0]]:[["Bestandsaufnahme · 20 alte Karten",b.st],[`Tag 2 · ${sh?10:20}`,0],[`Tag 3 · ${sh?15:30}`,0]];
+  const debt=+p.debt||0;
+  return `<div class="card orn stack s i8-card i8-back"><div class="eyebrow">Der Rückweg ${en("the way back")}</div><h3 class="i8-h">${Sie("Sie sind","Du bist")} wieder da. ${b.days||b.gap} Tage.</h3>
+    <div class="i8-steps">${steps.map((s,i)=>i===0&&!s[1]?`<button class="go sm" data-act="pkPay">${esc(s[0])}</button>`:`<span class="chip${s[1]?" done":""}">${esc(s[0])}</span>`).join("")}</div>
+    ${b.st&&b.ret!=null?`<p class="ui" style="margin:0">Behalten: ${Math.round(b.ret*20/100)} von 20 · ${b.ret} %.</p>${sayH(lineOf("back_long",b.ret>=70?2:1,{n:b.ret}))}`:""}
+    <small class="muted ui">${debt?`Offen: ${debt} Schuldschein${debt>1?"e":""} · ${b.k==="short"?"die Rückkehrrunde verbrennt einen":"in drei Tagen verbrannt"}`:"Keine Schuldscheine offen."}${b.nn?" · drei Tage keine neuen Karten":""} ${en(b.k==="short"?"one small round counts as today":"three small days, then the debt is gone")}</small></div>`}
+function issueCard(){const e=ec(),p=P();const L=e.iss.filter(x=>x.s==="o"&&!x.sn);if(!L.length||!(+p.debt>0))return "";
+  const ln=L.slice(-4).map(x=>{const W=week(wkOf(x.d));const pl=x.k==="plan"?(W&&W.signed&&!W.off?`geplant: „${sentence(W,x.d,true)}“`:"kein Plan – die Wochenregel"):x.k;return `<li>${I8_WDAY[wdOf(x.d)]}, ${short(x.d)} — ${esc(pl)}</li>`}).join("");
+  const kab=!(e.pfand&&e.pfand.length)?kabOptions():null;
+  return `<div class="card stack s i8-card i8-iss"><div class="eyebrow">Schuldschein ausgestellt ${en("an IOU for a planned day without study")}</div><ul class="ui" style="margin:0;padding-left:1.1rem">${ln}</ul>
+    ${sayH(lineOf(wagerBank()))}
+    ${kab?kab.length?`<div class="ui small">${Sie("Wählen Sie Ihr","Wähl dein")} Pfand ${en("choose a pledge: it lies face down until the debt is paid")}</div><div class="i8-opts">${kab.map(c=>`<button class="chip" data-act="i8Pfand" data-id="${esc(c.id)}">${esc(c.t)}</button>`).join("")}</div>`:sayH(lineOf("pfand_none")):""}
+    <div class="row between" style="gap:.5rem"><small class="muted ui">${+p.debt>=3?"Ab drei: der Vergleich – drei Tage, 10 · 20 · 30 Karten.":"Je 10 bekannte Karten."}</small><button class="sm ghost" data-act="i8IssSeen">Gesehen</button></div></div>`}
+function lastRes(){const m=pm(),cw=wkOf(T());const ks=Object.keys(m.wk).filter(k=>k<cw).sort().reverse();for(const k of ks.slice(0,3)){const W=m.wk[k];if(W&&W.res&&!W.res.seen&&!W.res.off)return k}return null}
+function settleCard(){const wk=lastRes();if(!wk)return "";const W=week(wk),r=W.res;
+  if(r.kept){const pg=(W.rew==="notiz"||W.rew==="both")?notizFor(wk):null;const st=W.rew==="stund"||W.rew==="both";
+    return `<div class="card orn stack s i8-card i8-set"><div class="eyebrow">Abrechnung · ${wkLabel(wk)} ${en("settlement")}</div><h3 class="i8-h">Klausel gehalten: ${r.cnt} von ${r.need}.</h3>${sayH(lineOf("klausel",2+hsh(wk)%2,{n:r.cnt,m:r.need}))}
+      ${pg?`<div class="card"><div class="eyebrow">Aus Mephistos Notizbuch</div><div class="i8-note">${esc(pg[0])}</div>${en(pg[1])}</div>`:""}
+      ${st?`<p class="ui small" style="margin:0">Stundung: diese Woche darf ein geplanter Tag ausfallen. ${en("one planned day this week may fail without an IOU")}</p>`:""}
+      <button class="sm ghost" data-act="i8SetSeen" data-wk="${wk}" style="align-self:flex-end">Gelesen</button></div>`}
+  return `<div class="card orn stack s i8-card i8-set"><div class="eyebrow">Abrechnung · ${wkLabel(wk)} ${en("settlement")}</div><h3 class="i8-h">Klausel gebrochen: ${r.cnt} von ${r.need}.</h3>${sayH(lineOf("klausel",4,{n:r.cnt,m:r.need}))}
+    ${r.pen?`<p class="ui" style="margin:0">${Sie("Ihre","Deine")} Strafe: <b>${esc(I8_PEN[r.pen][0])}</b>. Selbst gewählt. ${en("your punishment — chosen by you; until it is done, no seal breaks")}</p>
+    <div class="row" style="gap:.5rem;flex-wrap:wrap"><button class="go sm" data-act="i8PenGo">Strafe antreten</button><button class="sm ghost" data-act="i8SetSeen" data-wk="${wk}">Später</button></div>`:`<button class="sm ghost" data-act="i8SetSeen" data-wk="${wk}" style="align-self:flex-end">Gelesen</button>`}</div>`}
+function autoCard(){const wk=wkOf(T()),W=week(wk);if(!W||W.auto!==1||W.as)return "";
+  return `<div class="card stack s i8-card"><div class="eyebrow">Wochenklausel · ${wkLabel(wk)}</div>${sayH(lineOf("klausel",6))}<div class="row" style="gap:.5rem"><button class="sm" data-act="i8KlOpen">Ansehen</button><button class="sm ghost" data-act="i8AutoSeen">Gut</button></div></div>`}
+function askDay(){const e=ec(),t=T();for(let i=1;i<=3;i++){const d=addDays(t,-i);const W=week(wkOf(d));if(W&&W.asked&&W.asked[d])continue;const pl=plan(d);if(pl&&pl!=="f")continue;if(!pl&&shiftMark(d))continue;
+    if(active(d))continue;if(!e.iss.some(x=>x.id===d&&x.s==="o"))continue;return d}return null}
+function askCard(){const d=askDay();if(!d)return "";const t=T();const when=d===addDays(t,-1)?"Gestern":d===addDays(t,-2)?"Vorgestern":"Am "+I8_WDAY[wdOf(d)];
+  return `<div class="card stack s i8-card i8-ask"><div class="eyebrow">Dienst nachtragen ${en("correct the rota — up to three days later")}</div><h3 class="i8-h">${when} nichts. ${Sie("Hatten Sie","Hattest du")} Dienst?</h3>
+    <div class="row" style="gap:.5rem;flex-wrap:wrap"><button class="sm" data-act="i8AskYes" data-d="${d}">Ja, Dienst</button><button class="sm ghost" data-act="i8AskNo" data-d="${d}">Nein. Schuldschein.</button></div></div>`}
+function dealCard(){const d=dealOpen();if(!d||backToday())return "";const p=P();const n=dealNeed();const paid=d.last===T();
+  return `<div class="card orn stack s i8-card i8-deal"><div class="eyebrow">${d.src==="back"?"Der Rückweg":"Der Vergleich"} · Tag ${Math.min(3,d.day+(paid?0:1))} von 3 ${en("the settlement: three study days burn every IOU")}</div>
+    ${sayH(d.day===0?lineOf("debt",0):d.pause===1?lineOf("deal_pause"):lineOf("debt",1,{n:d.day+1}))}
+    <div class="i8-steps">${[0,1,2].map(i=>i<d.day?`<span class="chip done">Tag ${i+1}</span>`:i===d.day&&!paid?`<button class="go sm" data-act="pkPay">Tag ${i+1} · ${n} Karten</button>`:`<span class="chip">Tag ${i+1}</span>`).join("")}</div>
+    <small class="muted ui">${paid?`Heute bezahlt. Morgen: ${n} Karten.`:"Eine normale Sitzung mit so vielen Wiederholungen zählt auch."} · offen: ${+p.debt||0} ${en("a normal session with that many reviews counts as well")}</small></div>`}
+function shiftCard(){const t=T();if(!isShiftDay(t))return "";const W=week(wkOf(t));const n=pocket(t);const done=(()=>{try{return Object.keys(pocketS().done)}catch(e){return []}})();
+  const want=W&&W.ifs[t]&&IF_RUNDE[W.ifs[t][1]]?W.ifs[t][1]:"cards";const next=!done.includes(want)?want:Object.keys(IF_RUNDE).find(k=>!done.includes(k))||want;
+  const hr=new Date().getHours(),late=(hr>=22||hr<5)&&!n;const sent=W&&W.signed&&!W.off&&W.ifs[t]?sentence(W,t,true):"Vier kleine Runden – drei reichen.";
+  const line=counted(t)?lineOf("shift",3):late?lineOf("shift",4):n===1?lineOf("shift",2):lineOf("shift",hsh(t)%2,{w:sent.replace(/\.$/,"")});
+  return `<div class="card orn stack s i8-card i8-shift"><div class="row between"><div class="eyebrow">Dienst · ${Sie("Ihr","Dein")} Plan ${en("shift day")}</div><span class="chip">${Math.min(3,n)}/3</span></div>
+    ${late?`<h3 class="i8-h">${esc(lineOf("late")[0])}</h3>`:`<p class="i8-note" style="margin:0">„${esc(sent)}“</p>`}${sayH(line)}
+    ${counted(t)?"":`<div class="row" style="gap:.5rem;flex-wrap:wrap"><button class="go sm" data-act="${late?"pocketCards":IF_RUNDE[next][2]}">${late?"10 Karten":"Jetzt · 5 Minuten"}</button>${late?"":`<button class="sm ghost" data-act="pocketAny">andere Runde</button>`}</div>`}
+    ${n>=1&&!counted(t)?`<small class="ui muted">${esc(lineOf("ration_done")[0])} ${n===1?"Noch zwei, dann zählt der Tag.":"Noch eine, dann zählt der Tag."}</small>`:""}</div>`}
+function penCard(){const pd=penDue();if(!pd)return "";return `<div class="card stack s i8-card i8-pen"><div class="eyebrow">${Sie("Ihre","Deine")} Strafe wartet ${en("your own punishment — it blocks only the seal")}</div><p class="ui" style="margin:0"><b>${esc(I8_PEN[pd.pen][0])}</b> · ${esc(I8_PEN[pd.pen][1])}</p><button class="go sm" data-act="i8PenGo" style="align-self:flex-start">Strafe antreten</button></div>`}
+function closeCard(){if(typeof dayItem==="function")return "";const t=T(),m=pm();const fin=S.today&&S.today.date===t&&S.today.finished;if(!fin&&!counted(t))return "";
+  if(m.cl&&m.cl.d===t){if(m.cl.v)return "";return `<div class="card stack s i8-card i8-door"><div class="big">☩</div>${sayH(lineOf("feierabend",3))}<button class="sm ghost" data-act="i8Vol" style="align-self:center">Freiwillig weiter</button></div>`}
+  const c=dayClose();const tm=c.tomorrow;
+  return `<div class="card orn stack s i8-card i8-close"><div class="row between"><div class="eyebrow">Feierabend ${en("the end of the day")}</div><small class="muted ui">${I8_WD[wdOf(t)]} ${short(t)}</small></div>
+    <ul class="ui" style="margin:0;padding-left:1.1rem">${c.heute.map(h=>`<li>${esc(h[0])}</li>`).join("")}</ul>${sayH(c.line)}
+    <p class="ui small" style="margin:0"><b>Morgen · ${tm.wd}${tm.k==="d"?" (Dienst)":tm.k==="r"?" (Ruhetag)":""}</b>${tm.de?` — „${esc(tm.de)}“`:""}${tm.goal?`<br>${esc(tm.goal)}`:""}</p>
+    <div class="row" style="gap:.5rem;flex-wrap:wrap"><button class="go sm" data-act="i8Close">Feierabend</button><button class="sm ghost" data-act="i8Ledger">Soll und Haben</button></div></div>`}
+function stripHTML(){const p=P();const wk=wkOf(T()),W=week(wk);const c=candle();const L=ledger();const kw=L.rows.find(r=>r.k==="kw");const plus=kw&&kw.then!=null?kw.now-kw.then:0;
+  return `<div class="i8-strip">${W&&W.signed&&!W.off?`<button class="chip" data-act="i8KlOpen" title="this week's clause">Klausel KW ${isoWeek(wk)} · ${weekCount(wk)}/${W.need}</button>`:W&&W.off?`<span class="chip">KW ${isoWeek(wk)} ausgesetzt</span>`:""}
+    <span class="chip" title="the candle counts kept weeks">${c.lit?`Kerze · ${c.weeks} Woche${c.weeks===1?"":"n"}`:`Kerze aus · ${c.good}/2`}</span>
+    <button class="chip" data-act="i8Ledger" title="what you can do now, against 30 days ago">${plus>0?`Haben +${plus}`:"Soll und Haben"}</button></div>`}
+MOD.after("viewHome","i8",function(m){const p=P();if(!p.signed)return;const v=m.querySelector(".view")||m;v.querySelectorAll(".i8-home").forEach(x=>x.remove());
+  try{snap();signals();autoCredit()}catch(e){}
+  const a=(pm().sig||{}).acts||{};const cw=clauseWeekDue();
+  const b=backToday(),fresh=b&&!b.st;
+  let L=[backCard(),a.dealOnly?dealCard():"",counted(T())?"":shiftCard(),closeCard(),fresh?"":issueCard(),settleCard(),autoCard(),cw?clauseCard(cw):"",askCard(),a.dealOnly?"":dealCard(),penCard()].filter(Boolean);
+  if(p.done)L=[closeCard()].filter(Boolean);
+  const html=`<div class="i8-home stack s">${L.slice(0,3).join("")}${p.done?"":stripHTML()}</div>`;const first=v.querySelector(".card.orn");
+  // integrator 13.6: P1 keeps the session button (hero) directly under Mephisto's card - i8's cards follow the button
+  const anc=first&&first.nextElementSibling&&first.nextElementSibling.classList.contains("hero")?first.nextElementSibling:first;
+  if(anc)anc.insertAdjacentHTML("afterend",html);else v.insertAdjacentHTML("afterbegin",html)});
+MOD.after("viewPakt","i8",function(m){const p=P();if(!p.signed||p.done)return;const v=m.querySelector(".view")||m;v.querySelectorAll(".i8-pakt").forEach(x=>x.remove());
+  const wk=clauseWeekDue()||wkOf(T());const a=(pm().sig||{}).acts||{};let stall="";
+  if(a.stall){try{const g=pkGate(pkCh());const it=g.items.find(i=>!i.opt&&!i.ok);if(it)stall=`<div class="card stack s i8-card"><div class="eyebrow">Was das Siegel noch braucht ${en("the one thing that blocks the seal")}</div><p class="ui" style="margin:0">${esc(it.de)}</p>${it.act?`<button class="go sm" data-act="${esc(it.act)}" data-id="${esc(it.id||"")}" style="align-self:flex-start">Jetzt</button>`:""}</div>`}catch(e){}}
+  const c=candle();const html=`<div class="i8-pakt stack s">${stall}${clauseCard(wk)}${c.lit&&c.weeks<1?"":`<small class="muted ui">${c.lit?esc(lineOf("candle_on",0,{n:c.weeks})[0]):esc(lineOf("candle_out")[0])}</small>`}</div>`;
+  const r=v.querySelector(".pk-realm");if(r)r.insertAdjacentHTML("afterend",html);else{const f=v.querySelector(".card");if(f)f.insertAdjacentHTML("afterend",html);else v.insertAdjacentHTML("afterbegin",html)}});
+function readout(){const m=pm();const ws=Object.keys(m.wk).map(k=>m.wk[k]).filter(W=>W&&W.res&&!W.res.off&&W.signed);const kept=ws.filter(W=>W.res.kept).length;
+  const L=m.lapses,ret=L.filter(x=>x.to),mean=ret.length?fmt1(ret.reduce((a,x)=>a+x.gap,0)/ret.length):"–";
+  let ps=0,pr=0;for(let i=1;i<=56;i++){const k=addDays(T(),-i);if(isShiftDay(k)){ps++;if(pocket(k)>0||counted(k))pr++}}
+  let vol=0,vd=0;for(let i=1;i<=28;i++){const s=m.snap[addDays(T(),-i)];if(s&&s.vol!=null){vol+=s.vol;vd++}}const c=candle();
+  return `<div class="card stack s i8-card i8-read"><div class="eyebrow">${Sie("Ihr","Dein")} Pakt in Zahlen ${en("a plain read-out of your own data — no judgement")}</div>
+    <table class="i8-tab"><tr><td>Wochen gehalten${en("weeks kept / signed")}</td><td>${kept} von ${ws.length}</td></tr>
+    <tr><td>Ausfälle · zurückgekommen${en("lapses · returns · mean days away")}</td><td>${L.length} · ${ret.length}× · im Schnitt ${mean} Tage</td></tr>
+    <tr><td>Dienste mit mindestens einer Runde${en("planned shifts with at least one round, 8 weeks")}</td><td>${ps?Math.round(100*pr/ps)+" %":"–"}</td></tr>
+    <tr><td>Freiwillig nach Feierabend${en("minutes studied after closing the day, per week")}</td><td>${vd?Math.round(vol*7/28)+" Min.":"–"}</td></tr>
+    <tr><td>Kerze${en("candle: kept weeks in a row (best)")}</td><td>${c.lit?c.weeks:0} (${c.best})</td></tr></table>
+    <button class="sm ghost" data-act="i8Ledger" style="align-self:flex-start">Soll und Haben</button></div>`}
+MOD.after("viewMe","i8",function(m){try{if(typeof meSeg!=="undefined"&&meSeg!=="fort")return}catch(e){}if(!P().signed)return;const box=m.querySelector(".me-in")||m.querySelector(".view")||m;box.querySelectorAll(".i8-read").forEach(x=>x.remove());box.insertAdjacentHTML("beforeend",readout())});
+MOD.after("toggleShift","i8",function(){try{const t=T(),W=week(wkOf(t));if(!W||!W.signed||W.off)return;const want=S.shifts&&S.shifts[t]?"d":(W.plan[t]==="d"?"f":W.plan[t]||"f");if(W.plan[t]===want)return;
+  W.plan[t]=want;W.need=needOf(W.plan,W.stake);W.edits=(+W.edits||0)+1;if(!W.ifs[t])W.ifs[t]=want==="d"?["uebergabe","cards"]:[20,"schreibtisch"];touchW(W);saveSoon()}catch(e){}});
+// ---------------------------------------------------------------- the ledger screen
+ACT.i8Ledger=function(){const L=ledger();const box=Focus.open({title:"Soll und Haben",sub:fmtD(T())});const fmtN=n=>n==null?"–":String(n);
+  const can=L.can.length?`<div class="card stack s"><div class="eyebrow">Das können ${Sie("Sie","du")} jetzt ${en("can-do statements (from your own answers)")}</div><ul class="ui" style="margin:0;padding-left:1rem;list-style:none">${L.can.map(c=>`<li>${c.st>=3?"✓":c.st>=2?"◐":"○"} ${esc(c.de)} ${en(c.en||"")}</li>`).join("")}</ul></div>`:"";
+  box.innerHTML=`<div class="stack" style="max-width:720px;margin:0 auto">
+   <div class="card stack s"><div class="eyebrow">Haben ${en("credit — what you can do")}</div><table class="i8-tab"><tr><th></th><th>heute</th><th>${esc(L.label)}</th><th></th></tr>
+    ${L.rows.map(r=>{const d=r.then==null?null:r.now-r.then;return `<tr><td>${esc(r.de)}${en(r.en)}</td><td>${fmtN(r.now)}</td><td>${fmtN(r.then)}</td><td class="${d>0?"plus":""}">${d==null?"":d>0?"+"+d:d}</td></tr>`}).join("")}</table></div>
+   ${L.today.length||L.les.length?`<div class="card stack s"><div class="eyebrow">Heute zum ersten Mal ${en("today for the first time")}</div><ul class="ui" style="margin:0;padding-left:1.1rem">${L.today.length?`<li>${L.today.length} Wört${L.today.length>1?"er sind":" ist"} fest geworden: ${L.today.map(esc).join(", ")}</li>`:""}${L.les.map(x=>`<li>Lektion „${esc(x.t)}“: ${x.sc} %</li>`).join("")}</ul></div>`:""}
+   ${can}
+   <div class="card stack s"><div class="eyebrow">Soll ${en("owed")}</div><p class="ui" style="margin:0">Schuldscheine ${L.soll.debt} · gestundete Karten ${L.soll.deferred} · Lektionen unter 60 %: ${L.soll.low}<br>Ausfälle ${L.soll.lapses} · zurückgekommen ${L.soll.returns} Mal${L.soll.returns?` · im Schnitt nach ${L.soll.mean} Tagen`:""}</p></div></div>`};
+// ---------------------------------------------------------------- clause actions
+ACT.i8KlOpen=function(){const wk=clauseWeekDue()||wkOf(T());const box=Focus.open({title:"Die Wochenklausel",sub:wkLabel(wk),onClose:()=>{try{rerender()}catch(e){}}});box.innerHTML=`<div style="max-width:640px;margin:0 auto">${clauseCard(wk)}</div>`};
+ACT.i8KlNext=el=>{draft(el.dataset.wk).step=2;redrawClause()};
+ACT.i8KlBack=el=>{const D=draft(el.dataset.wk);D.step=Math.max(1,D.step-1);redrawClause()};
+ACT.i8KlPen=el=>{draft(el.dataset.wk).pen=el.dataset.k;redrawClause()};
+ACT.i8KlRew=el=>{draft(el.dataset.wk).rew=el.dataset.k;redrawClause()};
+ACT.i8KlStake=el=>{const D=draft(el.dataset.wk);D.stake=el.dataset.k;D.step=3;redrawClause()};
+ACT.i8KlSeal=el=>{const wk=el.dataset.wk;const D=draft(wk);daysOf(wk).forEach(d=>{if((D.plan[d]==="f"||D.plan[d]==="d")&&!D.ifs[d])D.ifs[d]=D.plan[d]==="d"?["uebergabe","cards"]:[20,"schreibtisch"]});
+  sign(wk,{draft:D});DR=null;JUST=wk;JUST_T=Date.now();try{SND.fx("seal")}catch(e){}redrawClause();setTimeout(()=>{try{if(!Focus.isOpen())rerender()}catch(e){}},2500)};
+ACT.i8KlDone=el=>{JUST="";if(Focus.isOpen())Focus.close(true);rerender()};
+ACT.i8KlOff=el=>{const wk=el.dataset.wk;if(!setOff(wk))return toast("Mephisto: "+lineOf("week_off_none")[0],4200);DR=null;JUST=wk;JUST_T=Date.now();redrawClause()};
+ACT.i8KlDay=el=>{const d=el.dataset.d,wk=wkOf(d),t=T();const cyc=k=>k==="f"?"d":k==="d"?"r":"f";const W=week(wk);
+  if(W&&W.signed&&!W.off&&!just(wk)){if(d<addDays(t,-3))return toast("Älter als drei Tage – das steht fest.",2200);const k=cyc(W.plan[d]||"f");if(k==="r")daysOf(wk).forEach(x=>{if(x!==d&&W.plan[x]==="r")W.plan[x]="f"});
+    W.plan[d]=k;if((k==="f"||k==="d")&&(!W.ifs[d]||(k==="d")!==!!IF_ANKER[(W.ifs[d]||[])[0]]))W.ifs[d]=k==="d"?["uebergabe","cards"]:[20,"schreibtisch"];
+    W.need=needOf(W.plan,W.stake);W.edits=(+W.edits||0)+1;syncShifts(wk,W);if(d<t)rejudge(d);touchW(W);saveSoon();if(W.edits===3)toast("Mephisto: "+lineOf("excuse",hsh(wk)%2)[0],4200);redrawClause();return}
+  const D=draft(wk);if(d<addDays(t,-3))return;const k=cyc(D.plan[d]||"f");if(k==="r")daysOf(wk).forEach(x=>{if(x!==d&&D.plan[x]==="r")D.plan[x]="f"});D.plan[d]=k;
+  if(k==="f"||k==="d")D.ifs[d]=k==="d"?["uebergabe","cards"]:[20,"schreibtisch"];redrawClause()};
+ACT.i8Ics=el=>{const wk=el.dataset.wk||wkOf(T());const txt=ics(wk);if(!txt)return;try{const b=new Blob([txt],{type:"text/calendar"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=`mephisto-klausel-KW${isoWeek(wk)}.ics`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500);toast("Kalenderdatei gespeichert.",2200)}catch(e){toast("Kalenderdatei nicht möglich.",2200)}};
+document.addEventListener("change",e=>{const s=e.target;if(!s||!s.classList||!s.classList.contains("i8-sel"))return;const el=s.closest(".i8-kl");if(!el)return;const D=draft(el.dataset.wk);const d=s.dataset.d,i=+s.dataset.i;
+  D.ifs[d]=(D.ifs[d]||[]).slice();D.ifs[d][i]=i===0&&D.plan[d]==="f"?+s.value:s.value},true);
+document.addEventListener("input",e=>{const s=e.target;if(!s||!s.classList||!s.classList.contains("i8-own"))return;const el=s.closest(".i8-kl");if(!el)return;const D=draft(el.dataset.wk);D.own=s.value;
+  const fb=el.querySelector(".i8-ownfb");const c=ownCheck(s.value);if(fb){fb.textContent=c?c[1]:"";fb.style.color=c&&c[0]?"var(--accent)":"var(--muted)"}},true);
+// ---------------------------------------------------------------- other card actions
+ACT.i8IssSeen=()=>{ec().iss.forEach(x=>{if(x.s==="o")x.sn=1});touchE();saveSoon();rerender()};
+ACT.i8Pfand=el=>{const e=ec();e.pfand=[el.dataset.id];e.iss.forEach(x=>{if(x.s==="o")x.sn=1});touchE();saveSoon();toast("Mephisto: "+lineOf("pfand_taken")[0],4200);rerender()};
+ACT.i8SetSeen=el=>{const W=week(el.dataset.wk);if(W&&W.res){W.res.seen=1;touchW(W);saveSoon()}rerender()};
+ACT.i8AutoSeen=()=>{const W=week(wkOf(T()));if(W){W.as=1;touchW(W);saveSoon()}rerender()};
+ACT.i8AskYes=el=>{const d=el.dataset.d,wk=wkOf(d);let W=week(wk);S.shifts=S.shifts||{};S.shifts[d]=1;if(W&&W.signed&&!W.off){W.plan[d]="d";W.ifs[d]=W.ifs[d]&&IF_ANKER[W.ifs[d][0]]?W.ifs[d]:["uebergabe","cards"];W.edits=(+W.edits||0)+1;W.need=needOf(W.plan,W.stake)}
+  W=week(wk,true);W.asked[d]=1;touchW(W);rejudge(d);saveSoon();toast("Mephisto: "+lineOf(W.edits>=3?"excuse":"shift_yes",W.edits>=3?1:0)[0],4200);rerender()};
+ACT.i8AskNo=el=>{const d=el.dataset.d;const W=week(wkOf(d),true);W.asked[d]=1;touchW(W);saveSoon();toast("Mephisto: "+lineOf("excuse",3)[0],4600);rerender()};
+ACT.i8Close=()=>{const m=pm();let mn=0;try{mn=minutesOn(T())}catch(e){}m.cl={d:T(),min:mn};saveSoon();try{SND.fx("bell")}catch(e){}rerender()};
+ACT.i8Vol=()=>{const m=pm();if(m.cl)m.cl.v=1;saveSoon();rerender()};
+// ---------------------------------------------------------------- punishments (chosen by the learner; each counts as that day's activity)
+const norm=s=>String(s==null?"":s).toLowerCase().replace(/ß/g,"ss").replace(/[.,!?;:„“"'»«()–—-]/g," ").replace(/\s+/g," ").trim();
+function lev(a,b){if(a===b)return 0;const m=a.length,n=b.length;if(!m||!n)return m||n;let p=Array.from({length:n+1},(x,i)=>i);for(let i=1;i<=m;i++){const c=[i];for(let j=1;j<=n;j++)c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));p=c}return p[n]}
+function penItems(k){const shuf=a=>a.map(x=>[Math.random(),x]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]);
+  if(k==="diktat"){const ks=Object.keys(S.cards).filter(x=>!x.startsWith("p:")&&(+S.cards[x].reps>0||+S.cards[x].lapses>0)).sort((a,b)=>(+S.cards[b].lapses||0)-(+S.cards[a].lapses||0));const out=[];
+    for(const x of ks){const c=card(x);if(c&&c.ex&&c.ex.length<140){out.push({say:c.ex,q:"",en:c.exEn||c.en||"",a:[c.ex],dict:1});if(out.length>=12)break}}return out}
+  if(k==="gruft"){try{return gruftItems(40).map(c=>({q:c.de,en:(c.en||"")+" — Plural?",opts:PLURAL.opts.slice(),a:[plCode(c)]}))}catch(e){return []}}
+  if(k==="verben"){try{const lv=Math.max(1,learnerLv());return shuf(STARK.filter(v=>lvIdx(v[5])<=lv)).slice(0,20).map(v=>({q:`${v[0]} (${v[1]})`,en:"Präteritum (er) · Perfekt (er)",fields:["Präteritum: er …","Perfekt: er …"],a:[v[3],v[4]]}))}catch(e){return []}}
+  if(k==="akte"){try{return shadowItems().map(x=>({q:`„${x.bad}“`,en:"Korrigieren Sie. "+(x.why||""),a:[x.good],key:x.key}))}catch(e){return []}}
+  return []}
+function confession(wk){const W=week(wk),r=W.res||{cnt:0,need:0};const miss=daysOf(wk).find(d=>{const k=W.plan[d]||"f";return (k==="f"||k==="d")&&!counted(d)});const EN=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+  const L=[{de:`Ich habe ${r.need} Tage versprochen.`,en:`I promised ${r.need} days.`},{de:r.cnt===0?"Ich habe an keinem Tag gelernt.":r.cnt===1?"Ich habe an einem Tag gelernt.":`Ich habe an ${r.cnt} Tagen gelernt.`,en:`I studied on ${r.cnt} day${r.cnt===1?"":"s"}.`}];
+  if(miss)L.push({de:`Am ${I8_WDAY[wdOf(miss)]} habe ich nicht gelernt.`,en:`On ${EN[wdOf(miss)]} I did not study.`});L.push({de:"Das war meine Klausel, nicht seine.",en:"That was my clause, not his."},{de:"Diese Woche schreibe ich eine neue.",en:"This week I write a new one."});return L}
+function runItems(box,items,o){let i=0,right=0;const draw=()=>{if(i>=items.length){box.innerHTML=`<div class="stack i8-run" style="max-width:640px;margin:0 auto"><div class="card orn stack s"><h2 style="margin:0">Abgesessen.</h2><p class="ui" style="margin:0">${right} von ${items.length} richtig.</p>${sayH(lineOf("pen_done"))}<button class="go" data-act="i8PenEnd">Fertig</button></div></div>`;ACT.i8PenEnd=()=>{o.onDone(right,items.length);if(Focus.isOpen())Focus.close(true);rerender()};return}
+    const it=items[i];const fl=it.fields||(it.opts?null:["Ihre Antwort"]);
+    box.innerHTML=`<div class="stack i8-run" style="max-width:640px;margin:0 auto"><div class="row between"><small class="muted ui">${i+1} / ${items.length}</small></div><div class="card stack s">
+      ${it.dict?`<button class="sm" data-act="i8PenSay">▶ Satz hören</button>${typeof TTS_OK!=="undefined"&&TTS_OK?"":`<p class="i8-note i8-flash" style="margin:0">${esc(it.say)}</p><small class="muted ui">Keine Sprachausgabe hier: Lesen, merken – er verschwindet nach fünf Sekunden.</small>`}`:`<h3 style="margin:0">${esc(it.q)}</h3>`}<small class="muted ui">${esc(it.en||"")}</small>
+      ${it.opts?`<div class="i8-opts">${it.opts.map(x=>`<button class="chip" data-act="i8PenOpt" data-v="${esc(x)}">${esc(x)}</button>`).join("")}</div>`:fl.map((f,j)=>`<input class="i8-in" data-j="${j}" placeholder="${esc(f)}" autocomplete="off" autocapitalize="off" spellcheck="false">`).join("")}
+      <div class="i8-fb ui"></div>${it.opts?"":`<button class="go sm i8-chk" data-act="i8PenChk">Prüfen</button>`}</div></div>`;
+    if(it.dict&&!(typeof TTS_OK!=="undefined"&&TTS_OK))setTimeout(()=>{const f=box.querySelector(".i8-flash");if(f)f.style.visibility="hidden"},5000);
+    if(it.dict){try{say(it.say,{rate:.85})}catch(e){}}const f0=box.querySelector(".i8-in");if(f0){f0.focus();box.querySelectorAll(".i8-in").forEach(x=>x.addEventListener("keydown",ev=>{if(ev.key==="Enter"){ev.preventDefault();ACT.i8PenChk()}}))}};
+  const verdict=(ok,shown)=>{if(ok)right++;try{E("ex.answer",{src:"i8",ref:o.kind,ok,flags:0})}catch(e){}const fb=box.querySelector(".i8-fb");if(fb)fb.innerHTML=`${ok?"✓ Richtig.":"✗ Richtig ist:"} <b>${esc(shown)}</b>`;
+    const c=box.querySelector(".i8-chk");if(c){c.textContent="Weiter";c.dataset.act="i8PenNext"}else{const fb2=box.querySelector(".i8-fb");if(fb2)fb2.insertAdjacentHTML("afterend",`<button class="go sm" data-act="i8PenNext">Weiter</button>`)}box.querySelectorAll(".i8-opts .chip").forEach(b=>b.disabled=true)};
+  ACT.i8PenSay=()=>{try{say(items[i].say,{rate:.8})}catch(e){}};
+  ACT.i8PenOpt=el=>{const it=items[i];verdict(norm(el.dataset.v)===norm(it.a[0]),it.a[0])};
+  ACT.i8PenChk=()=>{const it=items[i];const ins=[...box.querySelectorAll(".i8-in")];if(!ins.length)return;
+    const ok=ins.every((x,j)=>{const g=norm(x.value),w=norm(it.a[j]);return g===w||(it.dict&&lev(g,w)<=Math.max(1,Math.floor(w.length/15)))});
+    if(ok&&it.key){try{S.shadowDone=S.shadowDone||{};S.shadowDone[it.key]=T()}catch(e){}}verdict(ok,it.a.join(" · "))};
+  ACT.i8PenNext=()=>{i++;draw()};draw()}
+ACT.i8PenGo=function(){const pd=penDue();if(!pd)return toast("Keine Strafe offen.",2000);const W=week(pd.wk);let k=pd.pen;
+  const done=()=>{W.pd=T();touchW(W);try{logDay("pen")}catch(e){}saveSoon();try{SND.fx("bell")}catch(e){}};
+  const box=Focus.open({title:I8_PEN[k][0],sub:Sie("Ihre","Deine")+" Strafe · selbst gewählt",onClose:()=>{try{rerender()}catch(e){}}});
+  if(k==="schweigen"){box.innerHTML=`<div class="stack" style="max-width:640px;margin:0 auto"><div class="card orn stack s"><p class="ui" style="margin:0">${esc(I8_PEN.schweigen[1])} ${en(I8_PEN.schweigen[2])}</p><button class="go" data-act="i8PenSilent">Annehmen</button></div></div>`;
+    ACT.i8PenSilent=()=>{done();toast("…",2000);Focus.close(true);rerender()};return}
+  let items=k==="gestaendnis"?[]:penItems(k);if(k!=="gestaendnis"&&!items.length)k="gestaendnis";
+  if(k==="gestaendnis"){try{shadowRunner(box,confession(pd.wk),{onDone:()=>{done();setTimeout(()=>{try{toast("Mephisto: "+lineOf("pen_done")[0],4200);if(Focus.isOpen())Focus.close(true);rerender()}catch(e){}},700)}})}catch(e){done();Focus.close(true)}return}
+  runItems(box,items,{kind:k,onDone:()=>done()})};
+})();
+
 // ===== Mephisto · track I · c_i1_pre.js — Vorwissen: the next chapter's words enter the new-card queue before the chapter opens (owner: i1).
 // Source: beta r8 I3 §6.4 (c_preteach.js), with PLAN-I i1 step 4: canon lists (x_i1_pre.js, generated by tools/gen_preteach.js), new arm rule,
 // feed through preToday() (l4/PLAN-L §2.4 reads it first; while l4's memQueue is absent, newPool is adapted here by one MOD.around).
@@ -8523,10 +11771,406 @@ ACT.preAdd=el=>{try{const id=el.dataset.id;if(!preHas(id))return;if(!S.cards[id]
   setTimeout(function(){try{if(window.EV){EV.on("day.counted",()=>preArm());EV.on("day.rollover",()=>preArm());EV.on("chapter.unlocked",()=>preArm());EV.on("session.finish",()=>preArm())}}catch(e){}},0);
 })();
 
+window.LX=window.LX||{acts:{},order:[],feeds:[],arounds:[]};
+// ===== Mephisto · l5 · Daily plan, shift plan, honest forecast, hours ledger (PLAN-L §2.2, §2.5, §3 l5).
+// l5 owns TIME: what today contains, in which order, what did not fit, the forecast. It never computes an interval (l4) and never
+// chooses a chapter or lesson (track I's syllabus: PROG.today(); without it pickLesson()). Content reaches the plan only through LX.reg.
+// Hooks: MOD.after buildSession (last section), toggleShift, viewHome, mePlan, meHistory. Around changes (lxAround, declared in MANIFEST):
+// stepInfo, runStep — only for the new step types; legacy review/learn/input/output/fluency/culture steps go to the original.
+// State: S.l5 = {v,target,tts,led:{date:{field:min}},pace:{card,nc,lesson,nl},roster:{date:[code,stamp]},ba:{day:{…}},f3:{sunday:[[type,n]…]},plus:{d,m}}
+// Today's plan lives in S.today (steps + S.today.l5 = {v,budget,mode,left,at,plus}); S.shifts stays the truth for "is today a shift".
+if(typeof LX.reg!=="function")LX.reg=function(a){LX.acts[a.id]=a;if(!LX.order.includes(a.id))LX.order.push(a.id)};
+if(typeof LX.ev!=="function")LX.ev=function(key,ok,flags,sec){try{return typeof evLog==="function"&&evLog(key,ok,flags,sec)}catch(e){return false}};
+window.lxAround=window.lxAround||function(n,tag,impl){const o=window[n];if(typeof o!=="function"||o.__mod)return false; // never on a MOD hook
+  const f=function(){try{return impl.call(this,o,arguments)}catch(e){try{logError({message:"AROUND "+n+"/"+tag+": "+(e&&e.message||e)})}catch(x){}return o.apply(this,arguments)}};
+  f.__around=tag;window[n]=f;LX.arounds.push([n,tag]);return true};
+const L5={err:[],inBlock:null,mon:null,last:0};
+function l5Try(name,f,dflt){try{return f()}catch(e){L5.err.push(name+": "+(e&&e.message||e));try{if(typeof logError==="function")logError({message:"l5 "+name+": "+(e&&e.message||e)})}catch(x){}return dflt}}
+const l5R1=x=>Math.round(x*10)/10;
+const l5Has=n=>typeof window[n]==="function";
+
+// ---------------------------------------------------------------- 1. state, dates, ledger
+function l5S(){if(typeof S==="undefined")return {led:{},pace:{},roster:{},ba:{},f3:{}};if(!S.l5||typeof S.l5!=="object")S.l5={v:1};const s=S.l5;s.v=1;
+  ["led","pace","roster","ba","f3"].forEach(k=>{if(!s[k]||typeof s[k]!=="object"||Array.isArray(s[k]))s[k]={}});if(s.target===undefined)s.target=null;return s}
+function l5Today(){return typeof todayKey==="function"?todayKey():new Date().toISOString().slice(0,10)}
+function l5Dt(k){const [y,m,d]=String(k).split("-").map(Number);return new Date(y,m-1,d)}
+function l5Dow(k){return l5Dt(k).getDay()} // 0 = Sunday
+function l5Monday(k){return addDays(k,-((l5Dow(k)+6)%7))}
+function l5DayIdx(k){return Math.round((Date.UTC(...String(k).split("-").map((v,i)=>i===1?+v-1:+v))-Date.UTC(2026,0,1))/864e5)}
+function l5MY(k){return k?k.slice(5,7)+"/"+k.slice(0,4):""}
+function l5HM(min){min=Math.round(min||0);if(min<60)return min+" Min.";const h=Math.floor(min/60),m=min%60;return h+" h"+(m?" "+String(m).padStart(2,"0"):"")}
+function l5Num(n){return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g,".")}
+function l5Field(k){return L5_SKILL[k]||(L5_FIELDS.includes(k)?k:null)}
+function l5Add(d,f,min){if(!f||!(min>0))return 0;const L=l5S().led;const e=L[d]=L[d]||{};e[f]=l5R1((e[f]||0)+min);try{saveSoon()}catch(x){}return e[f]}
+// While a plan block runs a provider, the block logs its own minutes: providers' own planLog calls (l10 always logs) are ignored then.
+function l5Suppressed(){const b=L5.inBlock;return !!(b&&b.w&&typeof document!=="undefined"&&document.body&&document.body.contains(b.w))}
+function planLog(skill,min){if(l5Suppressed())return 0;return l5Add(l5Today(),l5Field(skill),+min)}
+function planExt(skill,min){const v=l5Add(l5Today(),"ext",+min);try{logEvent("ext","Außerhalb der App: "+(skill||"")+" "+min+" Min.",min)}catch(e){}return v}
+function l5DayIn(d){const e=l5S().led[d]||{};let s=0;for(const f of L5_FIELDS)if(f!=="ext")s+=e[f]||0;return s}
+function l5DayExt(d){return (l5S().led[d]||{}).ext||0}
+function l5MinOn(d){try{return typeof minutesOn==="function"?minutesOn(d):0}catch(e){return 0}}
+// a day's learning minutes: the ledger or the app's own clock, whichever is larger, plus time outside the app
+function l5DayTot(d){return Math.max(l5DayIn(d),l5MinOn(d))+l5DayExt(d)}
+
+// ---------------------------------------------------------------- 2. forecast (pure core + app wrapper)
+// o = {today, first: first active date|null, tot: {date: minutes}, ext: minutes outside the app (total), target, H}
+function l5FcCore(o){const H=o.H||L5_HOURS;let sum=0;for(const d in o.tot)if(d<=o.today)sum+=o.tot[d]||0;const doneH=sum/60,extH=(o.ext||0)/60;
+  const leftH=Math.max(0,H.plan-doneH);const dataDays=o.first?Math.max(0,diffDaysPure(o.first,o.today)+1):0;
+  const win=Math.min(28,Math.max(1,dataDays));let w=0;for(let i=0;i<win;i++)w+=o.tot[addDaysPure(o.today,-i)]||0;const pace28=dataDays?w/win:0;
+  const ok=dataDays>=H.minData&&pace28>=1;const at=h=>ok?addDaysPure(o.today,Math.ceil(Math.max(0,h-doneH)*60/pace28)):null;
+  const r={doneH,extH,leftH,dataDays,pace28,ok,dateAtPace:at(H.plan),dateLo:at(H.lo),dateHi:at(H.hi),done:doneH>=H.plan};
+  r.needMinFor=t=>{if(!t)return null;const days=diffDaysPure(o.today,t);if(days<=0)return null;return Math.ceil(leftH*60/days)};r.need=r.needMinFor(o.target);return r}
+function diffDaysPure(a,b){const p=s=>{const [y,m,d]=s.split("-").map(Number);return Date.UTC(y,m-1,d)};return Math.round((p(b)-p(a))/864e5)}
+function addDaysPure(k,n){const [y,m,d]=k.split("-").map(Number);const t=new Date(Date.UTC(y,m-1,d+n));return t.toISOString().slice(0,10)}
+function l5FcInput(){const t=l5Today();const days=new Set(Object.keys(l5S().led));try{Object.keys(S.log||{}).forEach(d=>days.add(d))}catch(e){}
+  const tot={};let ext=0,first=null;[...days].sort().forEach(d=>{if(d>t)return;const v=l5DayTot(d);if(v>0||(S.log&&S.log[d]&&S.log[d].act)){tot[d]=v;ext+=l5DayExt(d);if(!first)first=d}});
+  return {today:t,first,tot,ext,target:l5S().target,H:L5_HOURS}}
+function planForecast(){return l5FcCore(l5FcInput())}
+function l5FcText(short){const f=planForecast(),H=L5_HOURS;const head=`Bisher ${l5Num(f.doneH)} h von etwa ${H.plan} (${H.lo}–${H.hi}).`;
+  if(f.done)return head+" Die geplanten Stunden sind erreicht – jetzt entscheiden die Prüfungen, nicht die Uhr.";
+  if(f.dataDays<H.minData)return head+` Noch zu wenig Daten für ein Datum (Tag ${f.dataDays} von ${H.minData}).`;
+  if(!f.ok)return head+" Bei weniger als einer Minute am Tag rechne ich kein Datum.";
+  let s=`${head} Bei ${Math.round(f.pace28)} Minuten am Tag: B2 etwa ${l5MY(f.dateAtPace)}`+(short?".":` (zwischen ${l5MY(f.dateLo)} und ${l5MY(f.dateHi)}).`);
+  const tg=l5S().target;if(tg&&!short){const n=f.needMinFor(tg);s+=n?` Für B2 bis ${fmtDate(tg)}: ${n} Minuten am Tag.`:` Das Zieldatum ${fmtDate(tg)} ist vorbei.`}return s}
+// vocabulary line (l4's memory when present)
+function l5B2Words(){if(L5.b2w)return L5.b2w;let n=0;try{const LV0={A1:0,A2:1,B1:2,B2:3};CATALOG.forEach((c,id)=>{if(!String(id).startsWith("w:"))return;const lv=c.lv!=null?+c.lv:LV0[c.level];if(lv!=null&&lv<=3)n++})}catch(e){}
+  return L5.b2w=n>=1000?n:L5_HOURS.b2words}
+function l5VocabText(){const t=l5Today();let seen=0;try{seen=l5Has("memStats")?memStats().seen:knownWords()}catch(e){}
+  let nw=0,days=0;for(let i=0;i<28;i++){const L=(S.log||{})[addDays(t,-i)];if(L&&L.act)days++;nw+=(L&&L.new)||0}const rate=days?nw/28:0;const goal=l5B2Words();
+  let s=`Wortschatz: ${l5Num(seen)} von etwa ${l5Num(goal)} Wörtern bis B2 begonnen.`;
+  if(planForecast().dataDays>=L5_HOURS.minData&&rate>=0.5&&seen<goal)s+=` Bei ${l5R1(rate).toString().replace(".",",")} neuen am Tag: etwa ${l5MY(addDays(t,Math.ceil((goal-seen)/rate)))}.`;
+  try{if(l5Has("memForecast")){const fc=memForecast(14,Math.round(rate));const m=fc.reduce((a,x)=>a+x.min,0)/Math.max(1,fc.length);s+=` Wiederholungen der nächsten 14 Tage: etwa ${Math.round(m)} Min. am Tag.`}}catch(e){}
+  return s}
+
+// ---------------------------------------------------------------- 3. the planner (pure) — the §2.5 table is the specification
+// I = {budget, mode:"day"|"shift", day, spc, due, newMax, err, gc, lessonMin, canHear,
+//      lesson:{nu,nuT,nuSk,re,reT,reSk,reN,why}, cand:{hoer,les,mouth,write,exam,klin,p_hoer,p_les,rede}, legacy:{hoer,les,input,output,fluency,culture}}
+function l5Rows(budget){return budget<30?20:budget<50?40:budget<75?60:90}
+function l5Plan(I){const R=L5_ROWS;const out={budget:I.budget,mode:I.mode,blocks:[],left:[]};const spc=I.spc||9;const even=(I.day|0)%2===0;const used=new Set();
+  const cand=I.cand||{},leg=I.legacy||{},les=I.lesson||{};
+  const take=(list,okAudio)=>{for(const c of (list||[])){const k=c.act+"|"+c.ref;if(used.has(k))continue;const na=c.needsAudio!=null?!!c.needsAudio:(c.skill==="hoeren"||c.skill==="zahlen");if(na&&!okAudio)continue;used.add(k);return c}return null};
+  const fromC=(c,b,min,extra)=>Object.assign({b,t:"l5_"+(L5_TYPES.includes(c.skill)?c.skill:"lesen"),act:c.act,ref:c.ref,title:c.title||"",why:c.why||"",min,sk:l5FieldPure(c.skill)},extra||{});
+  const fromL=(st,b,min,sk,title,why)=>st?Object.assign({b,min,sk,title:title||"",why:why||""},st):null;
+  const hear=b=>{const c=take(cand.hoer,I.canHear);if(c)return fromC(c,b,0);if(I.canHear&&leg.hoer)return fromL(leg.hoer,b,0,"hoer");const r=take(cand.les,true);
+      const why="Kein deutscher Ton auf diesem Gerät – heute Lesen statt Hören";if(r)return fromC(r,b,0,{why,noAudio:1});return fromL(leg.les||leg.input,b,0,"les","",why)};
+  const read=b=>{const c=take(cand.les,true);if(c)return fromC(c,b,0);return fromL(leg.les||leg.input,b,0,"les")};
+  const write=b=>{const c=take(cand.write,true);if(c)return fromC(c,b,0);return fromL(leg.output,b,0,"schr")};
+  const lesson=b=>{if(les.re){if(les.nu&&les.nu!==les.re)out.left.push({k:"lesson",id:les.nu,title:les.nuT||"",sk:les.nuSk||"gram",min:I.lessonMin||10,t:"neue Lektion „"+(les.nuT||les.nu)+"“",why:"erst die fällige Wiederholung"});
+      return {b,t:"learn",ref:{id:les.re},sk:les.reSk||"gram",title:les.reT||"",why:"Wiederholung zuerst – die neue Lektion wartet",min:0}}
+    if(les.nu)return {b,t:"learn",ref:{id:les.nu},sk:les.nuSk||"gram",title:les.nuT||"",why:les.why||"",min:0};
+    const w=write(b);if(w)w.why=w.why||"heute keine neue Lektion: Schreiben";return w};
+  if(les.reN>0)out.left.push({k:"re",n:les.reN,min:les.reN*(I.lessonMin||10),t:les.reN+(les.reN>1?" Lektionen":" Lektion")+" zur Wiederholung",why:"überfällig"});
+  if(I.mode==="shift"){
+    const cap=Math.floor(5*60/spc),n=Math.min(I.due||0,cap);out.blocks.push({b:"p_cards",t:"l5cards",pk:"cards",min:5,nDue:n,nNew:0,sk:"rev",title:n?n+" Karten":"Karten",why:"die dringendsten zuerst"});
+    if((I.due||0)>n)out.left.push({k:"cards",n:I.due-n,min:Math.ceil((I.due-n)*spc/60),t:(I.due-n)+" Karten",why:"Diensttag"});
+    let h=take(cand.p_hoer,I.canHear);let hb=h?fromC(h,"p_hoer",5,{pk:"hoer"}):null;
+    if(!hb){const r=take(cand.p_les,true);const why="Kein deutscher Ton auf diesem Gerät – Lesen statt Hören";hb=r?fromC(r,"p_hoer",5,{pk:"hoer",why,noAudio:1}):I.canHear&&leg.hoer?fromL(leg.hoer,"p_hoer",5,"hoer"):fromL(leg.les||leg.input,"p_hoer",5,"les","",why);if(hb)hb.pk="hoer"}
+    out.blocks.push(hb);
+    const r=take(cand.p_les,true);const rb=r?fromC(r,"p_les",5,{pk:"les"}):fromL(leg.les||leg.input,"p_les",5,"les");if(rb){rb.pk="les";out.blocks.push(rb)}
+    if((I.err||0)>0)out.blocks.push({b:"p_last",t:"l5err",pk:"last",min:5,sk:"gram",title:"Deine Fehler",why:I.err+" fällig"});
+    else{const sp=take(cand.rede,true);out.blocks.push(sp?fromC(sp,"p_last",5,{pk:"last"}):{b:"p_last",t:"l5rede",pk:"last",min:5,sk:"spr",title:"60 Sekunden frei sprechen",why:"mit Aufnahme, wenn das Gerät es kann"})}
+    if(les.nu&&!out.left.some(x=>x.k==="lesson"))out.left.push({k:"lesson",id:les.nu,title:les.nuT||"",sk:les.nuSk||"gram",min:I.lessonMin||10,t:"Lektion „"+(les.nuT||les.nu)+"“",why:"Diensttag – morgen"});
+    out.blocks=out.blocks.filter(Boolean);return out}
+  const r=l5Rows(I.budget),row=R[r],sc=I.budget/r;const mins=row.map(([k,m])=>Math.max(1,Math.round(m*sc)));const diff=I.budget-mins.reduce((a,x)=>a+x,0);mins[0]=Math.max(1,mins[0]+diff);
+  let B=row.map(([k],i)=>({b:k,min:mins[i]}));let pool=0;
+  const empty=k=>(k==="err"&&!(I.err>0))||(k==="gram"&&!(I.gc>0))||(k==="mix"&&!(I.err>0)&&!(I.gc>0));
+  B=B.filter(x=>{if(empty(x.b)){pool+=x.min;return false}return true});
+  const cards=B.find(x=>x.b==="cards");const need=Math.ceil(((I.due||0)+2*(I.newMax||0))*spc/60);
+  if(cards){if(need<cards.min){const keep=Math.max(need,(I.due||0)+(I.newMax||0)>0?1:0);pool+=cards.min-keep;cards.min=keep}else if(pool>0){const add=Math.min(pool,need-cards.min);cards.min+=add;pool-=add}}
+  if(cards&&cards.min<=0){B=B.filter(x=>x!==cards)}
+  if(pool>0){const tgt=B.find(x=>x.b==="les")||B.find(x=>x.b==="in1"&&!even)||B.find(x=>x.b==="in2"&&even)||B.find(x=>x.b==="hoer")||B.find(x=>x.b==="in1")||B[0];if(tgt)tgt.min+=pool;pool=0}
+  for(const x of B){let blk=null;
+    if(x.b==="cards"){const cap=Math.floor(x.min*60/spc);const nDue=Math.min(I.due||0,cap);const nNew=Math.max(0,Math.min(I.newMax||0,Math.floor((cap-nDue)/2)));
+      blk={t:"l5cards",nDue,nNew,sk:"rev",title:nDue+" fällig"+(nNew?" · "+nNew+" neu":""),why:I.away>=3?"Rückkehr: die dringendsten zuerst":(I.newMax>0&&!nNew?"neue Wörter erst nach den fälligen":"")};
+      if((I.due||0)>nDue)out.left.push({k:"cards",n:I.due-nDue,min:Math.ceil((I.due-nDue)*spc/60),t:(I.due-nDue)+" Karten",why:"fällig"})}
+    else if(x.b==="err"){blk={t:"l5err",sk:"gram",title:"Deine Fehler",why:I.err+" fällig"};const cap=Math.max(1,Math.round(x.min/1.5));if(I.err>cap)out.left.push({k:"err",n:I.err-cap,min:Math.ceil((I.err-cap)*1.5),t:(I.err-cap)+" Fehler",why:"fällig"})}
+    else if(x.b==="gram")blk={t:"l5gram",sk:"gram",title:"Grammatik gemischt",why:I.gc+" Grammatikkarten fällig"};
+    else if(x.b==="mix")blk={t:"l5mix",sk:"gram",title:"Fehler & Grammatik",why:[(I.err>0?I.err+" Fehler":""),(I.gc>0?I.gc+" Grammatikkarten":"")].filter(Boolean).join(" · ")};
+    else if(x.b==="hoer"||(x.b==="in1"&&even)||(x.b==="in2"&&!even))blk=hear(x.b);
+    else if(x.b==="les"||x.b==="in1"||x.b==="in2")blk=read(x.b);
+    else if(x.b==="lesson")blk=lesson(x.b);
+    else if(x.b==="lesout")blk=even?lesson(x.b):write(x.b);
+    else if(x.b==="write")blk=write(x.b);
+    else if(x.b==="mouth"){const c=take(cand.mouth,I.canHear);blk=c?fromC(c,x.b,0):fromL(leg.fluency,x.b,0,"spr")}
+    else if(x.b==="culture")blk=fromL(leg.culture,x.b,0,"les");
+    else if(x.b==="xtra"){const a=even?cand.exam:cand.klin,bb=even?cand.klin:cand.exam;const c=take(a,I.canHear)||take(bb,I.canHear);blk=c?fromC(c,x.b,0):read(x.b)}
+    if(!blk)blk=fromL(leg.input||leg.les,x.b,0,"les");
+    if(blk){blk.b=x.b;blk.min=x.min;out.blocks.push(blk)}}
+  return out}
+const L5_TYPES=["hoeren","lesen","sprechen","aussprache","schreiben","klinik","pruefung","leben","zahlen"];
+function l5FieldPure(skill){return (typeof L5_SKILL!=="undefined"&&L5_SKILL[skill])||"les"}
+
+// ---------------------------------------------------------------- 4. gathering today's inputs from the app (guarded)
+function l5Lv(){try{return Math.max(0,Math.min(4,typeof learnerLv==="function"?learnerLv():0))}catch(e){return 0}}
+function l5CanHear(){try{if(l5Has("lxPackList")){const L=lxPackList();if(Array.isArray(L)&&L.length)return true}}catch(e){}try{if(l5Has("canSpeak"))return !!canSpeak()}catch(e){}try{return !!(TTS_OK&&DE_VOICE)}catch(e){return false}}
+function l5Spc(){const p=l5S().pace;try{if(l5Has("memStats")){const st=memStats();if((st.reviews||0)>=50&&st.secPerCard>0)return st.secPerCard}}catch(e){}return p.nc>=1&&p.card>0?p.card:9}
+function l5LessonMin(){const p=l5S().pace;return p.nl>=1&&p.lesson>0?Math.round(p.lesson):10}
+function l5Away(){const t=l5Today();for(let i=1;i<=60;i++){const L=(S.log||{})[addDays(t,-i)];if(L&&L.act)return i-1}return Object.keys(S.log||{}).length?60:0}
+function l5Weak(){const t=l5Today();const s={hoer:0,les:0,spr:0,schr:0};for(let i=0;i<14;i++){const e=l5S().led[addDays(t,-i)]||{};for(const k in s)s[k]+=e[k]||0}
+  const M={hoer:"hoeren",les:"lesen",spr:"sprechen",schr:"schreiben"};return Object.keys(s).sort((a,b)=>s[a]-s[b]).slice(0,2).map(k=>M[k])}
+function l5LesSk(id){try{if(GRAMMAR.some(g=>g.id===id))return "gram";if(MEDL.some(g=>g.id===id))return "klin";if(ALLTAG.some(g=>g.id===id))return "spr"}catch(e){}return "gram"}
+function l5LesT(id){try{const L=lessonById(id);return L?L.title:""}catch(e){return ""}}
+function l5Lessons(){const t=l5Today();let nu=null,why="";
+  try{if(typeof PROG!=="undefined"&&PROG&&typeof PROG.today==="function"){const p=PROG.today();if(p&&p.lessons&&p.lessons[0]&&lessonById(p.lessons[0])){nu=p.lessons[0];why=p.why||""}}}catch(e){}
+  if(!nu){try{nu=pickLesson()||null}catch(e){}}
+  let od=[];try{const G=new Set(GRAMMAR.map(g=>g.id));od=Object.entries(S.lessons||{}).filter(([id,L])=>L&&L.due&&L.due<t&&G.has(id)&&lessonById(id)).sort((a,b)=>a[1].due<b[1].due?-1:a[1].due>b[1].due?1:(a[0]<b[0]?-1:1)).map(x=>x[0])}catch(e){}
+  const re=od[0]||null;return {nu,nuT:l5LesT(nu),nuSk:l5LesSk(nu),re,reT:l5LesT(re),reSk:l5LesSk(re),reN:Math.max(0,od.length-1),why}}
+const L5_EXCL=["i.lesson","i.clinic"];
+function l5Pool(prefer,skills,ctx,filt){const out=[];const ids=prefer.filter(id=>LX.acts[id]).concat(LX.order.filter(id=>!prefer.includes(id)&&!L5_EXCL.includes(id)&&LX.acts[id]&&skills.includes(LX.acts[id].skill)));
+  for(const id of ids){const a=LX.acts[id];if(!a||typeof a.next!=="function")continue;if(ctx.shift&&!a.pocket)continue;let it=null;try{it=a.next(ctx)}catch(e){it=null}if(!it||it.ref==null)continue;
+    if(filt&&!filt(id,it))continue;out.push(Object.assign({act:id,skill:a.skill},it))}return out}
+function l5Cands(ctx,shift){const isH=(id,it)=>id!=="i.input"||/^hoeren:/.test(it.ref),isR=(id,it)=>id!=="i.input"||!/^hoeren:/.test(it.ref);const c={};
+  const H=["i.input","l6.hoeren","l6.diktat","l8.zahlen","l8.namen"],RD=["i.input","l6.lesen"];
+  if(shift){const sc=Object.assign({},ctx,{shift:true,min:5});c.p_hoer=l5Pool(H,["hoeren","zahlen"],sc,isH);c.p_les=l5Pool(RD,["lesen","leben"],sc,isR);c.rede=l5Pool(["l5.rede"],[],sc);return c}
+  c.hoer=l5Pool(H,["hoeren","zahlen"],ctx,isH);c.les=l5Pool(RD,["lesen","leben"],ctx,isR);
+  c.mouth=l5Pool(["l7.schatten","l7.laut","l7.vorlesen"],["aussprache","sprechen"],ctx,id=>id!=="l5.rede");
+  c.write=l5Pool(["i.task"],["schreiben"],ctx);c.exam=l5Pool(["l9.teil","l9.redemittel"],["pruefung"],ctx);c.klin=l5Pool(["l10.drill","l10.telefon"],["klinik"],ctx).concat(l5Pool(["i.clinic"],[],ctx));
+  return c}
+function l5LegacyHoer(){try{const lv=l5Lv();const H=HOEREN.filter(h=>!(S.hoeren||{})[h.id]);const fit=H.find(h=>(h.level||1)<=2*lv+2)||H[0]||HOEREN[l5DayIdx(l5Today())%HOEREN.length];return fit?{t:"input",ref:{kind:"hoeren",id:fit.id}}:null}catch(e){return null}}
+function l5LegacyText(){try{const lv=l5Lv();const T=TEXTS.filter(x=>!(S.read||{})[x.id]);const fit=T.find(x=>(x.level||1)<=2*lv+2)||T[0]||TEXTS[l5DayIdx(l5Today())%TEXTS.length];return fit?{t:"input",ref:{kind:"text",id:fit.id}}:null}catch(e){return null}}
+function l5Culture(){try{if(typeof PROG!=="undefined"&&PROG.row){const r=PROG.row(PROG.cur());const k=r&&(r.ku||[]).find(i=>!(S.kultur||{})[i]&&KULTUR[i]);if(k!=null)return {t:"culture",ref:{idx:k}}}}catch(e){}try{return {t:"culture",ref:pickCulture()}}catch(e){return null}}
+function l5Legacy(lessonId){const g=(f)=>{try{return f()}catch(e){return null}};
+  return {hoer:l5LegacyHoer(),les:l5LegacyText(),input:g(()=>({t:"input",ref:pickInput()})),output:g(()=>({t:"output",ref:pickOutput()})),fluency:g(()=>({t:"fluency",ref:pickFluency(lessonId)})),culture:l5Culture()}}
+function l5Shift(d){try{return typeof isShift==="function"?isShift(d):!!(S.shifts&&S.shifts[d||l5Today()])}catch(e){return false}}
+function l5LongDay(d){const mon=l5Monday(d);let sh=0;const free=[];for(let i=0;i<7;i++){const k=addDays(mon,i);if(l5Shift(k))sh++;else free.push(k)}return sh>=2&&free.length>0&&free[free.length-1]===d}
+function l5BudgetFor(d){d=d||l5Today();if(l5Shift(d))return 20;const base=+S.minutes||40;return Math.min(150,base+(l5LongDay(d)?30:0))}
+function l5Plus(){const p=l5S().plus;return p&&p.d===l5Today()?(+p.m||0):0}
+function l5Mode(){const t=l5Today();return l5Shift(t)&&S.shiftFull!==t?"shift":"day"}
+function l5Counts(){let due=0,gc=0,err=0;try{if(l5Has("memDue")){const d=memDue();gc=d.filter(k=>/^gc:/.test(k)).length;due=d.filter(k=>!/^(gc|eq|eqt):/.test(k)).length}else due=dueKeys().length}catch(e){try{due=dueKeys().length}catch(x){}}
+  try{if(l5Has("errqDue"))err=errqDue().length}catch(e){}return {due,gc,err}}
+function l5NewMax(budget,mode){if(mode==="shift")return 0;let n=0;try{if(l5Has("memNewBudget")){n=memNewBudget(budget);try{resetNewToday()}catch(e){}const left=Math.max(0,(S.newPerDay||15)-((S.newToday&&S.newToday.date===l5Today())?(S.newToday.n||0):0));n=Math.min(n,left)}else n=typeof newAllowance==="function"?newAllowance():0}catch(e){n=0}return Math.max(0,n|0)}
+function l5Inputs(o){o=o||{};const t=l5Today();const mode=o.mode||l5Mode();const budget=o.budget||(mode==="shift"?20:l5BudgetFor(t)+l5Plus());const c=l5Counts();const lesson=l5Lessons();
+  const ctx={lv:l5Lv(),min:budget,shift:mode==="shift",date:t,weak:l5Weak()};
+  return Object.assign({budget,mode,day:l5DayIdx(t),spc:l5Spc(),newMax:l5NewMax(budget,mode),lessonMin:l5LessonMin(),canHear:l5CanHear(),lesson,away:l5Away(),
+    cand:l5Cands(ctx,mode==="shift"),legacy:l5Legacy(lesson.nu)},c)}
+function planToday(o){return l5Plan(l5Inputs(o))}
+
+// ---------------------------------------------------------------- 5. the session: build, rebuild, hooks
+function l5Build(){const T=S.today;if(!T)return;const p=planToday();T.steps=p.blocks.map(b=>Object.assign({done:false},b));T.idx=0;T.shift=p.mode==="shift"?1:0;
+  T.l5={v:1,budget:p.budget,mode:p.mode,left:p.left,at:Date.now(),plus:l5Plus()};try{saveSoon()}catch(e){}}
+function l5Rebuild(){const T=S.today;if(!T||T.date!==l5Today())return;if(!T.steps.some(s=>s.done)){l5Build();return}const p=planToday();
+  const kept=T.steps.filter(s=>s.done);const keys=new Set(kept.map(s=>s.b||s.t));const add=p.blocks.filter(b=>!keys.has(b.b));T.steps=kept.concat(add.map(b=>Object.assign({done:false},b)));
+  const nx=T.steps.findIndex(s=>!s.done);T.idx=nx<0?T.steps.length:nx;T.shift=p.mode==="shift"?1:0;T.l5={v:1,budget:p.budget,mode:p.mode,left:p.left,at:Date.now(),plus:l5Plus()};try{saveSoon()}catch(e){}}
+function l5Ensure(){const T=S.today;if(!T||T.date!==l5Today())return;const mode=l5Mode();const budget=mode==="shift"?20:l5BudgetFor(l5Today())+l5Plus();
+  if((!T.l5||T.l5.mode!==mode||T.l5.budget!==budget)&&!T.steps.some(s=>s.done)){try{buildSession()}catch(e){l5Build()}}}
+const L5_MINE=t=>typeof t==="string"&&/^l5/.test(t);
+function l5StepField(s){if(s.sk)return s.sk;const r=s.ref||{};switch(s.t){case "review":return "rev";case "learn":return l5LesSk(r.id);case "input":return r.kind==="hoeren"||r.kind==="dialog"?"hoer":"les";case "output":return "schr";case "fluency":return "spr";default:return "les"}}
+// log the step that just ran (minutes timed by l5; a provider's own seconds win when it reports them)
+function l5Settle(){const T=S.today;if(!T||!T.l5run||!T.steps)return;const r=T.l5run;const s=T.steps[r.i];if(!s){T.l5run=null;return}
+  if(s.done&&!s.lg&&!s.skipped){const wall=(Date.now()-r.t0)/60000;let min=s.res&&s.res.sec>0?s.res.sec/60:wall;const cap=Math.max(2*(s.min||5),(s.min||5)+10);min=Math.min(min,cap,90);
+    if(min>=0.1){l5Add(T.date||l5Today(),l5StepField(s),min);s.lg=l5R1(min);if(s.t==="learn"&&min>=2&&min<=40){const p=l5S().pace;p.lesson=p.nl?l5R1(0.7*p.lesson+0.3*min):l5R1(min);p.nl=(p.nl||0)+1}}}
+  if(s.done||s.skipped||r.i!==T.idx)T.l5run=null}
+function l5Foot(T){Focus.sub(1);Focus.foot(`<button class="ghost sm" data-act="stepBack" ${T.idx===0?"disabled":""}>${ic("back")}</button><button class="primary" data-act="stepNext">${T.idx+1<T.steps.length?"Weiter: "+esc((STRAND[T.steps[T.idx+1].t]||{name:"Weiter"}).name):"Abschließen"} ${ic("chev")}</button>`)}
+function l5Msg(el,h,p,fin){el.innerHTML=`<div class="empty"><div class="big">M</div><h2>${esc(h)}</h2><p>${esc(p)}</p></div>`;fin({ok:1,n:0,right:0,sec:0})}
+function l5CardQ(s){const spc=l5Spc();try{if(l5Has("memQueue")){const dueMin=Math.max(1,(s.min||5)-(s.nNew||0)*2*spc/60);return memQueue({min:dueMin,newMax:s.nNew||0,kinds:["w","satz","c"]})}}catch(e){}
+  try{return buildQueue().slice(0,Math.max(5,Math.floor((s.min||5)*60/spc)))}catch(e){return []}}
+// run one block into el; fin(result) when it is finished (session or standalone)
+function l5RunBlock(el,s,fin,o){o=o||{};const T=S.today;
+  if(s.t==="l5cards"){const q=l5CardQ(s);if(!q.length)return l5Msg(el,"Alles wiederholt.","Keine Karte ist fällig. Die Minuten gehen an Lesen und Hören.",fin);const t0=Date.now();
+    cardRunner(el,q,Object.assign(o.standalone?{standalone:true}:{onProgress:p=>{try{Focus.sub(p)}catch(e){}}},{onDone:r=>{r=r||{};try{if(T&&T.stats&&!o.standalone){T.stats.cards+=r.n||0;T.stats.ok+=r.ok||0}}catch(e){}
+      const sec=(Date.now()-t0)/1000;if((r.n||0)>=5){const per=sec/r.n;if(per>=2&&per<=60){const p=l5S().pace;p.card=p.nc?l5R1(0.7*p.card+0.3*per):l5R1(per);p.nc=(p.nc||0)+1}}fin({ok:r.n?(r.ok||0)/r.n:1,n:r.n||0,right:r.ok||0,sec:Math.round(sec)})}}));return}
+  if(s.t==="l5err"||s.t==="l5gram"||s.t==="l5mix"){const kinds=s.t==="l5err"?["eq"]:s.t==="l5gram"?["gc"]:["eq","gc"];let q=[];try{if(l5Has("memQueue"))q=memQueue({kinds,min:s.min||3})}catch(e){q=[]}
+    if(!q.length)return l5Msg(el,"Heute nichts fällig.",s.t==="l5gram"?"Keine Grammatikkarte ist fällig.":"Kein Fehler ist heute fällig.",fin);const t0=Date.now();
+    cardRunner(el,q,Object.assign(o.standalone?{standalone:true}:{onProgress:p=>{try{Focus.sub(p)}catch(e){}}},{onDone:r=>{r=r||{};fin({ok:r.n?(r.ok||0)/r.n:1,n:r.n||0,right:r.ok||0,sec:Math.round((Date.now()-t0)/1000)})}}));return}
+  if(s.t==="l5rede")return l5Rede(el,null,fin);
+  const a=LX.acts[s.act];const w=document.createElement("div");w.className="l5-act";el.appendChild(w);
+  if(!a||typeof a.run!=="function"){const st=s.sk==="hoer"?l5LegacyHoer():l5LegacyText();const it=st&&(st.ref.kind==="hoeren"?HOEREN.find(x=>x.id===st.ref.id):TEXTS.find(x=>x.id===st.ref.id));
+    if(it&&st.ref.kind==="hoeren")return hoerenRunner(w,it,{onDone:()=>fin({ok:1,n:1,right:1,sec:0})});if(it)return readerView(w,it,{onDone:()=>fin({ok:1,n:1,right:1,sec:0})});return l5Msg(el,"Übung fehlt.","Diese Übung ist auf diesem Gerät nicht da.",fin)}
+  L5.inBlock={w,act:s.act};let fired=false;try{a.run(w,s.ref,r=>{if(fired)return;fired=true;L5.inBlock=null;fin(r||{ok:1,n:1,right:1,sec:0})})}catch(e){L5.inBlock=null;try{logError({message:"l5 run "+s.act+": "+(e&&e.message||e)})}catch(x){}l5Msg(el,"Diese Übung hat einen Fehler.",String(e&&e.message||e),fin)}}
+// 60 seconds of free speech (shift round 4 when nothing is due; also provider l5.rede)
+function l5RedePick(){const lv=l5Lv();const L=L5_REDE.filter(x=>x.lv<=lv+1);const P=L.filter(x=>x.lv>=lv-1);const A=P.length?P:L;return A[l5DayIdx(l5Today())%A.length]}
+function l5Rede(el,ref,fin){const it=(ref!=null&&L5_REDE[+ref])||l5RedePick();const t0=Date.now();
+  el.innerHTML=`<div class="stack s l5-rede" data-hx="speech"><div class="head"><div class="eyebrow">Sprechen · 60 Sekunden <span class="en">free speech</span></div><h2>${esc(it.de)}</h2><p class="en">${esc(it.en)}</p></div>
+   <p class="ui muted" style="font-size:.88rem">Sprich laut und ohne Pause bis die Zeit um ist. Fehler sind erlaubt; Schweigen nicht.</p><div class="l5-rec"></div><div class="row"><b class="l5-clock ui">60</b><button class="primary l5-fin">Fertig</button></div></div>`;
+  let left=60;const ck=$(".l5-clock",el);const tm=setInterval(()=>{if(!document.body.contains(el)){clearInterval(tm);return}left--;if(ck)ck.textContent=Math.max(0,left);if(left<=0)clearInterval(tm)},1000);try{TIMERS.push(tm)}catch(e){}
+  let done=false;const end=extra=>{if(done)return;done=true;clearInterval(tm);fin(Object.assign({ok:1,n:1,right:1,sec:Math.round((Date.now()-t0)/1000)},extra||{}))};
+  try{if(l5Has("lxRecorder")&&(!l5Has("canRecord")||canRecord()))lxRecorder($(".l5-rec",el),{text:"",who:"Ich",maxSec:60,keep:false,onDone:r=>{}})}catch(e){}
+  $(".l5-fin",el).onclick=()=>end()}
+// --- STRAND names for the new step types (runStep/Home read STRAND[s.t])
+l5Try("strand",()=>{if(typeof STRAND==="undefined")return;const add={l5cards:["Karten","spaced review","cards"],l5err:["Deine Fehler","error drills","target"],l5gram:["Grammatik gemischt","interleaved grammar","grid"],
+  l5mix:["Fehler & Grammatik","errors and grammar","grid"],l5rede:["Sprechen · 60 Sekunden","free speech","chat"],l5_hoeren:["Hören","listening","ear"],l5_lesen:["Lesen","reading","book"],
+  l5_sprechen:["Sprechen","speaking","chat"],l5_aussprache:["Aussprache","pronunciation","vol"],l5_schreiben:["Schreiben","writing","pen"],l5_klinik:["Klinikdeutsch","clinical German","steth"],
+  l5_pruefung:["Prüfung","exam practice","timer"],l5_leben:["Leben in Deutschland","life in Germany","tower"],l5_zahlen:["Zahlen & Namen","numbers and names","type"]};
+  for(const k in add)if(!STRAND[k])STRAND[k]={name:add[k][0],en:add[k][1],icon:add[k][2]}});
+// --- around changes (installed at load, before any MOD.after on these names)
+l5Try("aroundInfo",()=>lxAround("stepInfo","l5",function(o,a){const s=a[0];if(!s||!L5_MINE(s.t))return o.apply(this,a);const n=STRAND[s.t]||{name:"Übung",en:"",icon:"target"};
+  return {name:n.name,en:n.en,icon:n.icon,sub:[s.title,s.why].filter(Boolean).join(" · ")}}));
+l5Try("aroundRun",()=>lxAround("runStep","l5",function(o,a){l5Settle();const T=S.today;const live=T&&T.idx<T.steps.length&&!T.steps.every(x=>x.done);const s=live?T.steps[T.idx]:null;
+  if(live)T.l5run={i:T.idx,t0:Date.now()};L5.inBlock=null;const r=o.apply(this,a);
+  if(!live){l5FixFinish();return r}
+  if(!L5_MINE(s.t))return r;
+  const el=$("#fIn");if(!el)return r;el.innerHTML="";
+  try{l5RunBlock(el,s,res=>{s.res={ok:res&&res.ok,n:res&&res.n,sec:res&&res.sec};s.done=true;if(s.pk){try{pocketDone(s.pk)}catch(e){}}try{saveSoon()}catch(e){}if(S.today===T&&T.steps[T.idx]===s&&Focus.isOpen())l5Foot(T)})}
+  catch(e){try{logError(e)}catch(x){}el.innerHTML=`<div class="crash">Dieser Schritt hat einen Fehler: ${esc(String(e&&e.message||e))}</div>`;s.done=true;l5Foot(T)}
+  return r}));
+// the finish screen: replace "Noch N Tage bis krankenhausreif." by the hour line
+function l5FixFinish(){const p=$("#fIn .celebrate p.fg2");if(!p||!/krankenhausreif/.test(p.textContent))return;p.textContent=p.textContent.replace(/Noch \d+ Tage bis krankenhausreif\./,l5FcText(true))}
+// --- MOD sections
+l5Try("hooks",()=>{
+  MOD.after("buildSession","l5",function(){l5Build()});
+  MOD.after("toggleShift","l5",function(){const t=l5Today();const R=l5S().roster;const on=l5Shift(t);const cur=(R[t]||[""])[0];
+    const st=Date.now();if(on&&!["F","S","N","D"].includes(cur))R[t]=["D",st];else if(!on&&cur!=="-"&&cur!=="")R[t]=["-",st];L5.applied=Math.max(L5.applied||0,st);
+    const T=S.today;const mode=l5Mode(),bud=mode==="shift"?20:l5BudgetFor(t)+l5Plus();if(T&&T.date===t&&!(T.l5&&T.l5.mode===mode&&T.l5.budget===bud))l5Rebuild();try{saveSoon()}catch(e){}});
+  MOD.after("viewHome","l5",function(m){l5Home(m)});
+  MOD.after("mePlan","l5",function(el){l5MePlan(el)});
+  MOD.after("meHistory","l5",function(el){l5MeHist(el)})});
+// i2's banner prints a chapter-pace date labelled B2; re-label it as material pace (late section so it runs after c_i2's, whatever the load order)
+setTimeout(()=>l5Try("i2late",()=>MOD.after("viewHome","l5i2",function(m){const ip=m&&m.querySelector(".i2-pace");if(!ip||ip.dataset.l5)return;ip.dataset.l5="1";let f=null;try{f=PROG.forecast()}catch(e){}
+  ip.textContent=(f&&f.b2Date?`Stoff-Tempo: Kapitel 32 etwa ${l5MY(f.b2Date)}${f.fspDate?", Kapitel 40 etwa "+l5MY(f.fspDate):""} – Stoff, nicht Können. `:"")+l5FcText(true)})),0);
+// merge rule (P2 defines MERGE_RULES after our files)
+setTimeout(()=>{try{if(typeof MERGE_RULES!=="undefined"&&MERGE_RULES)MERGE_RULES.l5=function(a,b){return l5Merge(a,b)}}catch(e){}},0);
+l5Try("reset",()=>{if(typeof RESET_GROUPS!=="undefined"&&RESET_GROUPS.lessons&&!RESET_GROUPS.lessons.k.includes("l5"))RESET_GROUPS.lessons.k.push("l5")});
+
+// ---------------------------------------------------------------- 6. shift days: the four POCKET entries, rewritten in place
+l5Try("pocket",()=>{if(typeof POCKET==="undefined"||!Array.isArray(POCKET))return;
+  POCKET.splice(0,POCKET.length,["cards","Karten","die dringendsten · 5 Min.","l5PocketCards"],["hoer","Hören","ein Stück + 3 Fragen","l5PocketHoer"],["les","Lesen","150–200 Wörter + 2 Fragen","l5PocketLes"],["last","Fehler oder Sprechen","dein Fehler · sonst 60 Sek.","l5PocketLast"])});
+function l5Pocket(k){const T=typeof ensureSession==="function"?ensureSession():S.today;const i=T&&T.steps?T.steps.findIndex(s=>s.pk===k):-1;if(i>=0&&!T.steps[i].done)return openSession(i);
+  const p=planToday({mode:"shift"});const s=p.blocks.find(b=>b.pk===k);if(!s)return;const box=Focus.open({title:"Taschenrunde",sub:(STRAND[s.t]||{}).name||""});
+  l5RunBlock(box,s,res=>{try{const sec=res&&res.sec>0?res.sec/60:5;l5Add(l5Today(),l5StepField(s),Math.min(15,sec))}catch(e){}try{pocketDone(k)}catch(e){}setTimeout(()=>{if(Focus.isOpen())Focus.close(true)},700)},{standalone:true})}
+ACT.l5PocketCards=()=>l5Pocket("cards");ACT.l5PocketHoer=()=>l5Pocket("hoer");ACT.l5PocketLes=()=>l5Pocket("les");ACT.l5PocketLast=()=>l5Pocket("last");
+l5Try("rede",()=>LX.reg({id:"l5.rede",skill:"sprechen",pocket:true,next(ctx){const it=l5RedePick();return it?{ref:String(L5_REDE.indexOf(it)),title:"Sprechen · 60 Sekunden frei",lv:it.lv,min:2,why:"ohne Pause sprechen",needsAudio:false}:null},
+  run(el,ref,done){l5Rede(el,ref,done)}}));
+
+// ---------------------------------------------------------------- 7. Home: the plan card, the honest line, +15, chips, forecast
+function l5Meph(T){const d=l5DayIdx(l5Today());const L=L5_MEPH;const pick=(a,i)=>a[((i%a.length)+a.length)%a.length];const mode=T&&T.l5&&T.l5.mode;
+  if(mode==="shift"){const c=((l5S().roster[l5Today()]||[""])[0]);return c==="N"?L.shift[1]:c==="F"?L.shift[5]:c==="S"?L.shift[6]:pick([L.shift[0],L.shift[3],L.shift[4],L.shift[7]],d)}
+  if(l5Away()>=3)return pick(L.ret,d);if(T&&T.l5&&T.l5.left&&T.l5.left.length)return pick(L.left,d);if(l5LongDay(l5Today()))return pick([L.plan[7],L.shift[2]],d);return pick(L.plan.slice(0,7),d)}
+function l5LeftText(left){if(!left||!left.length)return "";const min=left.reduce((a,x)=>a+(x.min||0),0);const items=left.map(x=>x.t).join(", ");
+  return `Heute passt nicht hinein: ${items}. `+(min<=15?"Mit 15 Minuten mehr ist alles weg.":`Mit 15 Minuten mehr bleibt noch etwa ${l5HM(min-15)} übrig.`)}
+function l5InShare(T){let i=0,a=0;(T.steps||[]).forEach(s=>{const f=l5StepField(s);a+=s.min||0;if(f==="hoer"||f==="les")i+=s.min||0});return a?Math.round(100*i/a):0}
+function l5Week(){const t=l5Today(),mon=l5Monday(t);let plan=0,done=0,long=null;for(let i=0;i<7;i++){const d=addDays(mon,i);plan+=d===t?l5BudgetFor(d)+l5Plus():l5BudgetFor(d);if(d<=t)done+=l5DayTot(d);if(l5LongDay(d))long=d}
+  return {plan,done,long,text:`Diese Woche: ${l5HM(plan)} geplant · ${l5HM(done)} gelernt`+(long?` · lange Sitzung ${["So","Mo","Di","Mi","Do","Fr","Sa"][l5Dow(long)]} ${fmtDate(long).slice(0,5)} (${l5BudgetFor(long)} Min.)`:"")}}
+function l5ExtHTML(){return `<div class="row l5-ext" style="flex-wrap:wrap;gap:.35rem"><span class="muted ui" style="font-size:.82rem">Außerhalb der App gelernt?</span>${L5_EXT.map(([k,n,m])=>`<button class="chip sm" data-act="l5Ext" data-k="${k}">${esc(n)} ${m}</button>`).join("")}</div>`}
+function l5StepsHTML(T){const nxt=T.steps.findIndex(s=>!s.done);return `<div class="steps">${T.steps.map((s,i)=>{let inf;try{inf=stepInfo(s)}catch(e){inf={name:s.t,icon:"target",sub:""}}const cur=!s.done&&i===nxt;
+  return `<button class="step ${s.done?"done":""} ${cur?"cur":""}" data-act="openStep" data-i="${i}"><span class="ic">${s.done?ic("check"):ic(inf.icon)}</span><span class="t"><b>${esc(inf.name)}</b><small>${esc(inf.sub||s.title||"")}</small></span><span class="st">${s.skipped?"übersprungen":s.done?(s.lg?l5HM(s.lg):""):(s.min?s.min+" Min.":"")}</span></button>`}).join("")}</div>`}
+function l5CardHTML(T,showList){const L=T.l5||{};const mode=L.mode;const mp=l5Meph(T);const lt=l5LeftText(L.left);
+  return `<div class="row between"><div class="eyebrow">Heute · ${L.budget||T.minutes} Min.${mode==="shift"?" · Dienst: 4 × 5, drei zählen":""}${l5LongDay(l5Today())&&mode!=="shift"?" · lange Sitzung":""}${L.plus?" · +"+L.plus:""}</div><span class="chip">Hören & Lesen ${l5InShare(T)} %</span></div>
+   ${showList?l5StepsHTML(T):`<p class="ui muted" style="font-size:.88rem;margin:.2rem 0">Die vier Runden stehen oben unter „Taschenrunden“.</p>`}
+   <div class="l5-left ui" style="font-size:.88rem;margin-top:.5rem">${lt?esc(lt)+` <button class="sm" data-act="l5Plus">+15 Minuten</button>`:esc("Alles Fällige passt heute hinein.")}</div>
+   <div class="l5-meph" style="margin-top:.45rem;font-style:italic">„${esc(mp[0])}“<div class="en" style="font-style:normal">${esc(mp[1])}</div></div>
+   <div class="l5-fc ui" style="font-size:.86rem;margin-top:.45rem">${esc(l5FcText(false))}</div>
+   <div class="l5-wk muted ui" style="font-size:.82rem">${esc(l5Week().text)}</div>${l5ExtHTML()}`}
+function l5Home(m){l5Settle();l5ApplyRoster();const T=S.today;if(!T||T.date!==l5Today()||!m)return;l5Ensure();const T2=S.today;if(T2!==T){setTimeout(()=>{try{if(R.tab==="home"&&!Focus.isOpen())rerender()}catch(e){}},0)}
+  const st=m.querySelector(".steps");const card=st&&st.closest(".card");if(!card)return;const showList=!(T2.l5&&T2.l5.mode==="shift"&&m.querySelector(".pocket"));
+  card.classList.add("l5-card","stack","s");card.innerHTML=l5CardHTML(T2,showList);
+  const sm=m.querySelector(".hero .go small");const all=T2.steps.every(s=>s.done);if(sm&&!all&&T2.l5){const n=T2.steps.length,d=T2.steps.filter(s=>s.done).length;sm.textContent=d?`Block ${d+1} von ${n}`:`${n} Blöcke · ${T2.l5.budget} Minuten`}
+  let extra="";try{extra+=l5BAPrompt()}catch(e){}try{extra+=l5F3HTML(true)}catch(e){}if(extra)card.insertAdjacentHTML("afterend",extra)}
+ACT.l5Plus=()=>{const T=ensureSession();const L=T.l5;if(!L)return;let rem=15;const spc=l5Spc();const add=[];L.left=(L.left||[]).slice();
+  const lc=L.left.find(x=>x.k==="cards");if(lc&&lc.n>0){const n=Math.min(lc.n,Math.floor(rem*60/spc));const mm=Math.max(1,Math.ceil(n*spc/60));add.push({t:"l5cards",b:"plus",min:mm,nDue:n,nNew:0,sk:"rev",title:n+" Karten",why:"Nachholen · +15 Minuten"});rem-=mm;lc.n-=n;lc.min=Math.ceil(lc.n*spc/60);lc.t=lc.n+" Karten"}
+  const le=L.left.find(x=>x.k==="err");if(rem>=3&&le){const mm=Math.min(rem,le.min||3);add.push({t:"l5err",b:"plus-e",min:mm,sk:"gram",title:"Deine Fehler",why:"+15 Minuten"});rem-=mm;L.left=L.left.filter(x=>x!==le)}
+  const ll=L.left.find(x=>x.k==="lesson"||x.k==="re");if(rem>=5&&ll){let id=ll.id;if(!id){const l=l5Lessons();id=l.re}if(id){add.push({t:"learn",ref:{id},b:"plus-l",min:rem,sk:l5LesSk(id),title:l5LesT(id),why:"+15 Minuten"});rem=0;if(ll.k==="lesson")L.left=L.left.filter(x=>x!==ll);else{ll.n--;ll.min=ll.n*l5LessonMin();ll.t=ll.n+(ll.n>1?" Lektionen":" Lektion")+" zur Wiederholung";if(ll.n<=0)L.left=L.left.filter(x=>x!==ll)}}}
+  if(rem>=3){const c=l5Cands({lv:l5Lv(),min:rem,shift:false,date:l5Today(),weak:l5Weak()},false);const used=new Set(T.steps.map(s=>s.act+"|"+s.ref));const r=(c.les||[]).find(x=>!used.has(x.act+"|"+x.ref));
+    if(r)add.push({b:"plus-r",t:"l5_"+(L5_TYPES.includes(r.skill)?r.skill:"lesen"),act:r.act,ref:r.ref,title:r.title||"",why:"+15 Minuten",min:rem,sk:l5FieldPure(r.skill)});else{const lg=l5LegacyText();if(lg)add.push(Object.assign({b:"plus-r",min:rem,sk:"les",title:"",why:"+15 Minuten"},lg))}rem=0}
+  L.left=L.left.filter(x=>!(x.k==="cards"&&x.n<=0));L.plus=(L.plus||0)+15;L.budget+=15;T.steps=T.steps.concat(add.map(b=>Object.assign({done:false},b)));l5S().plus={d:l5Today(),m:L.plus};L.at=Date.now();
+  try{saveSoon()}catch(e){}toast("+15 Minuten für heute",2200);rerender()};
+ACT.l5Ext=el=>{const x=L5_EXT.find(e=>e[0]===el.dataset.k);if(!x)return;planExt(x[1],x[2]);toast(`${x[1]}: ${x[2]} Minuten eingetragen`,2200);rerender()};
+ACT.l5ExtReset=()=>{const e=l5S().led[l5Today()];if(e&&e.ext){e.ext=0;try{saveSoon()}catch(x){}toast("Heute außerhalb: zurückgesetzt");rerender()}};
+
+// ---------------------------------------------------------------- 8. roster (Ich → Plan): Früh / Spät / Nacht / Frei for a month
+// roster entries reach S.shifts once per stamp (an entry synced from another device, or the first start); S.shifts stays the truth afterwards
+function l5ApplyRoster(){const R=l5S().roster,t=l5Today();S.shifts=S.shifts||{};let mx=L5.applied||0;for(const d in R){const st=+(R[d]||[])[1]||0;if(st<=(L5.applied||0)||d<addDays(t,-1))continue;mx=Math.max(mx,st);const c=(R[d]||[""])[0];if(["F","S","N","D"].includes(c))S.shifts[d]=S.shifts[d]||1;else if(c==="-")delete S.shifts[d]}L5.applied=mx}
+function l5RosterCode(d){const r=l5S().roster[d];if(r&&r[0])return r[0];return l5Shift(d)?"D":""}
+function l5RosterHTML(){const t=l5Today();const ym=L5.mon||t.slice(0,7);const [y,mo]=ym.split("-").map(Number);const first=ym+"-01";const nDays=new Date(y,mo,0).getDate();const lead=(l5Dow(first)+6)%7;
+  const MN=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];let cells="";for(let i=0;i<lead;i++)cells+=`<span></span>`;
+  for(let i=1;i<=nDays;i++){const d=ym+"-"+String(i).padStart(2,"0");const c=l5RosterCode(d);const lab=c?(L5_ROSTER[c]||{de:"Dienst"}).de:"";
+    cells+=`<button class="l5-rc ${c?"c"+(c==="-"?"X":c):""} ${d===t?"today":""}" data-act="l5Ros" data-d="${d}" aria-label="${fmtDate(d)} ${lab}"><b>${i}</b><small>${esc(lab)}</small></button>`}
+  return `<div class="card stack s l5-roster"><div class="row between"><h3 style="margin:0">Dienstplan</h3><div class="row"><button class="sm ghost" data-act="l5RosM" data-k="-1" aria-label="Monat zurück">‹</button><b class="ui">${MN[mo-1]} ${y}</b><button class="sm ghost" data-act="l5RosM" data-k="1" aria-label="Monat vor">›</button></div></div>
+   <p class="ui muted" style="font-size:.85rem;margin:0">Tippen wechselt: Früh → Spät → Nacht → Frei → leer. Diensttage bekommen die vier Taschenrunden (20 Minuten), die lange Sitzung liegt auf dem letzten freien Tag einer Woche mit zwei oder mehr Diensten. <span class="en">tap to cycle early → late → night → off</span></p>
+   <div class="l5-grid">${["Mo","Di","Mi","Do","Fr","Sa","So"].map(x=>`<i>${x}</i>`).join("")}${cells}</div>
+   <div class="row" style="flex-wrap:wrap;gap:.4rem"><button class="sm" data-act="l5RosCopy">Wie letzte Woche fortsetzen</button><span class="muted ui l5-wk2" style="font-size:.85rem">${esc(l5Week().text)}</span></div></div>`}
+ACT.l5Ros=el=>{const d=el.dataset.d;const C=["","F","S","N","-"];const cur=l5RosterCode(d);const nx=C[(Math.max(0,C.indexOf(cur==="D"?"N":cur))+1)%C.length];l5SetRoster(d,nx);rerender()};
+function l5SetRoster(d,code){const st=Date.now();l5S().roster[d]=[code,st];L5.applied=Math.max(L5.applied||0,st);S.shifts=S.shifts||{};if(["F","S","N","D"].includes(code))S.shifts[d]=1;else delete S.shifts[d];
+  if(d===l5Today()){const T=S.today;if(T&&T.date===d){if(!T.steps.some(s=>s.done)){try{buildSession()}catch(e){}}else l5Rebuild()}}try{saveSoon()}catch(e){}}
+ACT.l5RosM=el=>{const t=l5Today();const ym=L5.mon||t.slice(0,7);const [y,m]=ym.split("-").map(Number);const dt=new Date(y,m-1+(+el.dataset.k),1);L5.mon=dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0");rerender()};
+ACT.l5RosCopy=()=>{const t=l5Today();const ym=L5.mon||t.slice(0,7);const [y,m]=ym.split("-").map(Number);const n=new Date(y,m,0).getDate();let k=0;
+  for(let i=1;i<=n;i++){const d=ym+"-"+String(i).padStart(2,"0");if(d<=t||l5S().roster[d]&&l5S().roster[d][0])continue;const p=(l5S().roster[addDays(d,-7)]||[""])[0];if(p){l5SetRoster(d,p);k++}}
+  toast(k?k+" Tage eingetragen":"Nichts zu übernehmen – trag erst eine Woche ein.",2400);rerender()};
+function l5MePlan(el){l5Try("mePlan",()=>{
+  const sm=[...el.querySelectorAll("label.f")].find(l=>/Minuten pro Tag/.test(l.textContent));const s=sm&&sm.querySelector("small");if(s)s.textContent="Jede Stufe hat jeden Tag Hören und Lesen (mindestens 30 %). Diensttage: 4 × 5 Minuten.";
+  const hon=[...el.querySelectorAll("p.muted")].find(p=>/Ehrlich:/.test(p.textContent));if(hon)hon.textContent="Ehrlich: "+l5FcText(false)+" (Schätzung; je nach Vorwissen und Übung außerhalb der App.)";
+  const f=planForecast();const tg=l5S().target;const p=planToday();const H=L5_HOURS;
+  const html=`<div class="card stack s l5-plan"><h3 style="margin:0">Stunden bis B2</h3>
+    <p class="ui" style="margin:0">${esc(l5FcText(false))}</p><p class="ui muted" style="font-size:.85rem;margin:0">${esc(l5VocabText())}</p>
+    <p class="ui muted" style="font-size:.82rem;margin:0">Planungszahl: spätes A1 → B2 etwa ${H.plan} Lernstunden (Spanne ${H.lo}–${H.hi}, Schätzung). Gezählt wird jede Minute in der App und was du unten außerhalb einträgst. <span class="en">a planning estimate, not a promise</span></p>
+    <label class="f">Mein Ziel: B2 bis<input type="date" class="l5-tg" value="${tg||""}"><small>${tg?fmtDate(tg)+(f.needMinFor(tg)?" · dafür "+f.needMinFor(tg)+" Minuten am Tag":""):"Kein Ziel gesetzt"}</small></label>
+    <div class="ui" style="font-size:.88rem"><b>Heute (${p.budget} Min.):</b> ${esc(p.blocks.map(b=>((STRAND[b.t]||{}).name||b.t)+" "+b.min).join(" · "))}</div></div>`;
+  const first=el.querySelector(".card");if(first)first.insertAdjacentHTML("afterend",html+l5RosterHTML());else el.insertAdjacentHTML("afterbegin",html+l5RosterHTML());
+  const inp=el.querySelector(".l5-tg");if(inp)inp.onchange=e=>{const v=e.target.value;l5S().target=/^\d{4}-\d\d-\d\d$/.test(v)?v:null;l5S().tts=Date.now();try{saveSoon()}catch(x){}rerender()}})}
+
+// ---------------------------------------------------------------- 9. Ich → Verlauf: "Stunden", Vorher/Nachher, drei Fehler
+function l5Totals(){const t=l5Today(),mon=l5Monday(t);const wk={},all={};L5_FIELDS.forEach(f=>{wk[f]=0;all[f]=0});const L=l5S().led;for(const d in L){if(d>t)continue;for(const f of L5_FIELDS){const v=L[d][f]||0;all[f]+=v;if(d>=mon)wk[f]+=v}}return {wk,all}}
+function l5MeHist(el){l5Try("meHist",()=>{const f=planForecast(),H=L5_HOURS;const {wk,all}=l5Totals();const sum=o=>L5_FIELDS.reduce((a,k)=>a+(o[k]||0),0);const inS=o=>{const s=sum(o)-(o.ext||0);return s?Math.round(100*((o.hoer||0)+(o.les||0))/s):0};
+  const pct=x=>Math.max(0,Math.min(100,100*x/H.hi));
+  const rows=L5_FIELDS.map(k=>`<tr><td>${esc(L5_FNAME[k])}</td><td style="text-align:right">${l5HM(wk[k])}</td><td style="text-align:right">${l5HM(all[k])}</td></tr>`).join("");
+  const today=l5DayExt(l5Today());
+  const html=`<div class="card stack s l5-hours"><h3 style="margin:0">Stunden</h3>
+    <div class="l5-bar" style="position:relative;height:14px;border-radius:7px;background:var(--line,rgba(127,127,127,.25));overflow:hidden" aria-label="${l5Num(f.doneH)} von ${H.plan} Stunden"><i style="position:absolute;left:0;top:0;bottom:0;width:${pct(f.doneH)}%;background:var(--accent)"></i>
+      <b style="position:absolute;top:0;bottom:0;left:${pct(H.lo)}%;width:2px;background:currentColor;opacity:.4"></b><b style="position:absolute;top:0;bottom:0;left:${pct(H.plan)}%;width:2px;background:currentColor;opacity:.8"></b></div>
+    <div class="row between ui muted" style="font-size:.8rem"><span>0</span><span>${H.lo} · ${H.plan} · ${H.hi} h</span></div>
+    <p class="ui" style="margin:0">${esc(l5FcText(false))}${f.extH>=0.1?esc(` Davon außerhalb der App: ${l5Num(f.extH)} h.`):""}</p>
+    <table class="ui" style="font-size:.88rem;width:100%"><thead><tr><th style="text-align:left">Bereich</th><th style="text-align:right">diese Woche</th><th style="text-align:right">gesamt</th></tr></thead><tbody>${rows}</tbody></table>
+    <p class="ui muted" style="font-size:.85rem;margin:0">Hören & Lesen: diese Woche ${inS(wk)} %, gesamt ${inS(all)} % (Ziel: mindestens 30 %). Gezählt sind die Minuten der Plan-Blöcke und der Übungen; die Gesamtstunden oben nehmen pro Tag den größeren Wert aus Plan und App-Uhr.</p>
+    ${l5ExtHTML()}${today?`<button class="sm ghost" data-act="l5ExtReset">Heute außerhalb (${today} Min.) zurücksetzen</button>`:""}</div>`;
+  el.insertAdjacentHTML("afterbegin",html+l5BAHTML()+l5F3HTML(false))})}
+
+// --- "Deine drei Fehler der Woche" (Sundays) — l4's error queue and trap sentences
+function l5F3(){try{if(!l5Has("errqTop"))return [];return errqTop(3,7)||[]}catch(e){return []}}
+function l5F3HTML(home){const t=l5Today();if(home&&l5Dow(t)!==0)return "";const top=l5F3();if(!top.length)return home?"":"";const f3=l5S().f3;const sun=l5Dow(t)===0?t:addDays(t,-l5Dow(t));
+  if(l5Dow(t)===0&&!f3[t]){f3[t]=top.map(x=>[x.type,x.n]);try{saveSoon()}catch(e){}}const prev=f3[addDays(sun,-7)]||[];
+  return `<div class="card stack s l5-f3"><div class="eyebrow">Deine drei Fehler der Woche <span class="en">your three errors of the week</span></div>${top.map(x=>{const p=prev.find(y=>y[0]===x.type);
+    const tr=p?` · letzte Woche ${p[1]}× ${x.n<p[1]?"↓":x.n>p[1]?"↑":"→"}`:"";return `<div class="row between"><span class="ui"><b>${esc(x.name||x.type)}</b> · ${x.n}×${tr}<br><small class="muted">${esc(x.rule||"")}</small></span><button class="sm" data-act="l5F3" data-t="${esc(x.type)}">10 Sätze</button></div>`}).join("")}</div>`}
+ACT.l5F3=el=>{const type=el.dataset.t;let q=[];try{const its=(S.errq||[]).filter(i=>i.type===type).sort((a,b)=>(b.last||0)-(a.last||0));const it=its[0];const tr=l5Has("l4Traps")?l4Traps(type):[];
+    if(it)q=tr.slice(0,10).map(([r,i])=>({key:"eqt:"+it.k+":"+i,id:"eqt:"+it.k+":"+i,mode:"prod",isNew:false})).filter(x=>{try{return !!card(x.id)}catch(e){return false}})}catch(e){q=[]}
+  if(!q.length)return toast("Für diesen Fehler gibt es noch keine Übungssätze.");const box=Focus.open({title:"Fehler der Woche",sub:"10 Sätze mit derselben Falle"});
+  const t0=Date.now();cardRunner(box,q,{standalone:true,onDone:()=>{l5Add(l5Today(),"gram",Math.min(20,(Date.now()-t0)/60000));setTimeout(()=>{if(Focus.isOpen())Focus.close(true)},600)}})};
+
+// --- Vorher / Nachher: day 1, 30, 90, 180 (l7 records when present; l5 shows)
+function l5DayNo(){const ks=Object.keys(S.log||{}).filter(d=>S.log[d]&&S.log[d].act).sort();const first=ks[0]||l5Today();return diffDays(first,l5Today())+1}
+function l5BADue(){const n=l5DayNo(),ba=l5S().ba;for(const m of L5_BA.days){if(ba[m])continue;if(n>=m&&n<m+(m===1?21:30))return m}return 0}
+function l5BAPrompt(){const m=l5BADue();if(!m)return "";return `<div class="card tint stack s l5-ba"><div class="eyebrow">Vorher / Nachher · Tag ${m} <span class="en">before / after</span></div>
+  <div class="ui" style="font-size:.9rem">${m===1?"Heute halten wir fest, wie Sie anfangen: 45 Sekunden sprechen, fünf Sätze schreiben.":"Dieselben zwei Aufgaben wie an Tag 1 – danach liegen beide nebeneinander unter Ich → Verlauf."}</div><div class="row"><button class="sm primary" data-act="l5BA" data-m="${m}">Jetzt (etwa 3 Minuten)</button></div></div>`}
+ACT.l5BA=el=>{const m=+el.dataset.m||l5BADue()||1;const box=Focus.open({title:"Vorher / Nachher",sub:"Tag "+m});box.setAttribute("data-hx","speech");const can=l5Has("lxRecorder")&&(!l5Has("canRecord")||canRecord());let rec=null;
+  box.innerHTML=`<div class="stack s" style="max-width:640px;margin:0 auto"><h2>${esc(L5_BA.say.de)}</h2><p class="en">${esc(L5_BA.say.en)}</p><div class="l5-barec">${can?"":`<p class="ui muted" style="font-size:.86rem">Aufnahme ist auf diesem Gerät nicht möglich – heute zählt nur der Text.</p>`}</div>
+   <h3>${esc(L5_BA.write.de)}</h3><p class="en">${esc(L5_BA.write.en)}</p><textarea class="l5-batx" rows="6" style="width:100%" placeholder="Ich heiße … Ich arbeite …"></textarea><button class="primary l5-basave">Speichern</button></div>`;
+  if(can)try{lxRecorder($(".l5-barec",box),{text:"",who:"Ich",maxSec:45,keep:true,onDone:r=>{rec=r||null}})}catch(e){}
+  $(".l5-basave",box).onclick=()=>{const tx=$(".l5-batx",box).value.trim();if(tx.split(/[.!?]+/).filter(x=>x.trim()).length<3&&!rec)return toast("Schreib mindestens drei Sätze.");
+    l5S().ba[m]={d:l5Today(),t:Date.now(),txt:tx.slice(0,1200),key:rec&&rec.blobKey||null,sec:rec&&rec.sec||0,wpm:rec&&rec.wpm||0};try{saveSoon()}catch(e){}toast("Festgehalten.");Focus.close(true)}};
+ACT.l5BAPlay=el=>{const k=el.dataset.k;try{if(l5Has("l7PlayKey"))return l7PlayKey(k);if(l5Has("l7BeforeAfter")){const b=l7BeforeAfter();if(b&&b.play)return b.play(k)}}catch(e){}toast("Diese Aufnahme ist nicht auf diesem Gerät.")};
+function l5BAHTML(){const ba=l5S().ba;const ms=L5_BA.days.filter(m=>ba[m]);if(!ms.length)return "";
+  return `<div class="card stack s l5-baview"><div class="eyebrow">Vorher / Nachher</div><div class="l5-bacols" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.6rem">${ms.map(m=>{const e=ba[m];
+    return `<div class="stack s" style="min-width:0"><b class="ui">Tag ${m} · ${fmtDate(e.d)}</b>${e.key?`<button class="sm" data-act="l5BAPlay" data-k="${esc(e.key)}">${ic("play")} Anhören${e.sec?" · "+e.sec+" s":""}${e.wpm?" · "+e.wpm+" Wörter/Min.":""}</button>`:""}<div style="font-size:.92rem;white-space:pre-wrap;overflow-wrap:anywhere">${esc(e.txt||"")}</div><small class="muted ui">${(e.txt||"").split(/\s+/).filter(Boolean).length} Wörter</small></div>`}).join("")}</div></div>`}
+
+// ---------------------------------------------------------------- 10. merge rule (commutative, associative, idempotent)
+function l5Merge(a,b){a=a&&typeof a==="object"?a:{};b=b&&typeof b==="object"?b:{};const o={v:1};const J=x=>JSON.stringify(x===undefined?null:x);
+  const ta=+a.tts||0,tb=+b.tts||0;const tw=ta!==tb?(ta>tb?a:b):(J(a.target)>=J(b.target)?a:b);o.target=tw.target===undefined?null:tw.target;if(ta||tb)o.tts=Math.max(ta,tb);
+  const led={};const LA=a.led||{},LB=b.led||{};for(const d of new Set([...Object.keys(LA),...Object.keys(LB)])){const x=LA[d]||{},y=LB[d]||{};const e={};for(const f of new Set([...Object.keys(x),...Object.keys(y)])){e[f]=Math.max(+x[f]||0,+y[f]||0)}led[d]=e}o.led=led;
+  const pa=a.pace||{},pb=b.pace||{};const pace={};[["card","nc"],["lesson","nl"]].forEach(([v,n])=>{const A=[+pa[n]||0,+pa[v]||0],B=[+pb[n]||0,+pb[v]||0];const w=A[0]!==B[0]?(A[0]>B[0]?A:B):(A[1]>=B[1]?A:B);if(w[0]||w[1]){pace[v]=w[1];pace[n]=w[0]}});o.pace=pace;
+  const ro={};const RA=a.roster||{},RB=b.roster||{};for(const d of new Set([...Object.keys(RA),...Object.keys(RB)])){const x=RA[d],y=RB[d];if(!x||!y){ro[d]=x||y;continue}ro[d]=(+x[1]||0)!==(+y[1]||0)?((+x[1]||0)>(+y[1]||0)?x:y):(String(x[0])>=String(y[0])?x:y)}o.roster=ro;
+  const ba={};const BA=a.ba||{},BB=b.ba||{};for(const k of new Set([...Object.keys(BA),...Object.keys(BB)])){const x=BA[k],y=BB[k];if(!x||!y){ba[k]=x||y;continue}ba[k]=(+x.t||0)!==(+y.t||0)?((+x.t||0)<(+y.t||0)?x:y):(J(x)<=J(y)?x:y)}o.ba=ba;
+  const f3={};const FA=a.f3||{},FB=b.f3||{};for(const k of new Set([...Object.keys(FA),...Object.keys(FB)])){const x=FA[k],y=FB[k];f3[k]=!x||!y?(x||y):(J(x)>=J(y)?x:y)}o.f3=f3;
+  const xa=a.plus,xb=b.plus;if(xa||xb){o.plus=!xa||!xb?(xa||xb):(xa.d!==xb.d?(xa.d>xb.d?xa:xb):((+xa.m||0)>=(+xb.m||0)?xa:xb))}
+  return o}
+window.l5Merge=l5Merge;window.L5P={plan:l5Plan,fc:l5FcCore,merge:l5Merge,rows:l5Rows};
+
+// ---------------------------------------------------------------- 11. styles
+l5Try("css",()=>{if(typeof document==="undefined"||document.getElementById("l5css"))return;const s=document.createElement("style");s.id="l5css";s.textContent=`
+.l5-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}.l5-grid i{font-style:normal;text-align:center;font-size:.72rem;opacity:.7;font-family:var(--ui)}
+.l5-rc{min-height:44px;padding:2px 0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--ui);border-radius:8px;min-width:0}
+.l5-rc b{font-size:.85rem}.l5-rc small{font-size:.62rem;line-height:1;opacity:.85}.l5-rc.today{outline:2px solid var(--accent)}
+.l5-rc.cF{background:rgba(226,101,28,.18)}.l5-rc.cS{background:rgba(47,100,181,.2)}.l5-rc.cN{background:rgba(60,60,90,.35)}.l5-rc.cD{background:rgba(127,127,127,.25)}.l5-rc.cX{background:rgba(42,138,85,.18)}
+.l5-card .steps{margin-top:.3rem}.l5-ext .chip{cursor:pointer}`;document.head.appendChild(s)});
+
 // ===== Mephisto · integrator late fix-ups (13.5). Loaded after every package that adds cards at load (c_i2, c_i3, track L) and before c_p2_ui/c_cloud.
 // 1. L1 gives every card a level `lv` and a `rank` when c_l1 loads; cards that later files add at load (i2's chapter words, i3's phrases, l10's words …)
 //    would have neither. Rebuild L1's rank and the dictionary once here, so cardRank()/l4's order and tap-to-translate see them too.
 try{if(typeof L1!=="undefined"&&L1&&typeof L1.rebuildRank==="function"){L1.rebuildRank();if(typeof buildDict==="function")buildDict()}}catch(e){try{logError({message:"c_int L1 rank: "+(e&&e.message||e)})}catch(x){}}
+// 2. (13.6) Two notebooks: s7's „Mephistos Notizbuch" (12 pages in Die Mappe, one per 10-day run) and i8's six pages paid for kept weekly clauses
+//    (shown once on the Monday settlement card). Both stay; i8's earned pages are also kept readable in Die Mappe as their own set.
+try{if(typeof S7!=="undefined"&&S7&&typeof S7.docs==="function"&&Array.isArray(S7.sets)&&typeof ECON!=="undefined"){const SETS=S7.sets;const notizFor=wk=>typeof ECON.notizFor==="function"?ECON.notizFor(wk):null;
+  if(!SETS.some(s=>s[0]==="i8nb"))SETS.splice(1,0,["i8nb","Mephistos Notizbuch · Seiten aus der Wochenklausel","notebook pages earned with kept weekly clauses"]);
+  const _docs=S7.docs;S7.docs=function(){const L=_docs.apply(this,arguments);try{const wk=(S.pm&&S.pm.wk)||{};let i=0;
+    Object.keys(wk).sort().forEach(k=>{const W=wk[k];if(!(W&&W.res&&W.res.kept&&!W.res.off&&(W.rew==="notiz"||W.rew==="both")))return;const pg=notizFor(k);if(!pg)return;i++;
+      L.push({id:"i8nb"+i,set:"i8nb",lv:"A1",title:"Klausel-Notizbuch · Seite "+i,de:pg[0],en:pg[1],gl:[],q:[]})})}catch(e){}return L}}}catch(e){try{logError({message:"c_int notebook: "+(e&&e.message||e)})}catch(x){}}
 
 // ===== Mephisto · P2 · what the learner sees of the store: the "Sicherungen" list, restore, reset — nothing is replaced or deleted without a verified copy.
 // Loaded after c_final.js and before c_cloud.js. Hooks: MOD.after("meData") (c_views.js). REPLACES restoreFrom (c_views.js) and wraps ACT.reset (c_v126.js) — see MANIFEST.
@@ -8602,6 +12246,9 @@ MERGE_RULES.l9=(a,b)=>joinDeep(isObj(a)?a:{},isObj(b)?b:{});
 DEVICE_KEYS.add("sim");
 //   l8 {v, lv, k:{kind:[n,right,date]}, miss:{itemId:date}} (l8: Ohr-Training) — k per kind the entry with more items (tie: larger JSON), miss union with the
 //   newer date, lv the higher non-null level
+//   p3fsp {seen:{caseId:date}, strict:bool} (P3: FSP cases played) — seen union with the later date; strict OR (a join; turning it off on one
+//   device does not survive a merge with a device where it is on)
+MERGE_RULES.p3fsp=(a,b)=>joinDeep(isObj(a)?a:{},isObj(b)?b:{});
 MERGE_RULES.l8=(a,b)=>{const A=isObj(a)?a:{},B=isObj(b)?b:{};const o=Object.assign({},joinDeep(A,B));const k={};const ka=isObj(A.k)?A.k:{},kb=isObj(B.k)?B.k:{};
   for(const t of [...new Set([...Object.keys(ka),...Object.keys(kb)])].sort()){const x=ka[t],y=kb[t];k[t]=x===undefined?y:y===undefined?x:((+(x||[])[0]||0)!==(+(y||[])[0]||0)?((+(x||[])[0]||0)>(+(y||[])[0]||0)?x:y):(stableJ(x)>=stableJ(y)?x:y))}
   o.k=k;o.miss=joinDeep(isObj(A.miss)?A.miss:{},isObj(B.miss)?B.miss:{});const lv=[A.lv,B.lv].filter(x=>typeof x==="number");o.lv=lv.length?Math.max(...lv):(A.lv===undefined&&B.lv===undefined?undefined:null);if(o.lv===undefined)delete o.lv;return o};

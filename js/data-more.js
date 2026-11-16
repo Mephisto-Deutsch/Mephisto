@@ -2802,17 +2802,19 @@ BETX.caligari=[
 //        paraphrase (5th field, B1 and above): a German rewording used by „Bett vier hört zu" as the correct option; A1–A2 use the English.
 // Dignity (S10 P8): her lines are used only in her scenes, the listening round and her own Mappe document; never as flavour text.
 var BRANDT=BRANDT||{};
+// integrator 13.6 (i6 request, PLAN-I R1: I10's chart is canon): Bisoprolol (+ Spironolacton, Apixaban, Atorvastatin), VHF, KHK/PCI 2021, Appendektomie 1972 +
+//   Hysterektomie 1998 (not Cholezystektomie), 30 Packungsjahre, father MI at 58, line „Biso“.
 BRANDT.chart={
  name:"Margarete Brandt",age:71,city:"Heidelberg",
  social:"verwitwet, lebt allein (2. Stock ohne Aufzug); Tochter in Mannheim; der Hund ist während des Aufenthalts bei der Nachbarin",
  job:"vierzig Jahre Souffleuse am Theater, in Rente; ehrenamtlich Schauspielpatientin",
  cc:"Luftnot",
  hpi:"seit drei Tagen zunehmende Belastungsdyspnoe (zuerst beim Treppensteigen), seit dem Vorabend auch Ruhedyspnoe und Orthopnoe (schläft mit drei Kissen, zuletzt im Sitzen); Husten mit gelblichem Auswurf; beidseitige Beinschwellung seit etwa einer Woche; drei Tage bei der Tochter in Mannheim, Diuretikum dort nicht eingenommen (zu Hause vergessen); keine Nahrungsaufnahme seit dem Vorabend",
- pmh:"COPD; chronische Herzinsuffizienz mit reduzierter Ejektionsfraktion; arterielle Hypertonie; Z. n. Cholezystektomie 1998",
- meds:"Metoprololsuccinat 47,5 mg 1-0-0 · Ramipril 5 mg 1-0-1 · Torasemid 10 mg 1-0-0 (seit drei Tagen nicht eingenommen) · Tiotropium inhalativ 1× täglich · Salbutamol-Dosieraerosol bei Bedarf",
+ pmh:"COPD; chronische Herzinsuffizienz mit reduzierter Ejektionsfraktion; KHK, Z. n. Myokardinfarkt 2021 mit Stentimplantation (PCI); permanentes Vorhofflimmern; arterielle Hypertonie; Z. n. Appendektomie 1972, Hysterektomie 1998",
+ meds:"Bisoprolol 5 mg 1-0-0 · Ramipril 5 mg 1-0-1 · Torasemid 10 mg 1-0-0 (seit drei Tagen nicht eingenommen) · Spironolacton 25 mg 1-0-0 · Apixaban 5 mg 1-0-1 · Atorvastatin 40 mg 0-0-1 · Tiotropium inhalativ 1× täglich · Salbutamol-Dosieraerosol bei Bedarf",
  allergies:"Penicillin (Hautausschlag)",
- nox:"Ex-Raucherin, ca. 40 Packungsjahre, seit fünf Jahren abstinent; Alkohol selten",
- fam:"Vater: Herzinfarkt mit 62",
+ nox:"Ex-Raucherin, ca. 30 Packungsjahre, seit fünf Jahren abstinent; Alkohol selten",
+ fam:"Vater: Herzinfarkt mit 58",
  vitals:"Aufnahme: RR 150/90 mmHg · HF 104/min · AF 24/min · SpO₂ 89 % bei Raumluft · Temp. 37,8 °C",
  exam:"bibasale feuchte Rasselgeräusche, exspiratorisches Giemen, beidseitige Unterschenkelödeme, gestaute Halsvenen",
  night:"03:07: AF 28/min · SpO₂ 86 % unter 2 l O₂/min · BGA pH 7,31, pCO₂ 58 mmHg · K⁺ 5,4 mmol/l · Furosemid i. v. gegeben, NIV vorbereitet",
@@ -2853,7 +2855,7 @@ BRANDT.lines=[
  ["Ehrlich gesagt habe ich es hinausgezögert. Man will ja nicht wegen jeder Kleinigkeit kommen.","To be honest I put it off. One doesn't want to come in for every little thing.","B2","history","Sie ist absichtlich spät gekommen, weil sie niemanden belästigen wollte."],
  ["Je länger ich hier liege, desto mehr Fragen fallen mir ein. Haben Sie einen Moment?","The longer I lie here, the more questions occur to me. Do you have a moment?","B2","request","Ihr fallen immer mehr Fragen ein, und sie bittet um etwas Zeit."],
  ["Entweder Sie sagen mir die Wahrheit, oder Sie sagen gar nichts. Schonen müssen Sie mich nicht.","Either you tell me the truth or you say nothing at all. You needn't spare me.","B2","fear","Sie will die ganze Wahrheit hören, ohne Rücksichtnahme."],
- ["Mein Hausarzt hat mir etwas verschrieben, dessen Namen ich mir nie merken kann. Es fängt mit „Meto“ an.","My GP prescribed me something whose name I can never remember. It begins with 'Meto'.","B2","medication","Sie kennt den Namen eines Medikaments nicht, nur den Anfang."],
+ ["Mein Hausarzt hat mir etwas verschrieben, dessen Namen ich mir nie merken kann. Es fängt mit „Biso“ an.","My GP prescribed me something whose name I can never remember. It begins with 'Meto'.","B2","medication","Sie kennt den Namen eines Medikaments nicht, nur den Anfang."],
  ["Das Wort habe ich nicht verstanden. Sagen Sie es so, wie Sie es am Gartenzaun sagen würden.","I didn't understand that word. Say it the way you would say it over the garden fence.","B2","repair","Sie bittet darum, es in einfacher Alltagssprache zu sagen."],
  ["Ich bin nicht wehleidig, Herr Doktor. Wenn ich sage, es ist schlimm, dann ist es schlimm.","I am not one to make a fuss, Doctor. If I say it is bad, then it is bad.","B2","complaint","Sie übertreibt nicht; wenn sie klagt, ist es ernst."],
  ["Sie erklären es so, dass man es behält. Das können nicht viele.","You explain it in a way one remembers. Not many can.","B2","thanks","Seine Erklärungen kann sie sich merken, und das schätzt sie."],
