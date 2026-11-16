@@ -1134,7 +1134,7 @@ ACT.copyYuzu=()=>{const p=yuzuPack();copyText(JSON.stringify(p),$(".bk-txt"));to
 ACT.reset=()=>{const v=($(".rs-in")||{}).value;if(v!=="LÖSCHEN")return toast("Tippe LÖSCHEN zur Bestätigung");lsSet("mephisto_before_reset",JSON.stringify(S));S=fresh();saveNow();buildDict();applyPrefs();R.tab="home";toast("Zurückgesetzt. Eine Kopie liegt unter „mephisto_before_reset“.");rerender()};
 
 // ================= PHONE FEATURES (v10): speech check, Artikel-Blitz, numbers, terms, undo, haptics, coach, PWA =================
-const APP_VERSION="13.8.0";
+const APP_VERSION="13.9.0";
 const IS_PWA=!!window.MEPHISTO_PWA;
 const IS_STANDALONE=(()=>{try{return matchMedia("(display-mode: standalone)").matches||navigator.standalone===true}catch(e){return false}})();
 const IS_IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
@@ -7467,7 +7467,7 @@ function p3Chooser(el,o){const st=p3State();const all=p3AllCases().filter(p3Usab
 // (content/l1/*.js, tests/l1_*.js), which load this file with require().
 var L1M=(function(){
 "use strict";
-const SEP=["auseinander","zusammen","entgegen","gegenüber","zurecht","zurück","weiter","vorbei","voraus","voran","hinterher","herunter","hinunter","herüber","hinüber","herauf","hinauf","heraus","hinaus","herein","hinein","hervor","hinzu","herum","umher","nieder","wieder","übrig","bereit","sicher","krank","kennen","wahr","fest","statt","teil","hoch","fern","fort","frei","klar","dar","her","hin","los","mit","nach","vor","weg","bei","auf","aus","ein","ab","an","um","zu","durch","über","unter","wider","aufrecht","überein","stand","heim","nahe","tot","gut","schief","fertig","vorher","nachher","dazu","davon","dabei","dagegen","daran","darauf","zugrunde","zustande","zunichte","offen","still","voll","gleich","leicht","schwer","lieb","groß","klein","kurz","lang","rück","not","preis","stehen","sitzen","liegen","spazieren","hängen","entlang","empor","hintereinander","nebeneinander","miteinander","aneinander","aufeinander","zueinander","durcheinander","beisammen","beiseite","daher","dahin","davor","dazwischen","einher","herbei","hierher","hinweg","hindurch","umhin","vorweg","vorüber","zuvor","zwischen","abwärts","aufwärts","rückwärts","vorwärts","seitwärts","weh","leid","entzwei","fehl","kaputt"].sort((a,b)=>b.length-a.length);
+const SEP=["wohl","weh","auseinander","zusammen","entgegen","gegenüber","zurecht","zurück","weiter","vorbei","voraus","voran","hinterher","herunter","hinunter","herüber","hinüber","herauf","hinauf","heraus","hinaus","herein","hinein","hervor","hinzu","herum","umher","nieder","wieder","übrig","bereit","sicher","krank","kennen","wahr","fest","statt","teil","hoch","fern","fort","frei","klar","dar","her","hin","los","mit","nach","vor","weg","bei","auf","aus","ein","ab","an","um","zu","durch","über","unter","wider","aufrecht","überein","stand","heim","nahe","tot","gut","schief","fertig","vorher","nachher","dazu","davon","dabei","dagegen","daran","darauf","zugrunde","zustande","zunichte","offen","still","voll","gleich","leicht","schwer","lieb","groß","klein","kurz","lang","rück","not","preis","stehen","sitzen","liegen","spazieren","hängen","entlang","empor","hintereinander","nebeneinander","miteinander","aneinander","aufeinander","zueinander","durcheinander","beisammen","beiseite","daher","dahin","davor","dazwischen","einher","herbei","hierher","hinweg","hindurch","umhin","vorweg","vorüber","zuvor","zwischen","abwärts","aufwärts","rückwärts","vorwärts","seitwärts","weh","leid","entzwei","fehl","kaputt"].sort((a,b)=>b.length-a.length);
 const INSEP=["be","emp","ent","er","ge","miss","ver","zer","hinter","wider"];
 const AMBI=["durch","über","unter","um","wider","wieder","voll","hinter"];   // separable or not: decided by the participle / the card's "trennbar"/"untrennbar"
 const strip=de=>String(de||"").replace(/^(der|die|das) /,"").replace(/\s*\([^)]*\)/g,"").trim();
@@ -7506,7 +7506,7 @@ function nounForms(de,pl,info){const art=(/^(der|die|das) /.exec(de)||[])[1]||""
   if(/\s/.test(noun))return out;                       // phrases are indexed as a whole elsewhere
   add(noun,"");const P=nounPl(de,pl);
   const ndek0=/n-Dekl/.test(String(pl)+" "+String(info||""))||(art==="der"&&P.forms.length===1&&(/e$/.test(noun)&&P.forms[0]===noun+"n"||/(ent|ant|ist|at|oge|and|graf|soph|nom|ot|et|it|urg|arch|ekt)$/.test(noun)&&P.forms[0]===noun+"en"));
-  if((art==="der"||art==="das")&&!ndek0){if(/(s|ß|x|z|sch)$/.test(noun))add(noun+"es","Genitiv");else{add(noun+"s","Genitiv");if(!/(e|el|er|en|em|chen|lein|ling|ig|um|ma|o|a|i|u|y)$/.test(noun))add(noun+"es","Genitiv")}}
+  if((art==="der"||art==="das")&&!ndek0){if(/(s|ß|x|z|sch)$/.test(noun)){add(noun+"es","Genitiv");if(/nis$/.test(noun)||P.forms.some(f=>f.startsWith(noun+"s")))add(noun+"ses","Genitiv")/* integrator 13.9: des Zeugnisses, des Busses */}else{add(noun+"s","Genitiv");if(!/(e|el|er|en|em|chen|lein|ling|ig|um|ma|o|a|i|u|y)$/.test(noun))add(noun+"es","Genitiv")}}
   const ndek=/n-Dekl/.test(String(pl)+" "+String(info||""))||(art==="der"&&P.forms.length===1&&(/e$/.test(noun)&&P.forms[0]===noun+"n"||/(ent|ant|ist|at|oge|and|graf|soph|nom|ot|et|it|urg|arch|ekt)$/.test(noun)&&P.forms[0]===noun+"en"||/^(Herr|Mensch|Nachbar|Bauer|Held|Fürst|Prinz|Bär|Narr|Tor|Graf|Kamerad|Soldat|Patient|Student|Kollege|Junge|Kunde|Experte|Zeuge|Laie|Neffe|Bote|Erbe|Riese|Sklave|Rabe|Löwe|Affe|Hase|Name|Gedanke|Glaube|Wille|Friede|Buchstabe|Funke|Same)$/.test(noun)));
   if(ndek){add(/e$/.test(noun)?noun+"n":/^(Herr|Nachbar|Bauer)$/.test(noun)?noun+"n":noun+"en","Plural · auch Akkusativ/Dativ/Genitiv Singular (n-Deklination)");if(/^(Name|Gedanke|Glaube|Wille|Friede|Buchstabe|Funke|Same)$/.test(noun))add(noun+"ns","Genitiv");if(noun==="Herz")add("Herzens","Genitiv")}
   if(noun==="Herz"){add("Herzens","Genitiv");add("Herzen","Dativ / Plural")}
@@ -7521,7 +7521,7 @@ const K2X={brachte:"brächte",dachte:"dächte",wusste:"wüsste",konnte:"könnte"
 function splitVerb(inf,opt){opt=opt||{};inf=lc(inf);
   // returns {pre, base, sep}: pre = separable prefix ("" if none), base = verb without it
   if(opt.untrennbar)return {pre:"",base:inf,sep:false};
-  const cands=SEP.filter(p=>inf.startsWith(p)&&inf.length>p.length+3&&/[aeiouäöü]/.test(inf.slice(p.length,-2)));
+  const cands=SEP.filter(p=>inf.startsWith(p)&&inf.length>=p.length+3&&(/[aeiouäöü]/.test(inf.slice(p.length,-2))||inf.slice(p.length)==="tun"));   // integrator 13.9: base „tun“ (wehtun)
   for(const p of cands){const base=inf.slice(p.length);
     if(opt.pp){const pp=lc(opt.pp);if(pp.startsWith(p+"ge")||(pp.startsWith(p)&&(INSEP.some(i=>base.startsWith(i)&&base.length>i.length+3)||/ieren$/.test(base))))return {pre:p,base,sep:true};continue}
     if(opt.trennbar)return {pre:p,base,sep:true};
@@ -7541,15 +7541,17 @@ function parts(de,info,T){T=T||{};const refl=/^sich /.test(de);let inf=lc(strip(
   // 1. explicit principal parts on the card
   const tok=I.split(/\s*·\s*/).map(s=>s.trim()).filter(Boolean);let iPerf=-1;const fin=[];
   tok.forEach((t,i)=>{const m=/^(hat\/ist|ist\/hat|hat|ist) (sich )?([a-zäöüß]+)$/.exec(t);if(m&&iPerf<0){iPerf=i;res.aux=m[1];res.pp=m[3];return}
-    if(/^[a-zäöüß]+( sich)?( [a-zäöüß]+)?$/.test(t)&&!/^(trennbar|untrennbar|formell|ugs|salopp|neutral|gehoben|reflexiv|unpersönlich|schwach|stark|regelmäßig|unregelmäßig|transitiv|intransitiv|auch|oft|meist|selten|nur)\b/.test(t)&&i<4)fin.push([t.replace(/ sich\b/,""),i])});
-  const untr=/untrennbar/.test(I),tr=!untr&&/trennbar/.test(I);
+    if(/^[a-zäöüß]+( sich)?( [a-zäöüß]+)?$/.test(t)&&!/^(trennbar|untrennbar|nicht|formell|ugs|umgangssprachlich|regional|landschaftlich|veraltet|norden|süden|mitte|im|salopp|neutral|gehoben|reflexiv|unpersönlich|schwach|stark|regelmäßig|unregelmäßig|transitiv|intransitiv|auch|oft|meist|selten|nur)\b/.test(t)&&i<4)fin.push([t.replace(/ sich\b/,""),i])});
+  const untr=/untrennbar|nicht trennbar/.test(I),tr=!untr&&/trennbar/.test(I);   // integrator 13.9: „nicht trennbar“ (wiederholen) is untrennbar
+  {const m=/trennbar:\s*([a-zäöüß]+)\s*…\s*([a-zäöüß]+)/.exec(I);if(m&&!untr&&!fin.some(x=>x[0]===m[1]+" "+m[2]))fin.push([m[1]+" "+m[2],0])}   // „trennbar: biegt … ab“
   const sv=splitVerb(inf,{pp:res.pp,trennbar:tr,untrennbar:untr,isVerb:T.isVerb});res.pre=sv.pre;res.base=sv.base;res.sep=sv.sep;
   const finite=f=>{const w=f.split(" ");return (w.length===2&&w[1]===res.pre)||(w.length===1&&!res.sep)?w[0]:null};
   const F=fin.map(([t,i])=>[finite(t),i]).filter(x=>x[0]&&x[0]!==inf);
   if(F.length){const reg=weakParts(res.base);
     if(F.length>=2){let a=F[0][0],b=F[1][0];const at=/t$/.test(a),bt=/t$/.test(b);
       // which is the present (er-form)? one that ends in -t when the other does not; else by position (L8: perf · pret · p3 ; I3: p3 · pret · perf)
-      if(iPerf>F[1][1]){res.p3=a;res.pret=b}else if(at&&!bt){res.p3=a;res.pret=b}else if(bt&&!at){res.pret=a;res.p3=b}else if(/te$/.test(b)&&!/te$/.test(a)){res.p3=a;res.pret=b}else{res.pret=a;res.p3=b}}
+      if(a===reg.p3&&b!==reg.p3){res.p3=a;res.pret=b}else if(b===reg.p3&&a!==reg.p3){res.p3=b;res.pret=a}   // integrator 13.9: the regular er-form decides (streiten: „streitet · stritt“)
+      else if(iPerf>F[1][1]){res.p3=a;res.pret=b}else if(at&&!bt){res.p3=a;res.pret=b}else if(bt&&!at){res.pret=a;res.p3=b}else if(/te$/.test(b)&&!/te$/.test(a)){res.p3=a;res.pret=b}else{res.pret=a;res.p3=b}}
     else{const a=F[0][0];if(iPerf>F[0][1]&&/t$/.test(a)&&!/te$/.test(a)&&a===reg.p3)res.p3=a;else if(/te$/.test(a)||!/t$/.test(a)||a!==reg.p3)res.pret=a;else res.p3=a}
     res.src="card"}
   // 2. tables (strong verbs): the verb itself, or prefix + a strong base
@@ -7571,6 +7573,8 @@ function persons(P,T){ // all finite forms of the BASE part: [[form,label]…]
   if(C){C[0].forEach(f=>add(f,"Präsens"));C[1].forEach(f=>add(f,"Präteritum"));add(base,"Infinitiv");k2(C[1][2]);
     {const pr=C[1][0];if(pr&&!/e$/.test(pr)){if(/(t|d|s|ß|z)$/.test(pr))add(pr+"est","Präteritum");add(pr+(/(t|d)$/.test(pr)?"et":"t"),"Präteritum")}}
     if(!/^(sein|haben|werden|wissen|können|müssen|dürfen|sollen|wollen|mögen)$/.test(base)){const p3=C[0][2];if(!/[äö]/.test(p3)&&p3!==st+"t"&&p3!==st+"et")add(/(t|d)$/.test(st)?p3:p3.slice(0,-1),"Imperativ");else add(st,"Imperativ")}
+    // integrator 13.9: the card's own Präteritum when it differs from the table (abschaffen: schaffte ab ≠ schuf; aufhängen: hängte auf ≠ hing)
+    {const pr=P.pret;if(pr&&/te$/.test(pr)&&!out.some(x=>x[0]===pr)){add(pr,"Präteritum");["st","n","t"].forEach(x=>add(pr+x,"Präteritum"))}}
     return out}
   const e=needsE(st)?"e":"";const regP3=st+e+"t";const eln=/(el|er)n$/.test(base);
   add(eln?st.replace(/e(l|r)$/,"$1")+"e":st+"e","Präsens");if(eln)add(st+"e","Präsens");
@@ -7601,8 +7605,9 @@ const ENDS=["e","en","er","es","em"];
 function adjForms(de){const a=lc(strip(de));const out=[];const add=(f,l)=>{if(f&&!out.some(x=>x[0]===f))out.push([f,l])};if(/\s|-$/.test(a)||a.length<2)return out;
   add(a,"");let attr=a;if(a==="hoch")attr="hoh";else if(/(el|er)$/.test(a)&&ADJ_IRR[a])attr=a.replace(/e(l|r)$/,"$1");else if(/[^e]e$/.test(a))attr=a.slice(0,-1);
   if(a==="teuer"||a==="sauer")attr=a.replace(/er$/,"r");
+  if(a==="fit"){attr="fitt"}   // integrator 13.9 (v4 report): fitte, fitter, am fittesten — the t doubles
   ENDS.forEach(e=>add(attr+e,"dekliniert"));if(attr!==a&&/(er|el)$/.test(a))ENDS.forEach(e=>add(a+e,"dekliniert"));if(/el$/.test(a))add(a+"n","dekliniert");
-  let comp,sup;if(ADJ_IRR[a]){comp=ADJ_IRR[a][0];sup=ADJ_IRR[a][1]}else{const b=ADJ_UML[a]?umlaut(a):a;const b2=/[^e]e$/.test(b)?b.slice(0,-1):b;comp=b2+"er";sup=b+(/(d|t|s|ß|z|x|sch)$/.test(b)&&!/(end|ert|igt)$/.test(b)?"est":"st")}
+  let comp,sup;if(ADJ_IRR[a]){comp=ADJ_IRR[a][0];sup=ADJ_IRR[a][1]}else{const b=ADJ_UML[a]?umlaut(a):a;const b2=a==="fit"?"fitt":/[^e]e$/.test(b)?b.slice(0,-1):b;comp=b2+"er";sup=(a==="fit"?"fitt":b)+(/(d|t|s|ß|z|x|sch)$/.test(b)&&!/(end|ert|igt)$/.test(b)?"est":"st")}
   if(a.length>2&&!/^(mehr|weniger|lieber|eher|besser)$/.test(a)){add(comp,"Komparativ");if(comp!=="mehr"&&comp!=="weniger")ENDS.forEach(e=>add(comp+e,"Komparativ"));ENDS.forEach(e=>add(sup+e,"Superlativ"))}
   return out}
 // ---------------------------------------------------------------- tokens
@@ -7704,11 +7709,16 @@ let TAB=null;
 function tables(){if(TAB)return TAB;const T={strong:{},conj:{}};
   const rows=(typeof CONJ!=="undefined"?CONJ:[]).concat(typeof VERBS2!=="undefined"?[...(VERBS2.strong||[]),...(VERBS2.weak||[])]:[]);
   rows.forEach(v=>{if(!v||!v[2]||!v[3])return;T.conj[v[0]]=[v[2],v[3]];const m=/^(hat|ist) (.+)$/.exec(v[4]||"");if(m&&!T.strong[v[0]])T.strong[v[0]]=[v[2][2],v[3][2],m[2],m[1]]});
-  (typeof STARK!=="undefined"?STARK:[]).forEach(v=>{const m=/^(hat|ist) (.+)$/.exec(v[4]||"");if(!m||/\s/.test(v[2]))return;T.strong[v[0]]=[v[2],v[3].split("/")[0],m[2].split("/")[0],m[1]]});
+  // integrator 13.9 (v3/v4 bug reports): STARK rows with „hat/ist …“ (biegen) were skipped; a few strong verbs the tables lack
+  (typeof STARK!=="undefined"?STARK:[]).forEach(v=>{const m=/^(hat\/ist|ist\/hat|hat|ist) (.+)$/.exec(v[4]||"");if(!m||/\s/.test(v[2]))return;T.strong[v[0]]=[v[2],v[3].split("/")[0],m[2].split("/")[0],m[1].split("/")[0]]});
+  const XS={haben:["hat","hatte","gehabt","hat"],werben:["wirbt","warb","geworben","hat"],sterben:["stirbt","starb","gestorben","ist"],verderben:["verdirbt","verdarb","verdorben","hat"],gelten:["gilt","galt","gegolten","hat"]};
+  Object.keys(XS).forEach(k=>{if(!T.strong[k])T.strong[k]=XS[k]});
   const verbs=new Set();CATALOG.forEach(c=>{if(c.type==="v"&&c.kind==="word")verbs.add(lc(M.strip(c.de).replace(/^sich /,"")))});
   T.isVerb=b=>!!T.strong[b]||verbs.has(b);TAB=T;return T}
 L1.safe("verbinfo",()=>{if(!M)return;const T=tables();let n=0;
   CATALOG.forEach(c=>{if(c.kind!=="word"||c.type!=="v"||c.senseOf)return;const bare=M.strip(c.de).replace(/^sich /,"");if(/\s/.test(bare))return;
+    // integrator 13.9: card info strings that carried wrong principal parts (v3/v4 reports) are corrected before parsing (also what the card back shows)
+    if(typeof L1_INFOFIX!=="undefined"&&L1_INFOFIX[c.id]!=null)c.info=L1_INFOFIX[c.id];
     const info=String(c.info||"");const P=M.parts(c.de,info,T);if(!P)return;c.vp=[P.p3,P.pret,P.pp,P.aux,P.pre];
     // only cards that show no principal parts get them; only when the forms are certain (strong-verb table, or a regular verb whose participle the card confirms / that is unmistakably weak)
     if(/(^|· )(hat|ist|hat\/ist|ist\/hat) (sich )?[a-zäöüß]+/.test(info)&&info.split(" · ").filter(t=>/^[a-zäöüß]+( sich)?( [a-zäöüß]+)?$/.test(t.trim())).length>=2)return;
@@ -7861,6 +7871,9 @@ function derive(word,ctx,depth){const lw=lc(word);const cap=isCapW(word);const s
     if(best)return mk(g(best.Lr)+" + "+g(best.R),"zusammengesetzt: "+M.strip(best.Lr.c.de)+" + "+M.strip(best.R.c.de)+" ("+(artOf(best.R.c.de)||"")+" …"+M.strip(best.R.c.de).toLowerCase()+")",best.R)}
   return null}
 function find1(word,ctx,depth){word=String(word||"").replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu,"");if(!word)return null;const lw=lc(word);ctx=ctx||{};if(!FUNC)parseFunc();
+  // integrator 13.9: a separable prefix closing the clause decides first — before homographs (macht/Macht) and the function-word list (gibt, geht,
+  // lässt …), which used to take the finite form for the base verb: „Er macht es heute auf“ → aufmachen, „Er gibt es ab“ → abgeben
+  {const lastW=ctx&&ctx.last?lc(ctx.last):"";if(lastW&&lastW!==lw&&!isCapW(word)){const sp=candidates(lw).filter(e=>e.split&&e.split===lastW);if(sp.length){const e=choose(sp,word,ctx);if(e)return deckRes(e,word,ctx)}}}
   let r=homo(lw,word,ctx);if(r)return r;
   const cap=isCapW(word),mid=cap&&!ctx.start;const cands=candidates(lw);
   const F=FUNC[lw];
@@ -8833,15 +8846,28 @@ function l4UndoCheck(){if(L4.inRate||!L4.U.length||typeof S==="undefined")return
   lxAround("isDue","l4",function(o,a){const key=String(a[0]);if(key.startsWith("p:")&&l4M().x[key])return false;const e=l4M().c[key];if(!e)return o.apply(this,a);return e[6]<=l4Day()&&!l4Suspended(key)});
   lxAround("dueKeys","l4",function(o,a){return memDue().filter(id=>typeof card!=="function"||card(id))});
   lxAround("prodPool","l4",function(o,a){return []});
+  // integrator 13.9: placement level 0–4 (A1…C1): the higher of the self/plan placement (S.placement) and i4's test (lowest skill of S.place.lv)
+  function l4PlaceLv(){let p=0;try{if(S.placement&&typeof LV==="function")p=Math.max(p,LV(S.placement))}catch(e){}
+    try{const L=S.place&&S.place.lv;if(L&&typeof L==="object"){const v=Object.values(L).filter(x=>typeof x==="number");if(v.length)p=Math.max(p,Math.min(...v))}}catch(e){}return Math.max(0,Math.min(4,p|0))}
+  try{window.l4PlaceLv=l4PlaceLv}catch(e){}
   lxAround("newPool","l4",function(o,a){const tag=a[0];const out=o.apply(this,a);if(tag||!out.length)return out;const n=out.length;const m=l4M();
     const ok=c=>c&&!S.cards[c.id]&&!m.c[c.id]&&(c.kind!=="satz"||S.unlocked[c.id]||String(c.id).startsWith("gc:"));const seen=new Set();const res=[];const push=c=>{if(res.length<n&&ok(c)&&!seen.has(c.id)){seen.add(c.id);res.push(c)}};
-    try{if(typeof preToday==="function")(preToday()||[]).forEach(x=>push(card(typeof x==="string"?x:x&&x.id)))}catch(e){}
-    try{(LX.feeds||[]).forEach(fn=>{try{(fn()||[]).forEach(id=>push(card(id)))}catch(e){}})}catch(e){}
+    /* integrator 13.9 (placement decision): a placed learner's chapter/pre-teach feeds skip words more than one level below the placement */
+    let plF=0;try{plF=l4PlaceLv()}catch(e){}const lvF=c=>typeof c.lv==="number"?c.lv:(typeof LV==="function"?LV(c.level||"B1"):2);const pushF=c=>{if(plF>0&&c&&c.kind==="word"&&lvF(c)<plF-1)return;push(c)};
+    try{if(typeof preToday==="function")(preToday()||[]).forEach(x=>pushF(card(typeof x==="string"?x:x&&x.id)))}catch(e){}
+    try{(LX.feeds||[]).forEach(fn=>{try{(fn()||[]).forEach(id=>pushF(card(id)))}catch(e){}})}catch(e){}
     out.filter(c=>c.kind!=="word").forEach(push);
     let cap=4;try{cap=Math.min(4,(typeof learnerLv==="function"?learnerLv():(typeof levelCap==="function"?levelCap()-1:3))+1)}catch(e){}
+    try{cap=Math.max(cap,l4PlaceLv())}catch(e){}   // integrator 13.9: a placed learner's level opens its band even before the evidence has caught up
     const lvOf=c=>typeof c.lv==="number"?c.lv:(typeof LV==="function"?LV(c.level||"B1"):2);const words=[];let i=0;const pos=new Map(out.map((c,j)=>[c.id,j]));
     (typeof allCards==="function"?allCards():[]).forEach(c=>{i++;if(c.kind!=="word"||!ok(c))return;const lv=lvOf(c);if(lv>cap)return;words.push([lv,typeof c.rank==="number"?c.rank:1e9,pos.has(c.id)?pos.get(c.id):1e6+i,c])});
-    words.sort((x,y)=>x[0]-y[0]||x[1]-y[1]||x[2]-y[2]);words.forEach(w=>push(w[3]));out.forEach(push);return res});
+    words.sort((x,y)=>x[0]-y[0]||x[1]-y[1]||x[2]-y[2]);
+    // integrator 13.9 (owner decision: the placement level is respected): placed at level p (S.placement, or i4's placement test S.place.lv),
+    // the new words start in the band p / p−1 — two of level p for one of p−1 — instead of A1 first; the rest follows in the usual order
+    try{const pl=l4PlaceLv();if(pl>0){const band=words.filter(w=>w[0]===pl),low=words.filter(w=>w[0]===pl-1);const head=[];let bi=0,li=0;
+      while(bi<band.length||li<low.length){for(let k=0;k<2&&bi<band.length;k++)head.push(band[bi++]);if(li<low.length)head.push(low[li++])}
+      const hs=new Set(head.map(w=>w[3].id));words.splice(0,words.length,...head,...words.filter(w=>!hs.has(w[3].id)))}}catch(e){}
+    words.forEach(w=>push(w[3]));out.forEach(push);return res});
   lxAround("buildQueue","l4",function(o,a){const opt=a[0]||{};const q=o.apply(this,a);L4.qt=Date.now();const rank=new Map();memDue().forEach((id,i)=>rank.set(id,i));
     const rev=[],add=[];q.forEach(it=>{if(String(it.key).startsWith("p:"))return;(it.isNew?add:rev).push(it)});
     const R2=rev.map(it=>{if(String(it.key).startsWith("gc:")){L4.PEND.set(it.key,"prod");return it}const n=l4Item(it.key,false);return Object.assign({},it,{id:n.id,mode:n.mode})});
@@ -11947,7 +11973,9 @@ function i2Css(){if(document.getElementById("i2css"))return;const s=document.cre
 function i2Realm(n){const r=PROG.realm(n);const lv=PROG.lv(n);let reached=null;try{const won=(S.realmDone||{})[r+1]||(S.realmDone||{})[I2_ROMAN[r]];if(won)reached=won}catch(e){}
   return reached?`Reich ${I2_ROMAN[r]} · ${lv} erreicht am ${fmtDate(reached)}`:`Reich ${I2_ROMAN[r]} · ${I2_REALM[r]} · Ziel ${lv}`}
 function i2Banner(){const n=PROG.cur(),w=PROG.week();const f=PROG.forecast();
-  const pace=f.fspDate?`Bei diesem Tempo: ${f.b2Date?"B2 am "+fmtDate(f.b2Date)+" · ":""}Fachsprachprüfung am ${fmtDate(f.fspDate)}.`:"";
+  // integrator 13.9 (owner decision: l5's wording moved into i2): a chapter-pace date is the date the MATERIAL is reached, not a B2/FSP readiness date
+  const my=d=>{const s=String(d||"");return /^\d{4}-\d\d/.test(s)?s.slice(5,7)+"/"+s.slice(0,4):s};
+  const pace=(f.b2Date||f.fspDate)?`Stoff-Tempo: ${f.b2Date?"Kapitel 32 etwa "+my(f.b2Date):""}${f.b2Date&&f.fspDate?", ":""}${f.fspDate?"Kapitel 40 etwa "+my(f.fspDate):""} – Stoff, nicht Können.`:"";
   const late=f.late?`<div class="tch-merke i2-late" style="font-size:.85rem">${esc("Ihr Tempo reicht für den "+fmtDate(f.fspDate)+". Ihre Prüfung ist am "+fmtDate(f.exam)+". Einer von beiden Terminen lügt. Zehn Minuten mehr am Tag, und es ist nicht meiner.")}<div class="en">Your pace gets you there on ${fmtDate(f.fspDate)}. Your exam is on ${fmtDate(f.exam)}. One of those dates is lying. Ten more minutes a day and it isn't mine.</div></div>`:"";
   const t=PROG.today();
   return `<div class="card stack s i2-weg"><div class="row between"><div class="eyebrow">${esc(i2Realm(n))}</div><button class="sm ghost" data-act="i2Weg">Der Weg</button></div>
@@ -15327,6 +15355,647 @@ const I9=(function(){
 })();
 function dayItem(ev){return I9.dayItem(ev)}
 
+// ===== Mephisto · i10 — the investment layer and the endgame (PLAN-I i10, R7).
+// Glut ledger (S.inv) · Das Grimoire (sigils, decay, repair, five abilities, gold pages, Randnotizen) · wagers (Tageswette, Doppelt oder nichts, Wochenwette)
+// · eight relics · Aufträge (errands, letters, patient cases) · Nachtdienst (BVE.night) · Walpurgisnacht boss rush (Duel.start rush) · Wochenprüfung
+// · Zweiter Pakt (40 C1 clauses, Approbation) · ranks and the Gegenvertrag · 40 Zugeständnisse · Kabinett grades, sets and variants.
+// Rules: Glut is earned by correct recall only (R7 list) and is spent only on relic charges, wager stakes and cosmetic variants. Nothing here writes a seal,
+// soul, IOU, gate item, P().sealed/ch/debt, S.seal, S.cp, S.ev or another package's key. Relics never act in a real (gate) duel.
+// Hooks: MOD.after viewHome/viewPakt/viewPractice/viewLearn "i10"; MOD.around kabCards "i10" (grade suffix), buildQueue "i10" (Gretchens Spindel only, +20 due cards on a charged day).
+(function(){
+const G=window;const has=n=>typeof G[n]==="function";
+const CFG=typeof I10_CFG!=="undefined"?I10_CFG:{earn:{},wager:{},dbl:{},relic:{},quest:{},night:{},ngp:{}};
+const I10_ERRS=[];G.I10_ERRS=I10_ERRS;
+const err=(e,w)=>{try{I10_ERRS.push((w||"")+": "+(e&&e.message||e));if(I10_ERRS.length>30)I10_ERRS.shift();console.error("i10",w,e)}catch(x){}};
+const T=()=>todayKey();
+const du=()=>{try{return P().du===true}catch(e){return false}};
+function fill(s,v){s=String(s==null?"":s);if(v)for(const k in v)s=s.split("{"+k+"}").join(String(v[k]));return s}
+function L(k,v){const l=(typeof MEPH10!=="undefined"&&MEPH10[k])||["",""];return [fill(du()&&l[2]?l[2]:l[0],v),fill(l[1],v)]}
+function LL(l,v){return [fill(du()&&l[2]?l[2]:l[0],v),fill(l[1],v)]}
+const sayH=(l,cls)=>{try{return has("pkSay")?pkSay(l,false,cls):`<p>${esc(l[0])}</p>`}catch(e){return `<p>${esc(l[0])}</p>`}};
+const tst=(m,ms)=>{try{toast(m,ms||2600)}catch(e){}};
+const evEmit=(n,d)=>{try{if(G.EV&&EV.emit)EV.emit(n,d)}catch(e){}};
+const icn=n=>{try{return has("ic")?ic(n):""}catch(e){return ""}};
+function hash(s){let h=2166136261;s=String(s);for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0).toString(36)}
+function rng(seed){let s=0;String(seed==null?"x":seed).split("").forEach(ch=>s=(s*31+ch.charCodeAt(0))>>>0);return ()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296}}
+function rshuffle(a,r){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function stable(o){if(o===null||typeof o!=="object")return JSON.stringify(o);if(Array.isArray(o))return "["+o.map(stable).join(",")+"]";return "{"+Object.keys(o).sort().map(k=>JSON.stringify(k)+":"+stable(o[k])).join(",")+"}"}
+function monday(k){const [y,m,d]=k.split("-").map(Number);const dt=new Date(y,m-1,d);return addDays(k,-((dt.getDay()+6)%7))}
+function hour(){try{return new Date().getHours()}catch(e){return 12}}
+function shiftToday(){try{const v=(S.shifts||{})[T()];return !!v&&v!=="frei"&&v!=="rest"}catch(e){return false}}
+const tired=()=>hour()>=22||hour()<5||shiftToday();
+// device id (device-local, never synced): used only to keep each device's earning counter separate (merge = max per day per device)
+let DEV=null;function dev(){if(DEV)return DEV;try{DEV=lsGet("mephisto_i10_dev")}catch(e){}if(!DEV){DEV="d"+Math.floor(Math.random()*36**5).toString(36);try{lsSet("mephisto_i10_dev",DEV)}catch(e){}}return DEV}
+
+// ================================================================ state: S.inv (one key; merge rule inMerge below)
+function inv(){if(!S.inv||typeof S.inv!=="object"||Array.isArray(S.inv))S.inv={};const v=S.inv;
+  const D={d:{},old:{},spent:[],so:{},relic:{have:{},eq:{l:[],ts:0},use:{}},ach:{},ngp:{cl:{}},night:{},wager:{},wk:{},wt:{},dbl:{},q:{open:{l:[],ts:0},done:{}},rep:{},lr:{},st:{},mk:{clr:{},ok:{},bad:{}},run:{},rank:{lv:0,d:{},s:{}},gv:{},rush:{runs:{}},rg:"",bw:{},kvs:{},seen:{}};
+  for(const k in D)if(v[k]===undefined||typeof v[k]!==typeof D[k]||Array.isArray(D[k])!==Array.isArray(v[k]))v[k]=JSON.parse(JSON.stringify(D[k]));
+  ["relic","q","mk","rank","rush","ngp"].forEach(k=>{for(const s in D[k])if(v[k][s]===undefined)v[k][s]=JSON.parse(JSON.stringify(D[k][s]))});return v}
+const save=()=>{try{saveSoon()}catch(e){}};
+
+// ---------------------------------------------------------------- daily counters per device: d[day][dev][field] (Glut fields g*, achievement counters)
+function dcAdd(f,n,day){const I=inv();day=day||T();const o=((I.d[day]=I.d[day]||{})[dev()]=I.d[day][dev()]||{});o[f]=(o[f]||0)+n;save()}
+function dcDay(f,day){const I=inv();const D=I.d[day]||{};let s=0;for(const dv in D){const o=I.old[dv];if(o&&o.to>=day)continue;s+=+(D[dv][f]||0)}return s}
+function dcMine(f,day){const o=(inv().d[day||T()]||{})[dev()]||{};return +(o[f]||0)}
+function dcSum(f,from,to){const I=inv();let s=0;for(const day in I.d){if(from&&day<from)continue;if(to&&day>to)continue;s+=dcDay(f,day)}if(!from)for(const dv in I.old)s+=+((I.old[dv].s||{})[f]||0);return s}
+const GF=["gc","gl","gd","gq","gs","gw","gx"];
+const GSRC={c:"Karten",l:"Lektionen",d:"Duelle",q:"Aufträge",s:"Stationen",w:"Wetten",x:"Doppelt oder nichts"};
+function earned(from,to){return GF.reduce((a,f)=>a+dcSum(f,from,to),0)}
+function spentTotal(){const I=inv();let s=I.spent.reduce((a,x)=>a+(+x.n||0),0);for(const dv in I.so)s+=+(I.so[dv].n||0);return s}
+function reserved(){const I=inv();let r=0;const w=I.wager[T()];if(w&&!w.res)r+=+w.st||0;const k=I.wk[monday(T())];if(k&&!k.res)r+=+k.st||0;return r}
+function balance(){return Math.max(0,earned()-spentTotal())}
+function avail(){return Math.max(0,balance()-reserved())}
+// earning (R7): c 1/card right at interval ≥ 7 d (cap 20/day/device) · l 5/lesson round ≥ 80 % (once per lesson per day) · d 1/real-duel hit (cap 20/day)
+// · q 10/errand (first completion) · s 15/station passed (first pass of each station) · w wager winnings · x Doppelt-oder-nichts winnings
+function earn(src,n,why){n=Math.max(0,Math.floor(+n||0));if(!n)return 0;const f="g"+src;const cap=src==="c"?CFG.earn.cardCap:src==="d"?CFG.earn.duelCap:0;
+  if(cap){const have=dcMine(f);n=Math.min(n,Math.max(0,cap-have));if(!n)return 0}
+  const first=earned()===0;dcAdd(f,n);evEmit("glut",{n,src,why:why||""});if(first)setTimeout(()=>tst(L("glut_first")[0],4200),300);return n}
+function spend(k,n,o){o=o||{};n=Math.max(0,Math.floor(+n||0));if(!n)return true;const ok=/^(ws|wk|dn|rc|kv|u):/.test(k);if(!ok)return false; // whitelist: stakes, charges, variants, undo
+  if(!o.force&&avail()<n)return false;const I=inv();const id=dev()+":"+k+":"+Math.floor(Math.random()*36**4).toString(36);I.spent.push({id,d:T(),n,k});save();evEmit("glut",{n:-n,src:k.split(":")[0]});return true}
+function spentOf(prefix){return inv().spent.filter(x=>String(x.k||"").indexOf(prefix)===0)}
+function compact(){try{const I=inv();const cut=addDays(T(),-(CFG.keepDays||400));const days=Object.keys(I.d).filter(d=>d<cut);if(days.length){
+    const devs=new Set();days.forEach(d=>Object.keys(I.d[d]).forEach(x=>devs.add(x)));devs.forEach(dv=>{const o=I.old[dv]||{to:"",s:{}};days.forEach(d=>{if(o.to&&d<=o.to)return;const r=(I.d[d]||{})[dv];if(r)for(const f in r)o.s[f]=(o.s[f]||0)+(+r[f]||0)});o.to=days.reduce((a,b)=>a>b?a:b,o.to||"");I.old[dv]=o});
+    days.forEach(d=>delete I.d[d])}
+  const oldSp=I.spent.filter(x=>x.d<cut);if(oldSp.length){oldSp.forEach(x=>{const dv=String(x.id).split(":")[0];const o=I.so[dv]||{to:"",n:0};if(!o.to||x.d>o.to){o.n+=+x.n||0}I.so[dv]=o});
+    const mx=oldSp.reduce((a,x)=>x.d>a?x.d:a,"");Object.keys(I.so).forEach(dv=>{if(!I.so[dv].to||I.so[dv].to<mx)I.so[dv].to=mx});I.spent=I.spent.filter(x=>x.d>=cut)}
+  ["wager","dbl","night","wk","wt"].forEach(k=>{Object.keys(I[k]).forEach(d=>{if(d<cut)delete I[k][d]})});
+  Object.keys(I.relic.use).forEach(u=>{const d=u.split("|")[1];if(d&&d<cut)delete I.relic.use[u]});["clr","ok","bad"].forEach(k=>Object.keys(I.mk[k]).forEach(d=>{if(d<cut)delete I.mk[k][d]}));
+  }catch(e){err(e,"compact")}}
+
+// ================================================================ merge rule (commutative, associative, idempotent; tests/i10_node.js runs 3 000 random triples)
+const isO=x=>x&&typeof x==="object"&&!Array.isArray(x);
+function mMax(a,b){if(!isO(a))return isO(b)?mMax({},b):(+a>=+b?a:b);const o={};new Set([...Object.keys(a||{}),...Object.keys(b||{})]).forEach(k=>{const x=a[k],y=(b||{})[k];if(x===undefined)o[k]=cl(y);else if(y===undefined)o[k]=cl(x);else if(isO(x)||isO(y))o[k]=mMax(isO(x)?x:{},isO(y)?y:{});else o[k]=Math.max(+x||0,+y||0)});return o}
+function cl(x){return x===undefined?x:JSON.parse(JSON.stringify(x))}
+function mDate(a,b,min){const o={};new Set([...Object.keys(a||{}),...Object.keys(b||{})]).forEach(k=>{const x=(a||{})[k],y=(b||{})[k];if(x==null||x==="")o[k]=y;else if(y==null||y==="")o[k]=x;else o[k]=min?(String(x)<=String(y)?x:y):(String(x)>=String(y)?x:y)});return o}
+function pickBy(x,y,score){if(x===undefined)return cl(y);if(y===undefined)return cl(x);const sx=score(x),sy=score(y);for(let i=0;i<sx.length;i++){if(sx[i]>sy[i])return cl(x);if(sx[i]<sy[i])return cl(y)}return stable(x)>=stable(y)?cl(x):cl(y)}
+function mPer(a,b,score){const o={};new Set([...Object.keys(a||{}),...Object.keys(b||{})]).forEach(k=>o[k]=pickBy((a||{})[k],(b||{})[k],score));return o}
+function mOld(a,b){const o={};new Set([...Object.keys(a||{}),...Object.keys(b||{})]).forEach(k=>o[k]=pickBy((a||{})[k],(b||{})[k],v=>[String(v.to||""),stable(v.s||v.n||0)]));return o}
+const sStr=s=>{let n=0;s=String(s||"");for(let i=0;i<s.length&&i<16;i++)n=n*1+s.charCodeAt(i)/Math.pow(256,i+1);return n};
+function inMerge(a,b){a=isO(a)?a:{};b=isO(b)?b:{};const o={};
+  o.d={};new Set([...Object.keys(a.d||{}),...Object.keys(b.d||{})]).forEach(day=>o.d[day]=mMax((a.d||{})[day]||{},(b.d||{})[day]||{}));
+  o.old=mOld(a.old,b.old);o.so=mOld(a.so,b.so);
+  const sp=new Map();[].concat(a.spent||[],b.spent||[]).forEach(x=>{if(!x||!x.id)return;const p=sp.get(x.id);if(!p||stable(x)>stable(p))sp.set(x.id,cl(x))});o.spent=[...sp.values()].sort((x,y)=>x.id<y.id?-1:x.id>y.id?1:0);
+  const ra=a.relic||{},rb=b.relic||{};o.relic={have:mDate(ra.have,rb.have,true),eq:pickBy(ra.eq||{l:[],ts:0},rb.eq||{l:[],ts:0},v=>[+v.ts||0]),use:mMax(ra.use||{},rb.use||{})};
+  o.ach=mDate(a.ach,b.ach,true);
+  const na=a.ngp||{},nb=b.ngp||{};o.ngp={start:[na.start,nb.start].filter(Boolean).sort()[0]||"",cl:{}};const ca=na.cl||{},cb=nb.cl||{};new Set([...Object.keys(ca),...Object.keys(cb)]).forEach(k=>{const x=ca[k]||{},y=cb[k]||{};o.ngp.cl[k]={d:[x.d,y.d].filter(Boolean).sort()[0]||"",best:Math.max(+x.best||0,+y.best||0),tries:mMax(x.tries||{},y.tries||{})}});if(!o.ngp.start)delete o.ngp.start;
+  o.night=mPer(a.night,b.night,v=>[v.done?1:0,+v.i||0,+v.sc||0,+v.n||0]);
+  o.wager=mPer(a.wager,b.wager,v=>[v.res?1:0,+v.ts||0]);o.wk=mPer(a.wk,b.wk,v=>[v.res?1:0,+v.ts||0]);o.dbl=mPer(a.dbl,b.dbl,v=>[v.res?1:0,(v.m||[]).length]);
+  o.wt=mDate(a.wt,b.wt,true);
+  const qa=a.q||{},qb=b.q||{};o.q={open:pickBy(qa.open||{l:[],ts:0},qb.open||{l:[],ts:0},v=>[+v.ts||0]),done:{}};const da=qa.done||{},db=qb.done||{};new Set([...Object.keys(da),...Object.keys(db)]).forEach(k=>{const x=da[k]||{},y=db[k]||{};o.q.done[k]={d:[x.d,y.d].filter(Boolean).sort()[0]||"",last:[x.last,y.last].filter(Boolean).sort().pop()||"",best:Math.max(+x.best||0,+y.best||0),n:Math.max(+x.n||0,+y.n||0),full:Math.max(+x.full||0,+y.full||0)}});
+  o.rep=mDate(a.rep,b.rep,false);o.lr=mDate(a.lr,b.lr,false);o.st=mDate(a.st,b.st,true);
+  const ka=a.mk||{},kb=b.mk||{};o.mk={clr:mMax(ka.clr||{},kb.clr||{}),ok:mMax(ka.ok||{},kb.ok||{}),bad:mMax(ka.bad||{},kb.bad||{})};
+  o.run=mMax(a.run||{},b.run||{});
+  const rka=a.rank||{},rkb=b.rank||{};o.rank={lv:Math.max(+rka.lv||0,+rkb.lv||0),d:mDate(rka.d,rkb.d,true),s:mDate(rka.s,rkb.s,true)};
+  o.gv=pickBy(a.gv||{},b.gv||{},v=>[+v.ts||0]);
+  const ua=a.rush||{},ub=b.rush||{};o.rush={runs:mPer(ua.runs,ub.runs,v=>[v.ok?1:0,-(+v.t||1e9),+v.c||0])};
+  o.rg=[a.rg,b.rg].filter(Boolean).sort()[0]||"";
+  o.bw=mMax(a.bw||{},b.bw||{});o.kvs=pickBy(a.kvs||{},b.kvs||{},v=>[+v.ts||0]);o.seen=mDate(a.seen,b.seen,true);
+  return o}
+G.inMerge=inMerge;
+setTimeout(function(){try{if(typeof MERGE_RULES!=="undefined"&&MERGE_RULES&&!MERGE_RULES.inv)MERGE_RULES.inv=(a,b)=>inMerge(a,b)}catch(e){}},0);
+
+// ================================================================ events (EV of i1; subscribed late because c_i1_ev loads after this file)
+const LIVE={fight:null,dblRun:false};
+function onCard(d){try{if(!d)return;const t=T();const I=inv();const prev=d.prev||null;
+    if(d.ok&&prev&&(+prev.int||0)>=(CFG.earn.cardInt||7)){const g=earn("c",CFG.earn.card||1,"card");if(g)d.__i10=g}
+    if(d.ok&&prev&&(+prev.int||0)>=21)dcAdd("m21",1);if(d.ok&&prev&&(+prev.int||0)>=90)dcAdd("m90",1);
+    if(!d.ok&&!d.wasNew){const db=I.dbl[t]=I.dbl[t]||{m:[]};if(!db.res){const id=String(d.id||"");if(id&&!db.m.includes(id)&&db.m.length<12)db.m.push(id)}}
+    clearCheck();save()}catch(e){err(e,"card")}}
+function onUndo(d){try{if(d&&d.__i10)spend("u:"+T(),d.__i10,{force:true})}catch(e){err(e,"undo")}}
+function onLesson(d){try{if(!d||!d.id)return;const sc=+d.score||0;const I=inv();if(sc>=(CFG.earn.lessonMin||80)&&I.lr[d.id]!==T()){I.lr[d.id]=T();earn("l",CFG.earn.lesson||5,"lesson")}if(sc>=90)dcAdd("l90",1);save()}catch(e){err(e,"lesson")}}
+function onBossStart(d){LIVE.fight={id:d&&d.id,real:d&&(d.real===true||(d.real!==false&&!d.practice&&!d.won&&!d.rush)),t0:Date.now()}}
+function onBossAnswer(d){try{if(!d||!d.ok)return;const real=d.real!==undefined?d.real===true&&!d.practice:!!(LIVE.fight&&LIVE.fight.real);if(real)earn("d",CFG.earn.duelHit||1,"duel")}catch(e){err(e,"boss")}}
+function onBossWon(d){try{if(!d||!d.id)return;const I=inv();const b=I.bw[d.id]=I.bw[d.id]||{};if((+d.miss||0)===0&&(LIVE.fight?LIVE.fight.real:true))b.nm=1;b.acc=Math.max(+b.acc||0,+d.acc||0);save()}catch(e){err(e,"won")}}
+function onStation(d){try{if(!d||!d.id||d.part)return;const I=inv();if(d.pass&&!d.grey&&!I.st[d.id]){I.st[d.id]=T();earn("s",CFG.earn.station||15,"station")}save()}catch(e){err(e,"station")}}
+function streak(k,ok){const I=inv();const r=I.run[k]=I.run[k]||{cur:0,best:0};r.cur=ok?(+r.cur||0)+1:0;r.best=Math.max(+r.best||0,r.cur)}
+function onGenus(d){try{streak("genus",!!(d&&d.ok));save()}catch(e){}}
+function onEx(d){try{if(!d||String(d.src||"").indexOf("x10")===0)return;if(d.type==="order")streak("order",!!d.ok);if(d.kind==="gram"||/^g/.test(String(d.lesson||"")))streak("gram",!!d.ok);save()}catch(e){}}
+function onZl(){try{const I=inv();if(!I.rg){I.rg=T();save()}}catch(e){}}
+let SUBS=0;function subscribe(){if(SUBS)return;if(!(G.EV&&EV.on)){return}SUBS=1;
+  EV.on("card.answer",onCard);EV.on("card.undo",onUndo);EV.on("lesson.finish",onLesson);EV.on("boss.start",onBossStart);EV.on("boss.answer",onBossAnswer);EV.on("boss.won",onBossWon);
+  EV.on("station.done",onStation);EV.on("genus.answer",onGenus);EV.on("ex.answer",onEx);EV.on("zl.done",onZl);EV.on("day.rollover",()=>{try{compact();settleOld();dailyObserve()}catch(e){err(e,"roll")}})}
+setTimeout(subscribe,0);setTimeout(subscribe,1500);
+try{document.addEventListener("zl:done",onZl)}catch(e){}
+
+// ================================================================ Das Grimoire
+const LV=["A1","A2","B1","B2","C1"];
+const ORDER=["dark","ember","lit","bright","sealed"];
+function lessonDays(id){const out=new Set();try{((S.syl||{}).ld||{})[id]&&S.syl.ld[id].forEach(d=>out.add(d))}catch(e){}
+  try{const LLs=has("lessonById")?lessonById(id):null;const title=LLs&&(LLs.title||LLs.t);if(title)(S.events||[]).forEach(e=>{if(e.type==="lesson"&&+e.val>=80&&String(e.text||"").indexOf(title)===0)out.add(e.d)})}catch(e){}
+  return [...out].sort()}
+function realmOfLesson(g){try{if(g.sylCh&&G.PROG&&PROG.realm)return clamp(PROG.realm(g.sylCh),0,4)}catch(e){}if(g.sylCh)return clamp(Math.floor((g.sylCh-1)/8),0,4);return Math.max(0,LV.indexOf(g.level||"A1"))}
+function brightDay(days){for(let i=1;i<days.length;i++)for(let j=0;j<i;j++)if(diffDays(days[j],days[i])>=7)return days[i];return ""}
+function lessonSigil(g){const id=g.id,t=T();const L0=(S.lessons||{})[id];const s={id:"L:"+id,kind:"L",ref:id,realm:realmOfLesson(g),n:g.title||id,lv:g.level||"",st:"dark",crack:false,days:0,why:""};
+  if(!L0)return s;const best=Math.max(+L0.best||0,+(((S.gram||{})[id]||{}).best)||0);const days=lessonDays(id);const bd=brightDay(days);
+  s.st=best<60?"ember":"lit";if(bd)s.st="bright";const rep=(inv().rep||{})[s.id]||"";const contact=[L0.last||"",rep].sort().pop()||t;const int=Math.max(1,+L0.int||1);
+  s.days=Math.max(0,diffDays(contact,t));const over=diffDays(addDays(contact,int),t);
+  if(bd&&diffDays(bd,t)>=30&&over<=0)s.st="sealed";
+  if(ORDER.indexOf(s.st)>=2&&over>int){s.crack=true;s.why="seit "+s.days+" Tagen nicht geübt"}
+  return s}
+function wordSigil(n){const s={id:"W:"+n,kind:"W",ref:n,realm:clamp(Math.floor((n-1)/8),0,4),n:"Wortschatz · Kapitel "+n,lv:"",st:"dark",crack:false,days:0,why:"",over:[]};
+  let ids=[];try{ids=G.PROG&&PROG.words?PROG.words(n)||[]:[]}catch(e){}if(!ids.length)return null;try{const c=CHAPTERS[n-1];if(c&&c.t)s.n="Wörter · "+c.t}catch(e){}
+  const t=T();let intro=0,sure=0,i21=0,i60=0,known=[];ids.forEach(id=>{const c=(S.cards||{})[id];if(c&&c.reps>0){intro++;known.push(id);if(c.int>=7)sure++;if(c.int>=21)i21++;if(c.int>=60)i60++}});
+  const N=ids.length;s.pct=Math.round(100*sure/N);if(!intro)return s;s.st=sure/N>=.6?"lit":"ember";if(sure/N>=.8&&i21/N>=.5)s.st="bright";if(i60/N>=.8)s.st="sealed";
+  const over=known.filter(id=>{const c=S.cards[id];return c.due&&diffDays(c.due,t)>Math.max(1,+c.int||1)});s.over=over;
+  if(ORDER.indexOf(s.st)>=2&&over.length>=3&&over.length/Math.max(1,known.length)>=.25){s.crack=true;const od=over.map(id=>diffDays(addDays(S.cards[id].due,-(+S.cards[id].int||0)),t));s.days=Math.max(...od);s.why=over.length+" Karten überfällig"}
+  return s}
+function verbSigils(){if(typeof STARK==="undefined"||typeof STARK_GRP==="undefined")return [];const St=S.stark||{};const out=[];
+  Object.keys(STARK_GRP).forEach(gk=>{const V=STARK.filter(v=>v[6]===gk);if(!V.length)return;const lvMin=Math.min(...V.map(v=>Math.max(0,LV.indexOf(v[5]||"A1"))));
+    const tried=V.filter(v=>St[v[0]]&&((St[v[0]].ok||0)+(St[v[0]].miss||0))>0).length,sure=V.filter(v=>(St[v[0]]||{}).ok>=3).length;
+    const s={id:"V:"+gk,kind:"V",ref:gk,realm:lvMin,n:"Starke Verben · "+String(STARK_GRP[gk]).split(":")[0].split(" (")[0],lv:LV[lvMin],st:"dark",crack:false,days:0,why:""};
+    if(tried){const p=sure/V.length;s.st=p>=.9?"bright":p>=.6?"lit":"ember";if(p>=1&&V.every(v=>(St[v[0]]||{}).ok>=6))s.st="sealed"}
+    out.push(s)});return out}
+let GCACHE=null,GCT="";
+function gKey(){try{let cs=0,n=0;const C=S.cards||{};for(const k in C){const c=C[k];n++;cs=(cs*31+(+c.int||0)*7+(+c.reps||0)+(c.due?c.due.charCodeAt(9)+c.due.charCodeAt(6):0))%1000000007}
+  return T()+"|"+hash(JSON.stringify(S.lessons||{}))+"|"+n+":"+cs+"|"+hash(JSON.stringify(inv().rep))+"|"+hash(JSON.stringify((S.syl||{}).ld||{}))+"|"+hash(JSON.stringify(S.stark||{}))+"|"+(S.events||[]).length}catch(e){return String(Math.random())}}
+function sigils(fresh){const key=gKey();if(!fresh&&GCACHE&&key===GCT)return GCACHE;const out=[];
+  try{(typeof GRAMMAR!=="undefined"?GRAMMAR:[]).forEach(g=>out.push(lessonSigil(g)))}catch(e){err(e,"sigL")}
+  try{for(let n=1;n<=(typeof CHAPTERS!=="undefined"?CHAPTERS.length:40);n++){const w=wordSigil(n);if(w)out.push(w)}}catch(e){err(e,"sigW")}
+  try{verbSigils().forEach(v=>out.push(v))}catch(e){err(e,"sigV")}
+  GCACHE=out;GCT=key;return out}
+function clearCheck(){GCACHE=null}
+function shown(s){return s.crack?ORDER[Math.max(0,ORDER.indexOf(s.st)-1)]:s.st}
+// abilities: realm r's ability uses that page's five earliest-bright sigils; dark while one of them is cracked
+function abilities(){const S0=sigils();const out=[];(typeof GRIM_ABIL!=="undefined"?GRIM_ABIL:[]).forEach(a=>{const pg=S0.filter(s=>s.realm===a.realm&&ORDER.indexOf(s.st)>=3);
+    const five=pg.slice(0,5);const on=five.length>=5&&!five.some(s=>s.crack);out.push({id:a.id,realm:a.realm,n:a.n,de:a.de,en:a.en,have:pg.length,need:5,on,dark:five.length>=5&&!on,five:five.map(s=>s.id)})});return out}
+function goldPage(r){try{const cp=(S.cp||{})[["cpA1","cpA2","cpB1","cpB2","cpC1"][r]]||(S.cp||{})[["I","II","III","IV","V"][r]];
+    if(r<3)return !!(cp&&(cp.tries||[]).some(t=>(+t.pct||0)>=90&&!t.to));
+    if(r===3){const by={};(S.examRes||[]).forEach(x=>{if(x.mock||x.sim){(by[x.date]=by[x.date]||{})[x.m]=Math.max((by[x.date]||{})[x.m]||0,+x.pct||0)}});return Object.values(by).some(o=>Object.keys(o).length>=4&&Object.values(o).every(p=>p>=90))}
+    const bv=((P().bv||{}).bv17)||{};return (+bv.tot||0)>=18}catch(e){return false}}
+function golds(){return [0,1,2,3,4].filter(goldPage).length}
+// repair: lesson sigils run an 8-item drill (6 right, Phiole: 7; Stiefel: 10 items, 8 right); word sigils run the overdue cards through the real card runner
+function repairItems(s){const g=(typeof GRAMMAR!=="undefined"?GRAMMAR:[]).find(x=>x.id===s.ref);if(!g)return [];const r=rng(s.id+T());
+  const ex=(g.ex||[]).concat((g.quiz||[]).map(q=>Object.assign({type:"mc"},q)));const typed=ex.filter(e=>e.type!=="mc"),mc=ex.filter(e=>e.type==="mc");
+  const n=relicOn("stiefel")?10:8;return rshuffle(typed,r).slice(0,Math.ceil(n/2)).concat(rshuffle(mc,r)).slice(0,n).map(conv).filter(Boolean)}
+function conv(e){if(!e)return null;if(e.t)return e;const ty=e.type;if(ty==="mc")return {t:"mc",q:e.q,o:e.o,a:e.a,why:e.why||""};if(ty==="order")return {t:"order",w:e.words||[],a:e.a,alt:e.alt||[],why:e.why||""};
+  if(ty==="gap"||ty==="transform"||ty==="fix")return {t:"gap",q:(ty==="fix"?"Verbessern Sie: ":"")+e.q,a:e.a,alt:e.alt||[],why:e.why||""};return null}
+
+// ================================================================ the item runner (errands, repair, Second Pact): mc / gap / order, untimed, with the rule after each answer
+function norm(s){return String(s==null?"":s).toLowerCase().replace(/[„“"'’]/g,"").replace(/\s+([.,!?;:])/g,"$1").replace(/[.!?;:]+$/,"").replace(/\s+/g," ").trim()}
+function normU(s){return norm(s).replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/ß/g,"ss")}
+function check(it,given){if(it.t==="mc")return +given===+it.a;const want=[it.a].concat(it.alt||[]);const g=normU(given);return want.some(w=>normU(w)===g)}
+G.i10Check=check;
+function itemHTML(it,i,n,o){const en=o.noEn?"":"";const top=`<div class="eyebrow">${o.label?esc(o.label)+" · ":""}${i+1} / ${n}</div>`;
+  if(it.t==="mc")return top+`<p class="i10-q">${esc(it.q)}</p><div class="stack s i10-opts">${it.o.map((x,k)=>`<button class="i10-o" data-k="${k}"><b class="mono">${k+1}</b> ${esc(x)}</button>`).join("")}</div>`;
+  if(it.t==="gap")return top+`<p class="i10-q">${esc(it.q)}</p><input class="i10-in" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Antwort"><div class="row"><button class="go sm i10-ok">Prüfen</button></div>`;
+  return top+`<p class="i10-q">${esc(it.q||"Bauen Sie den Satz.")}</p><div class="i10-built"></div><div class="i10-tiles">${it._tiles.map((w,k)=>`<button class="sm i10-t" data-k="${k}">${esc(w)}</button>`).join("")}</div><div class="row"><button class="sm ghost i10-back">Zurück</button>${o.aleph?`<button class="sm ghost i10-hint">Aleph: Tipp</button>`:""}<button class="go sm i10-ok">Prüfen</button></div>`}
+function runItems(box,items,o){o=o||{};const st={i:0,res:[],retry:false,aleph:!!o.aleph,phiole:!!o.phiole};const r=rng((o.seed||"run")+":"+items.length);
+  items=items.map(it=>{it=Object.assign({},it);if(it.t==="order"){let tiles=it.w.slice();if(o.decoy&&o.decoy.length)tiles=tiles.concat([o.decoy[Math.floor(r()*o.decoy.length)]]);it._tiles=rshuffle(tiles,r)}return it});
+  const isArt=it=>it.t==="mc"&&it.o.every(x=>/^(der|die|das|den|dem|des|ein|eine|einen|einem|einer)$/i.test(String(x).trim()));
+  function draw(){if(st.i>=items.length)return finish();const it=items[st.i];box.innerHTML=`<div class="stack i10-run" ${o.sober?'data-sober="1"':""}>${o.head||""}<div class="card stack s">${itemHTML(it,st.i,items.length,o)}<div class="i10-fb"></div></div></div>`;
+    const built=[];const q=s=>box.querySelector(s);
+    const answer=given=>{const ok=check(it,given);const fb=q(".i10-fb");
+      if(!ok&&st.phiole&&isArt(it)&&!st.retry){st.retry=true;st.phiole=false;if(fb)fb.innerHTML=`<p class="muted ui">Wagners Phiole: ein zweiter Versuch für diesen Artikel.</p>`;return}
+      st.retry=false;st.res.push({ok,it,given});try{evEmit("ex.answer",{src:"x10"+(o.ctx?":"+o.ctx:""),ref:o.ctx||"",kind:"i10",type:it.t,q:String(it.q||it.a).slice(0,160),ok,given:String(given).slice(0,120),want:String(it.t==="mc"?it.o[it.a]:it.a).slice(0,120),key:"x10:"+(o.ctx||"x")+":"+hash(it.q||it.a),flags:0})}catch(e){}
+      if(o.onAnswer)try{o.onAnswer(ok,it)}catch(e){}
+      const want=it.t==="mc"?it.o[it.a]:it.a;if(fb)fb.innerHTML=`<div class="i10-v ${ok?"ok":"no"}"><b>${ok?"Richtig.":"Nicht ganz."}</b> ${ok?"":`Richtig ist: <b>${esc(want)}</b>. `}${it.why?`<span class="muted">${esc(it.why)}</span>`:""}</div><div class="row"><button class="go sm i10-next">Weiter</button></div>`;
+      box.querySelectorAll(".i10-o,.i10-ok,.i10-t,.i10-in,.i10-hint,.i10-back").forEach(b=>{b.disabled=true});const nx=q(".i10-next");if(nx){nx.onclick=()=>{st.i++;draw()};try{nx.focus()}catch(e){}}};
+    if(it.t==="mc")box.querySelectorAll(".i10-o").forEach(b=>b.onclick=()=>answer(+b.dataset.k));
+    if(it.t==="gap"){const inp=q(".i10-in");const go=()=>answer(inp?inp.value:"");const ok=q(".i10-ok");if(ok)ok.onclick=go;if(inp){inp.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();go()}};try{inp.focus()}catch(e){}}}
+    if(it.t==="order"){const upd=()=>{const b=q(".i10-built");if(b)b.textContent=built.map(k=>it._tiles[k]).join(" ").replace(/\s+([.,!?])/g,"$1");box.querySelectorAll(".i10-t").forEach(t=>t.disabled=built.includes(+t.dataset.k))};
+      box.querySelectorAll(".i10-t").forEach(t=>t.onclick=()=>{built.push(+t.dataset.k);upd()});const bk=q(".i10-back");if(bk)bk.onclick=()=>{built.pop();upd()};
+      const hn=q(".i10-hint");if(hn)hn.onclick=()=>{if(!st.aleph)return;const want=it.w;const nextW=want[built.length];const k=it._tiles.findIndex((w,ix)=>w===nextW&&!built.includes(ix));if(k>=0){built.push(k);upd()}st.aleph=false;hn.disabled=true;if(o.onAleph)o.onAleph()};
+      const ok=q(".i10-ok");if(ok)ok.onclick=()=>answer(built.map(k=>it._tiles[k]).join(" "))}
+    KEYSset(e=>{const n=parseInt(e.key,10);if(it.t==="mc"&&n>=1&&n<=it.o.length&&!st.res[st.i]){const b=box.querySelectorAll(".i10-o")[n-1];if(b&&!b.disabled)b.click()}else if(e.key==="Enter"){const nx=q(".i10-next");if(nx)nx.click()}})}
+  function finish(){KEYSset(null);const right=st.res.filter(x=>x.ok).length;const pass=right>=(o.cut||Math.ceil(items.length*.75));const wrong=st.res.filter(x=>!x.ok);
+    box.innerHTML=`<div class="stack i10-run" ${o.sober?'data-sober="1"':""}><div class="card stack s"><div class="eyebrow">${esc(o.title||"Ergebnis")}</div><h2 style="margin:.2rem 0">${right} von ${items.length}</h2><p class="muted ui">${pass?"bestanden":"nicht bestanden"} · nötig: ${o.cut||Math.ceil(items.length*.75)}</p>
+      ${wrong.length?`<div class="stack s">${wrong.map(x=>`<div class="i10-wound"><b>${esc(x.it.t==="mc"?x.it.o[x.it.a]:x.it.a)}</b> <small class="muted">${esc(x.it.q||"")}</small>${x.it.why?`<br><small>${esc(x.it.why)}</small>`:""}</div>`).join("")}</div>`:""}</div><div class="i10-after"></div></div>`;
+    if(o.onDone)try{o.onDone({right,n:items.length,pass,res:st.res},box.querySelector(".i10-after"))}catch(e){err(e,"runDone")}}
+  G.__i10run={items,st};draw();return st}
+function KEYSset(fn){try{KEYS=fn}catch(e){}}
+
+// ================================================================ relics
+function relicDef(id){return (typeof RELICS!=="undefined"?RELICS:[]).find(r=>r.id===id)}
+function relicEarned(id){try{const I=inv();switch(id){
+  case "spindel":return Object.keys(I.mk.clr).length>=14;
+  case "phiole":return Object.entries(S.cards||{}).filter(([k,c])=>!k.startsWith("p:")&&c.int>=7&&has("card")&&(()=>{const cd=card(k);return cd&&/^(der|die|das) /.test(cd.de)})()).length>=250;
+  case "aleph":{const w=(S.bossWins||{}).golem;return !!w&&Math.max(+w.acc||0,+w.best||0)>=90}
+  case "fass":return Object.values(S.rezi||{}).filter(r=>(+r.best||0)>=90).length>=4;
+  case "sarg":return (S.examRes||[]).filter(r=>(+r.pct||0)>=60).length>=10;
+  case "waechter":return Object.values(I.night).filter(n=>n.done&&(+n.sc||0)>=15).length>=10;
+  case "stiefel":return Object.keys(S.shadowDone||{}).length>=50;
+  case "laterne":return !!P().done}}catch(e){}return false}
+function relicScan(){const I=inv();const neu=[];(typeof RELICS!=="undefined"?RELICS:[]).forEach(r=>{if(!I.relic.have[r.id]&&relicEarned(r.id)){I.relic.have[r.id]=T();neu.push(r)}});if(neu.length){save();evEmit("relic",{id:neu[0].id});setTimeout(()=>tst("Relikt: "+neu[0].n+" — "+L("relic_new")[0],4200),500)}return neu}
+function equipped(){const I=inv();return (I.relic.eq.l||[]).filter(id=>I.relic.have[id])}
+function charges(id){const I=inv();const buys=spentOf("rc:"+id+":").length;const uses=Object.keys(I.relic.use).filter(u=>u.split("|")[0]===id).length;return Math.max(0,(CFG.relic.start||5)+buys*((CFG.relic.charge||{}).n||3)-uses)}
+function usedToday(id){return !!inv().relic.use[id+"|"+T()]}
+// relicOn: equipped and (used today already, or a charge left). relicUse consumes today's charge once.
+function relicOn(id){if(!equipped().includes(id))return false;return usedToday(id)||charges(id)>0}
+function relicUse(id){if(!relicOn(id))return false;const I=inv();if(!usedToday(id)){I.relic.use[id+"|"+T()]=1;save()}return true}
+function relicCost(id){return equipped().includes(id)}
+function equip(id,on){const I=inv();if(!I.relic.have[id])return false;let l=equipped().filter(x=>x!==id);if(on){if(l.length>=(CFG.relic.max||3)){tst(L("relic_full")[0]);return false}l.push(id)}I.relic.eq={l,ts:Date.now()};save();applyCosts();return true}
+function buyCharge(id){const c=CFG.relic.charge||{n:3,price:15};if(!inv().relic.have[id])return false;return spend("rc:"+id+":"+T(),c.price)}
+function applyCosts(){try{const h=document.documentElement;if(!h||!h.classList)return;["spindel","sarg"].forEach(id=>h.classList.toggle("i10-r-"+id,relicCost(id)))}catch(e){}}
+// Gretchens Spindel: +20 due cards on a day the learner activates it (buildQueue around; real reviews only — no gate, no debt)
+function spindelToday(){return !!inv().relic.use["spindel|"+T()]}
+try{MOD.around("buildQueue","i10",function(orig,opt){const q=orig(opt);try{if(spindelToday()&&(!opt||opt.due!==false)&&has("dueKeys")){const have=new Set(q.map(x=>x.key));const extra=dueKeys().filter(k=>!have.has(k)).slice(0,20).map(k=>{const p=k.startsWith("p:");return {key:k,id:p?k.slice(2):k,mode:p?"prod":"rec"}});return q.concat(extra)}}catch(e){err(e,"spindel")}return q})}catch(e){}
+// duel options for i7: abilities always (earned by mastery); relics only outside real duels. i7's Duel.start(id,opt) should read opt.abilities / opt.relics.
+function duelOpts(id,opt){opt=Object.assign({},opt||{});try{opt.abilities=abilities().filter(a=>a.on).map(a=>a.id);if(!opt.real){const r=[];if(relicOn("aleph"))r.push("aleph");if(relicOn("sarg"))r.push("sarg");opt.relics=r}else opt.relics=[];if(golds()>=5)opt.address="Herr Kollege"}catch(e){err(e,"duelOpts")}return opt}
+
+// ================================================================ wagers (stakes in Glut; never on gates). EV < 0 at the learner's own accuracy by construction:
+// payout = floor(keep · stake · (1 − p) / p), p = P(Bin(n, base) ≥ ceil(target · n)) at settlement → EV = p·w − (1−p)·stake ≤ (keep − 1)(1 − p)·stake < 0.
+function lnC(n,k){let s=0;for(let i=1;i<=k;i++)s+=Math.log(n-k+i)-Math.log(i);return s}
+function binTail(n,p,k){if(k<=0)return 1;if(k>n)return 0;p=clamp(p,1e-6,1-1e-6);let s=0;for(let x=k;x<=n;x++)s+=Math.exp(lnC(n,x)+x*Math.log(p)+(n-x)*Math.log(1-p));return clamp(s,0,1)}
+function payout(n,base,target,stake,keep){const k=Math.ceil(target*n-1e-9);const p=binTail(n,base,k);if(p<=0)return {p,w:0};const w=Math.floor((keep||.85)*stake*(1-p)/p);return {p,w}}
+G.i10Payout=payout;G.i10BinTail=binTail;
+function accWindow(days,skipToday){let r=0,o=0;const t=T();Object.entries(S.log||{}).forEach(([d,L0])=>{const dd=diffDays(d,t);if(dd<(skipToday?1:0)||dd>days)return;r+=+L0.rev||0;o+=+L0.ok||0});return {r,o,acc:r?o/r:0}}
+function baseAcc(){const a14=accWindow(14,true),a60=accWindow(60,true);if(a60.r<(CFG.wager.histMin||100))return null;return Math.max(a60.acc,a14.r>=50?a14.acc:0)}
+function revToday(){const L0=(S.log||{})[T()]||{};return {rev:+L0.rev||0,ok:+L0.ok||0}}
+function wagerTiers(){const b=baseAcc();if(b==null)return [];const est=Math.max(CFG.wager.minRev||20,Math.min(has("dueKeys")?dueKeys().length:20,S.maxReviews||150));
+  return (CFG.wager.tiers||[0,5,10]).map((d,i)=>{const t=Math.min(.99,Math.floor(b*100+d)/100);const pz=payout(est,b,t,CFG.wager.stake||5,CFG.wager.keep);return {i,t,est,w:pz.w,p:pz.p}}).filter((x,i,a)=>x.w>=1&&x.t<.995&&(i===0||x.t>a[i-1].t))}
+function wagerCan(){const I=inv();if(I.wager[T()])return {ok:false,why:"placed"};if(shiftToday())return {ok:false,why:"shift"};if(hour()>=22||hour()<5)return {ok:false,why:"late"};
+  if(avail()<(CFG.wager.stake||5))return {ok:false,why:"glut"};if(baseAcc()==null)return {ok:false,why:"data"};if((has("dueKeys")?dueKeys().length:0)<(CFG.wager.minRev||20))return {ok:false,why:"due"};return {ok:true}}
+function wagerPlace(i){const c=wagerCan();if(!c.ok)return false;const tiers=wagerTiers();const x=tiers.find(t=>t.i===i);if(!x)return false;const r=revToday();
+  inv().wager[T()]={tier:i,t:x.t,base:baseAcc(),st:CFG.wager.stake||5,rev0:r.rev,ok0:r.ok,ts:Date.now()};save();return true}
+function wagerSettle(day,force){const I=inv();const w=I.wager[day];if(!w||w.res)return null;const L0=(S.log||{})[day]||{};const n=(+L0.rev||0)-(+w.rev0||0),k=(+L0.ok||0)-(+w.ok0||0);
+  if(n<(CFG.wager.minRev||20)){if(!force&&day===T())return null;w.res="v";w.n=n;w.ts=Date.now();save();return w}
+  const acc=k/n;const pz=payout(n,w.base,w.t,w.st,CFG.wager.keep);w.n=n;w.acc=acc;w.ts=Date.now();
+  if(acc+1e-9>=w.t&&pz.w>=1){w.res="w";w.pay=pz.w;dcAdd("gw",pz.w,day===T()?undefined:T());if(w.tier===2)dcAdd("w2",1);evEmit("glut",{n:pz.w,src:"w"})}
+  else{w.res="l";w.pay=0;spend("ws:"+day,w.st,{force:true})}save();return w}
+function settleOld(){try{const I=inv();Object.keys(I.wager).forEach(d=>{if(d<T())wagerSettle(d,true)});Object.keys(I.wk).forEach(wk=>{if(addDays(wk,7)<=T())weekSettle(wk)})}catch(e){err(e,"settle")}}
+// Wochenwette: Monday–Tuesday, target = own 4-week accuracy + 0/3/6 points over the whole week's reviews
+function weekAcc(wk){let r=0,o=0;for(let i=0;i<7;i++){const L0=(S.log||{})[addDays(wk,i)]||{};r+=+L0.rev||0;o+=+L0.ok||0}return {r,o,acc:r?o/r:0}}
+function weekBase(){const wk=monday(T());const A=[1,2,3,4].map(i=>weekAcc(addDays(wk,-7*i))).filter(x=>x.r>=(CFG.wager.weekMin||150));if(A.length<3)return null;const s=A.map(x=>x.acc).sort((a,b)=>a-b);return {acc:s[Math.floor(s.length/2)],n:Math.round(A.reduce((a,x)=>a+x.r,0)/A.length)}}
+function weekTiers(){const b=weekBase();if(!b)return [];return (CFG.wager.weekTiers||[0,3,6]).map((d,i)=>{const t=Math.min(.99,Math.floor(b.acc*100+d)/100);const pz=payout(b.n,b.acc,t,CFG.wager.weekStake||10,CFG.wager.keep);return {i,t,w:pz.w,n:b.n,base:b.acc}}).filter(x=>x.w>=1)}
+function weekPlace(i){const wk=monday(T());const I=inv();if(I.wk[wk]||diffDays(wk,T())>1||avail()<(CFG.wager.weekStake||10))return false;const x=weekTiers().find(t=>t.i===i);if(!x)return false;I.wk[wk]={tier:i,t:x.t,base:x.base,st:CFG.wager.weekStake||10,ts:Date.now()};save();return true}
+function weekSettle(wk){const I=inv();const w=I.wk[wk];if(!w||w.res)return null;const a=weekAcc(wk);w.n=a.r;w.acc=a.acc;w.ts=Date.now();
+  if(a.r<(CFG.wager.weekMin||150)){w.res="v";save();return w}const pz=payout(a.r,w.base,w.t,w.st,CFG.wager.keep);
+  if(a.acc+1e-9>=w.t&&pz.w>=1){w.res="w";w.pay=pz.w;dcAdd("gw",pz.w)}else{w.res="l";spend("wk:"+wk,w.st,{force:true})}save();return w}
+// Doppelt oder nichts: today's missed cards (3–10), typed, no choice. Win factor f keeps EV < 0 at the learner's own typed accuracy on such cards.
+function dblStats(){const I=inv();let n=CFG.dbl.prior[1],ok=CFG.dbl.prior[0];Object.values(I.dbl).forEach(d=>{if(d.res&&d.k){n+=d.k;ok+=d.right||0}});return ok/n}
+function dblOffer(){const I=inv();const d=I.dbl[T()];if(!d||d.res||(d.m||[]).length<(CFG.dbl.min||3))return null;const stake=dcDay("gc",T());if(stake<3)return null;
+  const ids=d.m.slice(0,CFG.dbl.max||10).filter(id=>has("card")&&card(id));if(ids.length<(CFG.dbl.min||3))return null;const p=dblStats();const q=Math.pow(p,ids.length);const f=Math.min(1,(CFG.dbl.keep||.85)*(1-q)/Math.max(q,1e-6));
+  const win=Math.floor(stake*f);if(win<1)return null;return {ids,stake,win,p,q}}
+function dblSettle(right,k,o){const I=inv();const d=I.dbl[T()]=I.dbl[T()]||{m:[]};if(d.res)return d;d.k=k;d.right=right;d.ts=Date.now();
+  if(right===k&&o.win>=1){d.res="w";d.amt=o.win;dcAdd("gx",o.win);dcAdd("dblw",1)}else{d.res="l";d.amt=o.stake;spend("dn:"+T(),o.stake,{force:true})}save();return d}
+
+// ================================================================ Aufträge
+function curRealm(){try{if(G.PROG&&PROG.realm)return clamp(PROG.realm(P().ch||1),0,4)}catch(e){}return clamp(Math.floor(((P().ch||1)-1)/8),0,4)}
+function lvNow(){try{return clamp(+learnerLv()||0,0,4)}catch(e){return 0}}
+function patientCase(sid){try{if(!G.BVE)return null;const st=BVE.resolve(BVE.get(sid));if(!st||st.mode==="fach")return null;const PH=typeof BV_PHRASE!=="undefined"?BV_PHRASE:{};const K=(typeof NIGHT_K!=="undefined"?NIGHT_K:[]).filter(k=>PH[k]&&typeof st.ans[k]==="string"&&st.ans[k].length>6);
+    if(K.length<4)return null;const r=rng("pc:"+sid);const ks=rshuffle(K,r).slice(0,6);const cast=(typeof BV_CAST!=="undefined"&&BV_CAST[st.who])||{};const name=cast.short||st.who;const items=[];
+    ks.forEach(k=>{const others=[...new Set(rshuffle(Object.keys(PH).filter(x=>x!==k&&PH[x]&&PH[x]!==PH[k]&&!/\{|…/.test(PH[x])),r).map(x=>PH[x]))].slice(0,2);const o=rshuffle([PH[k]].concat(others),r);items.push({t:"mc",q:(NIGHT_KDE[k]||[k])[0]+": Welche Frage stellen Sie?",o,a:o.indexOf(PH[k]),why:"„"+PH[k]+"“ – "+name+": „"+st.ans[k]+"“"})});
+    ks.slice(0,2).forEach(k=>{const cz=cloze(st.ans[k]);if(cz)items.push({t:"gap",q:"Notieren Sie, was "+name+" gesagt hat: „"+cz.q+"“",a:cz.a,alt:cz.alt,why:"„"+st.ans[k]+"“"})});
+    const fem=/^Frau/.test(name);const w=("Ich möchte Ihnen kurz "+(fem?"eine Patientin":"einen Patienten")+" vorstellen .").split(" ");items.push({t:"order",w,a:w.join(" ").replace(" .","."),why:"Der Einstieg in die Übergabe an die Oberärztin."});
+    return {id:"p:"+sid,kind:"p",st:sid,realm:clamp(LV.indexOf(st.lv),0,4),lv:st.lv,les:(st.lesson||""),t:["Patientenfall: "+name,"Patient case: "+name],intro:[(st.title||st.t||"")+"",""],items,pay:[name+": „"+(st.ans.close||st.ans.empathy||"Danke, Herr Doktor.")+"“",""],sober:true}}catch(e){err(e,"pcase");return null}}
+function cloze(s){s=String(s||"");const toks=s.split(/\s+/);let best=-1,bl=0;toks.forEach((w,i)=>{const c=w.replace(/[.,!?;:„“"()]/g,"");if(c.length>=5&&/^[A-Za-zÄÖÜäöüß]+$/.test(c)&&c.length>bl){best=i;bl=c.length}});
+  if(best<0){const i=toks.findIndex(w=>/\d/.test(w));if(i<0)return null;best=i}const a=toks[best].replace(/[.,!?;:„“"()]/g,"");const q=toks.map((w,i)=>i===best?w.replace(a,"___"):w).join(" ");return {q,a,alt:[]}}
+G.i10Cloze=cloze;
+function questAll(){const out=[];const R=curRealm(),lv=lvNow();(typeof QUEST_ERR!=="undefined"?QUEST_ERR:[]).forEach(q=>{if(q.realm<=R)out.push(Object.assign({kind:"e"},q))});
+  (typeof QUEST_LET!=="undefined"?QUEST_LET:[]).forEach(q=>{if(q.realm<=R)out.push(Object.assign({kind:"l"},q))});
+  try{if(G.BVE&&(S.bossWins||{}).hexe)BVE.all().forEach(st=>{if(LV.indexOf(st.lv)<=lv&&st.mode!=="fach"&&st.id!=="bv17"&&st.id!=="bv20"){const c=patientCase(st.id);if(c)out.push(c)}})}catch(e){}return out}
+function questGet(id){return questAll().find(q=>q.id===id)||(typeof QUEST_ERR!=="undefined"&&QUEST_ERR.find(q=>q.id===id))||(typeof QUEST_LET!=="undefined"&&QUEST_LET.find(q=>q.id===id))||(id.startsWith("p:")?patientCase(id.slice(2)):null)}
+function questSlots(){return (CFG.quest.open||2)+(kabSet("buecher")?1:0)}
+function questOpen(){return (inv().q.open.l||[]).filter(x=>questGet(x.id))}
+function questOffers(){const I=inv();const open=new Set(questOpen().map(x=>x.id));const cracked=new Set(sigils().filter(s=>s.crack).map(s=>s.ref));
+  return questAll().filter(q=>!open.has(q.id)).map(q=>({q,sc:((I.q.done[q.id]||{}).d?(diffDays(I.q.done[q.id].last||I.q.done[q.id].d,T())>=7?1:-9):10)+(cracked.has(q.les)?5:0)-(q.realm<curRealm()?1:0)})).filter(x=>x.sc>-5).sort((a,b)=>b.sc-a.sc||(a.q.id<b.q.id?-1:1)).slice(0,4).map(x=>x.q)}
+function questAccept(id){const I=inv();const l=questOpen();if(l.length>=questSlots()||l.some(x=>x.id===id)||!questGet(id))return false;I.q.open={l:l.concat([{id,d:T()}]),ts:Date.now()};save();return true}
+function questDrop(id){const I=inv();I.q.open={l:questOpen().filter(x=>x.id!==id),ts:Date.now()};save()}
+function questTriedToday(id){const d=inv().q.done[id];return !!(d&&d.fail===T())}
+function questFinish(q,pass,best,full){const I=inv();const d=I.q.done[q.id]||{d:"",best:0,n:0};let g=0;
+  if(pass){const first=!d.d;d.d=d.d||T();d.last=T();d.best=Math.max(d.best||0,best);d.n=(d.n||0)+1;if(full)d.full=1;I.q.done[q.id]=d;I.q.open={l:questOpen().filter(x=>x.id!==q.id),ts:Date.now()};
+    if(first)g=earn("q",CFG.earn.quest||10,"quest");if(q.les){I.rep["L:"+q.les]=T();clearCheck()}dcAdd("q",1)}
+  else{I.q.done[q.id]=Object.assign(d,{fail:T()})}save();return g}
+
+// ================================================================ Nachtdienst (BVE.night): ten patients, three tasks each, three candles, rests after 3 and 6
+function nightCan(){try{if(!G.BVE||!BVE.night)return {ok:false,why:"Das Stationsmodul fehlt."};if(!((S.bossWins||{}).hexe||(P().ch||1)>8||lvNow()>=1))return {ok:false,why:"Öffnet nach dem Sieg über die Hexe."};return {ok:true}}catch(e){return {ok:false,why:"—"}}}
+function nightCandles(){return (CFG.night.candles||3)+(kabSet("trophaeen")?1:0)}
+// pure engine: deterministic per seed; step(ok) consumes one task; tests drive it with answer patterns
+function nightEngine(seed,o){o=o||{};const pats=(o.pats||(G.BVE?BVE.night(seed,{lv:o.lv!=null?o.lv:lvNow()}):[])).slice(0,CFG.night.n||10);const r=rng(seed+":opts");
+  const E={seed,pats,i:0,step:0,c:o.candles!=null?o.candles:nightCandles(),start:0,treated:0,ok:0,errs:[],boons:[],next:{},free:!!o.waechter,heard:0,done:false};E.start=E.c;
+  E.task=()=>{const p=E.pats[E.i];if(!p)return null;const PH=typeof BV_PHRASE!=="undefined"?BV_PHRASE:{};
+    if(E.step===0){const others=rshuffle(Object.keys(PH).filter(k=>PH[k]&&PH[k]!==p.q&&!/\{|…/.test(PH[k])),rng(seed+":"+E.i+":q")).slice(0,2).map(k=>PH[k]);const opts=rshuffle([p.q].concat(others),rng(seed+":"+E.i+":o"));return {kind:"ask",p,cue:(NIGHT_KDE[p.k]||[p.k,p.k]),o:opts,a:opts.indexOf(p.q)}}
+    if(E.step===1){const others=E.pats.filter(x=>x.heard!==p.heard).map(x=>x.heard);const pick=rshuffle([...new Set(others)],rng(seed+":"+E.i+":h")).slice(0,2);const opts=rshuffle([p.heard].concat(pick),rng(seed+":"+E.i+":ho"));return {kind:"hear",p,o:opts,a:opts.indexOf(p.heard)}}
+    const cz=cloze(p.heard)||{q:p.heard+" ___",a:"",alt:[]};return {kind:"doc",p,q:cz.q,a:cz.a,alt:cz.alt}};
+  E.answer=(ok)=>{if(E.done)return E;const tk=E.task();if(!tk)return E;if(ok){E.ok++;if(tk.kind==="hear")E.heard++}else{if(E.free){E.free=false;E.usedFree=true}else E.c--;E.errs.push({i:E.i,kind:tk.kind,p:tk.p})}
+    if(E.c<=0){E.done=true;return E}E.step++;if(E.step>=3){E.step=0;E.treated+=E.next.double?2:1;E.next={};E.i++;if(E.i>=E.pats.length)E.done=true}return E};
+  E.boonDue=()=>!E.done&&E.step===0&&(CFG.night.boonAt||[3,6]).includes(E.i)&&!E.boons.some(b=>b.at===E.i);
+  E.boonChoices=(n)=>rshuffle(typeof NIGHT_BOONS!=="undefined"?NIGHT_BOONS:[],rng(seed+":b"+E.i)).slice(0,n||2);
+  E.takeBoon=(id)=>{E.boons.push({at:E.i,id});if(id==="uebergabe")E.next.double=1;if(id==="kaffee"){E.c=Math.min(E.c+1,E.start+1);E.next.timed=25}if(id==="hilde")E.next.plays=1;if(id==="blick")E.next.blick=1;return E};
+  E.skipBoon=()=>{E.boons.push({at:E.i,id:"-"});return E};
+  E.score=()=>E.treated*Math.max(1,E.c);return E}
+G.i10Night=nightEngine;
+function nightRec(){return inv().night[T()]||null}
+
+// ================================================================ Walpurgisnacht (boss rush) via i7's Duel.start({rush})
+const RUSH=["hexe","golem","pudel","caligari","kommission"];
+function rushCan(){if(!P().done)return {ok:false,why:"Öffnet nach dem Ende des Pakts."};if(!(G.Duel&&typeof Duel.start==="function"))return {ok:false,why:"Braucht das neue Duell (Paket i7)."};return {ok:true}}
+function rushStart(box){const c=rushCan();if(!c.ok)return tst(c.why);const t0=Date.now();let cand=7,k=0;const fin=(ok)=>{const t=Math.round((Date.now()-t0)/1000);const I=inv();const day=T();const prev=I.rush.runs[day];const run={ok:ok?1:0,t,c:cand,b:k,d:day};
+    if(!prev||(run.ok>prev.ok)||(run.ok===prev.ok&&run.t<prev.t))I.rush.runs[day]=run;save();achScan();tst(ok?L("rush_done",{t:fmtT(t)})[0]:L("rush_lost",{b:(BOSSES[RUSH[k]]||{}).n||RUSH[k]})[0],5000)};
+  const next=()=>{if(k>=RUSH.length)return fin(true);const id=RUSH[k];try{Duel.start(id,duelOpts(id,{rush:true,practice:true,phase:3,candles:cand,onEnd:r=>{r=r||{};cand=+(r.candles!=null?r.candles:r.lives!=null?r.lives:cand)||0;if(r.won||r.win){k++;next()}else fin(false)}}))}catch(e){err(e,"rush");fin(false)}};next()}
+function rushBest(){const R=Object.values(inv().rush.runs).filter(r=>r.ok);if(!R.length)return null;return R.sort((a,b)=>a.t-b.t)[0]}
+const fmtT=s=>Math.floor(s/60)+":"+pad(s%60);
+
+// ================================================================ Zweiter Pakt (New Game+): forty C1 clause trials, Approbation 0–100 %
+function ngpCan(){return !!P().done}
+function ngpRow(n){return (typeof NGP!=="undefined"?NGP:[]).find(r=>r[0]===n)}
+function ngpPassed(n){return !!((inv().ngp.cl||{})[n]||{}).d}
+function ngpCount(){return Object.values(inv().ngp.cl||{}).filter(c=>c.d).length}
+function approbation(){return Math.round(100*ngpCount()/40)}
+function ngpNext(){for(let n=1;n<=40;n++)if(!ngpPassed(n))return n;return 0}
+function ngpAvail(n){if(!ngpCan()||ngpPassed(n))return false;if(n!==ngpNext())return false;const passedToday=Object.values(inv().ngp.cl||{}).filter(c=>c.d===T()).length;if(passedToday>=(CFG.ngp.perDay||1))return false;const tr=(((inv().ngp.cl||{})[n]||{}).tries||{})[T()]||0;return tr<2}
+function ngpItems(n){const row=ngpRow(n);if(!row)return [];const [,kind,arg]=row;const r=rng("ngp:"+n);const N=CFG.ngp.items||10;
+  if(kind==="fach"||kind==="laie"){const terms=((typeof FSP_TERMS!=="undefined"&&FSP_TERMS.terms)||[]).filter(t=>!arg||t.sys===arg||(arg==="infekt"&&t.sys==="allgemein"));const pool=rshuffle(terms,r).slice(0,N);
+    if(kind==="fach")return pool.map(t=>{const others=rshuffle(terms.filter(x=>x.laie!==t.laie),r).slice(0,2).map(x=>x.laie);const o=rshuffle([t.laie].concat(others),r);return {t:"mc",q:"Wie sagen Sie „"+t.fach+"“ einer Patientin?",o,a:o.indexOf(t.laie),why:t.fach+" = "+t.laie+" ("+t.en+")",fach:1}});
+    return pool.map(t=>({t:"gap",q:"„"+t.laie+"“ – der Fachbegriff mit Artikel:",a:t.fach,alt:t.alt||[],why:t.fach+" ("+t.en+")",fach:1}))}
+  if(kind==="lesson"){const g=(typeof GRAMMAR!=="undefined"?GRAMMAR:[]).find(x=>x.id===arg);if(!g)return [];const seenQ=new Set();const ex=(g.ex||[]).concat((g.quiz||[]).map(q=>Object.assign({type:"mc"},q))).map(conv).filter(e=>e&&!seenQ.has(e.q||e.a)&&seenQ.add(e.q||e.a));const typed=ex.filter(e=>e.t!=="mc"),mc=ex.filter(e=>e.t==="mc");return rshuffle(typed,r).concat(rshuffle(mc,r)).slice(0,N)}
+  if(kind==="boss"){const row2=(G.PROG&&PROG.row)?PROG.row(n):null;const les=(row2&&row2.rv)||[];const ex=[];les.forEach(id=>{const g=(typeof GRAMMAR!=="undefined"?GRAMMAR:[]).find(x=>x.id===id);if(g)(g.ex||[]).forEach(e=>{const c=conv(e);if(c&&c.t!=="mc")ex.push(c)})});return rshuffle(ex,r).slice(0,N)}
+  const bank=(typeof NGP_BANK!=="undefined"&&NGP_BANK[kind])||[];return rshuffle(bank,r).slice(0,N)}
+function ngpRecord(n,right,N){const I=inv();if(!I.ngp.start)I.ngp.start=T();const c=I.ngp.cl[n]=I.ngp.cl[n]||{d:"",best:0,tries:{}};c.tries[T()]=(c.tries[T()]||0)+1;c.best=Math.max(c.best||0,right);
+  const pass=right>=ngpCut(N||10);if(pass&&!c.d){c.d=T();dcAdd("ngp",1)}save();achScan();return pass}
+function ngpCut(N){return Math.min(CFG.ngp.cut||8,Math.max(1,(N||10)-1))}
+function ngpStationOk(id){try{const b=(P().bv||{})[id]||{};const start=inv().ngp.start||"9999";return (b.lastD||b.d||"")>=start&&(+(b.lastTot!=null?b.lastTot:b.tot)||0)>=14}catch(e){return false}}
+
+// ================================================================ ranks (I7 P10) and the Gegenvertrag
+function rankTarget(){try{const kw=has("knownWords")?+knownWords()||0:0;const pat=has("patWords")?+(patWords().sure||0):0;let lv=0;
+  if(kw>=200)lv=1;if(kw>=500&&(S.bossWins||{}).hexe)lv=2;if(kw>=1200&&pat>=150)lv=3;
+  const b1=(()=>{try{return has("cdRealm")?(cdRealm(2).secured||0)>=10:(P().ch||1)>20}catch(e){return false}})();if(kw>=2500&&pat>=300&&b1)lv=4;
+  const kol=!!P().done||(()=>{try{return has("bvBest")&&bvBest("bv17")&&bvBest("bv17").pass}catch(e){return false}})()||(S.fsp||[]).some(f=>(+f.score||0)>=3.5);if(kol&&lv>=1)lv=5;return lv}catch(e){return 0}}
+function rankNow(){return +inv().rank.lv||0}
+function rankPromote(text){const I=inv();const tgt=rankTarget();const nx=rankNow()+1;if(nx>tgt)return false;const R=RANKS[nx];if(!R)return false;if(norm(text)!==norm(R.s))return false;I.rank.lv=nx;I.rank.d[nx]=T();I.rank.s[nx]=String(text).trim();save();return true}
+function contract(){const g=inv().gv||{};return g.ts?{b2:g.b2||"",fsp:g.fsp||"",days:+g.days||4,d:g.d,signed:true}:{signed:false}}
+G.i10Contract=contract;
+
+// ================================================================ Kabinett grades, sets, variants
+function kabGrade(c){try{if(!c||!c.ok)return "";if(/^boss_/.test(c.id)){const k=c.id.slice(5);const w=(S.bossWins||{})[k]||{};const hard=w.hard&&Object.values(w.hard).some(Boolean);if(hard)return "gold";if(Math.max(+w.acc||0,+w.best||0)>=85)return "silber";return "bronze"}
+  if(/^poem_/.test(c.id)){const b=+((S.rezi||{})[c.id.slice(5)]||{}).best||0;return b>=100?"gold":b>=95?"silber":"bronze"}return ""}catch(e){return ""}}
+function kabAll(){try{return has("kabCards")?kabCards():[]}catch(e){return []}}
+function kabSet(id){try{const L0=kabAll();if(id==="trophaeen"){const B=L0.filter(c=>/^boss_/.test(c.id));return B.length>=5&&B.every(c=>["silber","gold"].includes(c.grade||kabGrade(c)))}
+  if(id==="gedichte")return L0.filter(c=>/^poem_/.test(c.id)&&["silber","gold"].includes(c.grade||kabGrade(c))).length>=5;
+  if(id==="buecher")return L0.filter(c=>/^book_/.test(c.id)&&c.ok).length>=3}catch(e){}return false}
+let KAB_IN=0;
+try{MOD.around("kabCards","i10",function(orig){const L0=orig();if(KAB_IN)return L0;KAB_IN=1;try{L0.forEach(c=>{const g=kabGrade(c);if(g){c.grade=g;c.flav=(g==="gold"?"Gold":g==="silber"?"Silber":"Bronze")+" · "+c.flav}})}catch(e){}KAB_IN=0;return L0})}catch(e){}
+function kvOwned(card){return spentOf("kv:"+card+":").map(x=>x.k.split(":")[2])}
+function kvBuy(card,v){const V=(typeof KAB_VAR!=="undefined"?KAB_VAR:[]).find(x=>x.id===v);if(!V)return false;const c=kabAll().find(x=>x.id===card);if(!c||!c.ok)return false;if(kvOwned(card).includes(v))return kvSet(card,v);if(!spend("kv:"+card+":"+v,V.price))return false;kvSet(card,v);return true}
+function kvSet(card,v){const I=inv();const m=Object.assign({},I.kvs.m||{});if(v)m[card]=v;else delete m[card];I.kvs={m,ts:Date.now()};save();kvCss();return true}
+function kvCss(){try{if(!document.head||!document.createElement)return;let el=document.getElementById&&document.getElementById("i10-kv");if(!el){el=document.createElement("style");el.id="i10-kv";document.head.appendChild(el)}
+  const m=(inv().kvs||{}).m||{};const V=typeof KAB_VAR!=="undefined"?KAB_VAR:[];el.textContent=Object.entries(m).map(([c,v])=>{const x=V.find(y=>y.id===v);if(!x||!kvOwned(c).includes(v))return "";return v==="gold"?`.kab[data-kab="${c}"]{${x.css}}`:`.kab[data-kab="${c}"] img{${x.css}}`}).join("\n")}catch(e){}}
+
+// ================================================================ 40 achievements — Mephistos Zugeständnisse
+function weeksAcc(){const out=[];const wk0=monday(T());for(let i=1;i<=60;i++){const wk=addDays(wk0,-7*i);const a=weekAcc(wk);out.push({wk,r:a.r,acc:a.acc})}return out.reverse()}
+function achCtx(){const I=inv();const sg=sigils();return {I,sg,night:Object.values(I.night),bw:S.bossWins||{},bv:(()=>{try{return P().bv||{}}catch(e){return {}}})()}}
+const ACHT={
+ a01:x=>Object.values(S.seal||{}).some(s=>{const t=(s.tries||[])[0];return t&&t.ok&&(!t.k||t.k==="p")}),
+ a02:x=>(+((x.I.run.genus||{}).best)||0)>=100, a03:x=>(+((x.I.run.order||{}).best)||0)>=50, a04:x=>(+((x.I.run.gram||{}).best)||0)>=20,
+ a05:x=>!!((x.I.bw.hexe||{}).nm)&&!!x.bw.hexe, a06:x=>!!(((x.bw.golem||{}).hard||{}).stumm), a07:x=>Math.max(+((x.bw.pudel||{}).acc)||0,+((x.bw.pudel||{}).best)||0)>=95,
+ a08:x=>!!(((x.bw.caligari||{}).hard||{}).sanduhr), a09:x=>(+((x.bv.bv17||{}).tot)||0)>=16, a10:x=>!!rushBest(), a11:x=>{const b=rushBest();return !!b&&b.t<720},
+ a12:x=>Object.values(S.stark||{}).filter(v=>(+v.ok||0)>=3).length>=100, a13:x=>typeof STARK!=="undefined"&&STARK.length>0&&STARK.every(v=>(+((S.stark||{})[v[0]]||{}).ok||0)>=3),
+ a14:x=>Object.values(S.gruft||{}).reduce((a,v)=>a+(+v.ok||0),0)>=300, a15:x=>Object.values(S.palace||{}).reduce((a,v)=>a+(+v.ok||0),0)>=500,
+ a16:x=>Object.keys(S.shadowDone||{}).length>=50, a17:x=>Object.values(S.rezi||{}).filter(r=>(+r.best||0)>=90).length>=5, a18:x=>Object.values(S.rezi||{}).some(r=>(+r.best||0)>=100),
+ a19:x=>{try{return BIB_META.some(b=>Object.keys(((S.bib||{})[b.id]||{}).done||{}).length>=b.n)}catch(e){return false}}, a20:x=>(+S.bibWords||0)>=100000,
+ a21:x=>Object.values(S.hoeren||{}).filter(v=>(+v||0)>=90).length>=30, a22:x=>dcSum("heard")>=50,
+ a23:x=>(S.corrections||[]).filter(c=>!c.self&&c.n!=null&&+c.n<=2).length>=20, a24:x=>Object.entries(x.I.q.done).filter(([k,d])=>/^l/.test(k)&&d.full&&d.d).length>=5,
+ a25:x=>dcSum("fach")>=100, a26:x=>Object.keys(x.bv).filter(k=>/^bv\d\d$/.test(k)&&x.bv[k]&&x.bv[k].pass&&!x.bv[k].grey).length>=3,
+ a27:x=>{const by={};(S.examRes||[]).forEach(r=>{if(r.mock||r.sim){(by[r.date]=by[r.date]||{})[r.m]=Math.max((by[r.date]||{})[r.m]||0,+r.pct||0)}});return Object.values(by).some(o=>Object.keys(o).length>=4&&Object.values(o).every(p=>p>=60))},
+ a28:x=>{const W=weeksAcc();let run=0;for(const w of W){if(w.r>=100&&w.acc>=.81){run++;if(run>=4)return true}else run=0}return false},
+ a29:x=>weeksAcc().some(w=>w.r>=100&&w.acc>=.92), a30:x=>x.night.filter(n=>n.done&&(+n.sc||0)>=20).length>=10,
+ a31:x=>x.sg.filter(s=>s.st==="sealed").length>=10, a32:x=>dcSum("m90")>=50, a33:x=>dcSum("rep")>=20, a34:x=>dcSum("w2")>=10, a35:x=>dcSum("dblw")>=5,
+ a36:x=>[0,1,2,3,4].some(r=>{const pg=x.sg.filter(s=>s.realm===r&&s.kind==="L");return pg.length>=5&&pg.every(s=>!s.crack&&ORDER.indexOf(s.st)>=3)}),
+ a37:x=>{let run=0;let d=addDays(T(),-60);for(let i=0;i<=60;i++){const day=addDays(d,i);if(x.I.mk.ok[day]&&!x.I.mk.bad[day]){run++;if(run>=30)return true}else run=0}return false},
+ a38:x=>x.night.some(n=>n.done&&(+n.n||0)>=10), a39:x=>x.night.some(n=>n.done&&(+n.n||0)>=10&&(+n.c||0)>=(+n.start||3)), a40:x=>ngpCount()>=40};
+G.I10_ACHT=ACHT;
+let ACH_BUSY=0;
+function achScan(){if(ACH_BUSY)return [];ACH_BUSY=1;const neu=[];try{const I=inv();const x=achCtx();(typeof ACH!=="undefined"?ACH:[]).forEach(a=>{if(I.ach[a.id])return;let ok=false;try{ok=!!(ACHT[a.id]&&ACHT[a.id](x))}catch(e){}if(ok){I.ach[a.id]=T();neu.push(a)}});
+  if(neu.length){save();neu.forEach(a=>evEmit("ach",{id:a.id}));setTimeout(()=>tst("Zugeständnis: "+neu[0].n+" — "+LL(neu[0].l)[0],5200),700)}}catch(e){err(e,"ach")}ACH_BUSY=0;return neu}
+// daily observation for a37 and the Spindel milestone (no attendance credit: a day only counts when the learner reviewed and nothing is cracked/due)
+function dailyObserve(){try{const I=inv();const t=T();const sg=sigils(true);const lit=sg.filter(s=>ORDER.indexOf(s.st)>=2).length;const cr=sg.filter(s=>s.crack).length;
+  if(cr)I.mk.bad[t]=1;else if(lit>=20)I.mk.ok[t]=1;save()}catch(e){err(e,"observe")}}
+function clrObserve(){try{const r=revToday();if(r.rev>0&&has("dueKeys")&&dueKeys().length===0){const I=inv();if(!I.mk.clr[T()]){I.mk.clr[T()]=1;save()}}}catch(e){}}
+
+// ================================================================ Wochenprüfung (one fixed challenge per ISO week; reward: a seal in the Grimoire margin)
+function weekTask(wk){wk=wk||monday(T());const L0=(typeof WOCHE!=="undefined"?WOCHE:[]).filter(w=>!w.post||P().done);if(!L0.length)return null;const n=Math.round(diffDays("2026-01-05",wk)/7);return L0[((n%L0.length)+L0.length)%L0.length]}
+function weekTaskDone(wk){wk=wk||monday(T());const w=weekTask(wk);if(!w)return false;const I=inv();const end=addDays(wk,6);const inW=d=>d>=wk&&d<=end;
+  switch(w.id){case "night18":return Object.entries(I.night).some(([d,n])=>inW(d)&&(+n.sc||0)>=18);case "rep3":return dcSum("rep",wk,end)>=3;case "q2":return dcSum("q",wk,end)>=2;
+   case "les90":return dcSum("l90",wk,end)>=5;case "mat100":return dcSum("m21",wk,end)>=100;case "wager2":return dcSum("w2",wk,end)>=1;case "night10":return Object.entries(I.night).some(([d,n])=>inW(d)&&n.done&&(+n.n||0)>=10);
+   case "dbl":return dcSum("dblw",wk,end)>=1;case "ngp":return dcSum("ngp",wk,end)>=1;case "rush12":return Object.entries(I.rush.runs).some(([d,r])=>inW(d)&&r.ok&&r.t<720)}return false}
+function weekTaskScan(){const wk=monday(T());const I=inv();if(!I.wt[wk]&&weekTaskDone(wk)){I.wt[wk]=T();save();tst("Wochenprüfung bestanden. Ein Siegel am Rand.",3500)}}
+
+// ================================================================ API
+const INV={glut:balance,avail,earned,spentTotal,earn,spend,dcSum,dcDay,sigils,abilities,golds,goldPage,relicOn,relicUse,equip,equipped,charges,buyCharge,relicEarned,relicScan,
+  wagerTiers,wagerPlace,wagerSettle,wagerCan,weekTiers,weekPlace,weekSettle,dblOffer,dblSettle,payout,questAll,questOffers,questAccept,questOpen,questFinish,questGet,patientCase,
+  nightEngine,nightCan,rushCan,rushStart,rushBest,ngpItems,ngpRecord,ngpAvail,ngpNext,approbation,rankTarget,rankNow,rankPromote,contract,kabGrade,kabSet,kvBuy,kvOwned,
+  achScan,weekTask,weekTaskDone,duelOpts,address:()=>golds()>=5?"Herr Kollege":"Doktor",merge:inMerge,state:inv,check,compact,dailyObserve,_dev:()=>dev(),_setDev:x=>{DEV=x}};
+G.INV=INV;G.grimoire=()=>sigils(true);G.glut=balance;
+
+// ================================================================ screens
+const CSS=`.i10-chip{display:inline-flex;align-items:center;gap:.3rem;padding:.12rem .55rem;border-radius:999px;background:var(--accent-tint,#2A180C);color:var(--accent-2,#FFB566);font:600 .85rem/1.4 var(--ui,system-ui);border:1px solid var(--accent-soft,#3D2412)}
+:root:not([data-ui="gothic"]):not([data-ui="pixel"]) .i10-chip{color:var(--fg)}/* integrator 13.9: Paper/Klar contrast (accent-2 on its tint was 4.0:1) */
+.i10-chip i{width:.55rem;height:.55rem;border-radius:50%;background:radial-gradient(circle,#FFD08A,#E2651C 60%,#7a2a08);box-shadow:0 0 6px #E2651C}
+.i10-tabs{display:flex;gap:.35rem;flex-wrap:wrap}.i10-tabs button.on{background:var(--accent,#F08A3F)!important;color:var(--accent-ink,#1A0D04)!important;border-color:var(--accent,#F08A3F)!important}
+.i10-sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.45rem}
+.i10-s{position:relative;display:flex!important;flex-direction:column;align-items:flex-start!important;justify-content:flex-start!important;gap:.15rem;text-align:left;padding:.5rem .6rem;border-radius:10px;border:1px solid var(--line,#3a3330);background:var(--sunk,#16110f);color:var(--fg2,#bbb);font:500 .82rem/1.3 var(--ui,system-ui);min-height:3.2rem;overflow:hidden}
+.i10-s b{display:block;font-size:.72rem;letter-spacing:.04em;text-transform:uppercase;opacity:.75}
+.i10-s.ember{border-color:#6b3a1a;color:#e8b48a}.i10-s.lit{border-color:#E2651C;color:var(--fg,#eee);background:linear-gradient(160deg,#2a160a,#1a100b)}
+.i10-s.bright{border-color:#FFB566;color:#fff;background:linear-gradient(160deg,#4a240c,#24130a);box-shadow:0 0 10px rgba(226,101,28,.45)}
+.i10-s.sealed{border-color:#C9A227;color:#fff;background:linear-gradient(160deg,#4a3a10,#24130a);box-shadow:0 0 0 2px rgba(201,162,39,.5) inset}
+.i10-s.crack:after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 46%,rgba(0,0,0,.85) 47%,rgba(255,120,60,.6) 48%,transparent 49%),linear-gradient(60deg,transparent 60%,rgba(0,0,0,.7) 61%,transparent 62.5%);pointer-events:none}
+.i10-s.crack{border-style:dashed}.i10-abil{display:flex;gap:.5rem;flex-wrap:wrap}.i10-abil span{padding:.25rem .6rem;border-radius:8px;border:1px solid var(--line,#333);font:500 .8rem var(--ui,system-ui)}.i10-abil span.on{border-color:#FFB566;color:#FFB566}.i10-abil span.dark{opacity:.45;text-decoration:line-through}
+.i10-q{font-family:var(--body,serif);font-size:1.12rem;margin:.3rem 0}.i10-o{text-align:left;width:100%}.i10-in{width:100%;font-size:1.05rem;padding:.55rem;border-radius:8px}
+.i10-built{min-height:2.4rem;padding:.45rem;border:1px dashed var(--line,#444);border-radius:8px;font-family:var(--body,serif);font-size:1.08rem}.i10-tiles{display:flex;gap:.35rem;flex-wrap:wrap;margin:.4rem 0}
+.i10-v.ok b{color:var(--good,#2A8A55)}.i10-v.no b{color:#C23B3B}.i10-wound{border-left:3px solid #C23B3B;padding:.2rem .55rem;margin:.15rem 0}
+.i10-candles i{display:inline-block;width:.7rem;height:1.1rem;margin-right:.2rem;border-radius:3px 3px 2px 2px;background:linear-gradient(#FFD08A,#E2651C);box-shadow:0 0 8px #E2651C}.i10-candles i.off{background:#333;box-shadow:none}
+.i10-ledger td{padding:.25rem .4rem;vertical-align:top}.i10-ach{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:.45rem}.i10-ach>div{padding:.5rem .6rem;border-radius:10px;border:1px solid var(--line,#333)}.i10-ach>div.got{border-color:#FFB566}
+.i10-ach>div:not(.got){opacity:.7}.i10-grade{font:700 .7rem var(--ui,system-ui);letter-spacing:.05em;text-transform:uppercase;padding:.05rem .4rem;border-radius:5px}.i10-grade.gold{background:#C9A227;color:#1a1204}.i10-grade.silber{background:#bfc5cc;color:#111}.i10-grade.bronze{background:#9b5b2a;color:#fff}
+html.i10-r-spindel .rate [data-q="3"]{display:none!important}
+@media (max-width:420px){.i10-sg{grid-template-columns:repeat(2,minmax(0,1fr))}}`;
+try{if(document.head&&document.createElement){const s=document.createElement("style");s.id="i10-css";s.textContent=CSS;document.head.appendChild(s)}}catch(e){}
+setTimeout(()=>{applyCosts();kvCss()},0);
+
+const pl=(n,a,b)=>n+" "+(n===1?a:b);
+const chip=()=>`<span class="i10-chip" title="Glut: nur für Gewusstes"><i></i>${balance()} Glut</span>`;
+let TAB="grim";
+const TABS=[["grim","Grimoire"],["rel","Relikte"],["auf","Aufträge"],["nacht","Nachtdienst"],["wett","Wetten"],["zug","Zugeständnisse"],["kab","Kabinett"],["end","Nach dem Pakt"]];
+function hub(tab){if(tab)TAB=tab;relicScan();achScan();weekTaskScan();const box=Focus.open({title:"Das Grimoire",sub:`${balance()} Glut · Rang: ${(RANKS[rankNow()]||RANKS[0]).n}`});
+  box.innerHTML=`<div class="stack" style="max-width:900px;margin:0 auto"><div class="i10-tabs">${TABS.filter(t=>t[0]!=="end"||P().done).map(([k,n])=>`<button class="sm ${k===TAB?"on":""}" data-act="i10Tab" data-t="${k}">${n}</button>`).join("")}</div><div class="i10-body"></div></div>`;
+  const b=box&&box.querySelector&&box.querySelector(".i10-body");if(!b)return;try{({grim:vGrim,rel:vRel,auf:vAuf,nacht:vNacht,wett:vWett,zug:vZug,kab:vKab,end:vEnd})[TAB](b)}catch(e){err(e,"tab "+TAB);b.innerHTML=`<p class="muted">Diese Seite konnte nicht geladen werden.</p>`}}
+ACT.i10Grim=()=>hub("grim");ACT.i10Tab=el=>hub(el.dataset.t);ACT.i10Open=el=>hub(el.dataset.t||"grim");
+
+function vGrim(b){const sg=sigils(true);const ab=abilities();const cr=sg.filter(s=>s.crack);const page=+(G.__i10page||0);
+  b.innerHTML=`<div class="card orn stack s">${sayH(cr.length?L("grim_crack",{n:Math.max(...cr.map(s=>s.days))}):L("grim_open"))}<div class="row between"><span>${chip()} <small class="muted ui">${esc(L("glut_rule")[0])}</small></span></div></div>
+   <div class="card stack s"><div class="eyebrow">Fähigkeiten im Duell</div><div class="i10-abil no-sig">${ab.map(a=>`<span class="${a.on?"on":a.dark?"dark":""}" title="${esc(a.de)}">${esc(a.n[0])} · ${a.on?"bereit":a.dark?"dunkel (Riss)":Math.min(a.have,5)+"/5 hell"}</span>`).join("")}</div>
+     <small class="muted ui">Jede Seite gibt bei fünf hellen Zeichen eine Fähigkeit. Ein Riss in einem dieser fünf löscht sie, bis er repariert ist. Gold: ${golds()}/5 Seiten${golds()>=5?" · Mephisto sagt jetzt „Herr Kollege“":""}.</small></div>
+   <div class="i10-tabs">${(typeof GRIM_REALM!=="undefined"?GRIM_REALM:[]).map((r,i)=>`<button class="sm ${i===page?"on":""}" data-act="i10Page" data-p="${i}">${esc(r[0].split(" · ")[0])}${goldPage(i)?" ★":""}</button>`).join("")}${inv().rg?`<button class="sm ${page===9?"on":""}" data-act="i10Page" data-p="9">Randnotizen</button>`:""}</div>
+   <div class="i10-page"></div>`;
+  const pg=b.querySelector(".i10-page");if(page===9)return vRand(pg);const items=sg.filter(s=>s.realm===page);const cnt=k=>items.filter(s=>shown(s)===k).length;
+  pg.innerHTML=`<div class="card stack s"><div class="row between"><div><div class="eyebrow">${esc((GRIM_REALM[page]||["",""])[0])}${goldPage(page)?" · in Gold":""}</div><small class="muted ui">${items.length} Zeichen · ${cnt("sealed")} versiegelt · ${cnt("bright")} hell · ${cnt("lit")} leuchten · ${cnt("ember")} glimmen · ${pl(items.filter(s=>s.crack).length,"Riss","Risse")}</small></div>
+     <button class="sm ghost" data-act="gramMap">Alle Lektionen</button></div>
+     <div class="i10-sg">${items.map(s=>`<button class="i10-s ${shown(s)}${s.crack?" crack":""}" data-act="i10Sig" data-id="${esc(s.id)}"><b>${esc((GRIM_STATE[shown(s)]||[""])[0])}${s.crack?" · Riss":""}${s.lv?" · "+esc(s.lv):""}</b>${esc(s.n)}${s.crack?`<br><small>${esc(s.why)}</small>`:""}</button>`).join("")||`<p class="muted">Noch keine Zeichen auf dieser Seite.</p>`}</div>
+     <small class="muted ui">dunkel: nicht begonnen · glimmt: unter 60 % · leuchtet: ab 60 % · hell: zweimal ≥ 80 % mit 7 Tagen Abstand · versiegelt: 30 Tage hell und pünktlich wiederholt. Ein überfälliges Zeichen bekommt einen Riss und fällt eine Stufe.</small></div>`}
+ACT.i10Page=el=>{G.__i10page=+el.dataset.p;hub("grim")};
+function vRand(pg){const I=inv();const first=Object.values(S.cards||{}).length;const fd=[];try{const ev=(S.events||[]);if(ev[0])fd.push(["Erster Eintrag im Verlauf",fmtDate(ev[0].d)])}catch(e){}
+  Object.entries((P().sealed||{})).slice(0,1).forEach(([n,d])=>fd.push(["Erstes Siegel (Kapitel "+n+")",fmtDate(String(d).slice(0,10))]));Object.entries(S.bossWins||{}).forEach(([k,w])=>fd.push(["Sieg: "+((BOSSES[k]||{}).n||k),fmtDate(w.d)]));
+  Object.entries(I.relic.have).forEach(([k,d])=>fd.push(["Relikt: "+((relicDef(k)||{}).n||k),fmtDate(d)]));fd.push(["Karten im Deck",String(first)]);
+  pg.innerHTML=`<div class="card stack s"><div class="eyebrow">Randnotizen</div><p class="muted ui">Eine Seite ohne Fähigkeit und ohne Glut: Ihre eigenen Daten, an den Rand geschrieben, seit ${esc(fmtDate(I.rg))}.</p><table class="i10-ledger">${fd.map(r=>`<tr><td>${esc(r[0])}</td><td class="mono">${esc(r[1])}</td></tr>`).join("")}</table></div>`}
+ACT.i10Sig=el=>{const s=sigils(true).find(x=>x.id===el.dataset.id);if(!s)return;const box=Focus.open({title:s.n,sub:(GRIM_STATE[shown(s)]||[""])[0]+(s.crack?" · Riss":"")});
+  let extra="";if(s.crack&&relicOn("stiefel")&&s.kind==="L"){const m=(S.mistakes||[]).filter(x=>String(x.src||"").indexOf(s.ref)>=0).slice(-1)[0];const m2=m||(S.mistakes||[]).slice(-1)[0];if(m2){relicUse("stiefel");extra=`<p class="ui"><b>Schlemihls Stiefel</b> · ${m?"Ihr Fehler zu dieser Lektion":"Ihr jüngster Fehler in der Fehlerakte"}: ${esc(String(m2.text).replace(/\{\{c1::|\}\}/g,""))}</p>`}}
+  box.innerHTML=`<div class="stack" style="max-width:640px;margin:0 auto"><div class="card orn stack s">${sayH(s.crack?L("grim_crack",{n:s.days}):L("grim_open"))}${extra}</div><div class="card stack s"><div class="eyebrow">Zustand</div><p class="ui">${esc((GRIM_STATE[s.st]||[""])[0])}${s.crack?` · ${esc(s.why)}`:""}${s.pct!=null?` · ${s.pct} % sicher`:""}</p>
+   <div class="row">${s.kind==="L"?`<button class="go" data-act="i10Rep" data-id="${esc(s.id)}">${s.crack?"Reparieren · ":"Üben · "}${relicOn("stiefel")?10:8} Fragen</button><button class="sm ghost" data-act="pkLesson" data-id="${esc(s.ref)}">Lektion öffnen</button>`:""}
+   ${s.kind==="W"&&s.over&&s.over.length?`<button class="go" data-act="i10RepW" data-id="${esc(s.id)}">Reparieren · ${Math.min(8,s.over.length)} Karten</button>`:""}${s.kind==="V"?`<button class="go" data-act="stark">Starke Verben üben</button>`:""}</div></div></div>`};
+ACT.i10Rep=el=>{const s=sigils(true).find(x=>x.id===el.dataset.id);if(!s)return;const items=repairItems(s);if(!items.length)return tst("Keine Übungen für diese Lektion.");const N=items.length;const cut=relicOn("stiefel")?8:relicCost("phiole")?7:6;
+  if(relicOn("stiefel"))relicUse("stiefel");const box=Focus.open({title:"Reparatur: "+s.n,sub:N+" Fragen · "+cut+" müssen sitzen"});
+  runItems(box,items,{title:"Reparatur",cut,ctx:"rep:"+s.ref,seed:s.id+T(),onDone:(r,after)=>{if(r.pass){const I=inv();const was=s.crack;I.rep[s.id]=T();if(was)dcAdd("rep",1);clearCheck();save();achScan();weekTaskScan()}
+    after.innerHTML=`<div class="card orn">${sayH(r.pass?L("grim_repair"):L("grim_fail"))}</div><div class="row"><button class="go" data-act="i10Tab" data-t="grim">Zum Grimoire</button></div>`}})};
+ACT.i10RepW=el=>{const s=sigils(true).find(x=>x.id===el.dataset.id);if(!s||!has("cardRunner"))return;const q=s.over.slice(0,8).map(id=>({key:id,id,mode:"rec"}));const box=Focus.open({title:"Reparatur: "+s.n,sub:q.length+" überfällige Karten"});
+  cardRunner(box,q,{standalone:true,onDone:r=>{if(r&&r.n){const I=inv();if(s.crack)dcAdd("rep",1);I.rep[s.id]=T();clearCheck();save();achScan()}}})};
+
+function vRel(b){relicScan();const I=inv();const eq=equipped();
+  b.innerHTML=`<div class="card orn stack s">${sayH(L("relic_equip"))}<small class="muted ui">Höchstens drei getragen. Ein Relikt wirkt, solange es Ladungen hat (eine pro Tag, an dem es wirkt). Drei Ladungen kosten ${(CFG.relic.charge||{}).price||15} Glut. Im echten Duell, in Proben und Siegeln wirkt kein Relikt.</small><div>${chip()}</div></div>
+  <div class="stack s">${RELICS.map(r=>{const have=I.relic.have[r.id];const on=eq.includes(r.id);return `<div class="card stack s"><div class="row between"><div><div class="eyebrow">${have?"verdient am "+esc(fmtDate(have)):"noch nicht verdient"}</div><h3 style="margin:.15rem 0">${esc(r.n)}</h3></div>${have&&r.id!=="laterne"?`<span class="mono">${charges(r.id)} Ladungen</span>`:""}</div>
+    <p class="ui" style="margin:0"><b>Wie:</b> ${esc(r.how[0])}</p><p class="ui" style="margin:0"><b>Wirkung:</b> ${esc(r.eff[0])}</p><p class="ui" style="margin:0"><b>Preis:</b> ${esc(r.cost[0])}</p>
+    ${have?`<div class="row"><button class="sm ${on?"":"go"}" data-act="i10Eq" data-id="${r.id}" data-on="${on?0:1}">${on?"Ablegen":"Tragen"}</button>${r.id==="laterne"?"":`<button class="sm ghost" data-act="i10Buy" data-id="${r.id}">+3 Ladungen · ${(CFG.relic.charge||{}).price||15} Glut</button>`}${r.id==="spindel"&&on?`<button class="sm" data-act="i10Spin">${spindelToday()?"Heute aktiv":"Heute mehr Garn (+20)"}</button>`:""}</div>`:""}</div>`}).join("")}</div>`}
+ACT.i10Eq=el=>{equip(el.dataset.id,el.dataset.on==="1");hub("rel")};ACT.i10Buy=el=>{if(!buyCharge(el.dataset.id))tst("Nicht genug Glut.");hub("rel")};
+ACT.i10Spin=()=>{if(spindelToday())return;if(!relicUse("spindel"))return tst("Keine Ladung mehr.");tst("Heute 20 Wiederholungen mehr.");hub("rel")};
+
+function vAuf(b){const open=questOpen();const offers=questOffers();const I=inv();
+  b.innerHTML=`<div class="card orn stack s">${sayH(tired()?L("tired"):L("quest_board"))}<small class="muted ui">${open.length} von ${questSlots()} offen · jeder Auftrag nennt seine Lektion und repariert ihr Zeichen · erster Abschluss: ${CFG.earn.quest||10} Glut</small></div>
+   <div class="stack s"><div class="eyebrow">Offen</div>${open.length?open.map(x=>{const q=questGet(x.id);return `<div class="card stack s"><div class="row between"><div><div class="eyebrow">${esc(qKind(q))} · ${esc(q.lv||"")}${q.les?" · Lektion "+esc(q.les):""}</div><h3 style="margin:.15rem 0">${esc(q.t[0])}</h3></div></div>
+     <div class="row">${questTriedToday(q.id)?`<span class="muted ui">Heute schon versucht. Morgen wieder.</span>`:`<button class="go sm" data-act="i10Q" data-id="${esc(q.id)}">Beginnen</button>`}<button class="sm ghost" data-act="i10QDrop" data-id="${esc(q.id)}">Zurücklegen</button></div></div>`}).join(""):`<p class="muted ui">Keiner. Nehmen Sie einen an.</p>`}</div>
+   <div class="stack s"><div class="eyebrow">Angebote</div>${offers.map(q=>`<div class="card row between"><div><div class="eyebrow">${esc(qKind(q))} · ${esc(q.lv||"")}${(I.q.done[q.id]||{}).d?" · schon erledigt":""}</div><b>${esc(q.t[0])}</b><br><small class="muted">${esc(q.t[1]||"")}</small></div><button class="sm" data-act="i10QAcc" data-id="${esc(q.id)}" ${open.length>=questSlots()?"disabled":""}>Annehmen</button></div>`).join("")||`<p class="muted ui">Keine weiteren Aufträge in diesem Reich.</p>`}</div>
+   <div class="card stack s"><div class="eyebrow">Stationsbuch</div><small class="muted ui">${Object.entries(I.q.done).filter(([k,d])=>d.d).map(([k,d])=>{const q=questGet(k);return esc((q?q.t[0]:k)+" · "+fmtDate(d.d))}).join(" · ")||"Noch nichts eingetragen."}</small></div>`}
+const qKind=q=>q.kind==="l"?"Brief":q.kind==="p"?"Patientenfall":"Besorgung";
+ACT.i10QAcc=el=>{if(!questAccept(el.dataset.id))tst("Zwei Aufträge sind genug.");hub("auf")};ACT.i10QDrop=el=>{questDrop(el.dataset.id);hub("auf")};
+ACT.i10Q=el=>{const q=questGet(el.dataset.id);if(!q)return;if(q.kind==="l")return letterRun(q);const sober=!!q.sober;const prev=document.documentElement.getAttribute&&document.documentElement.getAttribute("data-sober");
+  const box=Focus.open({title:q.t[0],sub:qKind(q)+" · "+(q.lv||""),onClose:()=>{try{if(sober){if(prev)document.documentElement.setAttribute("data-sober",prev);else document.documentElement.removeAttribute("data-sober")}}catch(e){}}});
+  if(sober)try{document.documentElement.setAttribute("data-sober","1")}catch(e){}
+  const aleph=relicOn("aleph"),phiole=relicOn("phiole");const decoy=relicCost("aleph")?["nicht","auch","sehr","dann"]:null;
+  runItems(box,q.items,{title:q.t[0],cut:q.kind==="p"?7:(CFG.quest.cut||6),ctx:"q:"+q.id,seed:q.id,sober,aleph,phiole,decoy,head:q.intro&&q.intro[0]?`<div class="card"><p class="ui" style="margin:0">${esc(q.intro[0])}</p></div>`:"",
+    onAleph:()=>relicUse("aleph"),onAnswer:(ok,it)=>{if(it.fach&&ok)dcAdd("fach",1);if(phiole)relicUse("phiole")},
+    onDone:(r,after)=>{const g=questFinish(q,r.pass,r.right,r.pass);after.innerHTML=`<div class="card orn stack s">${r.pass?`<p class="ui">${esc((q.pay||[""])[0])}</p>`:""}${sober?"":sayH(r.pass?L("quest_done"):L("quest_fail"))}${g?`<p class="ui">+${g} Glut</p>`:""}</div><div class="row"><button class="go" data-act="i10Tab" data-t="auf">Zu den Aufträgen</button></div>`;achScan();weekTaskScan()}})};
+function letterRun(q){const box=Focus.open({title:q.t[0],sub:"Brief · "+q.lv});const sober=!!q.sober;let mc=0;
+  box.innerHTML=`<div class="stack" style="max-width:720px;margin:0 auto" ${sober?'data-sober="1"':""}><div class="card stack s"><div class="eyebrow">Von: ${esc(q.from)}${q.fic?" · Beispiel (erfunden)":""}</div><div style="white-space:pre-wrap;font-family:var(--body,serif);font-size:1.05rem">${esc(q.text)}</div>${has("say")?`<button class="sm ghost" data-say="${esc(q.text.replace(/\n/g," "))}">Vorlesen</button>`:""}</div>
+   <div class="card stack s i10-lq">${q.qs.map((x,i)=>`<div class="stack s"><b>${i+1}. ${esc(x.q)}</b>${x.o.map((o,k)=>`<label class="ui"><input type="radio" name="lq${i}" value="${k}"> ${esc(o)}</label>`).join("")}</div>`).join("")}</div>
+   <div class="card stack s"><div class="eyebrow">Ihre Antwort</div><p class="ui" style="margin:0">${esc(q.task[0])}</p>${relicCost("sarg")?"":`<small class="muted">${esc(q.task[1])}</small>`}<textarea class="i10-ta" rows="7" style="width:100%;font-size:1rem"></textarea><div class="row"><button class="go i10-send">Abschicken</button></div><div class="i10-lr"></div></div></div>`;
+  const send=box.querySelector(".i10-send");if(send)send.onclick=()=>{mc=q.qs.filter((x,i)=>{const r=box.querySelector(`input[name="lq${i}"]:checked`);return r&&+r.value===x.a}).length;const ta=box.querySelector(".i10-ta");const res=letterCheck(q,ta?ta.value:"",mc);
+    const out=box.querySelector(".i10-lr");const g=questFinish(q,res.pass,res.score,res.full);
+    out.innerHTML=`<p class="ui"><b>${res.pass?"Angenommen.":"Noch nicht."}</b> Fragen ${mc}/3 · Sätze ${res.sents} · Pflichtpunkte ${res.got}/${q.need.length}${res.errs!=null?` · Hinweise des Korrektors: ${res.errs}`:""}</p>
+     ${q.need.map(n=>`<div class="ui">${res.hit[n.de]?"✓":"○"} ${esc(n.de)}</div>`).join("")}${(res.F||[]).slice(0,5).map(f=>`<div class="i10-wound"><b>${esc(f.title||f.type||"")}</b> ${f.orig?`<small>${esc(f.orig)} → ${esc(f.fix||"")}</small>`:""}</div>`).join("")}
+     <details><summary class="ui">Musterantwort</summary><div style="white-space:pre-wrap;font-family:var(--body,serif)">${esc(q.model)}</div></details>${g?`<p class="ui">+${g} Glut</p>`:""}${res.pass&&q.re?`<p class="muted ui">Die Antwort auf Ihre Antwort kommt in zwei Tagen.</p>`:""}`;send.disabled=true;achScan();weekTaskScan()}}
+function letterCheck(q,text,mc){const t=String(text||"");const low=t.toLowerCase();const hit={};let got=0;q.need.forEach(n=>{let ok=false;try{ok=new RegExp(n.re,"i").test(low)}catch(e){}hit[n.de]=ok;if(ok)got++});
+  const sents=(t.match(/[^.!?\n]{6,}[.!?]/g)||[]).length;let errs=null,F=[];try{if(has("teachAnalyze")){const A=teachAnalyze(t,{t:"",reg:q.lv>="B1"?"formell":""});F=(A.F||[]).filter(f=>f.key!=="len"&&f.key!=="punct");errs=F.length}}catch(e){}
+  const minS=q.lv==="A2"?3:4;const pass=mc>=2&&got>=q.need.length-1&&sents>=minS&&(errs==null||errs<=Math.max(2,sents));return {pass,full:pass&&got===q.need.length,got,hit,sents,errs,F,score:got+mc}}
+G.i10LetterCheck=letterCheck;
+
+function vNacht(b){const c=nightCan();const rec=nightRec();const I=inv();const wk=monday(T());const week=Object.entries(I.night).filter(([d])=>d>=wk).map(([,n])=>n);const best=week.reduce((a,n)=>Math.max(a,+n.sc||0),0);
+  b.innerHTML=`<div class="card orn stack s" data-sober="1">${sayH(shiftToday()?L("night_shiftday"):L("night_door"))}<small class="muted ui">Zehn Patienten aus den Stationen von Bett vier, jeder mit drei Aufgaben: fragen, hören, dokumentieren. Drei Kerzen für die ganze Nacht; Rast nach dem dritten und sechsten Patienten. Punkte = behandelte Patienten × Kerzen am Ende. Ein Dienst pro Tag zählt; die beste Nacht der Woche bleibt stehen. Ohne Uhr.</small>
+   <div class="row between"><span class="ui">Diese Woche: <b>${best}</b> Punkte</span>${c.ok?(rec&&rec.done?`<span class="muted ui">Heute erledigt: ${rec.sc} Punkte</span>`:`<button class="go" data-act="i10Night">${rec?"Fortsetzen":"Dienst antreten"}</button>`):`<span class="muted ui">${esc(c.why)}</span>`}</div></div>
+   ${rec&&rec.done&&rec.errs&&rec.errs.length?`<div class="card stack s"><div class="eyebrow">Was heute nicht saß</div>${rec.errs.map(e=>`<div class="i10-wound">${esc(e)}</div>`).join("")}</div>`:""}
+   <div class="card stack s"><div class="eyebrow">Walpurgisnacht · Bossreihe</div>${(()=>{const rc=rushCan();const bst=rushBest();return `<p class="ui" style="margin:0">${esc(L("rush_offer")[0])}</p><small class="muted ui">${bst?"Bestzeit "+fmtT(bst.t)+" · "+bst.c+" Kerzen übrig":"noch kein Lauf"}</small><div class="row">${rc.ok?`<button class="go sm" data-act="i10Rush">Antreten</button>`:`<span class="muted ui">${esc(rc.why)}</span>`}</div>`})()}</div>`}
+ACT.i10Night=()=>nightRun();ACT.i10Rush=()=>rushStart();
+function nightRun(){const c=nightCan();if(!c.ok)return tst(c.why);const day=T();const I=inv();const seed="nd:"+day;const rec=I.night[day];if(rec&&rec.done)return tst("Heute erledigt.");
+  const E=nightEngine(seed,{lv:rec&&rec.lv!=null?rec.lv:lvNow(),candles:nightCandles(),waechter:relicOn("waechter")});if(!E.pats.length)return tst("Heute keine Patienten.");
+  if(rec&&rec.log)rec.log.forEach(a=>{if(a==="B"||a[0]==="B"){const id=String(a).slice(2);if(id&&id!=="-")E.takeBoon(id);else E.skipBoon()}else E.answer(a===1)});
+  if(E.usedFree)relicUse("waechter");const log=(rec&&rec.log)||[];
+  const prevS=document.documentElement.getAttribute&&document.documentElement.getAttribute("data-sober");try{document.documentElement.setAttribute("data-sober","1")}catch(e){}
+  const box=Focus.open({title:"Nachtdienst",sub:fmtDate(day),onClose:()=>{try{if(prevS)document.documentElement.setAttribute("data-sober",prevS);else document.documentElement.removeAttribute("data-sober")}catch(e){}}});
+  const persist=()=>{I.night[day]={seed,lv:E.pats[0]?LV.indexOf(E.pats[0].lv):0,i:E.i,c:E.c,start:E.start,n:E.treated,sc:E.done?E.score():0,done:E.done?1:0,log:log.slice(),errs:E.errs.slice(0,12).map(x=>x.p.name+" · "+({ask:"Frage",hear:"Hören",doc:"Dokumentation"})[x.kind]+": "+(x.kind==="ask"?x.p.q:x.p.heard))};if(E.done)dcAdd("nights",1);save()};
+  G.__i10night=E;let plays=0,timer=null;
+  const head=()=>`<div class="row between"><span class="i10-candles">${Array.from({length:E.start+1},(_,k)=>k<E.c?"<i></i>":k<E.start?"<i class='off'></i>":"").join("")}</span><span class="mono">Patient ${Math.min(E.i+1,E.pats.length)} / ${E.pats.length} · behandelt ${E.treated}</span></div>`;
+  const draw=()=>{clearInterval(timer);if(E.done)return end();if(E.boonDue()){if(relicCost("waechter")&&E.i===3){E.skipBoon();log.push("B:-");persist();return draw()}const n=2+(relicOn("fass")?1:0)+(kabSet("gedichte")?1:0);const ch=E.boonChoices(n);if(relicOn("fass"))relicUse("fass");
+      box.innerHTML=`<div class="stack" data-sober="1" style="max-width:640px;margin:0 auto">${head()}<div class="card stack s"><div class="eyebrow">Rast</div><p class="ui">Schwester Hilde stellt Ihnen einen Kaffee hin. Wählen Sie eine Gabe.</p>${ch.map(x=>`<button class="i10-o" data-b="${x.id}"><b>${esc(x.n[0])}</b> · ${esc(x.de)}</button>`).join("")}</div></div>`;
+      box.querySelectorAll("[data-b]").forEach(btn=>btn.onclick=()=>{E.takeBoon(btn.dataset.b);log.push("B:"+btn.dataset.b);persist();draw()});return}
+    const tk=E.task();const p=tk.p;plays=0;const allow=(relicCost("fass")?1:2)+(E.next.plays||0);
+    let body=`<div class="card"><div class="eyebrow">${esc(p.name)} · ${esc(p.lv)}</div>${p.doc&&tk.kind==="ask"?`<small class="muted">${esc(p.doc)}</small>`:""}</div>`;
+    if(tk.kind==="ask")body+=`<div class="card stack s"><p class="i10-q">${esc(tk.cue[0])}</p>${relicCost("sarg")?"":`<small class="muted">${esc(tk.cue[1])}</small>`}${tk.o.map((x,k)=>`<button class="i10-o" data-k="${k}"><b class="mono">${k+1}</b> ${esc(x)}</button>`).join("")}</div>`;
+    if(tk.kind==="hear")body+=`<div class="card stack s"><p class="i10-q">Was sagt ${esc(p.name)}?</p><div class="row"><button class="sm i10-play">${icn("play")} Abspielen (${allow})</button><button class="sm ghost i10-show">Ohne Ton: Text zeigen</button></div>${tk.o.map((x,k)=>`<button class="i10-o" data-k="${k}"><b class="mono">${k+1}</b> ${esc(x)}</button>`).join("")}<small class="muted ui">Hören Sie zuerst; die Sätze darunter sind die Auswahl.</small></div>`;
+    if(tk.kind==="doc")body+=`<div class="card stack s"><p class="i10-q">Dokumentieren Sie das fehlende Wort:</p><p style="font-family:var(--body,serif);font-size:1.1rem">„${esc(tk.q)}“</p><input class="i10-in" autocomplete="off" autocapitalize="off" spellcheck="false"><div class="row"><button class="go sm i10-ok">Eintragen</button></div></div>`;
+    box.innerHTML=`<div class="stack" data-sober="1" style="max-width:640px;margin:0 auto">${head()}${body}${E.next.timed?`<div class="mono i10-clock">${E.next.timed}</div>`:""}<div class="i10-fb"></div></div>`;
+    const fb=box.querySelector(".i10-fb");let retried=false;
+    const resolve=ok=>{clearInterval(timer);if(!ok&&tk.kind==="doc"&&E.next.blick&&!retried){retried=true;E.next.blick=0;fb.innerHTML=`<p class="muted ui">Zweiter Blick: einmal verbessern.</p>`;return}
+      if(ok&&tk.kind==="hear")dcAdd("heard",1);const want=tk.kind==="doc"?tk.a:tk.o[tk.a];E.answer(ok);log.push(ok?1:0);persist();
+      fb.innerHTML=`<div class="i10-v ${ok?"ok":"no"}"><b>${ok?"Richtig.":"Nicht ganz."}</b> ${ok?"":"Richtig: <b>"+esc(want)+"</b>"}${tk.kind!=="ask"?`<br><small class="muted">„${esc(p.heard)}“</small>`:""}</div><div class="row"><button class="go sm i10-next">Weiter</button></div>`;
+      box.querySelectorAll(".i10-o,.i10-ok,.i10-in").forEach(x=>x.disabled=true);const nx=box.querySelector(".i10-next");if(nx){nx.onclick=draw;try{nx.focus()}catch(e){}}};
+    box.querySelectorAll(".i10-o").forEach(btn=>btn.onclick=()=>resolve(+btn.dataset.k===tk.a));
+    const pl=box.querySelector(".i10-play");if(pl){const go=()=>{if(plays>=allow)return;plays++;try{say(p.heard,p.tts||{})}catch(e){}pl.textContent="Abspielen ("+(allow-plays)+")";if(plays>=allow)pl.disabled=true};pl.onclick=go;setTimeout(go,250)}
+    const sh=box.querySelector(".i10-show");if(sh)sh.onclick=()=>{sh.outerHTML=`<p class="ui"><i>${esc(p.heard)}</i></p>`};
+    const inp=box.querySelector(".i10-in"),okb=box.querySelector(".i10-ok");if(okb){const go=()=>resolve(check({t:"gap",a:tk.a,alt:tk.alt},inp?inp.value:""));okb.onclick=go;if(inp){inp.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();go()}};try{inp.focus()}catch(e){}}}
+    if(E.next.timed){let s=E.next.timed;const ck=box.querySelector(".i10-clock");timer=setInterval(()=>{s--;if(ck)ck.textContent=String(s);if(s<=0){clearInterval(timer);resolve(false)}},1000)}
+    KEYSset(e=>{const n=parseInt(e.key,10);const opts=box.querySelectorAll(".i10-o");if(n>=1&&n<=opts.length&&!opts[n-1].disabled)opts[n-1].click();else if(e.key==="Enter"){const nx=box.querySelector(".i10-next");if(nx)nx.click()}})};
+  const end=()=>{KEYSset(null);clearInterval(timer);persist();const sc=E.score();const k=sc>=20?"night_hi":sc>=8?"night_mid":"night_lo";achScan();weekTaskScan();relicScan();
+    box.innerHTML=`<div class="stack" style="max-width:640px;margin:0 auto">${head()}<div class="card orn stack s"><h2 style="margin:0">${sc} Punkte</h2><p class="ui">${E.treated} behandelt · ${E.c} Kerzen übrig</p>${sayH(L(k,{n:sc}))}</div>
+     ${E.errs.length?`<div class="card stack s"><div class="eyebrow">Was heute nicht saß</div>${E.errs.map(x=>`<div class="i10-wound"><b>${esc(x.p.name)}</b> · ${esc(x.kind==="ask"?x.p.q:x.p.heard)}</div>`).join("")}</div>`:""}<div class="row"><button class="go" data-act="i10Tab" data-t="nacht">Fertig</button></div></div>`};
+  draw()}
+
+function vWett(b){const I=inv();const t=T();const w=I.wager[t];const can=wagerCan();const tiers=wagerTiers();const wk=monday(t);const k=I.wk[wk];const dbl=dblOffer();
+  const why={placed:"Heute schon gesetzt.",shift:LL(MEPH10.wager_shift)[0],late:L("tired")[0],glut:"Zu wenig Glut für den Einsatz.",data:"Noch zu wenig Daten: mindestens 100 Antworten in den letzten 60 Tagen.",due:"Heute sind weniger als 20 Karten fällig."};
+  b.innerHTML=`<div class="card orn stack s">${sayH(L("wager_offer"))}<small class="muted ui">${esc(L("wager_rule")[0])} Wetten gibt es nie auf Siegel, Proben oder Schulden. ${chip()}</small></div>
+   <div class="card stack s"><div class="eyebrow">Die Tageswette · Einsatz ${CFG.wager.stake||5} Glut · mindestens ${CFG.wager.minRev||20} Karten</div>
+    ${w?wagerHTML(w,t):can.ok?`<p class="ui" style="margin:0">Ihr Schnitt: <b>${Math.round(100*baseAcc())} %</b>. Wie viele Ihrer heutigen Karten wissen Sie?</p><div class="row">${tiers.map(x=>`<button class="sm go" data-act="i10Bet" data-i="${x.i}">${Math.round(x.t*100)} % · Gewinn ca. ${x.w}</button>`).join("")}</div><small class="muted ui">Der Gewinn hängt von der Zahl der Karten ab (gerechnet für ${tiers[0]?tiers[0].est:20}); abgerechnet wird nach Ihrer Sitzung oder morgen früh. Unter ${CFG.wager.minRev||20} Karten gilt die Wette nicht.</small>`:`<p class="muted ui">${esc(why[can.why]||"")}</p>`}</div>
+   <div class="card stack s"><div class="eyebrow">Doppelt oder nichts</div>${(I.dbl[t]||{}).res?`<p class="ui">${I.dbl[t].res==="w"?"Gewonnen: +"+I.dbl[t].amt+" Glut":"Verloren: −"+I.dbl[t].amt+" Glut"}</p>`:dbl&&!tired()?`<p class="ui" style="margin:0">${esc(L("dbl_offer")[0])}</p><small class="muted ui">${dbl.ids.length} Karten · Einsatz ${dbl.stake} (heutige Kartenglut) · Gewinn ${dbl.win}</small><div class="row"><button class="go sm" data-act="i10Dbl">Annehmen</button></div>`:`<p class="muted ui">Öffnet, wenn Sie heute mindestens drei Karten verloren und Kartenglut verdient haben.</p>`}</div>
+   <div class="card stack s"><div class="eyebrow">Die Wochenwette · Einsatz ${CFG.wager.weekStake||10} Glut</div>${k?weekHTML(k):diffDays(wk,t)<=1?(weekTiers().length?`<p class="ui" style="margin:0">${esc(L("week_offer")[0])}</p><div class="row">${weekTiers().map(x=>`<button class="sm go" data-act="i10Week" data-i="${x.i}">${Math.round(x.t*100)} % · Gewinn ${x.w}</button>`).join("")}</div>`:`<p class="muted ui">Braucht drei Wochen mit je 150 Antworten.</p>`):`<p class="muted ui">Gesetzt wird montags oder dienstags.</p>`}</div>
+   <div class="card stack s"><div class="eyebrow">Wochenprüfung</div>${(()=>{const wt=weekTask();return wt?`<p class="ui" style="margin:0">${esc(wt.de)}</p><small class="muted ui">${I.wt[wk]?"bestanden am "+fmtDate(I.wt[wk]):"offen bis Sonntag"} · ${Object.keys(I.wt).length} Siegel am Rand</small>`:""})()}</div>`;
+  if(w&&!w.res){const sb=b.querySelector(".i10-settle");if(sb)sb.onclick=()=>{const r=wagerSettle(t,false);if(!r)tst("Noch keine "+(CFG.wager.minRev||20)+" Karten.");hub("wett")}}}
+function wagerHTML(w,day){if(!w.res){const r=revToday();const n=r.rev-(+w.rev0||0),k=r.ok-(+w.ok0||0);return `<p class="ui" style="margin:0">Gesetzt: ${Math.round(w.t*100)} %. Bisher ${k} von ${n} gewusst${n?" ("+Math.round(100*k/n)+" %)":""}.</p><div class="row"><button class="sm i10-settle">Abrechnen</button></div>`}
+  if(w.res==="v")return `<p class="ui">${esc(L("wager_void")[0])}</p>`;if(w.res==="w")return `<p class="ui">${esc(L("wager_win")[0])} +${w.pay} Glut (${Math.round(100*w.acc)} % von ${w.n}).</p>`;
+  const miss=((inv().dbl[day||T()]||{}).m||[]).slice(0,2).map(id=>has("card")&&card(id)).filter(Boolean);return `<p class="ui">${esc(L("wager_loss")[0])} (${Math.round(100*w.acc)} % von ${w.n})</p>${miss.map(c=>`<button class="sm ghost" data-say="${esc(c.de)}">${icn("play")} ${esc(c.de)} — ${esc(c.en)}</button>`).join(" ")}`}
+function weekHTML(k){if(!k.res)return `<p class="ui" style="margin:0">Gesetzt: mindestens ${Math.round(k.t*100)} % diese Woche. Abrechnung am Montag.</p>`;return `<p class="ui">${k.res==="w"?esc(L("week_win")[0])+" +"+k.pay+" Glut":k.res==="l"?esc(L("week_loss")[0]):"Zu wenige Antworten. Die Wette gilt nicht."}</p>`}
+ACT.i10Bet=el=>{if(!wagerPlace(+el.dataset.i))tst("Nicht möglich.");hub("wett")};ACT.i10Week=el=>{if(!weekPlace(+el.dataset.i))tst("Nicht möglich.");hub("wett")};
+ACT.i10Dbl=()=>{const o=dblOffer();if(!o)return;const items=o.ids.map(id=>{const c=card(id);return {t:"gap",q:c.en+(genderOfSafe(c.de)?" (mit Artikel)":""),a:c.de,alt:[],why:c.ex||""}});const box=Focus.open({title:"Doppelt oder nichts",sub:items.length+" Karten · alles tippen"});
+  runItems(box,items,{title:"Doppelt oder nichts",cut:items.length,ctx:"dbl",seed:"dbl"+T(),onDone:(r,after)=>{const d=dblSettle(r.right,r.n,o);achScan();weekTaskScan();after.innerHTML=`<div class="card orn">${sayH(d.res==="w"?L("dbl_win"):L("dbl_loss"))}<p class="ui">${d.res==="w"?"+":"−"}${d.amt} Glut</p></div><div class="row"><button class="go" data-act="i10Tab" data-t="wett">Zurück</button></div>`}})};
+const genderOfSafe=de=>{try{return has("genderOf")?genderOf(de):null}catch(e){return null}};
+
+function vZug(b){const I=inv();achScan();const got=ACH.filter(a=>I.ach[a.id]).length;const R=RANKS[rankNow()]||RANKS[0];const tgt=rankTarget();
+  b.innerHTML=`<div class="card orn stack s">${sayH(L("ach_new"))}<div class="row between"><span class="ui">Im Buch: <b>${esc(R.n)}</b>${I.rank.s[rankNow()]?` · „${esc(I.rank.s[rankNow()])}“`:""}</span><span class="mono">${got} / ${ACH.length}</span></div>
+    ${tgt>rankNow()?`<div class="stack s"><p class="ui" style="margin:0">${esc(L("rank_promo")[0])}</p><p class="ui"><b>${esc(RANKS[rankNow()+1].n)}</b> · Schreiben Sie: „${esc(RANKS[rankNow()+1].s)}“</p><input class="i10-in i10-rank"><div class="row"><button class="go sm i10-rk">Unterschreiben</button></div></div>`:""}</div>
+   <div class="i10-ach">${ACH.map(a=>`<div class="${I.ach[a.id]?"got":""}"><b>${esc(a.n)}</b><br><small class="ui">${esc(a.de)}</small>${I.ach[a.id]?`<br><small class="muted"><i>${esc(LL(a.l)[0])}</i> · ${esc(fmtDate(I.ach[a.id]))}</small>`:""}</div>`).join("")}</div>`;
+  const rk=b.querySelector(".i10-rk");if(rk)rk.onclick=()=>{const v=(b.querySelector(".i10-rank")||{}).value||"";if(rankPromote(v)){tst("Befördert: "+RANKS[rankNow()].n);hub("zug")}else tst("Genau diesen Satz, bitte.")}}
+
+function vKab(b){const L0=kabAll().filter(c=>c.ok);const own=L0.filter(c=>c.grade);const V=typeof KAB_VAR!=="undefined"?KAB_VAR:[];const m=(inv().kvs||{}).m||{};
+  b.innerHTML=`<div class="card orn stack s">${sayH(L("kab_grade"))}<div class="row"><button class="sm" data-act="kabinett">Kabinett öffnen</button>${chip()}</div><small class="muted ui">Kuriositäten ${L0.filter(c=>!/^ch_/.test(c.id)).length} · Siegel ${L0.filter(c=>/^ch_/.test(c.id)).length} / ${typeof CHAPTERS!=="undefined"?CHAPTERS.length:40}</small></div>
+   <div class="card stack s"><div class="eyebrow">Sätze</div>${(typeof KAB_SETS!=="undefined"?KAB_SETS:[]).map(s=>`<div class="ui">${kabSet(s.id)?"✓":"○"} <b>${esc(s.n[0])}</b> — ${esc(s.eff[0])}</div>`).join("")}</div>
+   <div class="card stack s"><div class="eyebrow">Güte</div>${own.map(c=>`<div class="row between"><span class="ui"><span class="i10-grade ${c.grade}">${c.grade}</span> ${esc(c.t)}</span></span></div>`).join("")||`<p class="muted ui">Trophäen und Gedichte bekommen Bronze, Silber oder Gold.</p>`}</div>
+   <div class="card stack s"><div class="eyebrow">Zierrat</div><p class="muted ui">${esc(L("kab_variant")[0])}</p>${L0.slice(0,60).map(c=>`<div class="row between" style="flex-wrap:wrap"><span class="ui">${esc(c.t)}${m[c.id]?" · "+esc((V.find(v=>v.id===m[c.id])||{n:[""]}).n[0]):""}</span><span>${V.map(v=>`<button class="sm ghost" data-act="i10Kv" data-c="${esc(c.id)}" data-v="${v.id}">${esc(v.n[0])}${kvOwned(c.id).includes(v.id)?"":" · "+v.price}</button>`).join("")}</span></div>`).join("")}</div>`}
+ACT.i10Kv=el=>{if(!kvBuy(el.dataset.c,el.dataset.v))tst("Nicht genug Glut.");hub("kab")};
+
+function vEnd(b){const I=inv();const gv=contract();const nx=ngpNext();const zl=has("zlOpen")||typeof (ACT||{}).zlOpen==="function";
+  b.innerHTML=`<div class="card orn stack s">${sayH(LL(POSTPACT[Math.abs(diffDays("2026-01-01",T()))%POSTPACT.length]))}</div>
+   <div class="card stack s"><div class="eyebrow">${esc(GEGENVERTRAG.title)}</div>${gv.signed?`<p class="ui">Unterschrieben am ${esc(fmtDate(gv.d))}: Goethe B2 am ${esc(gv.b2||"offen")}, FSP am ${esc(gv.fsp||"offen")}, ${gv.days} Tage pro Woche.</p>`:
+     `${GEGENVERTRAG.p.map(p=>`<p class="ui" style="margin:.1rem 0">${esc(fill(p[0],{NAME:P().name||"…",B2:"[Datum]",FSP:"[Datum / offen]",DAYS:"[3–6]"}))}<br><small class="muted">${esc(p[1].replace(/\{[A-Z0-9]+\}/g,"…"))}</small></p>`).join("")}
+     <div class="row" style="flex-wrap:wrap"><label class="ui">B2 <input type="date" class="i10-b2"></label><label class="ui">FSP <input type="date" class="i10-fsp"></label><label class="ui">Tage <select class="i10-days">${[3,4,5,6].map(n=>`<option ${n===4?"selected":""}>${n}</option>`).join("")}</select></label></div><div class="row"><button class="go sm i10-gv">Unterschreiben</button></div>`}</div>
+   <div class="card stack s"><div class="eyebrow">Der Zweite Pakt · Approbation ${approbation()} %</div><div class="pk-soul"><div class="meter"><i style="width:${approbation()}%"></i><b>APPROBATION</b></div></div><p class="ui" style="margin:0">${esc(L("ngp_offer")[0])}</p>
+     ${zl?`<p class="ui"><a href="#" data-act="zlOpen">Zuerst die Zweite Lesung?</a></p>`:""}${!equipped().includes("laterne")?`<p class="muted ui">Tragen Sie dafür die Laterne (Relikte).</p>`:""}
+     <div class="stack s">${(typeof NGP!=="undefined"?NGP:[]).map(r=>{const n=r[0];const ok=ngpPassed(n);const av=ngpAvail(n);return `<div class="row between" style="gap:.5rem"><span class="ui" style="min-width:0">${ok?"✓":n===nx?"▸":"○"} <b>${n}</b> · ${esc(r[3])}</span>${av&&equipped().includes("laterne")?`<button class="sm go" data-act="i10Ngp" data-n="${n}">Antreten</button>`:ok?`<small class="muted">${esc(fmtDate(I.ngp.cl[n].d))}</small>`:""}</div>`}).join("")}</div></div>`;
+  const gb=b.querySelector(".i10-gv");if(gb)gb.onclick=()=>{const v=s=>(b.querySelector(s)||{}).value||"";I.gv={b2:v(".i10-b2")?fmtDate(v(".i10-b2")):"",fsp:v(".i10-fsp")?fmtDate(v(".i10-fsp")):"",days:+v(".i10-days")||4,d:T(),ts:Date.now()};save();tst("Der Gegenvertrag ist unterschrieben.");hub("end")}}
+ACT.i10Ngp=el=>{const n=+el.dataset.n;if(!ngpAvail(n))return tst(L("ngp_fail")[0]);const row=ngpRow(n);const kind=row[1];
+  if(kind==="station"){if(ngpStationOk(row[2])){ngpRecord(n,10,10);return hub("end")}if(has("bvOpen"))return bvOpen(row[2],{strict:true});return tst("Braucht das Stationsmodul.")}
+  if(kind==="boss"&&G.Duel&&typeof Duel.start==="function"){return Duel.start(row[2],duelOpts(row[2],{hard:"stumm",practice:true,ngp:true,onEnd:r=>{if(r&&(r.won||r.win))ngpRecord(n,10,10);else ngpRecord(n,0,10)}}))}
+  const items=ngpItems(n);if(!items.length)return tst("Für diese Klausel fehlen die Aufgaben.");const box=Focus.open({title:"Zweiter Pakt · Klausel "+n,sub:row[3]});
+  runItems(box,items,{title:"Klausel "+n,cut:ngpCut(items.length),ctx:"ngp:"+n,seed:"ngp"+n,noEn:true,head:`<div class="card orn">${sayH(L("ngp_clause",{n}))}</div>`,onAnswer:(ok,it)=>{if(ok&&it.fach)dcAdd("fach",1)},
+    onDone:(r,after)=>{const pass=ngpRecord(n,r.right,r.n);after.innerHTML=`<div class="card orn">${sayH(ngpCount()>=40?L("ngp_done"):pass?L("ngp_pass"):L("ngp_fail"))}</div><div class="row"><button class="go" data-act="i10Tab" data-t="end">Zum Zweiten Pakt</button></div>`;weekTaskScan()}})};
+
+// ---------------------------------------------------------------- screen sections (MOD.after)
+function homeCards(){const out=[];const I=inv();const t=T();
+  try{const w=I.wager[t];if(w&&!w.res){const r=revToday();if(r.rev-(+w.rev0||0)>=(CFG.wager.minRev||20))out.push(`<button class="card row between" data-act="i10Open" data-t="wett" style="text-align:left"><span><span class="eyebrow">Tageswette</span><br><b>Bereit zur Abrechnung</b></span>${icn("chev")}</span></button>`)}}catch(e){}
+  if(!tired()){try{if(!I.wager[t]&&wagerCan().ok&&wagerTiers().length)out.push(`<button class="card row between" data-act="i10Open" data-t="wett" style="text-align:left"><span><span class="eyebrow">Die Tageswette</span><br><span class="ui">${esc(L("wager_offer")[0])}</span></span>${icn("chev")}</button>`)}catch(e){}
+    try{const o=dblOffer();if(o)out.push(`<button class="card row between" data-act="i10Open" data-t="wett" style="text-align:left"><span><span class="eyebrow">Doppelt oder nichts</span><br><span class="ui">${o.ids.length} verlorene Karten · Einsatz ${o.stake} Glut</span></span>${icn("chev")}</button>`)}catch(e){}}
+  try{if(P().done&&!contract().signed)out.push(`<button class="card orn row between" data-act="i10Open" data-t="end" style="text-align:left"><span><span class="eyebrow">${esc(GEGENVERTRAG.title)}</span><br><span class="ui">Ab jetzt lernen Sie, weil Sie wollen. Schreiben Sie es auf.</span></span>${icn("chev")}</button>`)}catch(e){}
+  try{if(rankTarget()>rankNow())out.push(`<button class="card row between" data-act="i10Open" data-t="zug" style="text-align:left"><span><span class="eyebrow">Beförderung</span><br><b>${esc((RANKS[rankNow()+1]||{}).n||"")}</b></span>${icn("chev")}</button>`)}catch(e){}
+  try{const l=Object.entries(I.q.done).find(([k,d])=>/^l/.test(k)&&d.full&&d.d&&diffDays(d.d,t)>=2&&!I.seen["re:"+k]);if(l){const q=questGet(l[0]);if(q&&q.re)out.push(`<div class="card stack s"><span class="eyebrow">Antwort von ${esc(q.from)}</span><p class="ui" style="margin:0">${esc(q.re)}</p><button class="sm ghost" data-act="i10Seen" data-k="re:${esc(l[0])}">Gelesen</button></div>`)}}catch(e){}
+  return out.slice(0,2)}
+ACT.i10Seen=el=>{inv().seen[el.dataset.k]=T();save();try{rerender()}catch(e){}};
+function strip(){const sg=sigils();const cr=sg.filter(s=>s.crack).length;const rec=nightRec();const nc=nightCan();
+  let post="";if(P().done){const l=new Date().getDay()===1&&Object.values(inv().night).length?LL(POSTPACT_WEEK,{n:Object.entries(inv().night).sort().slice(-1)[0][1].sc||0}):LL(POSTPACT[Math.abs(diffDays("2026-01-01",T()))%POSTPACT.length]);post=`<div class="card orn">${sayH(l)}</div>`}
+  return post+`<button class="card row between i10-strip" data-act="i10Grim" style="text-align:left"><span>${chip()} <span class="ui">Grimoire${cr?` · <b>${cr} Riss${cr>1?"e":""}</b>`:""}${nc.ok?(rec&&rec.done?` · Nachtdienst ${rec.sc}`:" · Nachtdienst offen"):""} · ${Object.keys(inv().ach).length}/40</span></span>${icn("chev")}</button>`}
+let HK=0;function housekeep(){const now=(typeof performance!=="undefined"&&performance.now)?performance.now():0;if(HK&&now-HK<60000)return;HK=now||1;try{const I=inv();const t=T();if(!I.mk.bad[t])dailyObserve();weekTaskScan();achScan()}catch(e){err(e,"housekeep")}}
+function hostSafe(fn){return function(m){try{if(!m||!m.querySelector)return;fn(m)}catch(e){err(e,"section")}}}
+setTimeout(function(){try{
+  MOD.after("viewHome","i10",hostSafe(m=>{if(!P().signed)return;clrObserve();relicScan();housekeep();const v=m.querySelector(".view")||m;const html=strip()+homeCards().join("");const host=document.createElement("div");host.className="stack s i10-home";host.innerHTML=html;
+    /* integrator 13.9: inside a8's Home the strip goes under a8's progress strip; on a phone into „Mehr für heute“ (a8 two-screen budget) */
+    const a8s=v.querySelector(".a8-col1 .a8-strip"),mb=v.querySelector(".a8-morebox");let ph=false;try{ph=document.documentElement.dataset.layout==="phone"}catch(e){}
+    if(ph&&mb){mb.insertBefore(host,mb.firstChild);return}if(a8s&&a8s.parentNode){a8s.parentNode.insertBefore(host,a8s.nextSibling);return}
+    const hero=v.querySelector(".hero");if(hero&&hero.parentNode===v&&hero.nextSibling)v.insertBefore(host,hero.nextSibling);else v.appendChild(host)}));
+  MOD.after("viewPakt","i10",hostSafe(m=>{if(!P().signed)return;const v=m.querySelector(".view")||m;const soul=v.querySelector(".pk-soul");const card0=soul&&soul.closest?soul.closest(".card"):null;
+    if(card0){const row=card0.querySelector(".row");if(row)row.insertAdjacentHTML("beforeend",chip())}
+    const host=document.createElement("div");host.className="i10-pk";const ab=abilities().filter(a=>a.on).length;const cr=sigils().filter(s=>s.crack).length;
+    host.innerHTML=`<button class="card orn row between" data-act="i10Grim" style="text-align:left"><span><span class="eyebrow">Das Grimoire</span><br><b>${pl(sigils().filter(s=>ORDER.indexOf(s.st)>=2).length,"Zeichen leuchtet","Zeichen leuchten")} · ${pl(cr,"Riss","Risse")} · ${ab}/5 Fähigkeiten</b><br><small class="muted ui">Relikte · Aufträge · Nachtdienst · Wetten · Zugeständnisse${P().done?" · Zweiter Pakt":""}</small></span>${icn("chev")}</button>`;
+    if(card0&&card0.nextSibling)v.insertBefore(host,card0.nextSibling);else v.appendChild(host)}));
+  MOD.after("viewPractice","i10",hostSafe(m=>{const v=m.querySelector(".view")||m;const nc=nightCan();const host=document.createElement("div");host.className="i10-pr";
+    host.innerHTML=`<button class="card row between" data-act="i10Open" data-t="nacht" style="text-align:left"><span><span class="eyebrow">Nachtdienst</span><br><b>${nc.ok?"Zehn Betten, drei Kerzen":esc(nc.why)}</b></span>${icn("chev")}</button><button class="card row between" data-act="i10Open" data-t="auf" style="text-align:left"><span><span class="eyebrow">Aufträge</span><br><b>${questOpen().length} offen</b></span>${icn("chev")}</button>`;v.appendChild(host)}));
+  MOD.after("viewLearn","i10",hostSafe(m=>{const gm=m.querySelector(".gm-link");if(gm){gm.setAttribute("data-act","i10Grim");const sp=gm.querySelector(".eyebrow");if(sp)sp.textContent="Das Grimoire";const bb=gm.querySelector("b");if(bb)bb.textContent=pl(sigils().filter(s=>ORDER.indexOf(s.st)>=2).length,"Zeichen leuchtet","Zeichen leuchten")+" · "+pl(sigils().filter(s=>s.crack).length,"Riss","Risse")+" · alle Lektionen darin"}}));
+}catch(e){err(e,"hooks")}},0);
+setTimeout(()=>{try{settleOld();compact()}catch(e){err(e,"boot")}},0);
+})();
+
 // ===== Mephisto · track I · c_i1_pre.js — Vorwissen: the next chapter's words enter the new-card queue before the chapter opens (owner: i1).
 // Source: beta r8 I3 §6.4 (c_preteach.js), with PLAN-I i1 step 4: canon lists (x_i1_pre.js, generated by tools/gen_preteach.js), new arm rule,
 // feed through preToday() (l4/PLAN-L §2.4 reads it first; while l4's memQueue is absent, newPool is adapted here by one MOD.around).
@@ -15644,7 +16313,8 @@ l5Try("hooks",()=>{
   MOD.after("meHistory","l5",function(el){l5MeHist(el)})});
 // i2's banner prints a chapter-pace date labelled B2; re-label it as material pace (late section so it runs after c_i2's, whatever the load order)
 setTimeout(()=>l5Try("i2late",()=>MOD.after("viewHome","l5i2",function(m){const ip=m&&m.querySelector(".i2-pace");if(!ip||ip.dataset.l5)return;ip.dataset.l5="1";let f=null;try{f=PROG.forecast()}catch(e){}
-  ip.textContent=(f&&f.b2Date?`Stoff-Tempo: Kapitel 32 etwa ${l5MY(f.b2Date)}${f.fspDate?", Kapitel 40 etwa "+l5MY(f.fspDate):""} – Stoff, nicht Können. `:"")+l5FcText(true)})),0);
+  // integrator 13.9: i2 now writes the „Stoff-Tempo … – Stoff, nicht Können.“ wording itself; l5 only adds its hours line
+  ip.textContent=ip.textContent.trim()+" "+l5FcText(true)})),0);
 // merge rule (P2 defines MERGE_RULES after our files)
 setTimeout(()=>{try{if(typeof MERGE_RULES!=="undefined"&&MERGE_RULES)MERGE_RULES.l5=function(a,b){return l5Merge(a,b)}}catch(e){}},0);
 l5Try("reset",()=>{if(typeof RESET_GROUPS!=="undefined"&&RESET_GROUPS.lessons&&!RESET_GROUPS.lessons.k.includes("l5"))RESET_GROUPS.lessons.k.push("l5")});
@@ -15787,6 +16457,120 @@ l5Try("css",()=>{if(typeof document==="undefined"||document.getElementById("l5cs
 .l5-rc b{font-size:.85rem}.l5-rc small{font-size:.62rem;line-height:1;opacity:.85}.l5-rc.today{outline:2px solid var(--accent)}
 .l5-rc.cF{background:rgba(226,101,28,.18)}.l5-rc.cS{background:rgba(47,100,181,.2)}.l5-rc.cN{background:rgba(60,60,90,.35)}.l5-rc.cD{background:rgba(127,127,127,.25)}.l5-rc.cX{background:rgba(42,138,85,.18)}
 .l5-card .steps{margin-top:.3rem}.l5-ext .chip{cursor:pointer}`;document.head.appendChild(s)});
+
+// ===== Mephisto · v3 · Formen: the rung after typing in l4's format ladder. A word the learner has typed correctly at least once
+// comes back, every third review, as a sentence with a gap in which it must be typed in ANOTHER form (Dativ Plural, Präteritum,
+// Konjunktiv II, Komparativ, split separable verb …). Items: V3_BANK (Formenbank, x_v3_bank.js) + V3_FORMEN_C (the app's own
+// glossed sentences, x_v3_formen.js) + V3_FORMEN_P (short phrases where the forms are certain, x_v3_phrase.js). Scheduling stays l4's: the word's own memory (S.mem) is rated; a wrong form counts as
+// "Schwer", never as a lapse, and that form comes back first next time. Daily plan: a "Formen" block of 3–5 minutes (l5).
+// Hooks (MOD.around, declared in MANIFEST): memFormat, l4Item, card, memRate (l4) · l5Plan (l5). MOD.after: meSettings.
+// State: S.v3 = {v:1, f:{lemma:[okMask, missMask, lastK, n, day]}, off:0|1, t:ISO}. Merge: MERGE_RULES.v3 (v3Merge): per lemma okMask = OR,
+// the rest from the newer record (day, then n, then missMask, then lastK); off/t from the newer t.
+var V3={v:1,PEND:new Map(),force:false,ix:null,around:[],err:[]};
+(function(){
+"use strict";
+const safe=(n,f)=>{try{return f()}catch(e){V3.err.push(n+": "+(e&&e.message||e));try{logError({message:"v3 "+n+": "+(e&&e.message||e)})}catch(x){}return undefined}};
+const MAXK=30;
+const CUE={"nom.sg":"Nominativ Singular","akk.sg":"Akkusativ Singular","dat.sg":"Dativ Singular","gen.sg":"Genitiv Singular","nom.pl":"Nominativ Plural","akk.pl":"Akkusativ Plural",
+  "dat.pl":"Dativ Plural","gen.pl":"Genitiv Plural","none.sg":"ohne Artikel","präs.1sg":"Präsens · ich","präs.2sg":"Präsens · du","präs.3sg":"Präsens · er/sie/es","präs.1pl":"Präsens · wir",
+  "präs.2pl":"Präsens · ihr","präs.3pl":"Präsens · sie/Sie","perf":"Perfekt (Partizip II)","prät.1sg":"Präteritum · ich","prät.2sg":"Präteritum · du","prät.3sg":"Präteritum · er/sie",
+  "prät.1pl":"Präteritum · wir","prät.3pl":"Präteritum · sie","nebensatz":"Nebensatz – Verb am Ende","imp.du":"Imperativ · du","imp.ihr":"Imperativ · ihr","imp.Sie":"Imperativ · Sie",
+  "konj2":"Konjunktiv II","würde+inf":"Infinitiv (nach „würde“)","modal+inf":"Infinitiv (nach Modalverb)","zu-inf":"zu-Infinitiv","inf":"Infinitiv","passiv.präs":"Passiv Präsens",
+  "passiv.prät":"Passiv Präteritum","präd":"ohne Endung","def.nom":"mit Endung (der …)","indef.nom":"mit Endung (ein …)","indef.akk":"mit Endung (Akkusativ)","def.dat":"mit Endung (Dativ)",
+  "def.akk":"mit Endung (Akkusativ)","def.gen":"mit Endung (Genitiv)","def.nom.pl":"mit Endung (Plural)","kein.akk.pl":"mit Endung (keine …)","komp":"Komparativ","komp.akk":"Komparativ mit Endung",
+  "komp.pl":"Komparativ mit Endung","sup.am":"Superlativ (am …sten)","sup.def":"Superlativ mit Endung"};
+const lemmaOf=id=>{try{const c=CATALOG.get(id);return c?String(c.de):id.slice(2)}catch(e){return id.slice(2)}};
+// one item: de "Ich spreche mit den {Ärzten}." → {gap:"Ich spreche mit den ＿＿＿.", ans:"Ärzten", plain, cue, en}
+function parse(de,en,cue,isNoun){const parts=String(de).split(/\{([^}]*)\}/);if(parts.length<3)return null;const ans=[];let gap="",plain="";
+  parts.forEach((p,i)=>{if(i%2){ans.push(p);gap+="＿＿＿";plain+=p}else{gap+=p;plain+=p}});
+  let a=ans.join(" ");if(!isNoun&&/^\{/.test(de))a=a.charAt(0).toLowerCase()+a.slice(1);   // capital only because it opens the sentence
+  return {gap,ans:a,plain,cue:CUE[cue]||cue||"",en:en||""}}
+function index(){if(V3.ix)return V3.ix;const M=new Map();const isN=id=>/^w:(der|die|das) /.test(id)||(typeof CATALOG!=="undefined"&&CATALOG.get(id)&&CATALOG.get(id).type==="n");
+  const put=(id,it)=>{if(!it)return;let L=M.get(id);if(!L)M.set(id,L=[]);if(L.length>=MAXK||L.some(x=>x.plain===it.plain))return;L.push(it)};
+  // the app's own sentences first (they are what the learner will meet again), then the Formenbank
+  if(typeof V3_FORMEN_C!=="undefined")for(const id in V3_FORMEN_C)V3_FORMEN_C[id].forEach(r=>put(id,parse(r[0],r[1],r[2],isN(id))));
+  if(typeof V3_BANK!=="undefined")V3_BANK.forEach(r=>put(r[0],parse(r[1],r[2],r[3],isN(r[0]))));
+  if(typeof V3_FORMEN_P!=="undefined")for(const id in V3_FORMEN_P)V3_FORMEN_P[id].forEach(r=>put(id,parse(r[0],r[1],r[2],isN(id))));
+  // "sich fühlen" and "fühlen" share their items
+  if(typeof CATALOG!=="undefined")CATALOG.forEach(c=>{if(!c||c.type!=="v"||!/^sich /.test(String(c.de)))return;const b="w:"+String(c.de).slice(5);const A=M.get(c.id),B=M.get(b);if(A&&!B)M.set(b,A);else if(B&&!A)M.set(c.id,B)});
+  // a form that differs from the dictionary form first: the point is to produce ANOTHER form (the base form stays as a last resort)
+  const bare=id=>lemmaOf(id).replace(/^(der|die|das|sich) /,"").toLowerCase();
+  M.forEach((L,id)=>{const b=bare(id);const k=x=>x.ans.toLowerCase()===b?1:0;M.set(id,L.map((x,i)=>[x,i]).sort((a,c)=>k(a[0])-k(c[0])||a[1]-c[1]).map(x=>x[0]))});
+  V3.ix=M;return M}
+V3.items=id=>index().get(id)||[];
+V3.has=id=>{const L=V3.items(id);return L.length>=2&&new Set(L.map(x=>x.ans.toLowerCase())).size>=2};
+// ---------------------------------------------------------------- state
+function st(){if(typeof S==="undefined"||!S)return {v:1,f:{},off:0};let s=S.v3;if(!s||typeof s!=="object"||Array.isArray(s))s=S.v3={v:1,f:{},off:0};if(!s.f||typeof s.f!=="object"||Array.isArray(s.f))s.f={};s.v=1;return s}
+V3.state=st;V3.on=()=>!st().off;
+const today=()=>{try{return l4Day()}catch(e){return Math.floor(Date.now()/864e5)}};
+// eligible: a word that is not relearning and has been typed right at least once (l4 bit 16), with ≥ 3 reviews
+function eligible(id){if(!V3.on()||typeof id!=="string"||!id.startsWith("w:")||!V3.has(id))return false;let e=null;try{e=l4M().c[id]}catch(x){}if(!e)return false;return !!(e[5]&16)&&!(e[5]&8)&&e[3]>=3}
+V3.eligible=eligible;
+// which item next: a missed form first (not the one just shown), then forms never answered right (another cue than last time), then round-robin
+function pick(id){const L=V3.items(id);if(!L.length)return -1;const r=st().f[id]||[0,0,-1,0,0];const n=Math.min(L.length,MAXK);
+  for(let k=0;k<n;k++)if((r[1]>>>k)&1&&k!==r[2])return k;
+  const lastCue=r[2]>=0&&L[r[2]]?L[r[2]].cue:"";const start=(r[3]*7+r[2]+1)%n;
+  for(let j=0;j<n;j++){const k=(start+j)%n;if(!((r[0]>>>k)&1)&&L[k].cue!==lastCue&&k!==r[2])return k}
+  for(let j=0;j<n;j++){const k=(start+j)%n;if(!((r[0]>>>k)&1)&&k!==r[2])return k}
+  return n>1?(r[2]+1+(r[3]%(n-1)))%n:0}
+V3.pick=pick;
+function record(id,k,ok){const s=st();const r=(s.f[id]||[0,0,-1,0,0]).slice();if(k>=0&&k<MAXK){const b=(1<<k)>>>0;if(ok){r[0]=(r[0]|b)>>>0;r[1]=(r[1]&~b)>>>0}else r[1]=(r[1]|b)>>>0}r[2]=k;r[3]=(r[3]||0)+1;r[4]=today();s.f[id]=r;return r}
+V3.record=record;
+// the virtual card the runner shows: fm:<lemma id>|<k>
+function vcard(vid){const m=/^fm:(.+)\|(\d+)$/.exec(vid);if(!m)return null;const id=m[1],k=+m[2];const L=V3.items(id);const it=L[k];if(!it)return null;let base=null;try{base=CATALOG.get(id)}catch(e){}
+  const other=L.filter((x,i)=>i!==k&&x.ans.toLowerCase()!==it.ans.toLowerCase()&&x.plain.length<=90).slice(0,2).map(x=>x.plain);
+  const gl=it.en||(base&&base.en?lemmaOf(id)+" = "+base.en:"");const en="Formen · "+(it.cue?it.cue+" · ":"")+"„"+lemmaOf(id)+"“ — "+it.gap+(gl?"  ("+gl+")":"")+(other.length?"   Zum Vergleich: "+other.join(" / "):"");
+  return {id:vid,de:it.ans,en,ex:"",tag:base?base.tag:"formen",kind:"formen",level:base?base.level:"A1",base:id,fk:k}}
+V3.card=vcard;
+// ---------------------------------------------------------------- l4 hooks
+function around(name,fn){if(typeof window[name]!=="function"||typeof MOD==="undefined"||!MOD.around)return false;MOD.around(name,"v3",function(orig,...a){try{return fn.call(this,orig,...a)}catch(e){safe("around "+name,()=>{throw e});return orig(...a)}});V3.around.push(name);return true}
+safe("hooks",()=>{
+  around("memFormat",function(orig,id){const f=orig(id);if(f==="rec"||!eligible(id))return f;let e=null;try{e=l4M().c[id]}catch(x){}return e&&e[3]%3===0?"formen":f});
+  around("l4Item",function(orig,id,isNew){const it=orig(id,isNew);if(isNew||!it||String(id).startsWith("eq")||String(it.id).startsWith("fm:"))return it;
+    let f=null;try{f=L4.PEND.get(id)}catch(x){}
+    if(f!=="formen"&&!(V3.force&&eligible(id)))return it;const k=pick(id);if(k<0){try{L4.PEND.set(id,"prod")}catch(x){}return it}
+    try{L4.PEND.set(id,"formen")}catch(x){}V3.PEND.set(id,k);return Object.assign({},it,{id:"fm:"+id+"|"+k,mode:"prod",isNew:false})});
+  around("card",function(orig,id){if(typeof id==="string"&&id.charCodeAt(0)===102&&id.startsWith("fm:"))return vcard(id);return orig(id)});
+  // a form typed wrong is "Schwer" for the word (not a lapse); the form itself comes back first next time
+  around("memRate",function(orig,id,g,fmt,sec){if(fmt!=="formen")return orig(id,g,fmt,sec);const k=V3.PEND.has(id)?V3.PEND.get(id):-1;V3.PEND.delete(id);record(id,k,g>1);
+    try{if(typeof LX!=="undefined"&&LX.ev)LX.ev("v:"+id+":form",g>1,8,sec||0)}catch(e){}return orig(id,Math.max(2,g|0),"prod",sec)})});
+// ---------------------------------------------------------------- Formen queue (l5 block, or standalone)
+V3.due=function(day){if(!V3.on()||typeof memDue!=="function")return [];return memDue(day).filter(eligible)};
+V3.queue=function(min){const spc=20;const max=Math.max(2,Math.round((min||4)*60/spc));const out=[];
+  for(const id of V3.due()){if(out.length>=max)break;V3.force=true;let it=null;try{it=l4Item(id,false)}finally{V3.force=false}if(it&&String(it.id).startsWith("fm:"))out.push(it)}return out};
+V3.minutes=n=>Math.max(3,Math.min(5,Math.round(n*20/60)));
+function runBlock(el,ref,done){const q=V3.queue(+ref||4);const t0=Date.now();
+  if(!q.length){el.innerHTML=`<div class="empty"><div class="big">M</div><h2>Heute keine Formen fällig.</h2><p>Die Minuten gehen an die Karten.</p></div>`;done({ok:1,n:0,right:0,sec:0});return}
+  const head=document.createElement("div");head.className="v3-head ui muted";head.style.cssText="font-size:.86rem;margin-bottom:.4rem";
+  head.textContent="Formen: "+q.length+" Wörter in anderer Form tippen – Fall, Zahl, Zeit, Steigerung. Ein Fehler zählt nur als „Schwer“.";el.appendChild(head);const box=document.createElement("div");el.appendChild(box);
+  cardRunner(box,q,{onDone:r=>{r=r||{};done({ok:r.n?(r.ok||0)/r.n:1,n:r.n||0,right:r.ok||0,sec:Math.round((Date.now()-t0)/1000)})}})}
+V3.run=runBlock;
+safe("provider",()=>{if(typeof LX==="undefined")window.LX={acts:{},order:[],feeds:[],arounds:[]};if(typeof LX.reg!=="function")LX.reg=function(a){LX.acts[a.id]=a;if(!LX.order.includes(a.id))LX.order.push(a.id)};
+  // skill "formen" is in no l5 pool (no slot takes it by itself): the block is placed by the l5Plan around below
+  LX.reg({id:"v3.formen",skill:"formen",pocket:false,next(ctx){const n=V3.due().length;if(n<3)return null;const min=V3.minutes(n);return {ref:String(min),title:"Formen · "+Math.min(n,Math.round(min*3))+" Wörter",lv:0,min,why:"dieselben Wörter, andere Formen",needsAudio:false}},
+    run(el,ref,done){runBlock(el,ref,done)}});
+  if(typeof STRAND!=="undefined"&&!STRAND.l5_formen)STRAND.l5_formen={name:"Formen",en:"word forms",icon:"cards"};
+  if(typeof L5_SKILL!=="undefined"&&!L5_SKILL.formen)L5_SKILL.formen="gram"});
+// l5: a 3–5 minute "Formen" block before the cards block, its minutes taken from the cards block (the words are due cards anyway)
+safe("plan",()=>around("l5Plan",function(orig,I){const out=orig(I);if(!out||!Array.isArray(out.blocks)||I&&I.mode==="shift"||!V3.on())return out;
+  const n=I&&typeof I.v3n==="number"?I.v3n:V3.due().length;if(n<3)return out;const cards=out.blocks.find(b=>b.b==="cards");if(!cards)return out;const min=V3.minutes(n);
+  if((cards.min||0)-min<3)return out;cards.min-=min;const spc=(I&&I.spc)||9;const cap=Math.floor(cards.min*60/spc);if(cards.nDue>cap){out.left=out.left||[];cards.nDue=cap}
+  const blk={b:"formen",t:"l5_formen",act:"v3.formen",ref:String(min),min,sk:"gram",title:"Formen · "+Math.min(n,Math.round(min*3))+" Wörter",why:"dieselben Wörter, andere Formen"};
+  out.blocks.splice(out.blocks.indexOf(cards),0,blk);return out}));
+// ---------------------------------------------------------------- settings: Formen on/off (Ich → Einstellungen)
+safe("settings",()=>{if(typeof MOD==="undefined"||!MOD.after)return;MOD.after("meSettings","v3",function(el){if(!el||!el.querySelector||el.querySelector(".v3-set"))return;const d=document.createElement("div");d.className="card stack s v3-set";
+  const s=st();d.innerHTML=`<h3>Formen</h3><label class="row" style="gap:.6rem"><input type="checkbox" class="v3-on" ${s.off?"":"checked"} style="width:auto"> Wörter auch in anderen Formen abfragen</label><small class="muted ui">Nach dem ersten richtig getippten Mal kommt jedes Wort bei jeder dritten Wiederholung als Lücke in einer anderen Form (Fall, Plural, Zeit, Steigerung). Im Tagesplan: 3–5 Minuten „Formen“.</small>`;
+  el.appendChild(d);const c=d.querySelector(".v3-on");c.onchange=()=>{const x=st();x.off=c.checked?0:1;x.t=new Date().toISOString();try{saveSoon()}catch(e){}try{toast("Gespeichert")}catch(e){}}})});
+// ---------------------------------------------------------------- merge (commutative, associative, idempotent)
+function v3Merge(a,b){const ok=x=>x&&typeof x==="object"&&!Array.isArray(x);if(!ok(a))return ok(b)?b:{v:1,f:{},off:0};if(!ok(b))return a;
+  const out={v:1,f:{},off:0};const fa=ok(a.f)?a.f:{},fb=ok(b.f)?b.f:{};
+  for(const id of [...new Set([...Object.keys(fa),...Object.keys(fb)])].sort()){const x=fa[id],y=fb[id];if(!Array.isArray(x)||!Array.isArray(y)){out.f[id]=Array.isArray(x)?x:y;continue}
+    const w=(x[4]|0)!==(y[4]|0)?((x[4]|0)>(y[4]|0)?x:y):(x[3]|0)!==(y[3]|0)?((x[3]|0)>(y[3]|0)?x:y):((x[1]>>>0)!==(y[1]>>>0)?((x[1]>>>0)>(y[1]>>>0)?x:y):((x[2]|0)>=(y[2]|0)?x:y));   // tie: carried fields only, so a merged record compares like its winner
+    out.f[id]=[((x[0]|0)|(y[0]|0))>>>0,w[1]>>>0,w[2]|0,w[3]|0,w[4]|0]}
+  const ta=String(a.t||""),tb=String(b.t||"");const wo=ta!==tb?(ta>tb?a:b):((a.off|0)>=(b.off|0)?a:b);out.off=wo.off?1:0;if(wo.t)out.t=wo.t;return out}
+V3.merge=v3Merge;window.v3Merge=v3Merge;
+setTimeout(()=>{try{if(typeof MERGE_RULES==="object"&&MERGE_RULES)MERGE_RULES.v3=v3Merge}catch(e){}},0);
+})();
 
 // ===== Mephisto · S1 (16/11/2026) · Chronik registration: du twins for secret lines, unlock rules for pages with `unlock`, the third Chronik tab
 // „Sagen · Medizin · Archiv“ (shelves S, M, A from LORE_SHELF), and a fallback that keeps grave pages out of „Neue Seite“ cards if P2's c_lore is absent.
@@ -16467,6 +17251,11 @@ function setFinish(el){const sec=g=>q(`:scope > [data-set-group="${g}"]`,el);if(
   if(!q(".a8-daten",el)){const d=document.createElement("div");d.className="a8-daten stack";sec("daten").appendChild(d);try{meData(d)}catch(e){LOG("settings/daten",e)}
     const s=syncState();qa("p",d).forEach(p=>{if(/liegt nur in diesem Browser/.test(p.textContent)){p.innerHTML=s.ok?"Ihr Fortschritt wird mit Google Drive synchronisiert; eine Datei-Sicherung schadet trotzdem nie.":"Nicht verbunden: Ihr Fortschritt liegt nur auf diesem Gerät. Sichern Sie ihn regelmäßig."}})}
   if(!q(".a8-fonts",el))sec("aussehen").insertAdjacentHTML("beforeend",`<details class="card a8-fonts"><summary>Schriften <span class="en" lang="en">font credits</span></summary><div class="a8-fontlist muted">…</div></details>`);
+  // integrator 13.9: credits for the word-frequency data behind the vocabulary order (v2: ranks only, no text copied)
+  if(!q(".a8-datacred",el))sec("daten").insertAdjacentHTML("beforeend",`<details class="card a8-datacred"><summary>Datenquellen <span class="en" lang="en">data credits</span></summary><div class="muted small ui">
+   <p>Häufigkeitsrang der Wörter (nur Rangfolge, kein Text übernommen): hermitdave/FrequencyWords, OpenSubtitles 2018, de_50k — Inhalt CC BY-SA 4.0 (Code MIT). <span class="en" lang="en">word frequency ranks only</span></p>
+   <p>Zuordnung der Wortformen zu Grundformen: michmech/lemmatization-lists (lemmatization-de) — ODbL. <span class="en" lang="en">form → lemma lists</span></p>
+   <p>Bilder: siehe Bildnachweis in der Chronik; Stimmen: Hörpakete (Einstellungen › Sprache). <span class="en" lang="en">pictures and voices are credited where they appear</span></p></div></details>`);
   const fd=q(".a8-fonts",el);if(fd)fd.ontoggle=()=>{if(!fd.open||fd.dataset.l)return;fd.dataset.l=1;fetch("media/fonts/a1-fonts.json").then(r=>r.json()).then(j=>{const L=Array.isArray(j)?j:(j.fonts||Object.values(j));
     q(".a8-fontlist",fd).innerHTML=`<ul>${L.map(f=>`<li>${E(f.family||f.name||"")} — ${E(f.licence||f.license||"")}</li>`).join("")}</ul>`}).catch(()=>{q(".a8-fontlist",fd).textContent="Schriftliste nicht verfügbar (offline?)."})};
   sie(el)}
@@ -16814,14 +17603,25 @@ window.PAD=PAD;
 // ===== Mephisto · integrator late fix-ups (13.5). Loaded after every package that adds cards at load (c_i2, c_i3, track L) and before c_p2_ui/c_cloud.
 // 1. L1 gives every card a level `lv` and a `rank` when c_l1 loads; cards that later files add at load (i2's chapter words, i3's phrases, l10's words …)
 //    would have neither. Rebuild L1's rank and the dictionary once here, so cardRank()/l4's order and tap-to-translate see them too.
+// 0. (13.9) v1 × v2 shared ids: v2's general meaning becomes a sense card of v1's clinical card (id#1, L1's rule), before the rank rebuild
+try{if(typeof INT_SENSES!=="undefined"&&typeof CATALOG!=="undefined"&&CATALOG&&CATALOG.get)INT_SENSES.forEach(s=>{const base=CATALOG.get(s.of);if(!base)return;
+  let k=1;while(CATALOG.has(s.of+"#"+k)&&CATALOG.get(s.of+"#"+k).src!=="int-sense")k++;const sid=s.of+"#"+k;if(CATALOG.has(sid))return;
+  CATALOG.set(sid,{id:sid,de:s.de,en:s.en,type:s.type,ex:s.ex,exEn:s.exEn||"",tag:s.theme||base.tag,kind:"word",pl:s.pl||"",info:"eine weitere Bedeutung von „"+base.de+"“"+(s.info?" · "+s.info:""),level:s.level,syn:"",src:"int-sense",senseOf:s.of,senseNo:k});
+  base.senses=(base.senses||[]).concat([{en:s.en,ex:s.ex,exEn:s.exEn||"",card:{de:s.de,theme:s.theme,pl:s.pl,lv:s.level}}])})}catch(e){try{logError({message:"c_int senses: "+(e&&e.message||e)})}catch(x){}}
 try{if(typeof L1!=="undefined"&&L1&&typeof L1.rebuildRank==="function"){L1.rebuildRank();if(typeof buildDict==="function")buildDict()}}catch(e){try{logError({message:"c_int L1 rank: "+(e&&e.message||e)})}catch(x){}}
-// 2. (13.6) Two notebooks: s7's „Mephistos Notizbuch" (12 pages in Die Mappe, one per 10-day run) and i8's six pages paid for kept weekly clauses
+// 2. (13.6; one book since 13.9) Two notebooks: s7's „Mephistos Notizbuch" (12 pages in Die Mappe, one per 10-day run) and i8's six pages paid for kept weekly clauses
 //    (shown once on the Monday settlement card). Both stay; i8's earned pages are also kept readable in Die Mappe as their own set.
 try{if(typeof S7!=="undefined"&&S7&&typeof S7.docs==="function"&&Array.isArray(S7.sets)&&typeof ECON!=="undefined"){const SETS=S7.sets;const notizFor=wk=>typeof ECON.notizFor==="function"?ECON.notizFor(wk):null;
-  if(!SETS.some(s=>s[0]==="i8nb"))SETS.splice(1,0,["i8nb","Mephistos Notizbuch · Seiten aus der Wochenklausel","notebook pages earned with kept weekly clauses"]);
+  // 13.9 (owner decision): ONE book. i8's pages join s7's „Mephistos Notizbuch“ (set nb) as pages 13 ff., in the order they were earned; ids
+  //   (i8nb1 …) and their read/score state are unchanged, nothing is dropped. The separate set is gone.
+  {const k=SETS.findIndex(s=>s[0]==="i8nb");if(k>=0)SETS.splice(k,1)}
   const _docs=S7.docs;S7.docs=function(){const L=_docs.apply(this,arguments);try{const wk=(S.pm&&S.pm.wk)||{};let i=0;
     Object.keys(wk).sort().forEach(k=>{const W=wk[k];if(!(W&&W.res&&W.res.kept&&!W.res.off&&(W.rew==="notiz"||W.rew==="both")))return;const pg=notizFor(k);if(!pg)return;i++;
-      L.push({id:"i8nb"+i,set:"i8nb",lv:"A1",title:"Klausel-Notizbuch · Seite "+i,de:pg[0],en:pg[1],gl:[],q:[]})})}catch(e){}return L}}}catch(e){try{logError({message:"c_int notebook: "+(e&&e.message||e)})}catch(x){}}
+      const base=L.filter(d=>d.set==="nb").reduce((m,d)=>Math.max(m,+d.page||0),0)||12;L.push({id:"i8nb"+i,set:"nb",lv:"A1",title:"Notizbuch · Seite "+(base+i)+" · nach einer gehaltenen Wochenklausel",de:pg[0],en:pg[1],gl:[],q:[]})})}catch(e){}return L}}}catch(e){try{logError({message:"c_int notebook: "+(e&&e.message||e)})}catch(x){}}
+
+// ---- integrator 13.9: reset groups for the story/reader/form state added in 13.8–13.9 (none of those packages registered its keys)
+setTimeout(()=>{try{if(typeof RESET_GROUPS==="undefined")return;const add=(g,ks)=>{const G=RESET_GROUPS[g];if(G&&Array.isArray(G.k))ks.forEach(k=>{if(!G.k.includes(k))G.k.push(k)})};
+  add("story",["mys","fu","saga","zl","fl","vc","inv","hx"]);add("lessons",["rd","st"]);add("cards",["v3"])}catch(e){}},0);
 
 // ===== Mephisto · P2 · what the learner sees of the store: the "Sicherungen" list, restore, reset — nothing is replaced or deleted without a verified copy.
 // Loaded after c_final.js and before c_cloud.js. Hooks: MOD.after("meData") (c_views.js). REPLACES restoreFrom (c_views.js) and wraps ACT.reset (c_v126.js) — see MANIFEST.

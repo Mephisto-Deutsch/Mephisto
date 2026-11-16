@@ -2844,6 +2844,943 @@ Gewahrsam|der Gewahrsam|custody|
 Tragödie|die Tragödie|tragedy|
 Ziffer|die Ziffer|digit, number|
 verschlafen|verschlafen|to oversleep; sleepy|
+// --- integrator 13.9 (owner decision: the gloss rule holds everywhere — Chronik pages, tasks, stations, day lines, Mephisto's lines, whispers): English by the integrator
+Abt|der Abt|abbot|
+Alp|der Alp|nightmare demon (folklore)|
+Alpen|die Alpen|the Alps|
+Alraune|die Alraune|mandrake (root of legend)|
+Alraunen|die Alraune|mandrakes|
+Altstädter|of the Old Town (Prague: Altstädter Ring|Old Town Square)|
+Baron|der Baron|baron|
+Hornberger|of Hornberg (das Hornberger Schießen|much ado about nothing)|
+Abstinenz|die Abstinenz|abstinence|
+Absätzen|der Absatz|paragraphs; heels|
+Abwartens|das Abwarten|(of) waiting|
+Abzug|der Abzug|withdrawal; trigger; print|
+Achtstundentag|der Achtstundentag|eight-hour working day|
+Adelstitel|der Adelstitel|title of nobility|
+Ader|die Ader|vein, blood vessel|
+Aderlässe|der Aderlass|bloodlettings|
+Adlige|der/die Adlige|nobleman, noblewoman; nobles|
+Afrikanern|der Afrikaner|Africans|
+Akustik|die Akustik|acoustics|
+Alb|die Alb|the Swabian Jura (Alb)|
+Alkoholismus|der Alkoholismus|alcoholism|
+Anasarka|die Anasarka|anasarca (generalised oedema)|
+Anatom|der Anatom|anatomist|
+Angina|die Angina|angina; tonsillitis|
+Anruferin|die Anruferin|caller (woman)|
+Antibiotika|das Antibiotikum|antibiotics|
+Apixaban|Apixaban|apixaban (anticoagulant)|
+Architekt|der Architekt|architect|
+Archäologen|der Archäologe|archaeologists|
+Armplexuslähmung|die Armplexuslähmung|brachial plexus palsy|
+Arrhythmien|die Arrhythmie|arrhythmias|
+Arsch|der Arsch|arse (vulgar)|
+Arsenmittel|das Arsenmittel|arsenic remedy|
+Arsenverbindung|die Arsenverbindung|arsenic compound|
+Arthritis|die Arthritis|arthritis|
+Aschermittwoch|der Aschermittwoch|Ash Wednesday (end of carnival)|
+Assanierung|die Assanierung|slum clearance (Prague ghetto, 1890s)|
+Assessment|Assessment|assessment (SBAR: A)|
+Aster|die Aster|aster (flower)|
+Astronom|der Astronom|astronomer|
+Astronomen|der Astronom|astronomers|
+Atelier|das Atelier|studio|
+Atlas|der Atlas|atlas|
+Atorvastatin|Atorvastatin|atorvastatin (statin)|
+Atoxyl|Atoxyl|Atoxyl (arsenic drug, 1905)|
+Attentätern|der Attentäter|assassins|
+Aufschieberitis|die Aufschieberitis|procrastination (joking)|
+Aufschub|der Aufschub|postponement, delay|
+Ausrufer|der Ausrufer|town crier|
+Autonomie|die Autonomie|autonomy|
+Background|Background|background (SBAR: B)|
+Badstube|die Badstube|bathhouse|
+Bahre|die Bahre|stretcher; bier|
+Bahrprobe|die Bahrprobe|ordeal of the bier (corpse said to bleed before the murderer)|
+Bakkalaureus|der Bakkalaureus|bachelor (degree)|
+Ballastexistenzen|die Ballastexistenz|„ballast lives“ (Nazi term for the disabled)|
+Ballett|das Ballett|ballet|
+Barrikaden|die Barrikade|barricades|
+Beamter|der Beamte|civil servant|
+Befriedigend|befriedigend|satisfactory (school grade 3)|
+Befriedigt|befriedigt|satisfied|
+Bekanntmachung|die Bekanntmachung|public notice|
+Belastungs|Belastungs-|exertion- (Belastungsdyspnoe)|
+Benzos|die Benzos|benzos (benzodiazepines)|
+Besatzer|der Besatzer|occupiers|
+Beschönigung|die Beschönigung|whitewashing, glossing over|
+Bettler|der Bettler|beggar|
+Bildnerei|die Bildnerei|image-making, art (Prinzhorn: Bildnerei der Geisteskranken)|
+Bildnis|das Bildnis|portrait|
+Binnen|binnen|within (time)|
+Bischof|der Bischof|bishop|
+Bischofs|der Bischof|(of the) bishop|
+Bisoprolol|Bisoprolol|bisoprolol (beta blocker)|
+Blechbüchsen|die Blechbüchse|tin cans|
+Blutgas|das Blutgas|blood gas|
+Blöcken|der Block|blocks|
+Bollenhut|der Bollenhut|Bollenhut (Black Forest hat with red pompoms)|
+Botulismus|der Botulismus|botulism|
+Brauchtum|das Brauchtum|customs, traditions|
+Brockengespenst|das Brockengespenst|Brocken spectre (shadow on mist)|
+Bronze|die Bronze|bronze|
+Bronzefuß|der Bronzefuß|bronze foot|
+Bulbusdeviation|die Bulbusdeviation|gaze deviation (eyes)|
+Bursche|der Bursche|lad, fellow|
+Bündnis|das Bündnis|alliance|
+Büste|die Büste|bust (sculpture)|
+CIWA-Ar|CIWA-Ar|CIWA-Ar (alcohol-withdrawal score)|
+CIWA-Ar-Score|der CIWA-Ar-Score|CIWA-Ar score (alcohol withdrawal)|
+Cabinet|das Cabinet|cabinet (Das Cabinet des Dr. Caligari)|
+Cellularpathologie|die Cellularpathologie|cellular pathology (Virchow)|
+Celsius|Celsius|Celsius|
+Chansons|das Chanson|songs (cabaret)|
+Chirurgie|die Chirurgie|surgery|
+Chorus|der Chorus|chorus|
+Deeskalieren|deeskalieren|de-escalating|
+Definition|die Definition|definition|
+Dekan|der Dekan|dean|
+Dekoration|die Dekoration|decoration, set|
+Denkmal|das Denkmal|monument|
+Deportation|die Deportation|deportation|
+Diabetes|der Diabetes|diabetes|
+Dienstbedingte|dienstbedingt|work-related|
+Diphtherie|die Diphtherie|diphtheria|
+Diuretika|das Diuretikum|diuretics|
+Dorfschullehrers|der Dorfschullehrer|(of the) village schoolteacher|
+Drachen|der Drache|dragon|
+Dreizehnfache|das Dreizehnfache|thirteen times as much|
+Dreißigjährige|dreißigjährig|thirty-year (Dreißigjähriger Krieg = Thirty Years' War)|
+Drudenfuß|der Drudenfuß|pentagram (Faust)|
+Drudenhaus|das Drudenhaus|witches' prison (Bamberg)|
+Durchgestrichen|durchgestrichen|crossed out|
+Eides|der Eid|(of the) oath|
+Eindringen|das Eindringen|intrusion, penetration|
+Einhorn|das Einhorn|unicorn|
+Eleganz|die Eleganz|elegance|
+Emigranten|der Emigrant|emigrants|
+Entartete|entartet|„degenerate“ (Nazi term: Entartete Kunst)|
+Enuresis|die Enuresis|bedwetting|
+Enzephalitis|die Enzephalitis|encephalitis|
+Enzephalopathie|die Enzephalopathie|encephalopathy|
+Epileptische|epileptisch|epileptic|
+Epoche|die Epoche|epoch, era|
+Epos|das Epos|epic poem|
+Erbgesundheitsgericht|das Erbgesundheitsgericht|„hereditary health court“ (Nazi sterilisation court)|
+Erdmännlein|das Erdmännlein|earth mannikin (gnome)|
+Erlen|die Erle|alders|
+Euphemismen|der Euphemismus|euphemisms|
+Euphemismus|der Euphemismus|euphemism|
+Ex-Raucherin|die Ex-Raucherin|ex-smoker (woman)|
+Exil|das Exil|exile|
+Expressionismus|der Expressionismus|Expressionism|
+Expressionisten|der Expressionist|Expressionists|
+Exspirium|das Exspirium|expiration (breathing out)|
+Fackeln|die Fackel|torches|
+Falten|die Falte|folds, wrinkles|
+Fehden|die Fehde|feuds|
+Fehlerfrei|fehlerfrei|error-free|
+Felsblöcke|der Felsblock|boulders|
+Fichten|die Fichte|spruces|
+Fichtenwälder|der Fichtenwald|spruce forests|
+Fleckfieberversuchen|der Fleckfieberversuch|typhus experiments|
+Flößer|der Flößer|raftsman|
+Fokale|fokal|focal|
+Fragment|das Fragment|fragment|
+Frieselfieber|das Frieselfieber|miliary fever (old)|
+Frost|der Frost|frost|
+Fußballklub|der Fußballklub|football club|
+Fäulnisflüssigkeit|die Fäulnisflüssigkeit|putrefaction fluid|
+Fäulnisgase|das Fäulnisgas|gases of decay|
+Förstern|der Förster|foresters|
+Fürst|der Fürst|prince|
+Fürsten|der Fürst|princes|
+Fürstin|die Fürstin|princess|
+Garn|das Garn|yarn|
+Gashahn|der Gashahn|gas tap|
+Gauklern|der Gaukler|jugglers, travelling players|
+Gebirge|das Gebirge|mountains|
+Gedenkstätte|die Gedenkstätte|memorial site|
+Gedreht|gedreht|turned; filmed|
+Gegenzug|der Gegenzug|countermove (im Gegenzug = in return)|
+Gehorsam|der Gehorsam|obedience|
+Geisterheer|das Geisterheer|ghost army (Wild Hunt)|
+Gelehrter|der Gelehrte|scholar|
+Generäle|der General|generals|
+Geologen|der Geologe|geologists|
+Geologie|die Geologie|geology|
+Geordnet|geordnet|ordered, tidy|
+Germanist|der Germanist|scholar of German|
+Gerichtsvollzieher|der Gerichtsvollzieher|bailiff|
+Gesellen|der Geselle|journeymen|
+Glasbläser|der Glasbläser|glassblower|
+Glasmännlein|das Glasmännlein|the Glass Mannikin (Hauff)|
+Globuli|die Globuli|globules (homeopathic pills)|
+Glossen|die Glosse|glosses; satirical columns|
+Glukose|die Glukose|glucose|
+Glukosegabe|die Glukosegabe|giving glucose|
+Glyzerinextrakt|der Glyzerinextrakt|glycerine extract|
+Granit|der Granit|granite|
+Granulomatose|die Granulomatose|granulomatosis|
+Großherzogtum|das Großherzogtum|grand duchy|
+Großstadtromans|der Großstadtroman|(of the) city novel|
+Gründungsjahr|das Gründungsjahr|year of founding|
+Guillotine|die Guillotine|guillotine|
+Gulden|der Gulden|guilder (old coin)|
+Gussfehler|der Gussfehler|casting flaw|
+Gymnasiallehrer|der Gymnasiallehrer|grammar-school teacher|
+Gynäkologen|der Gynäkologe|gynaecologists|
+Gängen|der Gang|corridors|
+Handprothese|die Handprothese|hand prosthesis|
+Handwerksburschen|der Handwerksbursche|journeymen, travelling craftsmen|
+Hasel|die Hasel|hazel|
+Haube|die Haube|bonnet, cap|
+Hauptdarsteller|der Hauptdarsteller|leading actor|
+Hauptmannsuniform|die Hauptmannsuniform|captain's uniform|
+Haupttelegrafenamt|das Haupttelegrafenamt|main telegraph office|
+Hauptwerke|das Hauptwerk|main works|
+Hb|Hb|haemoglobin|
+Heer|das Heer|army|
+Heim|das Heim|home; institution|
+Helau|helau|„helau“ (carnival cheer)|
+Hellebarde|die Hellebarde|halberd|
+Herausgeber|der Herausgeber|editor, publisher|
+Herrschaft|die Herrschaft|rule, reign|
+Hexensabbat|der Hexensabbat|witches' sabbath|
+Hilfsverben|das Hilfsverb|auxiliary verbs|
+Hirsch|der Hirsch|stag, deer|
+Historiker|der Historiker|historian|
+Hoffräulein|das Hoffräulein|lady-in-waiting|
+Hoffräuleins|das Hoffräulein|(of the) lady-in-waiting; ladies-in-waiting|
+Holzlarven|die Holzlarve|wooden masks|
+Homöopathie|die Homöopathie|homeopathy|
+Horoskop|das Horoskop|horoscope|
+Horrorfilm|der Horrorfilm|horror film|
+Hunderte|Hunderte|hundreds|
+Huren|die Hure|whores (old, insulting)|
+Häftlinge|der Häftling|prisoners|
+Häftlingen|der Häftling|prisoners (dative)|
+Identifikation|die Identifikation|identification|
+Illustratoren|der Illustrator|illustrators|
+Infarkt|der Infarkt|infarction|
+Inhibitor|der Inhibitor|inhibitor|
+Inhibitoren|der Inhibitor|inhibitors|
+Intendant|der Intendant|theatre director|
+Irgendeins|irgendeins|any one|
+Ironien|die Ironie|ironies|
+Ischämie|die Ischämie|ischaemia|
+Johannisfeuer|das Johannisfeuer|midsummer bonfire|
+Jude|der Jude|Jew|
+Juden|der Jude|Jews|
+Jüdin|die Jüdin|Jewish woman|
+Junker|der Junker|Junker (Prussian landed noble)|
+Kanne|die Kanne|pot, jug|
+Kanon|der Kanon|canon; round (song)|
+Kanonen|die Kanone|cannons|
+Kanonenkugel|die Kanonenkugel|cannonball|
+Kapitulation|die Kapitulation|surrender|
+Kappe|die Kappe|cap|
+Kartei|die Kartei|card index|
+Kassenarztpraxis|die Kassenarztpraxis|surgery accepting public health insurance|
+Katheterspitze|die Katheterspitze|catheter tip|
+Kelten|der Kelte|Celts|
+Keulenzellen|die Keulenzelle|club cells|
+Kindbettfieber|das Kindbettfieber|puerperal (childbed) fever|
+Kindermörder|der Kindermörder|child murderer|
+Kinn|das Kinn|chin|
+Kinnspitze|die Kinnspitze|tip of the chin|
+Kleinschreibung|die Kleinschreibung|lower-case spelling|
+Knabe|der Knabe|boy (old)|
+Knaben|der Knabe|boys; (of the) boy|
+Kochsche|Kochsch|Koch's (Kochsche Postulate)|
+Kohlenmonoxid|das Kohlenmonoxid|carbon monoxide|
+Koje|die Koje|bunk|
+Kokain|das Kokain|cocaine|
+Koma|das Koma|coma|
+Komparativ|der Komparativ|comparative|
+Komparsen|der Komparse|extras (film)|
+Komponist|der Komponist|composer|
+Komponisten|der Komponist|composers|
+Komödie|die Komödie|comedy|
+Krampusläufen|der Krampuslauf|Krampus runs (processions)|
+Krankenbehandler|der Krankenbehandler|„sick-treaters“ (Nazi term for Jewish doctors after 1938)|
+Krebsforschungszentrum|das Krebsforschungszentrum|cancer research centre|
+Kreide|die Kreide|chalk|
+Kreislaufreaktion|die Kreislaufreaktion|circulatory reaction|
+Kriegskrüppel|der Kriegskrüppel|war cripple (old, harsh word)|
+Kritiker|der Kritiker|critic|
+Kräuter|das Kraut|herbs|
+Kräutern|das Kraut|herbs (dative)|
+Kunsthistoriker|der Kunsthistoriker|art historian|
+Kurfürst|der Kurfürst|prince elector|
+Kurfürsten|der Kurfürst|prince electors|
+Kurpfälzisch|kurpfälzisch|of the Electoral Palatinate; Palatinate dialect|
+Kutschen|die Kutsche|coaches|
+Käuzchen|das Käuzchen|little owl (omen of death)|
+Körperspender|der Körperspender|body donor|
+Langzeitbeatmung|die Langzeitbeatmung|long-term ventilation|
+Larve|die Larve|mask (carnival); larva|
+Larven|die Larve|masks; larvae|
+Lawine|die Lawine|avalanche|
+Lazaretten|das Lazarett|military hospitals|
+Lebenselixier|das Lebenselixier|elixir of life|
+Lebzeiten|die Lebzeiten|lifetime (zu Lebzeiten = in one's lifetime)|
+Legionen|die Legion|legions|
+Leibarzt|der Leibarzt|personal physician|
+Lenz|der Lenz|spring (poetic); Lenz (surname)|
+Lindenblatt|das Lindenblatt|linden leaf (Siegfried's weak spot)|
+Listen|die Liste|lists|
+Litfaßsäulen|die Litfaßsäule|advertising pillars|
+Loop|der Loop|loop|
+Lorazepam|Lorazepam|lorazepam (benzodiazepine)|
+Lorscher|of Lorsch (Lorscher Arzneibuch|Lorsch medical book)|
+Lügenbaron|der Lügenbaron|the Baron of Lies (Münchhausen)|
+Mahlen|das Mahlen|grinding|
+Mahnmal|das Mahnmal|memorial (warning)|
+Mahnstufe|die Mahnstufe|reminder stage (dunning)|
+Mangelnde|mangelnd|lacking, insufficient|
+Manschette|die Manschette|cuff (blood pressure)|
+Marienkirche|die Marienkirche|St Mary's Church|
+Marmorhaus|das Marmorhaus|Marmorhaus (Berlin cinema)|
+Martinstor|das Martinstor|Martin's Gate (Freiburg)|
+Matrikeln|die Matrikel|registers of students|
+Maurer|der Maurer|bricklayer; Maurer (surname)|
+Medikation|die Medikation|medication|
+Medizinhistoriker|der Medizinhistoriker|medical historian|
+Meiler|der Meiler|charcoal kiln|
+Meningoenzephalitis|die Meningoenzephalitis|meningoencephalitis|
+Mietskasernen|die Mietskaserne|tenement blocks|
+Mineralokortikoid-Rezeptor-Antagonisten|der Mineralokortikoid-Rezeptor-Antagonist|mineralocorticoid receptor antagonists|
+Morbus|der Morbus|disease (Latin: Morbus Alzheimer)|
+Morgue|die Morgue|morgue|
+Moritat|die Moritat|street ballad of a murder|
+Morsche|morsch|rotten, decayed|
+Musteranstalt|die Musteranstalt|model institution|
+Mönch|der Mönch|monk|
+Mönche|der Mönch|monks|
+Mößmerin|die Mößmerin|Mößmerin (name of a woman tried as a witch)|
+Münchhausen-Syndrom|das Münchhausen-Syndrom|Munchausen syndrome|
+NS-Staates|der NS-Staat|(of the) Nazi state|
+Nachtkrabb|der Nachtkrabb|night raven (Palatinate bogeyman)|
+Nachwuchses|der Nachwuchs|(of the) next generation|
+Nachzehrer|der Nachzehrer|„after-eater“ (revenant of folklore)|
+Nationalsozialismus|der Nationalsozialismus|National Socialism (Nazism)|
+Nationalsozialist|der Nationalsozialist|Nazi|
+Nationalsozialisten|der Nationalsozialist|Nazis|
+Nestbeschmutzer|der Nestbeschmutzer|someone who fouls their own nest|
+Neujahrsnacht|die Neujahrsnacht|New Year's night|
+Neurologie|die Neurologie|neurology|
+Nibelungenlied|das Nibelungenlied|the Song of the Nibelungs|
+Nibelungentreue|die Nibelungentreue|Nibelung loyalty (blind loyalty)|
+Nordens|der Norden|(of the) north|
+Oberamtsarzt|der Oberamtsarzt|district medical officer|
+Oberst|der Oberst|colonel|
+Offizier|der Offizier|officer|
+Offiziere|der Offizier|officers|
+Organon|das Organon|Organon (Hahnemann's book)|
+Orientierung|die Orientierung|orientation|
+Ostens|der Osten|(of the) east|
+Ouvertüre|die Ouvertüre|overture|
+Papst|der Papst|pope|
+Passanten|der Passant|passers-by|
+Patent|das Patent|patent|
+Perchten|die Perchten|Perchten (masked winter figures)|
+Pfeil|der Pfeil|arrow|
+Pfingstmontag|der Pfingstmontag|Whit Monday|
+Placeboeffekt|der Placeboeffekt|placebo effect|
+Plakat|das Plakat|poster|
+Poliklinik|die Poliklinik|outpatient clinic|
+Polikliniken|die Poliklinik|outpatient clinics|
+Polyangiitis|die Polyangiitis|polyangiitis|
+Postkutsche|die Postkutsche|stagecoach|
+Potenzmittel|das Potenzmittel|potency drug|
+Potenzmitteln|das Potenzmittel|potency drugs|
+Probeschuss|der Probeschuss|test shot|
+Process|der Process|trial (old spelling: Kafka's Der Process)|
+Profession|die Profession|profession|
+Proletarierkrankheit|die Proletarierkrankheit|„proletarian disease“ (tuberculosis)|
+Prosa|die Prosa|prose|
+Prostaglandinsynthese|die Prostaglandinsynthese|prostaglandin synthesis|
+Prototyp|der Prototyp|prototype|
+Präpariersaal|der Präpariersaal|dissecting room|
+Pseudonymen|das Pseudonym|pseudonyms|
+PsychKHG|PsychKHG|PsychKHG (Baden-Württemberg mental health act)|
+Psychiatrische|psychiatrisch|psychiatric|
+Psychiatrischen|psychiatrisch|psychiatric|
+Psychoanalytiker|der Psychoanalytiker|psychoanalyst|
+Psychopathologie|die Psychopathologie|psychopathology|
+Publikationsverbot|das Publikationsverbot|publication ban|
+Puppenspielfabel|die Puppenspielfabel|puppet-play plot|
+Pyramiden|die Pyramide|pyramids|
+Quacksalbers|der Quacksalber|(of the) quack|
+Quecksilber|das Quecksilber|mercury|
+Quecksilberkuren|die Quecksilberkur|mercury cures|
+Rabbi|der Rabbi|rabbi|
+Rabbiner|der Rabbiner|rabbi|
+Ramipril|Ramipril|ramipril (ACE inhibitor)|
+Rationen|die Ration|rations|
+Raubritter|der Raubritter|robber knight|
+Rauhnächten|die Rauhnacht|the twelve nights of Christmas (Rauhnächte)|
+Rechtsbeugung|die Rechtsbeugung|perversion of justice|
+Recommendation|Recommendation|recommendation (SBAR: R)|
+Regimes|das Regime|(of the) regime|
+Register|das Register|register, index|
+Registerwechsel|der Registerwechsel|change of register (style)|
+Reichsinnenministerium|das Reichsinnenministerium|Reich Ministry of the Interior|
+Reichskammergericht|das Reichskammergericht|Imperial Chamber Court|
+Reichsmark|die Reichsmark|Reichsmark (currency)|
+Reichstagsbrand|der Reichstagsbrand|Reichstag fire (1933)|
+Reiter-Syndrom|das Reiter-Syndrom|Reiter's syndrome (old name)|
+Reklame|die Reklame|advertising|
+Rentenmark|die Rentenmark|Rentenmark (currency, 1923)|
+Reservoir|das Reservoir|reservoir|
+Revanche|die Revanche|revenge, rematch|
+Rheinebene|die Rheinebene|Rhine plain|
+Ringer|der Ringer|wrestler; Ringer's solution|
+Ringwälle|der Ringwall|ring walls (Celtic forts)|
+Ritter|der Ritter|knight|
+Rohrpostbrief|der Rohrpostbrief|pneumatic-post letter|
+Roller|der Roller|scooter|
+Rose|die Rose|rose|
+Rosen|die Rose|roses|
+Rubidium|das Rubidium|rubidium|
+Rute|die Rute|rod, switch|
+Römer|der Römer|Romans; Roman|
+Röntgenstrahlen|der Röntgenstrahl|X-rays|
+Röntgenärzte|der Röntgenarzt|radiologists (early X-ray doctors)|
+Rübe|die Rübe|turnip|
+Rüben|die Rübe|turnips|
+Rübenzähler|der Rübenzähler|„turnip counter“ (Rübezahl's nickname)|
+Rückenmarksschwindsucht|die Rückenmarksschwindsucht|tabes dorsalis|
+Rückmeldebogen|der Rückmeldebogen|feedback form|
+SS-Runen|die SS-Runen|SS runes|
+Sandgrube|die Sandgrube|sandpit|
+Sanitäter|der Sanitäter|paramedic, medic|
+Schacht|der Schacht|shaft|
+Schatzhauser|der Schatzhauser|the Treasure-Keeper (Hauff's glass mannikin)|
+Schauspielhauses|das Schauspielhaus|(of the) theatre|
+Scheinwerfern|der Scheinwerfer|spotlights|
+Schelm|der Schelm|rogue, joker|
+Schiffer|der Schiffer|boatman|
+Schlafgängern|der Schlafgänger|lodgers renting a bed by the shift|
+Schlafparalyse|die Schlafparalyse|sleep paralysis|
+Schlosser|der Schlosser|locksmith, fitter|
+Schlucht|die Schlucht|gorge|
+Schmalz|das Schmalz|lard; schmaltz|
+Schmied|der Schmied|blacksmith|
+Schmotzigen|schmotzig|greasy (Schmotziger Donnerstag = carnival Thursday)|
+Schnabel|der Schnabel|beak|
+Schnabelmaske|die Schnabelmaske|beaked plague mask|
+Schneckenhäuser|das Schneckenhaus|snail shells|
+Schnitzel|das Schnitzel|schnitzel; scrap|
+Schnurren|die Schnurre|droll tales|
+Schopf|der Schopf|tuft, shock of hair|
+Schraubstock|der Schraubstock|vice (tool)|
+Schrot|der Schrot|shot (pellets)|
+Schrättele|das Schrättele|nightmare spirit (Swabian)|
+Schulung|die Schulung|training|
+Schuppen|der Schuppen|shed; die Schuppen = scales|
+Schwert|das Schwert|sword|
+Schwertschlucker|der Schwertschlucker|sword swallower|
+Schwindsucht|die Schwindsucht|consumption (tuberculosis)|
+Schwur|der Schwur|oath|
+Schwäbischen|schwäbisch|Swabian|
+Schwäbischer|schwäbisch|Swabian|
+Scopolamin|das Scopolamin|scopolamine|
+Score|der Score|score|
+Seherin|die Seherin|seeress|
+Sehkraft|die Sehkraft|eyesight|
+Seide|die Seide|silk|
+Seil|das Seil|rope|
+Seiltänzern|der Seiltänzer|tightrope walkers|
+Selbstmörder|der Selbstmörder|suicide (person; old word)|
+Serienmörder|der Serienmörder|serial killer|
+Serum|das Serum|serum|
+Serumtherapie|die Serumtherapie|serum therapy|
+Sex|der Sex|sex|
+Sexualwissenschaft|die Sexualwissenschaft|sexology|
+Seziert|seziert|dissected|
+Seziertisch|der Seziertisch|dissecting table|
+Sicherung|die Sicherung|fuse; securing|
+Siedler|der Siedler|settler|
+Siegfriedbrunnen|der Siegfriedbrunnen|Siegfried's well (Odenwald)|
+Signaturen|die Signatur|signatures|
+Sildenafil|Sildenafil|sildenafil|
+Skelett|das Skelett|skeleton|
+Sorben|die Sorben|Sorbs (Slavic minority)|
+Sozialdemokrat|der Sozialdemokrat|social democrat|
+Speer|der Speer|spear; Albert Speer|
+Spießen|der Spieß|spears, pikes|
+Spinnerin|die Spinnerin|spinner (woman)|
+Spion|der Spion|spy|
+Spironolacton|Spironolacton|spironolactone|
+Spital|das Spital|hospital (old)|
+Spitze|die Spitze|tip, point|
+Spitzel|der Spitzel|informer|
+Spottblatt|das Spottblatt|satirical paper|
+Spottgedichte|das Spottgedicht|satirical poems|
+Spurensicherung|die Spurensicherung|forensics, securing evidence|
+Staates|der Staat|(of the) state|
+Staatsexamen|das Staatsexamen|state examination|
+Standard|der Standard|standard|
+Standesorganisationen|die Standesorganisation|professional bodies|
+Standesvertreter|der Standesvertreter|representatives of the profession|
+Star|der Star|star (film); cataract (grauer Star)|
+Steinmetze|der Steinmetz|stonemasons|
+Stirnreflektor|der Stirnreflektor|head mirror|
+Striche|der Strich|strokes, lines|
+Stromer|der Stromer|vagabond|
+Strümpfe|der Strumpf|stockings|
+Studentenkarzer|der Studentenkarzer|student prison (Heidelberg)|
+Stöcken|der Stock|sticks|
+Substantiv|das Substantiv|noun|
+Substitution|die Substitution|substitution, replacement|
+Sumpf|der Sumpf|swamp|
+Synagogen|die Synagoge|synagogues|
+Säule|die Säule|column, pillar|
+Sünder|der Sünder|sinner|
+Tafelbilder|das Tafelbild|panel paintings|
+Tafeln|die Tafel|boards, tablets|
+Tannen|die Tanne|fir trees|
+Tannenwald|der Tannenwald|fir forest|
+Tanzpoem|das Tanzpoem|dance poem|
+Tausenden|Tausende|thousands|
+Telegrammen|das Telegramm|telegrams|
+Teufelsbündler|der Teufelsbündler|one who made a pact with the devil|
+Teufelskanzel|die Teufelskanzel|the Devil's Pulpit (rock)|
+Theologen|der Theologe|theologians|
+Thiamin|das Thiamin|thiamine (vitamin B1)|
+Thingstätte|die Thingstätte|Thingstätte (Nazi open-air theatre, Heidelberg)|
+Tiger|der Tiger|tiger|
+Tiotropium|Tiotropium|tiotropium (inhaler)|
+Tode|der Tod|death (dative: zu Tode)|
+Todesbotin|die Todesbotin|messenger of death (woman)|
+Tonfall|der Tonfall|tone of voice|
+Torasemid|Torasemid|torasemide (diuretic)|
+Torf|der Torf|peat|
+Trichinen|die Trichine|trichinae|
+Trog|der Trog|trough|
+Trümmern|die Trümmer|ruins, rubble|
+Tschechisch|Tschechisch|Czech (language)|
+Tuberkelbakterien|das Tuberkelbakterium|tubercle bacilli|
+Tuberkulin|das Tuberkulin|tuberculin|
+Typhusepidemie|die Typhusepidemie|typhoid epidemic|
+Tötungsfälle|der Tötungsfall|killings|
+Türhüter|der Türhüter|doorkeeper (Kafka: Vor dem Gesetz)|
+Türklopfer|der Türklopfer|door knocker|
+Unbedenklichkeit|die Unbedenklichkeit|harmlessness (safety)|
+Unbeschreibliche|das Unbeschreibliche|the indescribable (Faust)|
+Universitätsklinika|das Universitätsklinikum|university hospitals|
+Unsterbliches|unsterblich|immortal|
+Unterlassung|die Unterlassung|omission|
+Untersuchungshaft|die Untersuchungshaft|custody pending trial|
+Unvorteilhaft|unvorteilhaft|unfavourable|
+Unwissenheit|die Unwissenheit|ignorance|
+Vegetativum|das Vegetativum|autonomic nervous system|
+Verbeug|sich verbeugen|bow (imperative, dialect)|
+Verbeugen|sich verbeugen|to bow|
+Verbrecher|der Verbrecher|criminal|
+Verfasser|der Verfasser|author|
+Verhöre|das Verhör|interrogations|
+Verklärung|die Verklärung|transfiguration|
+Verlaub|mit Verlaub|with respect, if I may say so|
+Verwundeten|der/die Verwundete|the wounded|
+Vielerorts|vielerorts|in many places|
+Virologe|der Virologe|virologist|
+Vision|die Vision|vision|
+Vitalwerte|der Vitalwert|vital signs|
+Vogt|der Vogt|bailiff, reeve|
+Vokal|der Vokal|vowel|
+Vornahme|die Vornahme|carrying out (of a procedure)|
+Wanderer|der Wanderer|wanderer|
+Warnschuss|der Warnschuss|warning shot|
+Wartesaal|der Wartesaal|waiting room|
+Wasserretention|die Wasserretention|water retention|
+Weiden|die Weide|willows; pastures|
+Weltanschauung|die Weltanschauung|world view, ideology|
+Welttuberkulosetag|der Welttuberkulosetag|World Tuberculosis Day|
+Weltärztebund|der Weltärztebund|World Medical Association|
+Werke|das Werk|works|
+Wernicke-Enzephalopathie|die Wernicke-Enzephalopathie|Wernicke's encephalopathy|
+Wingert|der Wingert|vineyard (dialect)|
+Witwenschleier|der Witwenschleier|widow's veil|
+Wolfsschlucht|die Wolfsschlucht|Wolf's Glen (Der Freischütz)|
+Wärter|der Wärter|warder, attendant|
+Würgeengel|der Würgeengel|angel of death|
+Zacken|die Zacke|spikes, points|
+Zauberei|die Zauberei|magic, sorcery|
+Zechen|die Zeche|mines; bills|
+Zehner|der Zehner|ten (coin or note)|
+Zehnern|der Zehner|tens|
+Zehntausende|Zehntausende|tens of thousands|
+Zehntausenden|Zehntausende|tens of thousands|
+Zensur|die Zensur|censorship; mark (school)|
+Ziffern|die Ziffer|digits|
+Zottelkleidern|das Zottelkleid|shaggy costumes|
+Zuhörerschaft|die Zuhörerschaft|audience|
+Zwanzigerjahre|die Zwanzigerjahre|the twenties|
+Zwanzigerjahren|die Zwanzigerjahre|the twenties|
+Zweiergruppen|die Zweiergruppe|pairs, groups of two|
+Zweisprachig|zweisprachig|bilingual|
+Zwischenbefund|der Zwischenbefund|interim finding|
+Zwischentitel|der Zwischentitel|intertitle|
+Zwischenzeit|die Zwischenzeit|meantime|
+Zyklus|der Zyklus|cycle|
+Zügel|der Zügel|rein(s)|
+Ärgerliche|ärgerlich|annoying|
+Überlieferung|die Überlieferung|tradition (handed down)|
+abgeheftet|abheften|filed|
+abgesonderten|absondern|secreted; separated|
+abnagt|abnagen|gnaws off|
+abstinent|abstinent|abstinent|
+acta|acta|acta (Latin: things done, records)|
+ad|ad|ad (Latin: to, at)|
+albrecht|albrecht|Albrecht (name)|
+alemannischen|alemannisch|Alemannic|
+alkoholiker|der Alkoholiker|alcoholic|
+alphabetisch|alphabetisch|alphabetical|
+anderswo|anderswo|elsewhere|
+angaffen|angaffen|to gawp at|
+artis|artis|artis (Latin: of the art)|
+astronomische|astronomisch|astronomical|
+astronomischen|astronomisch|astronomical|
+aufflammen|aufflammen|to flare up|
+aufgebahrt|aufbahren|laid out (a body)|
+aufständische|aufständisch|rebellious, insurgent|
+auskurierter|auskuriert|fully recovered|
+ausschwemmt|ausschwemmen|flushes out|
+ausweichen|ausweichen|to avoid, to dodge|
+baden-württembergischen|baden-württembergisch|of Baden-Württemberg|
+behauen|behauen|hewn|
+beherbergen|beherbergen|to house, to shelter|
+belagerte|belagern|besieged|
+belastungsinduzierte|belastungsinduziert|exertion-induced|
+berlinisch|berlinisch|Berlin (dialect)|
+bestattet|bestatten|buried|
+bewegliche|beweglich|movable, mobile|
+bewilligte|bewilligen|granted, approved|
+bewohnbar|bewohnbar|habitable|
+bewohnt|bewohnen|inhabited|
+binnen|binnen|within|
+bisschen|bisschen|a bit|
+blutverdünnenden|blutverdünnend|blood-thinning|
+blähen|blähen|to bloat|
+bp|bp|bp (blood pressure)|
+brodet|brodeln|simmers (dialect form)|
+bräuchten|brauchen|would need|
+bürgen|bürgen|to vouch, to guarantee|
+bürgst|bürgen|(you) vouch|
+bürgt|bürgen|vouches|
+cCT|cCT|cCT (cranial CT)|
+ca|ca.|approximately|
+caligari|caligari|Caligari (name)|
+cc|cc|cc (cubic centimetres)|
+cellula|cellula|cellula (Latin: cell)|
+corporis|corporis|corporis (Latin: of the body)|
+danebenbenahm|sich danebenbenehmen|misbehaved|
+dazuzugehören|dazugehören|to belong|
+dement|dement|demented (living with dementia)|
+demente|dement|with dementia|
+deportiert|deportieren|deported|
+diabetischen|diabetisch|diabetic|
+dirigierte|dirigieren|conducted|
+dis|dis|dis- (prefix)|
+diuretischer|diuretisch|diuretic|
+dr|dr|Dr. (doctor)|
+dreijährigen|dreijährig|three-year-old; three-year|
+dreitägige|dreitägig|three-day|
+dreitägigen|dreitägig|three-day|
+dreitägiger|dreitägig|three-day|
+dreißigjähriger|dreißigjährig|thirty-year-old; thirty-year|
+duerfen|dürfen|may (spelled without umlaut)|
+dys|dys|dys- (prefix: bad, difficult)|
+dänische|dänisch|Danish|
+ehesten|am ehesten|most likely|
+ehrlisch|ehrlich (dialect)|honest|
+eigens|eigens|specially|
+einminütige|einminütig|one-minute|
+eitel|eitel|vain|
+ellerkonge|ellerkonge|ellerkonge (Danish: elf king, source of „Erlkönig“)|
+emil|emil|Emil (name)|
+en|en|en (French: in)|
+entartet|entartet|„degenerate“ (Nazi term)|
+entgleitet|entgleiten|slips away|
+enthauptet|enthaupten|beheaded|
+erbliche|erblich|hereditary|
+erfragen|erfragen|to ask about|
+erfragt|erfragen|asked about|
+erhängte|sich erhängen|hanged himself/herself|
+erließ|erlassen|issued, decreed|
+erprobt|erproben|tested|
+erprobte|erproben|tested|
+erprügelt|erprügeln|got by beating|
+erschoss|erschießen|shot dead|
+erschossen|erschießen|shot dead|
+erstach|erstechen|stabbed to death|
+ertränkt|ertränken|drowned|
+etliche|etliche|several, quite a few|
+ex|ex|ex (Latin: out of; ex-)|
+exazerbierte|exazerbiert|exacerbated|
+exazerbierten|exazerbiert|exacerbated|
+fabrica|fabrica|fabrica (Latin: workshop, structure)|
+feierlich|feierlich|solemn|
+feinschlägigem|feinschlägig|fine (tremor)|
+feinschlägiger|feinschlägig|fine (tremor)|
+fester|fest|firmer, tighter|
+filtern|filtern|to filter|
+findestu|findestu|findest du (old contraction)|
+fixieren|fixieren|to fix, to restrain|
+flach|flach|flat, shallow|
+flussaufwärts|flussaufwärts|upstream|
+frühesten|früh|earliest|
+ftudiert|ftudiert|studiert (old long-s spelling)|
+fuer|fuer|für (spelled without umlaut)|
+fünfzehnjährigen|fünfzehnjährig|fifteen-year-old|
+gedreht|drehen|turned; filmed|
+gehauen|hauen|hit, hewn|
+gehn|gehn|gehen (spoken)|
+gekachelter|gekachelt|tiled|
+geklemmt|klemmen|jammed, clamped|
+gekämpft|kämpfen|fought|
+gelaunt|gelaunt|in a … mood (gut gelaunt)|
+gelobe|geloben|(I) vow|
+gelähmt|gelähmt|paralysed|
+gelöst|lösen|solved; relaxed|
+gemahlen|mahlen|ground|
+genauesten|genau|most exact|
+generalisiert|generalisiert|generalised|
+generalisierten|generalisiert|generalised|
+genuine|genuin|genuine|
+gepflanzt|pflanzen|planted|
+geprellt|prellen|cheated; bruised|
+gereimte|gereimt|rhymed|
+geritzt|ritzen|scratched, carved|
+geschafft|schaffen|managed, done|
+geschminkt|schminken|made up (face)|
+geschnitzte|geschnitzt|carved|
+geschnitzten|geschnitzt|carved|
+geschädigt|schädigen|damaged|
+gespitzt|spitzen|sharpened|
+gewachster|gewachst|waxed|
+gfunne|gfunne|gefunden (dialect)|
+glotzt|glotzen|stares, gawps|
+gluckern|gluckern|to gurgle|
+gluckert|gluckern|gurgles|
+golem|golem|Golem (name)|
+grell|grell|glaring, harsh|
+gross|gross|groß (spelled with ss)|
+habilitiere|sich habilitieren|(I) qualify as a professor|
+heidelbergensis|heidelbergensis|heidelbergensis (Homo heidelbergensis)|
+heim|heim|home(wards)|
+heit|heit|-heit (noun suffix)|
+herab|herab|down|
+herüber|herüber|over (here)|
+hie|hie|hie (old: here)|
+hierbleiben|hierbleiben|to stay here|
+hinan|hinan|up (poetic)|
+hindurchgeschickt|hindurchschicken|sent through|
+hineinzuversetzen|sich hineinversetzen|to put oneself in (someone's place)|
+hitziges|hitzig|hot-tempered, heated|
+hl|hl. (heilig|saint)|
+hler|hler|-ler (word ending)|
+hohl|hohl|hollow|
+humani|humani|humani (Latin: human)|
+hundertjährig|hundertjährig|hundred-year-old|
+hypnotisiert|hypnotisieren|hypnotised|
+immunisierter|immunisiert|immunised|
+indizierte|indiziert|indicated (medically)|
+intrakranielle|intrakraniell|intracranial|
+jur|jur|jur. (of law: Dr. jur.)|
+justitiam|justitiam|justitiam (Latin: justice)|
+jähriger|-jährig|-year-old|
+kafkat|kafkat|kafkat (joke verb: „it is Kafkaesque“)|
+kahl|kahl|bald, bare|
+kardialer|kardial|cardiac|
+kardiogenem|kardiogen|cardiogenic|
+keit|keit|-keit (noun suffix)|
+kischt|kischt|kischt (joke verb from Kisch)|
+kleinwüchsiger|kleinwüchsig|of short stature|
+komischste|komisch|funniest, strangest|
+konjugierte|konjugieren|conjugated|
+konservativ|konservativ|conservative|
+konservative|konservativ|conservative|
+kroatische|kroatisch|Croatian|
+krumme|krumm|crooked|
+kurier|kurieren|cure (imperative)|
+kämmt|kämmen|combs|
+lebensunwerten|lebensunwert|„unworthy of life“ (Nazi term)|
+lehrt|lehren|teaches|
+lorazepam|lorazepam|lorazepam|
+lutscht|lutschen|sucks (a sweet)|
+makelloser|makellos|flawless|
+medicinische|medicinische|medizinisch (old spelling)|
+mer|mer|mer (dialect: wir/man)|
+metastasiertes|metastasiert|metastatic|
+mg|mg|mg (milligrams)|
+misshandelt|misshandeln|mistreated|
+misslang|misslingen|failed|
+mitzutanzen|mittanzen|to dance along|
+mmHg|mmHg|mmHg (millimetres of mercury)|
+mmol|mmol|mmol (millimoles)|
+mons|mons|mons (Latin: mountain)|
+mordet|morden|murders|
+mordete|morden|murdered|
+muessen|muessen|müssen (spelled without umlaut)|
+muskuloskelettale|muskuloskelettal|musculoskeletal|
+mutmaßliches|mutmaßlich|presumed, suspected|
+mysticus|mysticus|mysticus (Latin: mystic)|
+nachahmen|nachahmen|to imitate|
+nachhaken|nachhaken|to follow up, to probe|
+nationalsozialistischen|nationalsozialistisch|National Socialist (Nazi)|
+nationalsozialistisches|nationalsozialistisch|National Socialist (Nazi)|
+neuartige|neuartig|novel, new kind of|
+nieder|nieder|down; low|
+niv|niv|NIV (non-invasive ventilation)|
+norddeutschen|norddeutsch|north German|
+obs|obs|obs. (observation)|
+ok|ok|ok|
+okay|okay|okay|
+ophie|ophie|-ophie (word ending)|
+optischen|optisch|optical|
+otc|otc|OTC (over the counter)|
+paroxysmale|paroxysmal|paroxysmal|
+paroxysmaler|paroxysmal|paroxysmal|
+pater|pater|pater (Latin: father)|
+pectoris|pectoris|pectoris (Angina pectoris)|
+perioraler|perioral|perioral|
+plünderten|plündern|plundered|
+praktizierten|praktizieren|practised|
+preußische|preußisch|Prussian|
+problematisch|problematisch|problematic|
+produktiv|produktiv|productive|
+promovierter|promoviert|with a doctorate|
+protestantische|protestantisch|Protestant|
+psychiatrischen|psychiatrisch|psychiatric|
+psychopathologische|psychopathologisch|psychopathological|
+purulenter|purulent|purulent|
+ragte|ragen|towered, jutted|
+rauschhafter|rauschhaft|intoxicated, ecstatic|
+reaktive|reaktiv|reactive|
+retrosternale|retrosternal|retrosternal|
+richterlicher|richterlich|judicial|
+rieseln|rieseln|to trickle, to fall gently|
+rollt|rollen|rolls|
+rum|rum|herum (spoken)|
+saltus|saltus|saltus (Latin: leap)|
+samt|samt|together with|
+sausten|sausen|rushed, whizzed|
+schadet|schaden|harms|
+schadete|schaden|harmed|
+schaft|schaft|-schaft (noun suffix)|
+schaurig|schaurig|eerie|
+schibo|schibo|schibo (Scheibenschlagen cry)|
+schlimmstenfalls|schlimmstenfalls|at worst|
+schlitzt|schlitzen|slits|
+schmälern|schmälern|to diminish|
+schnitzen|schnitzen|to carve|
+schwermütig|schwermütig|melancholy|
+schwäbischen|schwäbisch|Swabian|
+scientiam|scientiam|scientiam (Latin: knowledge)|
+sechsundzwanzigjährigen|sechsundzwanzigjährig|twenty-six-year-old|
+sezierte|sezieren|dissected|
+siebt|sieben|sifts|
+slawisches|slawisch|Slavic|
+sozialistische|sozialistisch|socialist|
+spaltet|spalten|splits|
+spitz|spitz|pointed|
+spottet|spotten|mocks|
+ss|ss|ss (old long-s ligature)|
+steinernen|steinern|stone (made of stone)|
+steinerner|steinern|stone (made of stone)|
+steril|steril|sterile|
+sticken|sticken|to embroider|
+stoerung|stoerung|Störung (spelled without umlaut)|
+straft|strafen|punishes|
+systolische|systolisch|systolic|
+sächlich|sächlich|neuter|
+sächsische|sächsisch|Saxon|
+sägen|sägen|to saw|
+tagt|tagen|meets (in session)|
+tagte|tagen|met (in session)|
+tb|tb|Tb (tuberculosis)|
+teh|teh|teh (dialect)|
+terei|terei|-terei (word ending)|
+tgl|tgl. (täglich|daily)|
+thiamin|thiamin|thiamine|
+thustu|thustu|thust du (old contraction: do you)|
+treuester|treu|most faithful|
+trillion|Trillion|trillion|
+tropft|tropfen|drips|
+tschechische|tschechisch|Czech|
+tschechischen|tschechisch|Czech|
+tudiert|tudiert|studiert (spoken)|
+umgfalle|umgfalle|umgefallen (dialect)|
+umschiffen|umschiffen|to steer round|
+un-heim-lich|unheimlich|un-canny (literally: un-home-ly)|
+unbehelligt|unbehelligt|undisturbed|
+unerhörten|unerhört|unheard of, outrageous|
+unfruchtbar|unfruchtbar|infertile|
+ung|ung|-ung (noun suffix)|
+ungefaehrlich|ungefaehrlich|ungefährlich (spelled without umlaut)|
+ungestraft|ungestraft|unpunished|
+unheilbar|unheilbar|incurable|
+unterdessen|unterdessen|meanwhile|
+unterirdische|unterirdisch|underground|
+unumschränkte|unumschränkt|absolute, unlimited|
+unwiderruflich|unwiderruflich|irrevocable|
+verarmt|verarmt|impoverished|
+verbittert|verbittert|embittered|
+verblendet|verblendet|blinded (deluded)|
+verbuchen|verbuchen|to book, to record|
+verdammt|verdammt|damned|
+verdünne|verdünnen|(I) dilute|
+vererbt|vererben|inherited, passed on|
+verfangen|sich verfangen|caught, entangled|
+verfilmt|verfilmen|filmed (made into a film)|
+verguckt|sich vergucken|fallen for (someone)|
+verhört|verhören|interrogated|
+verhörte|verhören|interrogated|
+verkürzten|verkürzt|shortened|
+verpestete|verpestet|polluted|
+verschleppt|verschleppen|abducted; delayed|
+verschmolz|verschmelzen|merged|
+verschollen|verschollen|missing, lost|
+verschränkt|verschränken|folded (arms)|
+verspottete|verspotten|mocked|
+verspotteten|verspotten|mocked|
+verstimmt|verstimmt|out of tune; upset|
+vertraglich|vertraglich|contractual(ly)|
+vertreiben|vertreiben|to drive away|
+vertrieben|vertreiben|driven out, expelled|
+verunreinigt|verunreinigen|contaminated|
+verwittert|verwittert|weathered|
+vieltönig|vieltönig|many-voiced|
+vierzehnjährige|vierzehnjährig|fourteen-year-old|
+vorab|vorab|in advance|
+wagte|wagen|dared|
+wedelt|wedeln|wags, waves|
+wegzulegen|weglegen|to put away|
+weiss|weiss|weiß (spelled with ss)|
+weitergeklungen|weiterklingen|kept sounding|
+werfelt|werfelt|werfelt (joke verb from Werfel)|
+wol|wol|wohl (old spelling)|
+wundersame|wundersam|wondrous|
+zeitlich|zeitlich|temporal; in time|
+zerstritten|zerstritten|at odds, fallen out|
+zertreten|zertreten|trampled|
+zig|zig|umpteen|
+zurückzuholen|zurückholen|to fetch back|
+zwangspensioniert|zwangspensionieren|forcibly retired|
+zwangssterilisiert|zwangssterilisieren|forcibly sterilised|
+zweeunzwanzisch|zweeunzwanzisch|zweiundzwanzig (dialect)|
+zweiminütigen|zweiminütig|two-minute|
+zwo|zwo|two (spoken, on the phone)|
+ächtete|ächten|outlawed, ostracised|
+ód|ód|ód (Hungarian/Czech fragment)|
+überein|überein|in agreement|
+übers|über das|over the, about the|
 `;
 // Homographs that capitalisation alone cannot decide: word (lower case) → rules, first match wins.
 //   when: "cap" (capitalised mid-sentence) | "low" (lower case) | "start" (first word of the sentence) | "any"
@@ -2917,6 +3854,7 @@ const L1_HOMO={
 };
 // Names and words of the story world that are not vocabulary: tap shows who or what it is, never "Noch nicht im Wörterbuch".
 const L1_NAMES={
+ "Aachen":"Aachen (city near the Belgian border)","Abnoba":"Abnoba (Celtic goddess of the Black Forest)","Achern":"Achern (town in Baden)","Adelbert":"Adelbert (first name)","Adolf":"Adolf (first name)","Adrian":"Adrian (first name)","Aires":"Buenos Aires","Albert":"Albert (first name)","Alexander":"Alexander (first name)","Alla":"Alla (first name)","Almansor":"Almansor (Heine's tragedy, 1821)","Altneusynagoge":"Old-New Synagogue (Prague)","Amadeus":"Amadeus (first name: Mozart)","Amsterdam":"Amsterdam","Andreas":"Andreas (first name)","Annette":"Annette (first name: Droste-Hülshoff)","Antoinette":"Marie Antoinette","Anton":"Anton (first name)","Apollon":"Apollo (Greek god)","Arconauten":"„Arconauts“ (the writers of the Café Arco, Prague)","Arnim":"Achim von Arnim (writer)","Atze":"Atze (Berlin slang: mate, brother)","Avicenna":"Avicenna (Persian physician, †1037)","Badeni":"Badeni (Austrian prime minister, 1897 language decree)","Balduin":"Balduin (first name; the student of Prague)","Bamberg":"Bamberg (city in Franconia)","Banshee":"banshee (Irish death spirit)","Baumann":"Baumann (surname)","Bayern":"Bavaria","Bedburg":"Bedburg (town near Cologne)","Behring":"Emil von Behring (bacteriologist)","Belzenickel":"Belzenickel (Palatinate St Nicholas figure)","Benn":"Gottfried Benn (poet and doctor)","Berlichingen":"Götz von Berlichingen (knight)","Berlin-Steglitz":"Berlin-Steglitz (district)","Bertolt":"Bertolt (Brecht)","Biberkopf":"Franz Biberkopf (hero of Berlin Alexanderplatz)","Biedermaier":"Biedermeier (style and era 1815–1848)","Binding":"Karl Binding (jurist)","Bismarckplatz":"Bismarckplatz (square in Heidelberg)","Blocksberg":"Blocksberg (the Brocken, witches' mountain)","Bodenwerder":"Bodenwerder (Münchhausen's town)","Bolte":"Widow Bolte (Max und Moritz)","Brahe":"Tycho Brahe (astronomer)","Bram":"Bram (Stoker)","Brechts":"Brecht's","Breisgau":"Breisgau (region around Freiburg)","Brentano":"Clemens Brentano (poet)","Breslau":"Breslau (today Wrocław)","Buddha":"Buddha","Buenos":"Buenos Aires","Bulgakow":"Mikhail Bulgakov (writer)","Böhmen":"Bohemia","Caesium":"caesium (element)","Catharina":"Catharina (first name)","Charlottenburg":"Charlottenburg (Berlin district)","Christian":"Christian (first name)","Christopher":"Christopher (Marlowe)","Clara":"Clara (first name)","Clemens":"Clemens (first name)","Contergan":"Contergan (thalidomide)","Czerny":"Vinzenz Czerny (surgeon, Heidelberg)","Dachau":"Dachau (concentration camp)","Davos":"Davos (Swiss sanatorium town)","De":"de (Latin: of, about)","Deter":"Auguste Deter (Alzheimer's first patient)","Dippel":"Johann Konrad Dippel (alchemist)","Dippels":"Dippel's","Ditzen":"Rudolf Ditzen (Hans Fallada)","Dix":"Otto Dix (painter)","Doctor":"doctor (Latin/English spelling)","Dokter":"Dokter (dialect: Doktor)","Don":"Don (Spanish title; Don Giovanni)","Donau":"the Danube","Dora":"Dora (first name)","Dreigroschenoper":"The Threepenny Opera (Brecht/Weill)","Dresden":"Dresden","Droste-Hülshoff":"Annette von Droste-Hülshoff (poet)","Eberswalde":"Eberswalde (town near Berlin)","Eduard":"Eduard (first name)","Edward":"Edward (first name)","Egon":"Egon (first name)","Eichberg":"Eichberg (asylum in Hesse)","Einstein":"Albert Einstein","Eisenbarth":"Doctor Eisenbarth (travelling surgeon, †1727)","Eisenlohr":"Eisenlohr (surname)","Elfriede":"Elfriede (first name)","Elisabeth":"Elisabeth (first name)","Elzach":"Elzach (town in the Black Forest)","Ephraim":"Ephraim (first name)","Erich":"Erich (first name)","Erwin":"Erwin (first name)","Eulenspiegel":"Till Eulenspiegel (trickster of legend)","Fabian":"Fabian (Kästner's novel and hero)","Fasnet":"Fasnet (Swabian-Alemannic carnival)","Faustbuch":"the Faust chapbook (1587)","Faustus":"Faustus (Latin form of Faust)","Ferdinand":"Ferdinand (first name)","Forßmann":"Werner Forßmann (cardiologist)","Fraenkel":"Fraenkel (surname)","Frankenthal":"Frankenthal (town in the Palatinate)","Frankfurter":"of Frankfurt; Frankfurt sausage","Fred":"Fred (first name)","Freiburger":"of Freiburg","Galen":"Galen (Greek physician, 2nd century)","Gebweiler":"Gebweiler (Guebwiller, Alsace)","Gennat":"Ernst Gennat (Berlin detective)","George":"George (first name)","Gerda":"Gerda (first name)","Gerhart":"Gerhart (first name)","Germaniens":"of Germania (Roman name for Germany)","Gersdorff":"Gersdorff (surname)","Gertrud":"Gertrud (first name)","Giovanni":"Don Giovanni (Mozart)","Goebbels":"Joseph Goebbels (Nazi propaganda minister)","Gottlieb":"Gottlieb (first name)","Grasbrook":"Grasbrook (Hamburg; Störtebeker's execution site)","Grasellenbach":"Grasellenbach (village in the Odenwald)","Griegs":"Grieg's","Griesinger":"Wilhelm Griesinger (psychiatrist)","Grosz":"George Grosz (painter)","Gründgens":"Gustaf Gründgens (actor)","Grünenthal":"Grünenthal (pharmaceutical firm)","Gustaf":"Gustaf (first name)","Gutach":"Gutach (Black Forest village)","Göchhausen":"Luise von Göchhausen (lady-in-waiting; Urfaust copy)","Göring":"Hermann Göring (Nazi leader)","Göttingen":"Göttingen (university town)","Götz":"Götz (von Berlichingen)","Götz-Zitat":"the Götz quotation („Er kann mich …“)","Hagen":"Hagen (Nibelungen hero)","Hallervorden":"Julius Hallervorden (neuropathologist)","Hamburg":"Hamburg","Hamburger":"of Hamburg; a person from Hamburg","Hann":"Hann (Münden)","Harald":"Harald (first name)","Harbou":"Thea von Harbou (screenwriter)","Hata":"Sahachiro Hata (bacteriologist)","Hauff":"Wilhelm Hauff (writer of fairy tales)","Hausen":"Hausen (village name)","Heckmann":"Heckmann (surname)","Heidenloch":"Heidenloch (well on the Heiligenberg)","Heppenheim":"Heppenheim (town on the Bergstraße)","Herder":"Johann Gottfried Herder (writer)","Hermann":"Hermann (first name; Arminius)","Heydelberg":"Heidelberg (old spelling)","Hieronymus":"Hieronymus (first name)","Hilde":"Hilde (first name)","Hildebrandt":"Hildebrandt (surname)","Hildebrandts":"Hildebrandt's","Hippokrates":"Hippocrates","Hirschfeld":"Magnus Hirschfeld (sexologist)","Hirschfelds":"Hirschfeld's","Hirschsprung":"Harald Hirschsprung (paediatrician)","Hitler":"Adolf Hitler","Hitlers":"Hitler's","Hoche":"Alfred Hoche (psychiatrist)","Hohenzollern":"the Hohenzollerns (Prussian dynasty)","Hollaender":"Friedrich Hollaender (composer)","Holle":"Frau Holle (fairy-tale figure)","Hollywood":"Hollywood","Holländer-Michel":"Dutch Michel (Hauff's „Das kalte Herz“)","Homo":"homo (Latin: human)","Homunculus":"homunculus (artificial little man)","Hubert":"Hubert (first name)","Ida":"Ida (first name)","Illenau":"Illenau (asylum in Baden)","Ingeborg":"Ingeborg (first name)","Ingolstadt":"Ingolstadt (city in Bavaria)","Jakob":"Jakob (first name)","Jannings":"Emil Jannings (actor)","Jaspers":"Karl Jaspers (psychiatrist and philosopher)","Jean":"Jean (first name)","Jetta":"Jetta (Heidelberg legend: the seeress)","Jettenbühl":"Jettenbühl (hill in Heidelberg)","Jo":"Jo (first name)","Juri":"Juri (first name)","Julius":"Julius (first name)","Justinus":"Justinus (Kerner)","Kada":"Kada (Kafka nickname? surname)","Kalkriese":"Kalkriese (site of the Varus battle)","Kannitverstan":"Kannitverstan (Hebel's tale: „I can't understand“)","Karl":"Karl (first name)","Karlsplatz":"Karlsplatz (Prague, Heidelberg)","Karlsruhe":"Karlsruhe","Karrer":"Karrer (surname)","Kasper":"Kasper (Punch, puppet figure)","Katharina":"Katharina (first name)","Kelley":"Edward Kelley (alchemist)","Kerner":"Justinus Kerner (doctor and poet)","Ketterer":"Ketterer (surname)","Kieler":"of Kiel","Kinzig":"the Kinzig (Black Forest river)","Kirchner":"Ernst Ludwig Kirchner (painter)","Kirnbach":"Kirnbach (Black Forest village)","Kisch":"Egon Erwin Kisch (reporter)","Kitasato":"Shibasaburo Kitasato (bacteriologist)","Klaus":"Klaus (first name)","Klee":"Paul Klee (painter)","Krabat":"Krabat (Sorbian legend; Preußler's novel)","Krakau":"Kraków","Krampus":"Krampus (Alpine St Nicholas demon)","Kraus":"Karl Kraus (satirist)","Kreuznach":"Bad Kreuznach (spa town)","Kriemhild":"Kriemhild (Nibelungen heroine)","Kunigunde":"Kunigunde (first name)","Kurpfalz":"the Electoral Palatinate (region of Heidelberg)","Kurt":"Kurt (first name)","Kußmaul":"Adolf Kußmaul (physician)","Kästner":"Erich Kästner (writer)","Köln":"Cologne","Auschwitz":"Auschwitz (extermination camp)","Closed":"closed (English: closed loop)","Landwehrkanal":"Landwehr Canal (Berlin)","Lausitz":"Lusatia (region of the Sorbs)","Lea":"Lea (first name)","Lehmann":"Lehmann (surname)","Lena":"Lena (first name)","Lenore":"Lenore (Bürger's ballad)","Lenya":"Lotte Lenya (singer)","Leodius":"Leodius (Latin name)","Leonberg":"Leonberg (town near Stuttgart)","Lercheimer":"Augustin Lercheimer (16th-century writer against witch trials)","Leverkühn":"Adrian Leverkühn (Thomas Mann's Doktor Faustus)","Lindenschmidt":"Lindenschmidt (robber knight of legend)","Linz":"Linz (Austria)","Lohse":"Lohse (surname)","London":"London","Londoner":"of London","Loreley":"the Loreley (Rhine rock and siren)","Lorsch":"Lorsch (abbey town)","Lotte":"Lotte (first name)","Ludwig":"Ludwig (first name)","Luise":"Luise (first name)","Lukian":"Lucian of Samosata (Greek satirist)","Luxemburg":"Rosa Luxemburg; Luxembourg","Luxemburgs":"Luxemburg's","Löhner-Beda":"Fritz Löhner-Beda (librettist, murdered in Auschwitz)","Lübeck":"Lübeck","Lübecker":"of Lübeck","Lüneburg":"Lüneburg","Mabuse":"Dr. Mabuse (film villain)","Mackie":"Mackie Messer (Mack the Knife)","Magnus":"Magnus (first name)","Mainz":"Mainz","Margaretha":"Margaretha (first name)","Margarita":"Margarita (Bulgakov's heroine)","Maria":"Maria (first name)","Marie":"Marie (first name)","Marienbad":"Marienbad (spa town)","Marlowe":"Christopher Marlowe (playwright)","Martha":"Martha (first name)","Mayer-Hermann":"Mayer-Hermann (surname)","Mehring":"Walter Mehring (writer)","Mephistophela":"Mephistophela (female Mephisto, legend)","Mephostophiles":"Mephostophiles (old spelling of Mephisto)","Meyerhof":"Otto Meyerhof (physiologist)","Meyrink":"Gustav Meyrink (writer)","Michail":"Michail (first name)","Michel":"Michel (first name; der deutsche Michel)","Michels":"Michel's","Mielke":"Mielke (surname)","Mikulá":"Mikuláš (St Nicholas, Czech)","Missest":"missest (old: mis-measure)","Mitscherlich":"Alexander Mitscherlich (physician, Nuremberg trial report)","Mitteleuropa":"Central Europe","Monsieur":"Monsieur (French: Mr)","Moritz":"Moritz (first name)","Mosbach":"Mosbach (town in Baden)","Mozart":"Wolfgang Amadeus Mozart","Munk":"Munk (surname)","Murg":"the Murg (Black Forest river)","Mölln":"Mölln (Eulenspiegel's town)","Mückter":"Heinrich Mückter (Contergan developer)","Müller":"Müller (surname)","Müllers":"Müller's","Münchhausen":"Baron Münchhausen","Münden":"Hann. Münden (town)","Narri":"narri (carnival call: „Narri! Narro!“)","Narro":"narro (carnival call)","Neandertal":"Neander Valley (Neanderthal)","Nettesheim":"Agrippa von Nettesheim (occult philosopher)","Neuenheimer":"of Neuenheim (Heidelberg district)","New":"New (York)","Nikolaus":"Nikolaus (St Nicholas; first name)","Nizza":"Nice","Norddeutschland":"northern Germany","Nordsee":"the North Sea","Novak":"Novák (surname)","Oberschlesien":"Upper Silesia","Odenheim":"Odenheim (village in Baden)","Odenwald":"the Odenwald (forest region)","Okay":"okay","Omnis":"omnis (Latin: every, all)","Orlamünde":"Orlamünde (the White Lady of Orlamünde)","Osnabrück":"Osnabrück","Ossietzky":"Carl von Ossietzky (journalist)","Ostafrika":"East Africa","Ostern":"Easter","Ostsee":"the Baltic Sea","Otfried":"Otfried (Preußler)","Otto":"Otto (first name)","Padua":"Padua","Paff":"paff (sound: bang)","Panter":"Peter Panter (Tucholsky pseudonym)","Paris":"Paris","Pariser":"of Paris","Paul":"Paul (first name)","Perchta":"Perchta (Alpine winter spirit)","Perlacke":"Perlacke (Heidelberg dialect name)","Perlicke":"Perlicke (word in a children's rhyme)","Pfalz":"the Palatinate","Philipp":"Philipp (first name)","Philo":"Philo (first name)","Philofophie":"Philosophie (old long-s spelling: Philoſophie)","Piff":"piff (sound: bang)","Plötzensee":"Plötzensee (Berlin prison, execution site)","Potsdamer":"of Potsdam (Potsdamer Platz)","Preußen":"Prussia; Prussians","Preußler":"Otfried Preußler (writer)","Prevorst":"the Seeress of Prevorst (Kerner's patient)","Rainer":"Rainer (first name)","Raspail":"Raspail (surname)","Redl":"Alfred Redl (spy)","Redls":"Redl's","Reimann":"Reimann (surname)","Remarque":"Erich Maria Remarque (writer)","René":"René (first name)","Rhein":"the Rhine","Rheingau":"the Rheingau (wine region)","Rheinland":"the Rhineland","Riesengebirge":"the Giant Mountains (Krkonoše)","Rilke":"Rainer Maria Rilke (poet)","Rodenstein":"Rodenstein (castle; the Wild Hunt's knight)","Rodensteiner":"the Rodensteiner (ghost knight)","Rom":"Rome","Ronny":"Ronny (first name)","Rottweil":"Rottweil (carnival town)","Ruprecht":"Knecht Ruprecht (St Nicholas's companion)","Röhrig":"Röhrig (surname)","Rübezahl":"Rübezahl (mountain spirit of the Giant Mountains)","SPIKES":"SPIKES (protocol for breaking bad news)","Sahachiro":"Sahachiro (Hata)","Saleph":"the Saleph (river where Barbarossa drowned)","Salvarsan":"Salvarsan (first syphilis drug, 1910)","Samiel":"Samiel (the devil in Der Freischütz)","Samuel":"Samuel (first name)","Schadowitz":"Schadowitz (Krabat's village)","Schibi":"Schibi (cry when throwing burning discs, Scheibenschlagen)","Schiffbauerdamm":"Schiffbauerdamm (Berlin; Brecht's theatre)","Schlesien":"Silesia","Schlierbach":"Schlierbach (Heidelberg district)","Schluchsee":"the Schluchsee (Black Forest lake)","Schmidt":"Schmidt (surname)","Schmotz":"schmotzig (Alemannic: greasy; Schmotziger Donnerstag)","Schneewittchen":"Snow White","Schnellerts":"Schnellerts (castle ruin, Wild Hunt)","Schuttig":"Schuttig (Elzach carnival figure)","Schwaben":"Swabia; Swabians","Schwarzkollm":"Schwarzkollm (Krabat's mill village)","Seeräuber-Jenny":"Pirate Jenny (Threepenny Opera song)","Shakespeare":"William Shakespeare","Shelley":"Mary Shelley","Shibasaburo":"Shibasaburo (Kitasato)","Sigmund":"Sigmund (Freud)","Silcher":"Friedrich Silcher (composer of the Loreley song)","Simern":"Simmern (town; dialect spelling)","SpO":"SpO₂ (oxygen saturation)","Spandau":"Spandau (Berlin district)","Speyer":"Speyer (cathedral city)","Spies":"Spies (publisher of the 1587 Faustbuch)","Stadellmenin":"Stadellmenin (name of a woman in a witch trial)","Staufener":"of Staufen","Stieve":"Hermann Stieve (anatomist)","Stockholm":"Stockholm","Stoker":"Bram Stoker","Stolberg":"Stolberg (town/family)","Struwwelpeter":"Struwwelpeter (Shock-headed Peter)","Stump":"Peter Stump(p) (the werewolf of Bedburg)","Stuttgart":"Stuttgart","Störtebeker":"Klaus Störtebeker (pirate)","Störtebekers":"Störtebeker's","Suppenkaspar":"Soup-Kaspar (Struwwelpeter)","Susanna":"Susanna (first name)","Susanne":"Susanne (first name)","Süddeutschland":"southern Germany","Südtirol":"South Tyrol","Tacitus":"Tacitus (Roman historian)","Tannenb":"Tannenbühl (abbreviated)","Teutoburgiensis":"Teutoburgiensis (Latin: of the Teutoburg Forest)","The":"The (English article)","Thea":"Thea (first name)","Theobald":"Theobald (first name)","Thomas":"Thomas (first name)","Tiergartenstraße":"Tiergartenstraße (Berlin; T4 headquarters)","Till":"Till (Eulenspiegel)","Transsilvanien":"Transylvania","Tucholsky":"Kurt Tucholsky (writer)","Tuttlingen":"Tuttlingen (town)","Tycho":"Tycho (Brahe)","Tübingen":"Tübingen","Ufa":"UFA (German film studio)","Urfaust":"the Urfaust (Goethe's early Faust)","Vadder":"Vadder (dialect: Vater)","Viagra":"Viagra","Vincenz":"Vincenz (first name)","Vogesen":"the Vosges","Voßstraße":"Voßstraße (Berlin street)","Waskenwald":"Waskenwald (Vosges forest, Waltharius)","Weber":"Weber (Carl Maria von Weber; surname)","Weibertreu":"Weibertreu (castle: the women of Weinsberg)","Weill":"Kurt Weill (composer)","Werfel":"Franz Werfel (writer)","Werner":"Werner (first name)","Weser":"the Weser (river)","Westphal":"Carl Westphal (psychiatrist)","Weyer":"Johann Weyer (physician against witch trials)","Widukind":"Widukind (Saxon leader)","Wiener":"of Vienna; Viennese","Wiesental":"Wiesental (valley)","Wiesloch":"Wiesloch (psychiatric hospital near Heidelberg)","Witekind":"Witekind (Hermann Witekind, 16th-century Heidelberg author)","Witekinds":"Witekind's","Wodan":"Wodan (Germanic god)","Wolffartin":"Wolffartin (name of a woman in a witch trial)","Worms":"Worms (city)","Wrobel":"Ignaz Wrobel (Tucholsky pseudonym)","Württemberg":"Württemberg","York":"(New) York","Zappelphilipp":"Fidgety Philip (Struwwelpeter)","Hastu":"hast du (old contraction)",
  "Arco":"Café Arco (Prague café)","Elli":"Elli (first name)","Gutachtal":"Gutach valley (Black Forest)","Hessen":"Hesse (German state)","Josefstadt":"Josefov, Prague's Jewish quarter","Josefstädter":"of the Josefstadt (Prague)","Kandel":"the Kandel (mountain in the Black Forest)","Kniebis":"Kniebis (pass in the Black Forest)","Mummelsee":"the Mummelsee (lake in the Black Forest)","Mummelsees":"of the Mummelsee","Paule":"Paule (nickname for Paul)","Schwerdtlein":"Frau Schwerdtlein (Marthe, in Goethe's Faust)","Svobodová":"Svobodová (Czech surname)","Tannenbühl":"Tannenbühl (village name)","Taussig":"Taussig (surname)","Taussigs":"Taussig's","Triberg":"Triberg (Black Forest town)","Zander":"Zander (surname)","Weimarer":"Weimar (adj.: Weimarer Republik = the Weimar Republic)",
  "Holland":"Holland (the Netherlands)","Mannheim":"Mannheim (city near Heidelberg)","Albrecht":"Albrecht (first name)","Sou":"Souček (Czech surname; „č“ = ch as in church)","ek":"Souček (end of the surname)","Aleph":"aleph, the first letter of the Hebrew alphabet","emet":"emet, Hebrew „truth“ (the word on the golem’s forehead)","met":"met, Hebrew „dead“ (emet without its first letter)","Wolfgang":"Wolfgang (Johann Wolfgang von Goethe)","Marthe":"Marthe (Gretchen’s neighbour in Faust)","Sachs":"Hans Sachs (16th-c. Nuremberg poet, master of the Knittelvers)",
   "Mephisto":"Mephisto(pheles): the devil of the Faust legend; here your tutor","Mephistopheles":"the devil of the Faust legend","Faust":"Dr. Faust, the scholar who sells his soul; also: die Faust = fist","Fausts":"Faust's","Gretchen":"Gretchen (Margarete), the girl Faust ruins","Margarete":"Margarete (Gretchen)","Goethe":"Johann Wolfgang von Goethe (1749–1832), author of „Faust“","Goethes":"Goethe's","Wagner":"Wagner, Faust's assistant","Brandt":"Frau Brandt, the patient in bed four","Brandts":"Frau Brandt's","Amron":"Amron (your first name)","Ismail":"Ismail (your surname)","Heidelberg":"Heidelberg, university town on the Neckar","Heidelberger":"of Heidelberg; person from Heidelberg","Neckar":"the Neckar (river through Heidelberg)","Prag":"Prague","Prager":"of Prague","Berlin":"Berlin","Berliner":"of Berlin; Berliner","Weimar":"Weimar, Goethe's town","Leipzig":"Leipzig","Brocken":"the Brocken, highest peak of the Harz, site of Walpurgis Night","Harz":"the Harz mountains","Schwarzwald":"the Black Forest","Walpurgisnacht":"Walpurgis Night (30 April), the witches' night on the Brocken","Golem":"the Golem, the clay man of Prague","Golems":"the Golem's","Caligari":"Dr. Caligari (silent film, 1920)","Cesare":"Cesare, Caligari's sleepwalker","Kafka":"Franz Kafka (1883–1924), Prague writer","Kafkas":"Kafka's","Gregor":"Gregor Samsa, hero of Kafka's „Die Verwandlung“","Samsa":"Gregor Samsa","Brod":"Max Brod, Kafka's friend and editor","Rudolf":"Emperor Rudolf II","Löw":"Rabbi Löw of Prague","Virchow":"Rudolf Virchow (1821–1902), pathologist","Bismarck":"Otto von Bismarck","Röntgen":"Wilhelm Conrad Röntgen; also: das Röntgen = X-ray","Koch":"Robert Koch; also: der Koch = cook","Semmelweis":"Ignaz Semmelweis","Vesal":"Andreas Vesalius, anatomist","Paracelsus":"Paracelsus, physician and alchemist","Grimm":"the Brothers Grimm","Nosferatu":"Nosferatu (silent film, 1922)","Orlok":"Count Orlok (Nosferatu)","Hameln":"Hamelin","Rumpelstilzchen":"Rumpelstiltskin","Rotkäppchen":"Little Red Riding Hood","Hänsel":"Hansel","Gretel":"Gretel","Hans":"Hans (a first name)","Erlkönig":"the Erl-King (Goethe's ballad)","Sandmann":"the Sandman","Lemuren":"lemures: spirits of the dead who dig Faust's grave","Pudel":"poodle (Mephisto first appears as a black poodle)","Doktor":"doctor (title, form of address)","Herr":"Mr; gentleman; lord","Frau":"Mrs, Ms; woman; wife","FSP":"Fachsprachprüfung: the medical language exam","EKG":"ECG","CT":"CT scan","MRT":"MRI","OP":"operation; operating theatre","Kyffhäuser":"the Kyffhäuser mountain (legend of the sleeping emperor)","Barbarossa":"Emperor Frederick Barbarossa","Teutoburger":"Teutoburg (Forest)","Neuruppin":"Neuruppin","Köpenick":"Köpenick (Berlin)","Bunsen":"Robert Bunsen, chemist","Freud":"Sigmund Freud","Hoffmann":"E. T. A. Hoffmann, Romantic writer","Schiller":"Friedrich Schiller","Heine":"Heinrich Heine","Auerbachs":"Auerbach's (cellar in Leipzig)","Auerbach":"Auerbach's cellar, Leipzig","Wittenberg":"Wittenberg","Staufen":"Staufen im Breisgau, where the historical Faust is said to have died","Knittlingen":"Knittlingen, said birthplace of the historical Faust","Nürnberger":"of Nuremberg","Genfer":"of Geneva","Karzer":"student prison (of old universities)","TK":"Techniker Krankenkasse (a health insurance fund)","Dr":"Dr. = Doktor (title)","Prof":"Prof. = Professor","SBAR":"SBAR: structured handover (situation, background, assessment, recommendation)","ISBAR":"ISBAR: structured handover (identify, situation, background, assessment, recommendation)","Babylon":"Babylon; „Babylon Berlin“","Halensee":"Halensee (district of Berlin)","Holstenwall":"Holstenwall (a street in Hamburg; the fair in „Caligari“)","Lunapark":"Lunapark, the amusement park at Halensee, Berlin","Metropolis":"„Metropolis“ (Fritz Lang's film, 1927)","Coppelius":"Coppelius, the sandman figure in E. T. A. Hoffmann's „Der Sandmann“","Coppola":"Coppola, the barometer seller in „Der Sandmann“","Nathanael":"Nathanael, hero of „Der Sandmann“","Olimpia":"Olimpia, the automaton in „Der Sandmann“","Alexanderplatz":"Alexanderplatz, square in Berlin","Wendt":"(a surname)","Lohmann":"Kommissar Lohmann (in Fritz Lang's „M“)","Keller":"Dr. Keller (a doctor in the course)","Lang":"Fritz Lang, film director; also: lang = long","Murnau":"F. W. Murnau, film director","Schlemihl":"Peter Schlemihl, who sold his shadow (Chamisso)","Chamisso":"Adelbert von Chamisso, poet","Hiob":"Job (the Book of Job)","Kepler":"Johannes Kepler, astronomer","Charité":"the Charité, Berlin's university hospital","Europa":"Europe","Europas":"Europe's","Wien":"Vienna","München":"Munich","Frankfurt":"Frankfurt","Nürnberg":"Nuremberg","Hannover":"Hanover","Basel":"Basel","Genf":"Geneva","Frankreich":"France","Thüringen":"Thuringia","Mark":"Mark (currency until 2001); also a first name","Christus":"Christ (in dates: nach Christus = AD)","Zuckmayer":"Carl Zuckmayer, playwright","Voigt":"Wilhelm Voigt, the „Hauptmann von Köpenick“","Döblin":"Alfred Döblin, author of „Berlin Alexanderplatz“","Lessing":"Gotthold Ephraim Lessing, writer","Alzheimer":"Alois Alzheimer, psychiatrist","Kraepelin":"Emil Kraepelin, psychiatrist","Twain":"Mark Twain","Frankenstein":"„Frankenstein“ (Mary Shelley)","Perkeo":"Perkeo, the dwarf who guarded the Heidelberg Tun","Agrippa":"Agrippa von Nettesheim, scholar","Dracula":"Dracula","Wilhelm":"Wilhelm (a first name)","Friedrich":"Friedrich (a first name)","Johann":"Johann (a first name)","Johannes":"Johannes (a first name)","Heinrich":"Heinrich (a first name)","Franz":"Franz (a first name)","Max":"Max (a first name)","Fritz":"Fritz (a first name)","Robert":"Robert (a first name)","Carl":"Carl (a first name)","Peter":"Peter (a first name)","Anna":"Anna (a first name)","Bertha":"Bertha (a first name)","Jacob":"Jacob (a first name)","Georg":"Georg (a first name)","Alfred":"Alfred (a first name)","Gustav":"Gustav (a first name)","Theodor":"Theodor (a first name)","Ignaz":"Ignaz (a first name)","Emil":"Emil (a first name)","Alois":"Alois (a first name)","Konrad":"Konrad (a first name)","Conrad":"Conrad (a first name)","Mary":"Mary (a first name)","Charles":"Charles (a first name)","Kaspar":"Kaspar Hauser, the foundling of Nuremberg","Hauser":"Kaspar Hauser"
@@ -2925,4 +3863,20 @@ const L1_NAMES={
 // ===== Mephisto · L1 · word frequency in the app's own German (8982 texts, 81965 glossed tokens). Generated by content/l1/gen_freq.js.
 // id → number of occurrences (≥ 2). Used only to order new cards inside a level (cardRank).
 var L1_FREQ={"w:Einverstanden":19,"w:Entschuldigung":17,"w:Gesundheit":7,"w:Hallo":17,"w:Mahlzeit":4,"w:Moin":6,"w:Prost":4,"w:Tschüss":5,"w:ab":77,"w:abbiegen":2,"w:abbrechen":5,"w:abbuchen":6,"w:abdecken":9,"w:abends":32,"w:aber":319,"w:abfahren":8,"w:abfangen":3,"w:abgeben":14,"w:abgeschwächt":6,"w:abhauen":2,"w:abheben":2,"w:abholen":17,"w:abhängen":16,"w:abhören":12,"w:abklingen":33,"w:abklären":8,"w:ablaufen":20,"w:ablegen":8,"w:ablehnen":21,"w:ablenken":3,"w:abnehmen":34,"w:absagen":10,"w:absaugen":2,"w:abschaffen":4,"w:abschalten":2,"w:abschließen":13,"w:abschließend":3,"w:absetzen":11,"w:absichtlich":3,"w:abstimmen":7,"w:abweichen":2,"w:abwägen":2,"w:acht":41,"w:achten":9,"w:achtzig":5,"w:aggressiv":3,"w:aktiv":4,"w:aktuell":6,"w:akut":23,"w:alle":265,"w:allein":35,"w:allerdings":15,"w:allergisch":6,"w:allgemein":4,"w:als":335,"w:also":55,"w:alt":147,"w:altern":3,"w:ambulant":14,"w:amtlich":3,"w:an":854,"w:anatomisch":4,"w:anbauen":4,"w:anbieten":20,"w:andere":80,"w:anders":13,"w:anerkennen":7,"w:anfallsartig":2,"w:anfangen":26,"w:anfordern":3,"w:angeben":11,"w:angeblich":5,"w:angehören":6,"w:angemessen":3,"w:angenehm":5,"w:angewiesen":7,"w:anhalten":11,"w:anhand":2,"w:anhängen":7,"w:anklicken":5,"w:ankommen":26,"w:ankreuzen":11,"w:anlegen":14,"w:anmachen":4,"w:annehmen":7,"w:anonym":3,"w:anordnen":13,"w:anpassen":13,"w:anregen":2,"w:anrufen":75,"w:anschaulich":2,"w:anschließend":5,"w:anschwellen":2,"w:ansehen":18,"w:ansetzen":6,"w:ansprechbar":2,"w:ansprechen":13,"w:ansteigen":3,"w:anstrengen":2,"w:anstrengend":13,"w:anständig":4,"w:antworten":16,"w:anwesend":3,"w:anzeigen":2,"w:anziehen":19,"w:applaudieren":2,"w:arbeiten":129,"w:arbeitslos":3,"w:arm":7,"w:atemabhängig":4,"w:atmen":18,"w:auch":256,"w:auf":771,"w:auffallen":17,"w:auffordern":9,"w:auffällig":3,"w:aufgeben":14,"w:aufgrund":3,"w:aufheben":9,"w:aufhören":27,"w:aufklären":15,"w:auflegen":3,"w:auflösen":14,"w:aufmachen":10,"w:aufnehmen":29,"w:aufpassen":9,"w:aufregen":4,"w:aufräumen":7,"w:aufschlagen":5,"w:aufschreiben":16,"w:aufstehen":43,"w:aufteilen":2,"w:auftreten":31,"w:aufwachen":8,"w:aufweisen":2,"w:aufziehen":3,"w:aus":255,"w:ausatmen":3,"w:ausbauen":9,"w:ausbilden":4,"w:ausdrucken":2,"w:ausdrücklich":5,"w:ausfallen":12,"w:ausführlich":5,"w:ausfüllen":24,"w:ausgeben":4,"w:ausgehen":7,"w:ausgeprägt":3,"w:ausgerechnet":2,"w:ausgleichen":7,"w:aushalten":3,"w:aushändigen":3,"w:auskommen":3,"w:auslösbar":3,"w:auslösen":4,"w:ausmachen":9,"w:ausnahmsweise":4,"w:ausnutzen":4,"w:ausrasten":2,"w:ausreichen":12,"w:ausreichend":6,"w:ausrichten":3,"w:ausschalten":10,"w:ausschlaggebend":2,"w:ausschleichen":8,"w:ausschließen":18,"w:ausschließlich":4,"w:ausschreiben":3,"w:aussehen":34,"w:aussetzen":3,"w:aussprechen":3,"w:aussteigen":6,"w:ausstellen":5,"w:aussterben":5,"w:ausverkauft":3,"w:auswandern":2,"w:auswerten":5,"w:ausüben":8,"w:automatisch":13,"w:außer":11,"w:außerdem":22,"w:außerhalb":4,"w:backen":3,"w:baden":2,"w:bald":16,"w:bar":12,"w:bauen":31,"w:beachten":15,"w:beantragen":15,"w:beantworten":8,"w:bedenken":3,"w:bedeuten":19,"w:bedienen":4,"w:bedingt":3,"w:bedrohen":2,"w:beeindrucken":3,"w:beenden":3,"w:befehlen":5,"w:befragen":3,"w:befristet":4,"w:befunden":3,"w:befürchten":7,"w:befürworten":9,"w:begabt":4,"w:begegnen":11,"w:beginnen":72,"w:beglaubigt":4,"w:begleiten":2,"w:begrenzen":11,"w:begründen":6,"w:begrüßen":5,"w:behalten":7,"w:behandeln":20,"w:behaupten":9,"w:beherrschen":3,"w:beherzt":2,"w:bei":648,"w:beibringen":4,"w:beide":78,"w:beides":10,"w:beinahe":2,"w:beitragen":4,"w:beißen":4,"w:bekannt":29,"w:bekommen":163,"w:belasten":7,"w:belastend":9,"w:belegen":6,"w:beleidigen":4,"w:beliebt":10,"w:bellen":4,"w:belügen":3,"w:bemerken":11,"w:bemerkenswert":3,"w:benachrichtigen":2,"w:benutzen":14,"w:beobachten":15,"w:bequem":7,"w:beraten":3,"w:bereichern":2,"w:bereit":11,"w:bereits":31,"w:bergen":3,"w:berichten":32,"w:berufstätig":2,"w:berücksichtigen":4,"w:berühmt":2,"w:berühren":6,"w:beschleunigen":3,"w:beschreiben":14,"w:beschriften":2,"w:beschwerdefrei":3,"w:beschädigen":3,"w:beschäftigen":2,"w:beschäftigt":17,"w:besetzt":6,"w:besichtigen":3,"w:besiegeln":2,"w:besiegen":3,"w:besitzen":6,"w:besonders":27,"w:besprechen":10,"w:besser":58,"w:bestehen":75,"w:bestellen":10,"w:bestimmen":2,"w:bestimmt":14,"w:bestreiten":3,"w:bestätigen":11,"w:besuchen":11,"w:betonen":4,"w:betragen":17,"w:betreffen":9,"w:betreiben":2,"w:betreten":3,"w:betreuen":2,"w:betroffen":4,"w:betrunken":3,"w:betäuben":5,"w:beurteilen":5,"w:bevollmächtigen":2,"w:bevor":39,"w:bewachen":3,"w:bewahren":4,"w:beweisen":4,"w:bewirken":3,"w:bewundern":2,"w:bewusst":10,"w:bewusstlos":7,"w:bewölkt":2,"w:bezahlbar":5,"w:bezahlen":36,"w:bezeichnen":3,"w:bieten":9,"w:billig":7,"w:bis":236,"w:bisher":16,"w:bislang":9,"w:bitten":22,"w:bitter":2,"w:blank":2,"w:blass":7,"w:blau":15,"w:bleiben":145,"w:blind":4,"w:bloß":5,"w:bluten":7,"w:blutig":5,"w:blühen":4,"w:bohren":3,"w:braten":6,"w:brauchen":173,"w:braun":6,"w:brechen":16,"w:breit":5,"w:bremsen":2,"w:brennen":17,"w:brennend":3,"w:bringen":54,"w:brüchig":4,"w:buchen":11,"w:bunt":4,"w:bösartig":2,"w:böse":4,"w:chronisch":4,"w:da":105,"w:dabei":50,"w:dafür":56,"w:dagegen":12,"w:daher":11,"w:damals":13,"w:damit":51,"w:danach":28,"w:dankbar":9,"w:danke":95,"w:danken":35,"w:dann":245,"w:daran":5,"w:darin":12,"w:darstellen":2,"w:darum":13,"w:das Abdomen":14,"w:das Abendessen":3,"w:das Abitur":2,"w:das Abo":7,"w:das Adrenalin":9,"w:das Alter":9,"w:das Amt":16,"w:das Angebot":13,"w:das Anliegen":5,"w:das Antibiogramm":3,"w:das Antibiotikum":26,"w:das Arbeitszeitgesetz":3,"w:das Argument":9,"w:das Asthma":3,"w:das Atemgeräusch":6,"w:das Aufklärungsgespräch":5,"w:das Auge":39,"w:das Ausland":12,"w:das Auto":58,"w:das Baby":8,"w:das Bad":20,"w:das Band":6,"w:das Bargeld":4,"w:das Beatmungsgerät":2,"w:das Becken":2,"w:das Beil":2,"w:das Bein":26,"w:das Beispiel":26,"w:das Beruhigungsmittel":5,"w:das Betreuungsgericht":2,"w:das Bett":46,"w:das Bettgitter":2,"w:das Bewusstsein":5,"w:das Bier":8,"w:das Bild":24,"w:das Blatt":16,"w:das Blut":36,"w:das Blutbild":6,"w:das Bläschen":2,"w:das Boot":4,"w:das Brot":25,"w:das Brustbein":2,"w:das Brötchen":18,"w:das Buch":37,"w:das Budget":2,"w:das Bundesland":13,"w:das Böse":3,"w:das Bürgeramt":11,"w:das Büro":12,"w:das CRP":13,"w:das Café":14,"w:das Cholesterin":2,"w:das Dach":6,"w:das Datum":8,"w:das Delir":3,"w:das Deutsch":97,"w:das Deutschlandticket":8,"w:das Dienstzimmer":2,"w:das Ding":4,"w:das Dorf":19,"w:das Drittel":8,"w:das Druckgefühl":5,"w:das Duell":3,"w:das E-Rezept":6,"w:das EKG":24,"w:das Ehepaar":2,"w:das Ehrenamt":2,"w:das Ei":3,"w:das Eigentum":4,"w:das Einkaufszentrum":2,"w:das Einkommen":7,"w:das Einmaleins":2,"w:das Eis":4,"w:das Elektroauto":3,"w:das Element":2,"w:das Ende":61,"w:das Englisch":5,"w:das Entlassmanagement":2,"w:das Erbrechen":7,"w:das Erdgeschoss":9,"w:das Ereignis":3,"w:das Ergebnis":26,"w:das Erythrozytenkonzentrat":3,"w:das Essen":37,"w:das Etikett":5,"w:das Exanthem":3,"w:das Experiment":3,"w:das Fach":7,"w:das Fahrrad":24,"w:das Fahrzeug":10,"w:das Fenster":9,"w:das Fest":31,"w:das Fett":2,"w:das Feuer":5,"w:das Fieber":82,"w:das Finanzamt":3,"w:das Fitnessstudio":3,"w:das Fleisch":4,"w:das Floß":3,"w:das Flugzeug":3,"w:das Formular":31,"w:das Foto":11,"w:das Frühstück":10,"w:das Futur":3,"w:das Gaslicht":2,"w:das Gebäude":8,"w:das Gefängnis":3,"w:das Gefäß":4,"w:das Gefühl":9,"w:das Gegenteil":7,"w:das Gehalt":19,"w:das Geheimnis":4,"w:das Gehirn":14,"w:das Geld":23,"w:das Gelenk":8,"w:das Gelächter":2,"w:das Gelöbnis":3,"w:das Gemüse":15,"w:das Generikum":2,"w:das Genus":2,"w:das Gepäck":3,"w:das Gericht":15,"w:das Gerät":18,"w:das Gerücht":2,"w:das Geschenk":4,"w:das Geschirr":2,"w:das Geschäft":11,"w:das Gesetz":14,"w:das Gesicht":10,"w:das Gespenst":2,"w:das Gespräch":39,"w:das Gesundheitsamt":3,"w:das Getränk":5,"w:das Gewicht":11,"w:das Gewitter":5,"w:das Gewürz":2,"w:das Gift":5,"w:das Girokonto":4,"w:das Glas":28,"w:das Gleis":7,"w:das Glied":3,"w:das Glück":8,"w:das Gold":7,"w:das Grab":6,"w:das Grundgesetz":7,"w:das Grundstück":3,"w:das Gutachten":2,"w:das Haar":5,"w:das Handgelenk":6,"w:das Handtuch":2,"w:das Handy":38,"w:das Haus":164,"w:das Haustier":4,"w:das Hautkolorit":2,"w:das Heilmittel":2,"w:das Hemd":2,"w:das Herz":22,"w:das Herzkatheterlabor":2,"w:das Herzrasen":2,"w:das Hinterzimmer":2,"w:das Hobby":7,"w:das Hochdeutsch":7,"w:das Hochwasser":3,"w:das Holz":4,"w:das Homeoffice":10,"w:das Horn":2,"w:das Hotel":4,"w:das Hähnchen":3,"w:das Hämatom":3,"w:das Hämoglobin":2,"w:das Hörgerät":2,"w:das Infektionsschutzgesetz":2,"w:das Insekt":2,"w:das Institut":6,"w:das Insulin":5,"w:das Interesse":4,"w:das Internet":18,"w:das Intervallfasten":2,"w:das Jahr":272,"w:das Jugendamt":2,"w:das Kabarett":4,"w:das Kabinett":2,"w:das Kalium":13,"w:das Kammerflimmern":3,"w:das Kapitel":8,"w:das Katecholamin":2,"w:das Kilo":7,"w:das Kind":142,"w:das Kindergeld":2,"w:das Kino":9,"w:das Kleid":4,"w:das Kleingeld":3,"w:das Klima":3,"w:das Knie":14,"w:das Komma":3,"w:das Kompliment":2,"w:das Kompositum":3,"w:das Konsil":3,"w:das Konto":12,"w:das Kontrastmittel":5,"w:das Konzert":9,"w:das Koronarsyndrom":2,"w:das Kortison":4,"w:das Krankengeld":2,"w:das Krankenhaus":55,"w:das Kreatinin":8,"w:das Kribbeln":3,"w:das Kriterium":3,"w:das Labor":16,"w:das Lager":6,"w:das Laken":2,"w:das Laktat":12,"w:das Land":165,"w:das Latein":2,"w:das Leben":30,"w:das Lebensmittel":5,"w:das Leichentuch":4,"w:das Leitsymptom":2,"w:das Licht":22,"w:das Lied":2,"w:das Loch":8,"w:das Manuskript":2,"w:das Material":4,"w:das Maul":2,"w:das Medikament":75,"w:das Meer":4,"w:das Mehrfamilienhaus":3,"w:das Messer":6,"w:das Metall":2,"w:das Misstrauen":3,"w:das Mitglied":15,"w:das Mittagessen":7,"w:das Mittel":11,"w:das Modalverb":2,"w:das Modell":8,"w:das Monitoring":2,"w:das Morgengrauen":3,"w:das Motiv":2,"w:das Museum":3,"w:das Mädchen":12,"w:das Märchen":6,"w:das Netzwerk":6,"w:das Nierenlager":2,"w:das Nilpferd":3,"w:das Niveau":9,"w:das Nomen":7,"w:das Obst":10,"w:das Ohr":9,"w:das Online-Formular":3,"w:das Opioid":3,"w:das Original":6,"w:das Paar":30,"w:das Paket":7,"w:das Papier":24,"w:das Parlament":4,"w:das Partizip":2,"w:das Passiv":22,"w:das Passwort":2,"w:das Pech":2,"w:das Perfekt":5,"w:das Pfand":4,"w:das Pflaster":2,"w:das Pflegeheim":11,"w:das Phänomen":7,"w:das Polytrauma":2,"w:das Praktikum":4,"w:das Prinzip":5,"w:das Problem":61,"w:das Procalcitonin":5,"w:das Procedere":5,"w:das Programm":9,"w:das Projekt":11,"w:das Protokoll":8,"w:das Prozent":32,"w:das Präfix":4,"w:das Präparat":8,"w:das Präteritum":8,"w:das Publikum":3,"w:das Pult":7,"w:das Pulver":3,"w:das Radio":3,"w:das Rathaus":4,"w:das Recht":36,"w:das Regal":11,"w:das Rentenalter":2,"w:das Restaurant":3,"w:das Rezept":13,"w:das Risiko":45,"w:das Risikomanagement":2,"w:das Röhrchen":2,"w:das Röntgenbild":16,"w:das Rückenmark":3,"w:das Salz":5,"w:das Schach":3,"w:das Schicksal":2,"w:das Schiff":2,"w:das Schild":12,"w:das Schlafzimmer":8,"w:das Schloss":21,"w:das Schmerzmittel":10,"w:das Schulterblatt":2,"w:das Schwimmbad":4,"w:das Schädel-Hirn-Trauma":2,"w:das Semester":4,"w:das Seminar":2,"w:das Siegel":17,"w:das Sofa":10,"w:das Spiel":10,"w:das Spinnrad":2,"w:das Spray":4,"w:das Sprunggelenk":4,"w:das Stadion":2,"w:das Standesamt":4,"w:das Stethoskop":2,"w:das Stockwerk":2,"w:das Streben":2,"w:das Stroh":2,"w:das Studierzimmer":6,"w:das Studium":18,"w:das Stück":18,"w:das Suffix":3,"w:das Symbol":3,"w:das Symptom":6,"w:das System":28,"w:das Systolikum":2,"w:das Taubheitsgefühl":2,"w:das Taxi":3,"w:das Team":37,"w:das Telefon":19,"w:das Telefonat":8,"w:das Tempolimit":6,"w:das Theater":7,"w:das Thema":22,"w:das Thermometer":2,"w:das Ticket":22,"w:das Tier":4,"w:das Tor":7,"w:das Training":12,"w:das Treppenhaus":6,"w:das Trinkgeld":2,"w:das Trommelfell":2,"w:das Troponin":14,"w:das Tuch":3,"w:das Ulkus":3,"w:das Ungeziefer":2,"w:das Unkraut":3,"w:das Unwohlsein":3,"w:das Urteil":3,"w:das Verb":34,"w:das Verbot":6,"w:das Verfahren":5,"w:das Verhalten":2,"w:das Verhältnis":6,"w:das Verlangen":2,"w:das Verlies":2,"w:das Vermächtnis":2,"w:das Verständnis":7,"w:das Vertrauen":8,"w:das Video":8,"w:das Viertel":7,"w:das Vitamin":4,"w:das Volk":3,"w:das Vollkornbrot":3,"w:das Volumen":10,"w:das Vorbild":2,"w:das Vorgehen":6,"w:das Vorhofflimmern":9,"w:das Vorstellungsgespräch":5,"w:das Vorurteil":3,"w:das Wartezimmer":15,"w:das Wasser":52,"w:das Wasserlassen":8,"w:das Weihnachten":8,"w:das Wesen":10,"w:das Wetter":29,"w:das Widerrufsrecht":4,"w:das Wirtshaus":2,"w:das Wochenende":42,"w:das Wohnzimmer":11,"w:das Wort":78,"w:das Wunder":2,"w:das Wörterbuch":3,"w:das Zahnrad":2,"w:das Zeichen":28,"w:das Zeitfenster":4,"w:das Zelt":2,"w:das Zentrum":4,"w:das Zertifikat":5,"w:das Zeug":2,"w:das Zeugnis":4,"w:das Ziel":22,"w:das Zimmer":60,"w:das Zuchthaus":2,"w:das Zwerchfell":2,"w:das Zäpfchen":3,"w:das eLogbuch":4,"w:das Ödem":9,"w:das Öl":8,"w:das Übergewicht":3,"w:dass":318,"w:dauern":59,"w:davon":48,"w:davor":6,"w:defekt":4,"w:defibrillieren":2,"w:dein":57,"w:denken":35,"w:denn":38,"w:dennoch":9,"w:der Abend":80,"w:der Abfall":4,"w:der Abgeordnete":3,"w:der Ablauf":12,"w:der Abschied":3,"w:der Abschluss":7,"w:der Absolvent":6,"w:der Abstand":4,"w:der Abstrich":4,"w:der Abszess":2,"w:der Akku":2,"w:der Akkusativ":8,"w:der Akzent":4,"w:der Alarm":6,"w:der Alchemist":6,"w:der Algorithmus":5,"w:der Alkohol":10,"w:der Alleinerziehende":2,"w:der Allgemeinzustand":6,"w:der Alltag":28,"w:der Anbieter":3,"w:der Anfall":3,"w:der Anfang":26,"w:der Anfänger":9,"w:der Angehörige":26,"w:der Angestellte":9,"w:der Anhang":3,"w:der Anlass":2,"w:der Anruf":11,"w:der Ansatz":3,"w:der Anschluss":9,"w:der Anspruch":11,"w:der Anstieg":4,"w:der Anteil":5,"w:der Antrag":29,"w:der Apfel":7,"w:der Apotheker":4,"w:der Appetit":4,"w:der April":9,"w:der Arbeiter":3,"w:der Arbeitgeber":16,"w:der Arbeitnehmer":4,"w:der Arbeitsplatz":6,"w:der Arbeitsunfall":2,"w:der Arbeitsvertrag":7,"w:der Arm":37,"w:der Artikel":19,"w:der Arzt":192,"w:der Arztbrief":18,"w:der Arzttermin":3,"w:der Aspekt":2,"w:der Assistenzarzt":29,"w:der Atem":2,"w:der Atemstillstand":2,"w:der Atemweg":2,"w:der Aufenthalt":2,"w:der Aufstieg":3,"w:der Auftrag":4,"w:der Aufzug":18,"w:der Augenblick":6,"w:der August":11,"w:der Ausdruck":3,"w:der Ausfall":6,"w:der Ausflug":3,"w:der Ausgang":3,"w:der Ausgleich":5,"w:der Auslöser":4,"w:der Ausschlag":21,"w:der Ausschluss":6,"w:der Austausch":2,"w:der Ausverkauf":2,"w:der Ausweis":8,"w:der Auswurf":3,"w:der Auszubildende":5,"w:der Automat":9,"w:der Autor":5,"w:der Azubi":2,"w:der Bach":3,"w:der Bahnhof":23,"w:der Balkon":11,"w:der Ball":4,"w:der Bandscheibenvorfall":2,"w:der Bauch":20,"w:der Baum":6,"w:der Becher":3,"w:der Bedarf":7,"w:der Befehl":7,"w:der Befund":58,"w:der Beginn":9,"w:der Begriff":4,"w:der Behandlungsfehler":5,"w:der Beipackzettel":2,"w:der Beitrag":5,"w:der Bekannte":4,"w:der Beleg":4,"w:der Bereich":7,"w:der Bereitschaftsdienst":3,"w:der Berg":14,"w:der Bericht":7,"w:der Beruf":32,"w:der Bescheid":20,"w:der Besen":3,"w:der Besitzer":6,"w:der Bestandteil":9,"w:der Bestseller":2,"w:der Besuch":9,"w:der Besucher":5,"w:der Betablocker":3,"w:der Betrag":9,"w:der Betreff":7,"w:der Betreuer":3,"w:der Betrieb":3,"w:der Betriebsrat":3,"w:der Betroffene":4,"w:der Betrüger":3,"w:der Beutel":6,"w:der Beweis":6,"w:der Bewohner":2,"w:der Bezug":5,"w:der Bildschirm":11,"w:der Blasenkatheter":4,"w:der Blick":9,"w:der Blinddarm":3,"w:der Blitz":5,"w:der Blutdruck":52,"w:der Bluterguss":2,"w:der Bluthochdruck":3,"w:der Blutverdünner":6,"w:der Blutverlust":4,"w:der Blutzucker":9,"w:der Boden":10,"w:der Bogen":11,"w:der Brief":22,"w:der Briefkasten":4,"w:der Bruch":10,"w:der Bruder":17,"w:der Brunnen":3,"w:der Brustkorb":2,"w:der Buchstabe":15,"w:der Bundestag":4,"w:der Bus":42,"w:der Bäcker":11,"w:der Bürger":7,"w:der Bürgermeister":3,"w:der Cent":4,"w:der Chef":16,"w:der Chefarzt":10,"w:der Chirurg":11,"w:der Chor":9,"w:der Computer":5,"w:der Cousin":2,"w:der Dachboden":7,"w:der Datenschutz":2,"w:der Dativ":12,"w:der Dauerauftrag":2,"w:der Daumen":3,"w:der Deckel":3,"w:der Defibrillator":4,"w:der Dezember":11,"w:der Dialekt":31,"w:der Dichter":5,"w:der Dieb":3,"w:der Dienst":58,"w:der Dienstag":19,"w:der Dienstplan":16,"w:der Direktor":5,"w:der Doktor":66,"w:der Dollar":2,"w:der Dolmetscher":8,"w:der Donnerstag":20,"w:der Doppelgänger":4,"w:der Drehschwindel":2,"w:der Druck":8,"w:der Drucker":3,"w:der Druckschmerz":7,"w:der Durchfall":6,"w:der Durchschnitt":7,"w:der Durst":3,"w:der Dämon":2,"w:der Dünndarm":3,"w:der Ehemann":2,"w:der Eigentümer":4,"w:der Eindruck":5,"w:der Einfluss":4,"w:der Eingang":12,"w:der Eingriff":10,"w:der Einkauf":2,"w:der Einkaufswagen":3,"w:der Einsatz":13,"w:der Eintritt":2,"w:der Einwand":3,"w:der Einwohner":6,"w:der Eiter":2,"w:der Energieverbrauch":2,"w:der Engel":3,"w:der Enkel":2,"w:der Entlassbrief":3,"w:der Entwurf":7,"w:der Entzündungswert":3,"w:der Erfolg":16,"w:der Ernährungszustand":3,"w:der Erreger":4,"w:der Ersatz":3,"w:der Erwachsene":14,"w:der Essay":2,"w:der Euro":96,"w:der Facharzt":13,"w:der Fachkräftemangel":2,"w:der Fachmann":3,"w:der Faden":6,"w:der Fahrer":13,"w:der Fahrgast":8,"w:der Fahrpreis":3,"w:der Faktor":5,"w:der Fall":35,"w:der Familienstand":3,"w:der Februar":5,"w:der Fehler":51,"w:der Feierabend":6,"w:der Feiertag":5,"w:der Feind":2,"w:der Fernseher":3,"w:der Fernverkehr":3,"w:der Film":7,"w:der Finger":16,"w:der Fisch":4,"w:der Flankenschmerz":3,"w:der Fleck":4,"w:der Fluch":2,"w:der Flug":11,"w:der Flughafen":5,"w:der Flur":20,"w:der Fluss":7,"w:der Forscher":9,"w:der Fortbildungspunkt":3,"w:der Fortschritt":7,"w:der Frack":3,"w:der Freitag":32,"w:der Freiwillige":6,"w:der Freizeitausgleich":2,"w:der Freund":16,"w:der Frühdienst":12,"w:der Frühling":11,"w:der Fuß":23,"w:der Fußball":7,"w:der Führerschein":8,"w:der Galgen":4,"w:der Gallengang":2,"w:der Gallenstein":3,"w:der Garten":10,"w:der Gast":4,"w:der Gebrauch":3,"w:der Geburtstag":13,"w:der Gedanke":4,"w:der Gegensatz":3,"w:der Gegner":3,"w:der Geist":7,"w:der Gelehrte":3,"w:der Genitiv":8,"w:der Geschmack":2,"w:der Gewichtsverlust":7,"w:der Gewinn":3,"w:der Gipfel":2,"w:der Gips":3,"w:der Glückwunsch":2,"w:der Gott":10,"w:der Grad":29,"w:der Graf":4,"w:der Großvater":3,"w:der Grund":19,"w:der Gruß":19,"w:der Gürtel":3,"w:der Halbkreis":2,"w:der Hals":12,"w:der Handschuh":5,"w:der Handwerker":6,"w:der Harnstau":4,"w:der Harnverhalt":3,"w:der Hauptbahnhof":6,"w:der Hausarzt":30,"w:der Haushalt":6,"w:der Hausmeister":8,"w:der Hautarzt":3,"w:der Hebel":2,"w:der Helm":2,"w:der Henker":3,"w:der Herbst":9,"w:der Herd":10,"w:der Herr":182,"w:der Herzinfarkt":17,"w:der Herzog":3,"w:der Herzstillstand":4,"w:der Herzton":4,"w:der Himmel":7,"w:der Hintergrund":10,"w:der Hinterwandinfarkt":2,"w:der Hinweis":14,"w:der Hitzschlag":2,"w:der Hof":14,"w:der Hund":22,"w:der Hunger":5,"w:der Husten":16,"w:der Hut":2,"w:der Ikterus":2,"w:der Ileus":4,"w:der Imperativ":2,"w:der Impfpass":4,"w:der Indikativ":2,"w:der Infekt":5,"w:der Inhalt":4,"w:der Irrtum":2,"w:der Januar":19,"w:der Job":5,"w:der Joghurt":3,"w:der Journalist":2,"w:der Juckreiz":4,"w:der Jugendliche":7,"w:der Juli":6,"w:der Junge":6,"w:der Juni":11,"w:der Jurist":4,"w:der Jäger":9,"w:der Kaffee":47,"w:der Kaiser":10,"w:der Kalender":2,"w:der Kampf":2,"w:der Kanal":4,"w:der Kandidat":3,"w:der Kassenzettel":4,"w:der Katheter":9,"w:der Keim":4,"w:der Keller":49,"w:der Kellner":5,"w:der Kerker":6,"w:der Kern":4,"w:der Kessel":2,"w:der Kiefer":6,"w:der Kiesel":3,"w:der Kilometer":18,"w:der Kinderarzt":8,"w:der Kindergarten":5,"w:der Kittel":4,"w:der Klimawandel":4,"w:der Klopfschall":5,"w:der Klopfschmerz":2,"w:der Klumpen":2,"w:der Knochen":8,"w:der Knöchel":6,"w:der Koch":2,"w:der Kodex":2,"w:der Koffer":4,"w:der Kollege":70,"w:der Kommentar":3,"w:der Kommissar":4,"w:der Kompromiss":6,"w:der Konflikt":5,"w:der Konjunktiv":13,"w:der Konnektor":5,"w:der Konsens":3,"w:der Konsum":2,"w:der Kontrolltermin":3,"w:der Kopf":36,"w:der Korb":2,"w:der Krampfanfall":2,"w:der Krankenwagen":3,"w:der Krebs":5,"w:der Kredit":3,"w:der Kreis":10,"w:der Kreislaufstillstand":2,"w:der Kreißsaal":2,"w:der Kreuzzug":3,"w:der Krieg":4,"w:der Kuchen":11,"w:der Kuckuck":3,"w:der Kunde":15,"w:der Kurs":36,"w:der Käfig":4,"w:der Käse":7,"w:der König":7,"w:der Körper":27,"w:der Kühlschrank":10,"w:der Laborwert":8,"w:der Laden":12,"w:der Laie":2,"w:der Laptop":6,"w:der Lebenslauf":3,"w:der Leberwert":5,"w:der Lehm":8,"w:der Lehnstuhl":2,"w:der Lehrer":5,"w:der Lehrling":3,"w:der Leichnam":5,"w:der Liter":22,"w:der Lohn":3,"w:der Loslassschmerz":3,"w:der Luftballon":2,"w:der Lymphknoten":2,"w:der Lärm":8,"w:der Löffel":3,"w:der Magen":13,"w:der Magen-Darm-Infekt":2,"w:der Magier":2,"w:der Mai":11,"w:der Mangel":12,"w:der Mann":71,"w:der Mantel":6,"w:der Markt":9,"w:der Medikationsplan":2,"w:der Meister":4,"w:der Meningismus":2,"w:der Mensch":108,"w:der Meter":11,"w:der Mieter":11,"w:der Mietspiegel":2,"w:der Mietvertrag":6,"w:der Mitarbeiter":21,"w:der Mitbewohner":3,"w:der Mitgliedsbeitrag":5,"w:der Mittag":4,"w:der Mittwoch":10,"w:der Moment":21,"w:der Monat":93,"w:der Mond":2,"w:der Monitor":15,"w:der Monolog":2,"w:der Montag":23,"w:der Morgen":62,"w:der Mund":14,"w:der Mundschutz":2,"w:der Mundwinkel":2,"w:der Muskel":2,"w:der Muttersprachler":3,"w:der Myokardinfarkt":2,"w:der März":20,"w:der Müll":10,"w:der Nachbar":41,"w:der Nachmittag":20,"w:der Nachtdienst":46,"w:der Nachteil":2,"w:der Nachtschweiß":2,"w:der Nachtwächter":5,"w:der Nachweis":6,"w:der Nahverkehr":4,"w:der Name":69,"w:der Narr":3,"w:der Nebel":6,"w:der Nebensatz":6,"w:der Nerv":4,"w:der Neubau":2,"w:der Neurologe":3,"w:der Nichtraucher":2,"w:der Nierenwert":2,"w:der Nikotinabusus":4,"w:der Nobelpreis":2,"w:der Nominalstil":8,"w:der Nominativ":2,"w:der Normalbefund":2,"w:der Normbereich":2,"w:der Notarzt":7,"w:der Notfall":18,"w:der Notruf":2,"w:der November":19,"w:der Nutzen":16,"w:der Nutzer":3,"w:der Nystagmus":2,"w:der Ober":4,"w:der Oberarm":3,"w:der Oberarzt":42,"w:der Oberbauch":3,"w:der Oberschenkel":5,"w:der Ofen":21,"w:der Oktober":12,"w:der Onkel":3,"w:der Online-Handel":2,"w:der Opa":3,"w:der Organspendeausweis":3,"w:der Ort":27,"w:der Orthopäde":3,"w:der Pakt":10,"w:der Panzer":3,"w:der Paragraf":3,"w:der Park":5,"w:der Parkplatz":8,"w:der Partner":6,"w:der Pass":10,"w:der Patient":418,"w:der Pendler":4,"w:der Pflegedienst":3,"w:der Pflegegrad":4,"w:der Pfleger":6,"w:der Philosoph":2,"w:der Physiker":2,"w:der Pieper":2,"w:der Plan":17,"w:der Plastikmüll":2,"w:der Platz":45,"w:der Pleuraerguss":4,"w:der Plural":3,"w:der Pneumothorax":3,"w:der Podcast":4,"w:der Polizist":2,"w:der Preis":23,"w:der Professor":9,"w:der Prozess":6,"w:der Prüfer":6,"w:der Pudel":29,"w:der Pullover":2,"w:der Puls":18,"w:der Punkt":36,"w:der Punktabzug":2,"w:der Pädagoge":2,"w:der Quadratmeter":6,"w:der Rabe":2,"w:der Radius":2,"w:der Radweg":4,"w:der Rand":7,"w:der Rat":5,"w:der Rauch":3,"w:der Raum":15,"w:der Rechtsmediziner":2,"w:der Reflex":3,"w:der Regen":14,"w:der Reifen":5,"w:der Reim":3,"w:der Reis":5,"w:der Reisepass":10,"w:der Rentner":3,"w:der Respekt":3,"w:der Rest":7,"w:der Restmüll":3,"w:der Rettungsdienst":10,"w:der Rettungswagen":10,"w:der Richter":4,"w:der Ring":5,"w:der Rippenbruch":3,"w:der Risikofaktor":2,"w:der Rock":3,"w:der Rollator":2,"w:der Roman":8,"w:der Rucksack":2,"w:der Rücken":21,"w:der Rückgang":3,"w:der Saal":11,"w:der Sachbearbeiter":7,"w:der Saft":3,"w:der Salat":7,"w:der Samen":2,"w:der Samstag":39,"w:der Sand":7,"w:der Satz":50,"w:der Sauerstoff":19,"w:der Schaden":9,"w:der Schaffner":2,"w:der Schal":3,"w:der Schall":2,"w:der Schalter":8,"w:der Schatten":37,"w:der Schauspieler":4,"w:der Schauspielpatient":3,"w:der Schein":4,"w:der Scherz":2,"w:der Schichtdienst":21,"w:der Schimmel":2,"w:der Schinken":2,"w:der Schlaf":14,"w:der Schlafwandler":7,"w:der Schlag":6,"w:der Schlaganfall":22,"w:der Schluss":10,"w:der Schläfer":4,"w:der Schlüssel":14,"w:der Schmerz":108,"w:der Schmerzreiz":3,"w:der Schnee":8,"w:der Schnelltest":3,"w:der Schnupfen":3,"w:der Schock":10,"w:der Schockraum":11,"w:der Schrank":11,"w:der Schreck":2,"w:der Schreibtisch":4,"w:der Schritt":20,"w:der Schuh":20,"w:der Schuster":3,"w:der Schutz":7,"w:der Schweiß":2,"w:der Schwindel":8,"w:der Schädel":5,"w:der Schüler":13,"w:der Schüttelfrost":5,"w:der See":11,"w:der Segen":2,"w:der September":4,"w:der Sessel":3,"w:der Sinn":5,"w:der Skandal":3,"w:der Smalltalk":3,"w:der Sohn":17,"w:der Soldat":3,"w:der Sommer":24,"w:der Sonntag":29,"w:der Sozialdienst":4,"w:der Spannungspneumothorax":2,"w:der Spaten":2,"w:der Spaziergang":5,"w:der Spaß":5,"w:der Spiegel":4,"w:der Spontankreislauf":3,"w:der Sport":16,"w:der Sprachkurs":5,"w:der Spätdienst":8,"w:der Staat":16,"w:der Stadtteil":4,"w:der Stamm":3,"w:der Standpunkt":3,"w:der Stationsarzt":2,"w:der Stau":5,"w:der Staub":5,"w:der Stein":7,"w:der Stempel":6,"w:der Stern":3,"w:der Stich":3,"w:der Stift":4,"w:der Stil":2,"w:der Stock":24,"w:der Stoff":4,"w:der Strand":2,"w:der Streamingdienst":2,"w:der Streik":2,"w:der Streit":15,"w:der Stress":12,"w:der Strom":13,"w:der Stromausfall":2,"w:der Student":24,"w:der Stuhl":20,"w:der Stuhlgang":4,"w:der Sturm":3,"w:der Sturz":26,"w:der Supermarkt":12,"w:der Symptombeginn":2,"w:der Tag":295,"w:der Takt":8,"w:der Tarif":4,"w:der Tarifvertrag":7,"w:der Tee":16,"w:der Teerstuhl":2,"w:der Teil":46,"w:der Teilnehmer":2,"w:der Teller":3,"w:der Teppich":4,"w:der Termin":77,"w:der Test":13,"w:der Tetanus":6,"w:der Teufel":29,"w:der Text":2,"w:der Thrombozytenaggregationshemmer":2,"w:der Tisch":59,"w:der Tod":21,"w:der Tor":3,"w:der Tote":8,"w:der Totengräber":2,"w:der Tourist":4,"w:der Trank":4,"w:der Traum":2,"w:der Tremor":2,"w:der Tropfen":8,"w:der Tubus":3,"w:der Tumor":5,"w:der Turm":4,"w:der Typ":10,"w:der Täter":5,"w:der Ultraschall":9,"w:der Umgang":6,"w:der Umlaut":2,"w:der Umzug":19,"w:der Unfall":27,"w:der Unsinn":2,"w:der Unterarm":5,"w:der Unterbauch":10,"w:der Unterricht":8,"w:der Unterschenkel":3,"w:der Unterschied":4,"w:der Urin":4,"w:der Urlaub":20,"w:der Urlaubstag":2,"w:der Vater":23,"w:der Verbalstil":2,"w:der Verband":8,"w:der Verbandswechsel":3,"w:der Verbrauch":2,"w:der Verdacht":38,"w:der Verein":54,"w:der Vergleich":6,"w:der Verkehr":14,"w:der Verkäufer":2,"w:der Verlauf":13,"w:der Verlegungsbrief":2,"w:der Verlust":5,"w:der Vermieter":19,"w:der Versager":3,"w:der Versuch":4,"w:der Vertrag":34,"w:der Vertreter":2,"w:der Verzicht":3,"w:der Vitalparameter":2,"w:der Vogel":5,"w:der Vorbehalt":2,"w:der Vorgang":3,"w:der Vormittag":8,"w:der Vorname":5,"w:der Vorschlag":13,"w:der Vorstand":10,"w:der Vorteil":11,"w:der Vortrag":6,"w:der Vorwurf":7,"w:der Wagen":8,"w:der Wald":22,"w:der Wandel":2,"w:der Wartebereich":3,"w:der Wecker":2,"w:der Weg":47,"w:der Weihnachtsmarkt":4,"w:der Wein":15,"w:der Wert":27,"w:der Widerspruch":7,"w:der Widerstand":2,"w:der Wille":2,"w:der Wind":6,"w:der Winter":22,"w:der Wirkstoff":2,"w:der Wissenschaftler":5,"w:der Witz":7,"w:der Wochenmarkt":4,"w:der Wolf":18,"w:der Wortschatz":3,"w:der Wunsch":6,"w:der Zahn":5,"w:der Zahnarzt":4,"w:der Zauber":2,"w:der Zeckenbiss":2,"w:der Zeh":2,"w:der Zeitpunkt":3,"w:der Zeitraum":3,"w:der Zettel":10,"w:der Zeuge":6,"w:der Zins":4,"w:der Zucker":13,"w:der Zufall":7,"w:der Zug":38,"w:der Zugang":24,"w:der Zugriff":5,"w:der Zusammenhang":5,"w:der Zuschauer":2,"w:der Zustand":11,"w:der Zweifel":3,"w:der Zylinder":3,"w:der Ärger":5,"w:der Äther":3,"w:derb":2,"w:deren":7,"w:derjenige":3,"w:derselbe":19,"w:derzeit":10,"w:deshalb":50,"w:dessen":15,"w:deutlich":64,"w:deutsch":65,"w:dick":5,"w:die Abfahrt":3,"w:die Abklärung":6,"w:die Abkürzung":2,"w:die Ablehnung":4,"w:die Absicht":2,"w:die Abstimmung":3,"w:die Abteilung":9,"w:die Abwehrspannung":3,"w:die Abweichung":3,"w:die Adresse":7,"w:die Ahnung":4,"w:die Akte":31,"w:die Allergie":16,"w:die Alternative":8,"w:die Altstadt":23,"w:die Ambulanz":3,"w:die Ampel":3,"w:die Analgesie":5,"w:die Anamnese":18,"w:die Anaphylaxie":2,"w:die Anatomie":2,"w:die Anerkennung":4,"w:die Anfrage":3,"w:die Angabe":9,"w:die Angelegenheit":4,"w:die Angiographie":4,"w:die Angst":20,"w:die Ankunft":4,"w:die Anlage":5,"w:die Anmeldung":14,"w:die Annahme":2,"w:die Anordnung":3,"w:die Anreise":2,"w:die Ansicht":3,"w:die Anstalt":3,"w:die Antibiose":6,"w:die Antikoagulation":4,"w:die Antwort":26,"w:die Anzeige":5,"w:die Anämie":5,"w:die Aortendissektion":2,"w:die Aphasie":2,"w:die Apotheke":22,"w:die App":16,"w:die Appendektomie":2,"w:die Approbation":13,"w:die Arbeit":67,"w:die Arbeitsbedingungen":3,"w:die Arbeitszeit":11,"w:die Argumentation":2,"w:die Armut":2,"w:die Art":11,"w:die Arznei":3,"w:die Atemfrequenz":9,"w:die Atemhilfsmuskulatur":2,"w:die Atemnot":8,"w:die Atmosphäre":2,"w:die Aufenthaltserlaubnis":4,"w:die Auffassung":2,"w:die Auffrischung":2,"w:die Aufgabe":14,"w:die Aufklärung":11,"w:die Aufmerksamkeit":5,"w:die Aufnahme":29,"w:die Aufsicht":2,"w:die Ausbildung":15,"w:die Ausgabe":9,"w:die Auskunft":6,"w:die Ausländerbehörde":4,"w:die Ausnahme":3,"w:die Ausrede":4,"w:die Aussage":6,"w:die Aussicht":4,"w:die Aussprache":4,"w:die Ausstrahlung":3,"w:die Auswahl":2,"w:die Auszeichnung":2,"w:die Autobahn":7,"w:die B-Symptomatik":2,"w:die Badewanne":2,"w:die Bahn":8,"w:die Ballade":5,"w:die Band":3,"w:die Bank":19,"w:die Bank#2":2,"w:die Batterie":4,"w:die Bauchschmerzen":13,"w:die Bauchspeicheldrüse":2,"w:die Baustelle":4,"w:die Beatmung":5,"w:die Bedeutung":4,"w:die Bedingung":4,"w:die Begründung":5,"w:die Behandlung":32,"w:die Behauptung":2,"w:die Behinderung":2,"w:die Behörde":15,"w:die Belastung":10,"w:die Belastungsdyspnoe":3,"w:die Beleidigung":4,"w:die Berichterstattung":2,"w:die Berufserfahrung":3,"w:die Berufserlaubnis":5,"w:die Berufsgenossenschaft":2,"w:die Berufsordnung":2,"w:die Bescheinigung":6,"w:die Beschwerden":33,"w:die Besichtigung":5,"w:die Besprechung":9,"w:die Besserung":16,"w:die Bestellung":3,"w:die Bestätigung":13,"w:die Besuchszeit":4,"w:die Betreuung":2,"w:die Bettruhe":5,"w:die Betäubung":7,"w:die Beute":3,"w:die Bevölkerung":8,"w:die Bewegung":17,"w:die Bewerbung":3,"w:die Bewusstlosigkeit":3,"w:die Beziehung":5,"w:die Bibliothek":4,"w:die Bilanz":6,"w:die Bildgebung":4,"w:die Bildschirmzeit":3,"w:die Bildung":5,"w:die Billion":4,"w:die Biopsie":3,"w:die Blase":3,"w:die Blasenentzündung":2,"w:die Blinddarmentzündung":3,"w:die Blume":8,"w:die Blutabnahme":7,"w:die Blutarmut":3,"w:die Blutentnahme":3,"w:die Blutgasanalyse":6,"w:die Blutgruppe":6,"w:die Blutkultur":9,"w:die Bluttransfusion":2,"w:die Blutung":21,"w:die Blutvergiftung":2,"w:die Blähungen":2,"w:die Blässe":3,"w:die Breite":2,"w:die Brille":7,"w:die Bronchitis":3,"w:die Brust":15,"w:die Brücke":10,"w:die Buchung":2,"w:die Bude":2,"w:die Burg":12,"w:die Butter":3,"w:die Bäckerei":5,"w:die Bühne":5,"w:die Bürokratie":6,"w:die Chance":5,"w:die Chefin":3,"w:die Chemie":2,"w:die Chemotherapie":3,"w:die Chronik":3,"w:die Dame":16,"w:die Darmgeräusche":4,"w:die Datei":2,"w:die Daten":18,"w:die Dauer":8,"w:die Debatte":7,"w:die Decke":8,"w:die Delegation":3,"w:die Demenz":3,"w:die Demokratie":2,"w:die Demonstration":3,"w:die Depression":2,"w:die Diagnose":21,"w:die Diarrhö":3,"w:die Digitalisierung":7,"w:die Diskussion":13,"w:die Disziplin":3,"w:die Diät":2,"w:die Dokumentation":10,"w:die Dose":3,"w:die Dosierung":4,"w:die Dosis":15,"w:die Dringlichkeit":3,"w:die Durchblutung":2,"w:die Durchführung":2,"w:die Durchsage":2,"w:die Durchsicht":2,"w:die Durchwahl":2,"w:die Dusche":3,"w:die Dyspnoe":3,"w:die E-Mail":28,"w:die ERCP":2,"w:die Ebene":2,"w:die Ecke":10,"w:die Ehe":2,"w:die Ehefrau":3,"w:die Eigengefährdung":2,"w:die Eile":2,"w:die Eileiterschwangerschaft":3,"w:die Einbürgerung":2,"w:die Einkommensteuer":3,"w:die Einladung":5,"w:die Einleitung":2,"w:die Einnahme":3,"w:die Einrichtung":6,"w:die Einschränkung":3,"w:die Einschätzung":4,"w:die Einsicht":2,"w:die Eintrittskarte":2,"w:die Einwilligung":14,"w:die Ejektionsfraktion":2,"w:die Elektrolyte":3,"w:die Eltern":28,"w:die Elternzeit":2,"w:die Emesis":2,"w:die Emission":4,"w:die Empathie":2,"w:die Empfehlung":8,"w:die Endung":7,"w:die Energie":5,"w:die Entfernung":3,"w:die Entlassung":17,"w:die Entlassungsmedikation":3,"w:die Entlastung":4,"w:die Entwicklung":4,"w:die Entzündung":11,"w:die Epikrise":2,"w:die Epilepsie":2,"w:die Erdbeere":3,"w:die Erde":3,"w:die Erderwärmung":2,"w:die Erfahrung":8,"w:die Erfindung":2,"w:die Erkenntnis":3,"w:die Erklärung":12,"w:die Erkrankung":12,"w:die Erkältung":8,"w:die Erlaubnis":3,"w:die Ernährung":7,"w:die Erwartung":3,"w:die Erzählung":2,"w:die Explosion":2,"w:die Exsikkose":2,"w:die Fabrik":3,"w:die Facharztausbildung":2,"w:die Fachkraft":7,"w:die Fachsprachprüfung":14,"w:die Fachzeitschrift":2,"w:die Fahrkarte":3,"w:die Fahrschule":3,"w:die Fahrt":8,"w:die Fahrtrichtung":2,"w:die Familie":73,"w:die Fantasie":2,"w:die Farbe":7,"w:die Fassung":2,"w:die Fazialisparese":2,"w:die Ferien":5,"w:die Ferienwohnung":5,"w:die Fessel":2,"w:die Feuerwehr":13,"w:die Figur":8,"w:die Firma":8,"w:die Flamme":2,"w:die Flanke":2,"w:die Flasche":12,"w:die Floskel":3,"w:die Flucht":2,"w:die Fläche":2,"w:die Flüssigkeit":16,"w:die Folge":18,"w:die Forderung":2,"w:die Form":12,"w:die Forschung":5,"w:die Fortbildung":17,"w:die Frage":97,"w:die Fraktur":14,"w:die Frau":152,"w:die Freiheit":10,"w:die Freizeit":4,"w:die Fremdsprache":3,"w:die Freude":7,"w:die Freundin":2,"w:die Freundschaft":5,"w:die Frist":12,"w:die Frühbesprechung":4,"w:die Funktion":2,"w:die Fähigkeit":6,"w:die Fälschung":4,"w:die Führungskraft":2,"w:die Gabe":16,"w:die Gabel":3,"w:die Galle":2,"w:die Gallenblase":3,"w:die Garantie":3,"w:die Gasse":4,"w:die Gaststätte":2,"w:die Geburt":5,"w:die Gebühr":10,"w:die Geduld":9,"w:die Gefahr":9,"w:die Gegend":5,"w:die Gehaltsabrechnung":3,"w:die Geheimhaltung":2,"w:die Gehstütze":2,"w:die Gelegenheit":2,"w:die Gemeinde":7,"w:die Gemeinschaft":8,"w:die Genehmigung":3,"w:die Generation":3,"w:die Genesung":3,"w:die Gerinnung":9,"w:die Geschichte":15,"w:die Geschwister":4,"w:die Gesellschaft":10,"w:die Gestalt":4,"w:die Gesundheitskarte":3,"w:die Gewebeprobe":5,"w:die Gewerkschaft":5,"w:die Gewichtszunahme":2,"w:die Gewohnheit":3,"w:die Gliederschmerzen":2,"w:die Glocke":5,"w:die Grafik":4,"w:die Grammatik":13,"w:die Grenze":10,"w:die Grippe":6,"w:die Großeltern":2,"w:die Großfamilie":2,"w:die Großmutter":6,"w:die Grundschule":7,"w:die Gruppe":14,"w:die Größe":2,"w:die Haftpflichtversicherung":2,"w:die Halle":5,"w:die Halsschmerzen":12,"w:die Haltestelle":8,"w:die Haltung":5,"w:die Hand":55,"w:die Handlung":3,"w:die Handschrift":2,"w:die Hauptsache":3,"w:die Hausarztpraxis":5,"w:die Hausordnung":5,"w:die Hausverwaltung":6,"w:die Haut":9,"w:die Hautfalte":2,"w:die Heimat":2,"w:die Heizung":18,"w:die Hemiparese":2,"w:die Herausforderung":2,"w:die Herkunft":6,"w:die Hernie":2,"w:die Herrschaften":2,"w:die Herzdruckmassage":3,"w:die Herzfrequenz":4,"w:die Herzinsuffizienz":6,"w:die Herzschwäche":2,"w:die Hexe":24,"w:die Hexerei":2,"w:die Hilfe":25,"w:die Hirnblutung":5,"w:die Hirnhautentzündung":2,"w:die Histologie":4,"w:die Hitze":10,"w:die Hitzewelle":2,"w:die Hochschule":2,"w:die Hochzeit":8,"w:die Hoffnung":4,"w:die Hose":5,"w:die Hungersnot":2,"w:die Hyperkaliämie":3,"w:die Hyperkapnie":2,"w:die Hypoglykämie":2,"w:die Hyponatriämie":2,"w:die Hälfte":13,"w:die Händedesinfektion":2,"w:die Höflichkeit":2,"w:die Höhe":11,"w:die Hölle":4,"w:die Hüfte":8,"w:die Hürde":5,"w:die IBAN":4,"w:die Idee":10,"w:die Impfung":14,"w:die Indikation":2,"w:die Industrie":2,"w:die Infektion":18,"w:die Inflation":2,"w:die Information":18,"w:die Infusion":5,"w:die Innenstadt":4,"w:die Instanz":3,"w:die Integration":4,"w:die Intensivstation":27,"w:die Intubation":4,"w:die Investition":3,"w:die Irrenanstalt":3,"w:die Jacke":20,"w:die Jagd":2,"w:die Jahreszeit":3,"w:die Jugend":2,"w:die Juristerei":2,"w:die Kalorie":2,"w:die Kaltmiete":7,"w:die Kantine":12,"w:die Kanzlei":3,"w:die Karte":40,"w:die Karteikarte":2,"w:die Kartoffel":2,"w:die Kasse":10,"w:die Katastrophe":2,"w:die Katze":9,"w:die Kausalkette":3,"w:die Kaution":4,"w:die Kehle":2,"w:die Kehrwoche":7,"w:die Kenntnis":10,"w:die Kerze":4,"w:die Kindheit":4,"w:die Kirche":17,"w:die Kiste":2,"w:die Kita":4,"w:die Klammer":5,"w:die Klasse":17,"w:die Kleidung":7,"w:die Klemme":2,"w:die Klingel":5,"w:die Klinik":128,"w:die Kneipe":5,"w:die Kochsalzlösung":2,"w:die Kohle":9,"w:die Kolik":3,"w:die Kollegin":37,"w:die Koloskopie":2,"w:die Kommission":4,"w:die Kommune":5,"w:die Komplikation":8,"w:die Konjugation":2,"w:die Konsequenz":2,"w:die Kontaktlinse":2,"w:die Kontrolle":22,"w:die Kopfschmerzen":19,"w:die Kopie":15,"w:die Kraft":11,"w:die Krankenkasse":21,"w:die Krankenschwester":2,"w:die Krankenversicherung":4,"w:die Krankheit":19,"w:die Krankmeldung":2,"w:die Krankschreibung":5,"w:die Kreditkarte":4,"w:die Krepitation":2,"w:die Kreuzung":2,"w:die Kriminalpolizei":2,"w:die Krise":2,"w:die Kritik":6,"w:die Kulisse":2,"w:die Kultur":8,"w:die Kurzzeitpflege":2,"w:die Körpertemperatur":3,"w:die Küche":32,"w:die Kündigung":6,"w:die Kündigungsfrist":2,"w:die Lage":22,"w:die Laiensprache":4,"w:die Laktoseintoleranz":2,"w:die Lampe":6,"w:die Last":6,"w:die Lastschrift":2,"w:die Laterne":19,"w:die Laufzeit":3,"w:die Leber":4,"w:die Lehrerin":11,"w:die Leiche":11,"w:die Leichenschau":3,"w:die Leinwand":2,"w:die Leiste":2,"w:die Leistung":4,"w:die Leitlinie":5,"w:die Leitung":16,"w:die Leukozyten":5,"w:die Leute":30,"w:die Liege":6,"w:die Linderung":2,"w:die Linie":10,"w:die Literatur":3,"w:die Lokalanästhesie":2,"w:die Luft":22,"w:die Luftnot":10,"w:die Lumbalpunktion":3,"w:die Lunge":13,"w:die Lungenembolie":9,"w:die Lungenentzündung":11,"w:die Lust":3,"w:die Lyse":4,"w:die Lösung":31,"w:die Lücke":4,"w:die Lüge":3,"w:die Macht":6,"w:die Magd":2,"w:die Magenspiegelung":4,"w:die Mandel":2,"w:die Mannschaft":6,"w:die Mappe":11,"w:die Maschine":8,"w:die Masern":3,"w:die Mauer":3,"w:die Maßnahme":7,"w:die Medien":6,"w:die Medizin":41,"w:die Mehrheit":6,"w:die Mehrwertsteuer":2,"w:die Meinung":9,"w:die Meldebescheinigung":10,"w:die Meldung":5,"w:die Melodie":2,"w:die Menge":5,"w:die Meningitis":3,"w:die Methode":4,"w:die Miete":22,"w:die Mieterhöhung":2,"w:die Migration":2,"w:die Migräne":5,"w:die Milch":12,"w:die Milliarde":6,"w:die Million":20,"w:die Milz":2,"w:die Minute":113,"w:die Mitgliedschaft":2,"w:die Mitte":15,"w:die Mittelohrentzündung":2,"w:die Mitternacht":8,"w:die Mobilisation":3,"w:die Mobilität":2,"w:die Moral":2,"w:die Motorik":4,"w:die Musik":11,"w:die Mutter":47,"w:die Möbel":2,"w:die Möglichkeit":6,"w:die Müdigkeit":4,"w:die Mühe":5,"w:die Mülltonne":5,"w:die Mülltrennung":3,"w:die Münze":10,"w:die Mütze":3,"w:die Nachbarschaft":2,"w:die Nachfrage":3,"w:die Nachricht":11,"w:die Nachrichten":15,"w:die Nachspeise":2,"w:die Nacht":77,"w:die Nachtschicht":9,"w:die Nackensteife":2,"w:die Nadel":8,"w:die Naht":4,"w:die Narbe":4,"w:die Narkose":9,"w:die Nase":7,"w:die Nasenbrille":4,"w:die Nation":2,"w:die Nausea":2,"w:die Nebendiagnose":3,"w:die Nebenkosten":10,"w:die Nebenwirkung":13,"w:die Niere":7,"w:die Nierenschale":2,"w:die Nixe":4,"w:die Normalstation":3,"w:die Not":5,"w:die Notaufnahme":93,"w:die Note":4,"w:die Notfallpraxis":2,"w:die Notiz":4,"w:die Noxe":2,"w:die Nudel":3,"w:die Null":3,"w:die Nummer":34,"w:die Nuss":4,"w:die Nähe":8,"w:die Oper":2,"w:die Operation":56,"w:die Opposition":3,"w:die Ordnung":19,"w:die Ordnungswidrigkeit":2,"w:die Organisation":5,"w:die Packung":5,"w:die Palpation":2,"w:die Panik":2,"w:die Pankreatitis":2,"w:die Panne":2,"w:die Partei":6,"w:die Party":5,"w:die Patientenakte":7,"w:die Patientenverfügung":4,"w:die Pause":26,"w:die Peritonitis":2,"w:die Person":20,"w:die Personalakte":2,"w:die Persönlichkeit":2,"w:die Pest":10,"w:die Pfandflasche":3,"w:die Pfanne":3,"w:die Pflanze":2,"w:die Pflege":30,"w:die Pflegefachkraft":5,"w:die Pflegekraft":38,"w:die Pflicht":14,"w:die Pfote":4,"w:die Philosophie":3,"w:die Physiotherapie":6,"w:die Pille":2,"w:die Plastiktüte":3,"w:die Platzwunde":3,"w:die Politik":4,"w:die Polizei":22,"w:die Pollakisurie":2,"w:die Polydipsie":2,"w:die Polyneuropathie":2,"w:die Portion":2,"w:die Post":14,"w:die Praxis":35,"w:die Prellmarke":2,"w:die Prellung":4,"w:die Priorität":3,"w:die Privatsphäre":2,"w:die Probe":8,"w:die Probezeit":6,"w:die Prognose":4,"w:die Proteinurie":2,"w:die Präposition":7,"w:die Prüfung":67,"w:die Punktion":4,"w:die Pupille":6,"w:die Puppe":2,"w:die Qualität":3,"w:die Quelle":6,"w:die Quittung":4,"w:die Quote":2,"w:die Rasselgeräusche":7,"w:die Rate":4,"w:die Ratte":3,"w:die Raumluft":6,"w:die Reanimation":12,"w:die Rechnung":17,"w:die Rede":11,"w:die Reform":16,"w:die Regel":33,"w:die Regelblutung":4,"w:die Regelung":6,"w:die Regierung":5,"w:die Region":15,"w:die Reha":10,"w:die Reihe":8,"w:die Reise":6,"w:die Religion":3,"w:die Renovierung":2,"w:die Rente":5,"w:die Reparatur":7,"w:die Resistenz":3,"w:die Rettung":2,"w:die Rezeption":3,"w:die Richtung":5,"w:die Rippe":4,"w:die Rippenserienfraktur":2,"w:die Rolle":9,"w:die Romantik":5,"w:die Rotation":2,"w:die Rubrik":2,"w:die Ruhe":19,"w:die Ruine":5,"w:die Röntgenaufnahme":2,"w:die Rötung":4,"w:die Rückenschmerzen":5,"w:die Rückfrage":8,"w:die Rückmeldung":4,"w:die Rücksicht":2,"w:die Rückzahlung":2,"w:die S-Bahn":5,"w:die ST-Hebung":3,"w:die Sache":9,"w:die Salbe":3,"w:die Sauerstoffgabe":5,"w:die Schande":2,"w:die Scheibe":2,"w:die Schicht":10,"w:die Schiene":4,"w:die Schlafstörung":4,"w:die Schlange":4,"w:die Schleimhaut":4,"w:die Schmerztherapie":3,"w:die Schmierblutung":2,"w:die Schokolade":3,"w:die Schonkost":3,"w:die Schrift":5,"w:die Schufa-Auskunft":3,"w:die Schuld":2,"w:die Schulden":2,"w:die Schule":20,"w:die Schulter":6,"w:die Schwangerschaft":3,"w:die Schweigepflicht":5,"w:die Schwellung":6,"w:die Schwester":11,"w:die Schwierigkeit":2,"w:die Schwäche":3,"w:die Seele":21,"w:die Seite":42,"w:die Sektion":2,"w:die Sekunde":7,"w:die Selbstverständlichkeit":2,"w:die Sensibilität":3,"w:die Sepsis":12,"w:die Serie":3,"w:die Sicherheit":9,"w:die Sicherheitskontrolle":2,"w:die Sicht":5,"w:die Simulation":3,"w:die Situation":16,"w:die Sitzung":6,"w:die Socke":3,"w:die Software":12,"w:die Solaranlage":2,"w:die Sonne":8,"w:die Sonographie":4,"w:die Sorge":27,"w:die Sorte":3,"w:die Sozialanamnese":2,"w:die Sparkasse":2,"w:die Speiseröhre":4,"w:die Spende":6,"w:die Sprachbarriere":2,"w:die Sprache":57,"w:die Sprechstunde":4,"w:die Spritze":11,"w:die Spur":2,"w:die Stadt":94,"w:die Stammkneipe":2,"w:die Station":38,"w:die Stationsleitung":3,"w:die Statistik":2,"w:die Steigerung":2,"w:die Stelle":55,"w:die Stellungnahme":2,"w:die Sterblichkeit":2,"w:die Steuer":27,"w:die Steuererklärung":5,"w:die Stiefmutter":2,"w:die Stiege":2,"w:die Stimme":18,"w:die Stimmung":6,"w:die Stirn":14,"w:die Strahlung":2,"w:die Straße":57,"w:die Straßenbahn":12,"w:die Stromrechnung":2,"w:die Struktur":2,"w:die Studie":16,"w:die Stufe":2,"w:die Stunde":163,"w:die Stärke":5,"w:die Störung":10,"w:die Suppe":6,"w:die Synkope":3,"w:die Szene":7,"w:die Sättigung":13,"w:die Tabelle":2,"w:die Tablette":55,"w:die Tankstelle":3,"w:die Tante":2,"w:die Tasche":14,"w:die Tasse":3,"w:die Tat":2,"w:die Technik":7,"w:die Teilnahme":4,"w:die Teilzeit":3,"w:die Telefonnummer":3,"w:die Temperatur":16,"w:die Theorie":2,"w:die Therapie":36,"w:die Thrombose":2,"w:die Thromboseprophylaxe":5,"w:die Tochter":32,"w:die Todesart":2,"w:die Toilette":4,"w:die Tomate":11,"w:die Tradition":2,"w:die Trage":2,"w:die Transfusion":24,"w:die Treppe":15,"w:die Triage":10,"w:die Trockenheit":2,"w:die Truppe":3,"w:die Tuberkulose":3,"w:die Tugend":2,"w:die Tumorkonferenz":2,"w:die Tür":61,"w:die Tüte":8,"w:die U-Bahn":3,"w:die Uhr":177,"w:die Uhrzeit":6,"w:die Umfrage":9,"w:die Umgebung":4,"w:die Umleitung":4,"w:die Umschreibung":3,"w:die Umwelt":3,"w:die Uniform":3,"w:die Universität":16,"w:die Unruhe":3,"w:die Unterkunft":2,"w:die Unterlagen":11,"w:die Unterschrift":15,"w:die Unterstützung":8,"w:die Untersuchung":47,"w:die Unterzeichnung":2,"w:die Unverträglichkeit":3,"w:die Urkunde":10,"w:die Urosepsis":2,"w:die Ursache":18,"w:die Vene":13,"w:die Verabredung":4,"w:die Verantwortung":10,"w:die Verbindung":12,"w:die Verbraucherzentrale":3,"w:die Verbrennung":2,"w:die Verdachtsdiagnose":4,"w:die Verfassung":5,"w:die Vergangenheit":3,"w:die Verlegung":7,"w:die Verletzung":13,"w:die Vermutung":3,"w:die Verpackung":3,"w:die Verschlechterung":3,"w:die Versetzung":2,"w:die Versichertenkarte":13,"w:die Versicherung":6,"w:die Verspätung":15,"w:die Verstopfung":3,"w:die Verwaltung":7,"w:die Verwandlung":2,"w:die Verwandten":4,"w:die Verwirrtheit":3,"w:die Verzweiflung":2,"w:die Veränderung":3,"w:die Visite":15,"w:die Vokabel":4,"w:die Vollmacht":4,"w:die Volumengabe":6,"w:die Voraussetzung":8,"w:die Vorbereitung":3,"w:die Vorerkrankung":8,"w:die Vorfahrt":2,"w:die Vorgeschichte":2,"w:die Vorlesung":3,"w:die Vorschrift":5,"w:die Vorsicht":6,"w:die Vorsorge":2,"w:die Vorsorgevollmacht":2,"w:die Vorstellung":5,"w:die Vorwahl":2,"w:die WG":2,"w:die Wade":4,"w:die Waffe":2,"w:die Wahl":5,"w:die Wahrheit":3,"w:die Wand":13,"w:die Wanderung":3,"w:die Ware":3,"w:die Warmmiete":2,"w:die Warnung":5,"w:die Wartezeit":18,"w:die Waschmaschine":5,"w:die Wassereinlagerung":2,"w:die Webseite":4,"w:die Weiterbehandlung":4,"w:die Weiterbildung":4,"w:die Welt":17,"w:die Werbung":4,"w:die Werkstatt":2,"w:die Wette":9,"w:die Wiederbelebung":3,"w:die Wiederholung":4,"w:die Wiedervorstellung":4,"w:die Wirbelsäule":3,"w:die Wirkung":5,"w:die Wirtschaft":2,"w:die Wissenschaft":2,"w:die Woche":159,"w:die Wohnung":100,"w:die Wohnungssuche":3,"w:die Wolke":3,"w:die Wunde":45,"w:die Wundinfektion":2,"w:die Wundkontrolle":2,"w:die Wurst":6,"w:die Wurzel":8,"w:die Wäsche":4,"w:die Würde":2,"w:die Zahl":30,"w:die Zehe":2,"w:die Zeichnung":2,"w:die Zeile":6,"w:die Zeit":109,"w:die Zeiterfassung":2,"w:die Zeitung":7,"w:die Zelle":6,"w:die Zigarette":2,"w:die Zitrone":2,"w:die Zukunft":6,"w:die Zulassung":3,"w:die Zunahme":3,"w:die Zunft":2,"w:die Zunge":2,"w:die Zustimmung":5,"w:die Zuzahlung":2,"w:die Ärztin":36,"w:die Öffnungszeiten":2,"w:die Übelkeit":18,"w:die Übergabe":18,"w:die Überlastung":4,"w:die Übersetzung":2,"w:die Übersicht":3,"w:die Überstunde":7,"w:die Überwachungsstation":2,"w:die Überweisung":12,"w:die Übung":6,"w:dienen":5,"w:diensthabend":4,"w:dieser":227,"w:diesmal":6,"w:differenzialdiagnostisch":2,"w:digital":10,"w:diktieren":2,"w:direkt":36,"w:diskutieren":11,"w:disloziert":3,"w:doch":63,"w:dokumentieren":22,"w:dolmetschen":4,"w:doppelt":7,"w:dort":54,"w:dorthin":5,"w:dosieren":3,"w:draußen":9,"w:drei":175,"w:dreißig":19,"w:dringend":9,"w:drinnen":3,"w:dritte":29,"w:drohen":3,"w:drucken":8,"w:drücken":16,"w:drückend":3,"w:du":421,"w:dumm":4,"w:dumpf":2,"w:dunkel":26,"w:durch":80,"w:durchaus":9,"w:durchdrehen":4,"w:durchfallen":3,"w:durchführen":7,"w:durchhalten":2,"w:duzen":10,"w:dünn":5,"w:dürfen":144,"w:eben":13,"w:ebenfalls":3,"w:ebenso":5,"w:echt":25,"w:egal":7,"w:eher":14,"w:ehrenamtlich":6,"w:ehrlich":18,"w:eigen":54,"w:eigenständig":3,"w:eigentlich":34,"w:eilig":2,"w:einander":3,"w:einarbeiten":4,"w:einatmen":6,"w:eindeutig":6,"w:eindrückbar":2,"w:einfach":56,"w:einfahren":5,"w:einfallen":4,"w:einfrieren":2,"w:einführen":11,"w:eingreifen":3,"w:einhalten":6,"w:einige":25,"w:einkaufen":13,"w:einladen":8,"w:einleiten":4,"w:einmal":63,"w:einnehmen":21,"w:einpacken":7,"w:einreichen":5,"w:einrichten":6,"w:einräumen":3,"w:eins":13,"w:einsam":5,"w:einschalten":5,"w:einschenken":3,"w:einschlafen":8,"w:einschließlich":6,"w:einschränken":10,"w:einsehen":2,"w:einseitig":3,"w:einsparen":2,"w:einst":2,"w:einsteigen":2,"w:einstellen":9,"w:eintreten":9,"w:einwandern":3,"w:einwilligen":7,"w:einzahlen":2,"w:einzeln":2,"w:einziehen":9,"w:einzig":17,"w:elektrisch":3,"w:elf":17,"w:empfangen":4,"w:empfehlen":30,"w:empfinden":3,"w:enden":20,"w:endgültig":3,"w:endlich":17,"w:eng":8,"w:englisch":5,"w:engmaschig":3,"w:entbinden":4,"w:entdecken":3,"w:entfallen":2,"w:entfernen":3,"w:entfernt":9,"w:entgegenkommen":2,"w:entgleist":2,"w:enthalten":10,"w:entlassen":14,"w:entlasten":7,"w:entnehmen":7,"w:entscheiden":61,"w:entscheidend":10,"w:entschlossen":2,"w:entsprechen":7,"w:entsprechend":7,"w:entstehen":7,"w:enttäuschen":2,"w:entweder":4,"w:entwickeln":12,"w:entzwei":2,"w:er":834,"w:erben":2,"w:erblinden":2,"w:erbrechen":5,"w:erfahren":14,"w:erfassen":3,"w:erfinden":5,"w:erfolgen":46,"w:erfolgreich":3,"w:erforderlich":5,"w:erfordern":2,"w:erforschen":3,"w:erfüllen":5,"w:ergeben":12,"w:ergreifen":4,"w:ergänzen":4,"w:erhalten":25,"w:erheben":12,"w:erheblich":11,"w:erhöhen":3,"w:erhöht":19,"w:erkennen":26,"w:erklären":65,"w:erlauben":2,"w:erlaubt":13,"w:erleben":10,"w:erledigen":4,"w:erleichtern":3,"w:erleiden":5,"w:erlösen":3,"w:ermitteln":3,"w:ermorden":4,"w:erneut":8,"w:erniedrigt":2,"w:ernst":17,"w:erreichbar":6,"w:erreichen":20,"w:erscheinen":11,"w:erschrecken":2,"w:erschweren":2,"w:erschöpft":3,"w:ersetzen":8,"w:erst":51,"w:erstatten":6,"w:erste":148,"w:erstellen":2,"w:erstens":9,"w:ersticken":4,"w:ertragen":2,"w:ertrinken":2,"w:erwachen":4,"w:erwarten":6,"w:erweckbar":3,"w:erweitern":3,"w:erwerben":5,"w:erwähnen":3,"w:erzählen":41,"w:eröffnen":12,"w:es":784,"w:essen":44,"w:etwa":75,"w:etwas":126,"w:eventuell":6,"w:ewig":5,"w:extrem":8,"w:fahren":94,"w:fair":7,"w:fallen":28,"w:falls":13,"w:falsch":38,"w:fangen":5,"w:fast":46,"w:fasten":6,"w:fehlen":54,"w:feiern":7,"w:fernsehen":5,"w:fertig":11,"w:festhalten":8,"w:festlegen":7,"w:feststellen":6,"w:feucht":5,"w:fieberfrei":2,"w:finanziell":6,"w:finanzieren":14,"w:finden":83,"w:fleißig":3,"w:flexibel":4,"w:fliegen":5,"w:fliehen":2,"w:fließen":4,"w:fließend":2,"w:flüstern":7,"w:folgen":22,"w:folglich":2,"w:foltern":2,"w:fordern":16,"w:formell":5,"w:formulieren":5,"w:forschen":5,"w:fort":5,"w:fortführen":4,"w:fortsetzen":3,"w:fragen":92,"w:fraglich":2,"w:frei":70,"w:freilich":2,"w:freiwillig":7,"w:fremd":12,"w:fressen":16,"w:freundlich":28,"w:frieren":2,"w:frisch":12,"w:froh":3,"w:früh":33,"w:früher":29,"w:frühstücken":2,"w:funktionieren":23,"w:furchtbar":2,"w:furchtlos":2,"w:fällig":4,"w:fördern":8,"w:fühlen":5,"w:führen":33,"w:füllen":4,"w:fünf":54,"w:fünfzig":6,"w:für":737,"w:fürchterlich":2,"w:füttern":2,"w:ganz":87,"w:gar":17,"w:geben":317,"w:geboren":9,"w:geduldig":5,"w:gedämpft":4,"w:geehrt":18,"w:geeignet":2,"w:gefallen":19,"w:gefährlich":12,"w:gegen":83,"w:gegenüber":14,"w:gehen":275,"w:gehorchen":10,"w:gehören":64,"w:gelassen":6,"w:gelb":11,"w:gelegentlich":3,"w:gelingen":8,"w:gelten":61,"w:gemeinnützig":3,"w:gemeinsam":16,"w:gemäß":4,"w:gemütlich":3,"w:genau":83,"w:genauso":6,"w:genehmigen":3,"w:genesen":2,"w:genießen":2,"w:genug":15,"w:genügen":5,"w:gerade":40,"w:geradeaus":2,"w:gerecht":9,"w:gering":6,"w:gern":123,"w:geschehen":9,"w:geschickt":6,"w:geschieden":2,"w:geschlossen":23,"w:gesetzlich":10,"w:gesperrt":4,"w:gestalten":3,"w:gestern":60,"w:gestorben":7,"w:gesund":14,"w:gewinnen":18,"w:gewiss":3,"w:gewohnt":5,"w:gewöhnlich":2,"w:gezielt":2,"w:geöffnet":10,"w:gießen":4,"w:glatt":5,"w:glauben":34,"w:glaubwürdig":2,"w:gleich":49,"w:gleichberechtigt":3,"w:glücklich":5,"w:glühen":2,"w:golden":4,"w:gotisch":2,"w:graben":5,"w:grau":14,"w:grausam":4,"w:greifen":8,"w:grenzwertig":2,"w:grillen":7,"w:groß":108,"w:großlumig":3,"w:grundsätzlich":5,"w:grässlich":2,"w:grün":8,"w:gründen":9,"w:gründlich":9,"w:grünen":3,"w:gucken":3,"w:gut":418,"w:gönnen":4,"w:gültig":5,"w:günstig":15,"w:haben":1677,"w:halb":34,"w:halt":11,"w:halten":47,"w:handeln":10,"w:handhaben":2,"w:harmlos":8,"w:hart":3,"w:hassen":3,"w:hauptsächlich":4,"w:hausärztlich":2,"w:heben":12,"w:heilen":10,"w:heimlich":5,"w:heiraten":2,"w:heizen":3,"w:heiß":24,"w:heißen":47,"w:helfen":64,"w:hell":19,"w:hemmen":2,"w:her":5,"w:heraus":8,"w:herstellen":7,"w:hervorragend":2,"w:heute":281,"w:hier":214,"w:hierher":6,"w:hiermit":4,"w:hilfsbereit":3,"w:hin":20,"w:hinauf":6,"w:hinein":4,"w:hinfallen":2,"w:hinken":2,"w:hinkriegen":2,"w:hinten":7,"w:hinter":22,"w:hintereinander":4,"w:hinterfragen":3,"w:hinterlassen":3,"w:hinweisen":13,"w:hinzufügen":2,"w:hoch":61,"w:hochlagern":3,"w:hoffen":8,"w:holen":28,"w:hundert":9,"w:husten":3,"w:hypoton":7,"w:hängen":36,"w:hässlich":2,"w:häufig":21,"w:häuslich":2,"w:höchstens":9,"w:höflich":9,"w:hören":58,"w:ich":2595,"w:ihr":292,"w:immer":89,"w:impfen":8,"w:in":2525,"w:inbegriffen":2,"w:indem":3,"w:indirekt":5,"w:infizieren":3,"w:infolge":4,"w:inklusive":3,"w:innen":3,"w:innerhalb":37,"w:insbesondere":2,"w:insgesamt":7,"w:insofern":4,"w:installieren":2,"w:intakt":3,"w:intensiv":5,"w:interessant":3,"w:intramuskulär":2,"w:intravenös":3,"w:investieren":9,"w:inzwischen":21,"w:irgendwann":7,"w:irgendwo":7,"w:irren":8,"w:isokor":2,"w:ja":166,"w:jagen":2,"w:je":28,"w:jeder":234,"w:jederzeit":21,"w:jedoch":21,"w:jemand":39,"w:jener":3,"w:jetzt":133,"w:joggen":5,"w:jucken":2,"w:jung":52,"w:kachektisch":2,"w:kalt":32,"w:kaltschweißig":4,"w:kaputt":11,"w:kauen":3,"w:kaufen":41,"w:kaum":55,"w:kein":403,"w:kennen":55,"w:kennenlernen":7,"w:klagen":13,"w:klar":47,"w:klatschen":3,"w:klein":99,"w:klimaneutral":3,"w:klingeln":6,"w:klug":5,"w:klären":9,"w:knapp":7,"w:knurren":2,"w:kochen":13,"w:kolikartig":3,"w:komisch":8,"w:kommen":335,"w:komplett":7,"w:komplikationslos":2,"w:kompliziert":7,"w:konkret":6,"w:konsequent":3,"w:kontrollieren":16,"w:konzentriert":3,"w:korrigieren":4,"w:kosten":62,"w:kostenlos":15,"w:kramen":2,"w:krank":30,"w:krankschreiben":5,"w:kratzen":10,"w:kreuzen":7,"w:kriechen":2,"w:kriegen":7,"w:kritisch":4,"w:kritisieren":2,"w:kulturell":2,"w:kund":2,"w:kurz":103,"w:kurzfristig":6,"w:können":490,"w:kühlen":2,"w:kündigen":19,"w:künstlich":9,"w:labern":2,"w:lachen":19,"w:laden":4,"w:lagern":7,"w:landen":5,"w:lang":123,"w:langfristig":5,"w:langsam":33,"w:langweilig":2,"w:lassen":106,"w:laufen":49,"w:lauschen":2,"w:laut":38,"w:lauten":14,"w:leben":48,"w:lecker":2,"w:ledig":4,"w:lediglich":5,"w:leer":16,"w:legen":57,"w:leicht":46,"w:leiden":20,"w:leider":41,"w:leihen":5,"w:leise":16,"w:leisten":8,"w:leiten":13,"w:lernen":99,"w:lesen":78,"w:letzte":72,"w:lichtreagibel":3,"w:lieb":15,"w:lieben":7,"w:liefern":5,"w:liegen":153,"w:lindern":2,"w:linke":28,"w:links":28,"w:loben":4,"w:locken":2,"w:loslassen":2,"w:lustig":3,"w:lächeln":10,"w:ländlich":3,"w:längst":11,"w:löschen":6,"w:lügen":10,"w:machen":282,"w:mal":81,"w:malen":8,"w:man":391,"w:manche":23,"w:manchmal":22,"w:meckern":4,"w:mega":2,"w:mehr":215,"w:mehrere":32,"w:mein":360,"w:meinen":12,"w:meist":43,"w:meistens":17,"w:menschlich":3,"w:messen":29,"w:mieten":2,"w:mindestens":24,"w:mischen":6,"w:mit":825,"w:mitbringen":44,"w:miteinander":3,"w:mitkommen":6,"w:mitmachen":3,"w:mitnehmen":16,"w:mittags":3,"w:mitteilen":7,"w:mittelalterlich":2,"w:mittels":4,"w:modern":7,"w:monatlich":8,"w:morgen":75,"w:morgens":30,"w:multiresistent":2,"w:möbliert":3,"w:möchten":114,"w:mögen":9,"w:möglich":38,"w:möglichst":4,"w:müde":32,"w:mündlich":4,"w:müssen":332,"w:nach":517,"w:nachdem":3,"w:nachdenken":3,"w:nachfragen":8,"w:nachher":3,"w:nachholen":5,"w:nachlassen":6,"w:nachschlagen":2,"w:nachtragen":2,"w:nachts":48,"w:nachvollziehbar":2,"w:nachvollziehen":4,"w:nachweisen":5,"w:nachweislich":2,"w:nah":6,"w:nass":9,"w:natürlich":35,"w:neben":22,"w:nebeneinander":7,"w:neblig":4,"w:negativ":11,"w:nehmen":158,"w:neigen":5,"w:nein":52,"w:nennen":30,"w:nervös":3,"w:nett":13,"w:neu":188,"w:neulich":5,"w:neun":17,"w:neutral":2,"w:nicht":853,"w:nichts":89,"w:nicken":6,"w:nie":49,"w:niemand":69,"w:noch":354,"w:normal":27,"w:normalerweise":5,"w:notieren":26,"w:notwendig":9,"w:null":9,"w:nun":10,"w:nur":288,"w:nächste":77,"w:nähen":16,"w:nämlich":3,"w:nötig":24,"w:nüchtern":12,"w:nützen":4,"w:nützlich":2,"w:ob":76,"w:oben":6,"w:obere":5,"w:obwohl":9,"w:oder":311,"w:offen":41,"w:offenbar":2,"w:offline":2,"w:oft":111,"w:ohne":181,"w:ohnehin":10,"w:ohnmächtig":2,"w:online":12,"w:operieren":14,"w:oral":3,"w:orange":6,"w:ordentlich":10,"w:organisieren":8,"w:orientiert":7,"w:parken":8,"w:passen":21,"w:passieren":28,"w:peinlich":2,"w:pendeln":6,"w:perfekt":16,"w:persistierend":3,"w:persönlich":19,"w:pfeifen":5,"w:pflegen":3,"w:plagen":2,"w:planen":22,"w:planmäßig":3,"w:plus":6,"w:plötzlich":29,"w:politisch":6,"w:positiv":9,"w:praktisch":8,"w:probieren":5,"w:profitieren":2,"w:prägen":3,"w:präzise":2,"w:prüfen":26,"w:psychisch":2,"w:putzen":6,"w:pünktlich":8,"w:quer":2,"w:quälen":6,"w:rahmen":4,"w:raten":16,"w:rau":2,"w:rauchen":28,"w:realistisch":2,"w:reanimieren":3,"w:rechnen":7,"w:rechte":32,"w:rechtfertigen":3,"w:rechts":36,"w:rechtzeitig":6,"w:reden":17,"w:reduzieren":3,"w:reduziert":6,"w:rege":2,"w:regelmäßig":44,"w:regeln":8,"w:regelrecht":2,"w:regional":9,"w:regnen":10,"w:reiben":2,"w:reich":5,"w:reichen":25,"w:reichlich":2,"w:reinigen":2,"w:reisen":11,"w:reiten":6,"w:reißen":9,"w:reißend":2,"w:reklamieren":2,"w:rektal":2,"w:relativ":2,"w:relevant":2,"w:rennen":3,"w:renovieren":2,"w:reparieren":5,"w:reservieren":8,"w:respektieren":3,"w:retten":15,"w:rezeptfrei":2,"w:rhythmisch":5,"w:richten":9,"w:richtig":58,"w:riechen":9,"w:riesig":3,"w:rot":33,"w:rufen":31,"w:ruhig":34,"w:rund":31,"w:rutschen":4,"w:römisch":2,"w:röntgen":4,"w:rücken":7,"w:rückläufig":2,"w:rühren":3,"w:sachlich":3,"w:sacht":2,"w:sagen":261,"w:sammeln":6,"w:sauber":5,"w:sauer":3,"w:schade":7,"w:schaffen":27,"w:scharf":5,"w:schauen":33,"w:scheinen":10,"w:scheitern":4,"w:schenken":4,"w:schicken":24,"w:schieben":7,"w:schief":7,"w:schießen":5,"w:schildern":5,"w:schimpfen":5,"w:schlafen":65,"w:schlagen":20,"w:schlapp":3,"w:schlecht":37,"w:schleichend":4,"w:schließen":26,"w:schließlich":2,"w:schlimm":20,"w:schlucken":6,"w:schläfrig":3,"w:schmal":4,"w:schmecken":4,"w:schmerzen":7,"w:schmutzig":2,"w:schneiden":12,"w:schnell":80,"w:schon":156,"w:schonend":2,"w:schrecklich":3,"w:schreiben":82,"w:schreien":3,"w:schriftlich":26,"w:schrumpfen":3,"w:schummeln":3,"w:schwach":10,"w:schwanger":9,"w:schwanken":2,"w:schwarz":20,"w:schweigen":11,"w:schwellen":11,"w:schwer":45,"w:schwierig":17,"w:schwimmen":4,"w:schwindelig":5,"w:schwitzen":6,"w:schädlich":2,"w:schätzen":5,"w:schön":69,"w:schützen":9,"w:sechs":45,"w:sechzig":4,"w:sehen":118,"w:sehr":223,"w:sein":3255,"w:seit":258,"w:seitdem":8,"w:seitengleich":5,"w:selbst":87,"w:selbstständig":3,"w:selbstverständlich":6,"w:selten":39,"w:seltsam":2,"w:senden":2,"w:senken":13,"w:sensibel":6,"w:septisch":5,"w:sich":534,"w:sich absichern":3,"w:sich anmelden":29,"w:sich anstecken":12,"w:sich aufwärmen":3,"w:sich ausdrücken":4,"w:sich auskennen":3,"w:sich ausruhen":2,"w:sich auswirken":6,"w:sich ausziehen":3,"w:sich bedanken":3,"w:sich beeilen":2,"w:sich befinden":10,"w:sich bemühen":5,"w:sich benehmen":2,"w:sich beschweren":5,"w:sich bessern":11,"w:sich bewegen":5,"w:sich bewerben":4,"w:sich beziehen":7,"w:sich dehnen":3,"w:sich distanzieren (von)":2,"w:sich einigen":8,"w:sich einleben":2,"w:sich einloggen":2,"w:sich einsetzen":10,"w:sich engagieren":3,"w:sich entschuldigen":6,"w:sich erholen":4,"w:sich erinnern":7,"w:sich ernähren":2,"w:sich erweisen":5,"w:sich freuen":19,"w:sich fühlen":20,"w:sich fürchten":3,"w:sich gewöhnen":4,"w:sich herausstellen":2,"w:sich hinlegen":3,"w:sich informieren":30,"w:sich interessieren":9,"w:sich konzentrieren":3,"w:sich krankmelden":3,"w:sich kümmern":11,"w:sich langweilen":2,"w:sich lohnen":9,"w:sich melden":45,"w:sich merken":23,"w:sich registrieren":2,"w:sich schämen":6,"w:sich setzen":52,"w:sich ummelden":2,"w:sich unterhalten":2,"w:sich unterstehen":3,"w:sich unterziehen":2,"w:sich verbessern":7,"w:sich verirren":2,"w:sich verkleiden":2,"w:sich verlassen":19,"w:sich verlaufen":4,"w:sich verletzen":16,"w:sich verschlechtern":3,"w:sich verschlucken":2,"w:sich verständigen":2,"w:sich verändern":14,"w:sich vorstellen":44,"w:sich waschen":5,"w:sich weigern":2,"w:sich weiterbilden":5,"w:sich widmen":3,"w:sich wohlfühlen":2,"w:sich ärgern":3,"w:sich äußern":10,"w:sich übergeben":6,"w:sicher":36,"w:sie":803,"w:sieben":49,"w:siebzehn":4,"w:siebzig":2,"w:singen":8,"w:sinken":15,"w:sinnvoll":11,"w:sitzen":69,"w:skeptisch":3,"w:so":193,"w:sobald":8,"w:sodass":8,"w:sofern":7,"w:sofort":79,"w:sogar":13,"w:sogenannt":7,"w:solange":16,"w:sollen":157,"w:somnolent":2,"w:sondern":67,"w:sonst":35,"w:sorgfältig":6,"w:soweit":4,"w:sowie":17,"w:sowieso":3,"w:sowohl":5,"w:sozial":16,"w:sozusagen":2,"w:spannend":2,"w:sparen":12,"w:speichern":4,"w:spenden":12,"w:sperren":4,"w:spielen":34,"w:sprachlich":3,"w:sprechen":186,"w:sprengen":4,"w:springen":10,"w:spritzen":6,"w:spucken":2,"w:spät":24,"w:später":37,"w:spöttisch":2,"w:spülen":4,"w:spürbar":4,"w:spüren":16,"w:staatlich":4,"w:stabil":15,"w:stammen":10,"w:stark":63,"w:starren":4,"w:stationär":14,"w:statt":31,"w:stattdessen":4,"w:stattfinden":18,"w:staunen":3,"w:stechen":4,"w:stechend":3,"w:stehen":252,"w:steigen":45,"w:steil":5,"w:stellen":60,"w:sterben":37,"w:stets":4,"w:steuern":4,"w:still":12,"w:stimmen":12,"w:stolz":5,"w:stoppen":5,"w:stoßen":9,"w:streben":8,"w:streiken":2,"w:streiten":11,"w:streng":6,"w:stressig":3,"w:streuen":2,"w:strikt":3,"w:studieren":22,"w:städtisch":3,"w:ständig":14,"w:stören":9,"w:stürzen":8,"w:subkutan":2,"w:suchen":39,"w:sympathisch":3,"w:sämtliche":5,"w:säuberlich":2,"w:süß":6,"w:tachykard":2,"w:tagsüber":13,"w:tanzen":8,"w:tastbar":8,"w:tatsächlich":10,"w:tausend":3,"w:technisch":2,"w:teilen":11,"w:teilnehmen":4,"w:teilweise":4,"w:telefonieren":5,"w:testen":3,"w:teuer":15,"w:theoretisch":2,"w:tief":14,"w:tippen":11,"w:toll":7,"w:tot":6,"w:traditionell":3,"w:tragen":77,"w:trainieren":7,"w:transportieren":2,"w:trauen":6,"w:traurig":3,"w:treffen":44,"w:treiben":5,"w:trennen":9,"w:treten":20,"w:trinken":68,"w:trocken":9,"w:trocknen":2,"w:trotz":26,"w:trotzdem":36,"w:träumen":2,"w:trösten":4,"w:tun":90,"w:typisch":14,"w:täglich":30,"w:töten":5,"w:um":285,"w:umbringen":4,"w:umfangreich":2,"w:umfassen":3,"w:umgehen":6,"w:umgehend":2,"w:umgekehrt":9,"w:umkehren":19,"w:umkippen":3,"w:umknicken":3,"w:umlegen":4,"w:umsetzen":3,"w:umsonst":4,"w:umsteigen":6,"w:umstellen":10,"w:umstritten":2,"w:umtauschen":11,"w:umziehen":8,"w:unabhängig":7,"w:unauffällig":18,"w:unbedingt":11,"w:unbefristet":4,"w:unbekannt":4,"w:und":1751,"w:unehrlich":3,"w:ungefähr":8,"w:ungeheuer":2,"w:ungewiss":2,"w:unglaublich":2,"w:unheimlich":6,"w:unschuldig":2,"w:unser":65,"w:unsichtbar":2,"w:unten":15,"w:unter":109,"w:unterbrechen":3,"w:untere":6,"w:unterliegen":3,"w:unterrichten":3,"w:unterschreiben":39,"w:unterschätzen":4,"w:unterstützen":4,"w:untersuchen":21,"w:unterwegs":4,"w:unterzeichnen":6,"w:ursprünglich":2,"w:vegetarisch":2,"w:verabschieden":3,"w:verachten":2,"w:veranlassen":5,"w:veranschaulichen":2,"w:verantworten":2,"w:verantwortlich":5,"w:verbessern":2,"w:verbieten":2,"w:verbinden":5,"w:verbindlich":5,"w:verboten":5,"w:verbreiten":3,"w:verbrennen":9,"w:verbringen":6,"w:verdienen":5,"w:verdrängen":2,"w:vereinbaren":7,"w:vereinfachen":3,"w:vereinzelt":2,"w:verfluchen":2,"w:verfolgen":4,"w:verfügbar":4,"w:verführen":2,"w:vergehen":5,"w:vergessen":22,"w:vergiften":4,"w:vergleichen":2,"w:vergnügt":2,"w:verhaften":2,"w:verhandeln":3,"w:verheiratet":6,"w:verhindern":10,"w:verkaufen":8,"w:verlangen":10,"w:verlegen":7,"w:verlieren":29,"w:verlängern":10,"w:verlässlich":8,"w:vermieten":7,"w:vermindern":3,"w:vermitteln":2,"w:vermuten":15,"w:vermutlich":9,"w:vernachlässigen":2,"w:verneinen":4,"w:vernichten":2,"w:vernünftig":2,"w:verordnen":3,"w:verpassen":11,"w:verraten":9,"w:verringern":4,"w:verrutschen":3,"w:verrückt":4,"w:verschieben":11,"w:verschieden":6,"w:verschließen":5,"w:verschreiben":4,"w:verschwinden":12,"w:verschärfen":4,"w:versichert":7,"w:versorgen":16,"w:versprechen":8,"w:verspätet":3,"w:verstecken":3,"w:verstehen":96,"w:verstorben":7,"w:verständlich":4,"w:verstärken":2,"w:versuchen":5,"w:versäumen":2,"w:versöhnen":2,"w:vertiefen":2,"w:vertragen":2,"w:vertraulich":4,"w:vertraut":2,"w:vertreten":13,"w:verursachen":8,"w:verurteilen":4,"w:verwandeln":5,"w:verwandt":2,"w:verwechseln":3,"w:verweilen":6,"w:verwerten":3,"w:verwirrt":3,"w:verzeihen":3,"w:verzichten":6,"w:verzögern":6,"w:veröffentlichen":3,"w:viel":367,"w:vielfältig":5,"w:vielleicht":41,"w:vier":73,"w:vierzig":15,"w:voll":30,"w:vollständig":25,"w:von":550,"w:vor":218,"w:voran":3,"w:voraus":10,"w:voraussichtlich":9,"w:vorbei":16,"w:vorbeikommen":8,"w:vorbereiten":9,"w:vorgestern":5,"w:vorhanden":3,"w:vorher":23,"w:vorhin":4,"w:vorkommen":6,"w:vorlegen":3,"w:vorlesen":4,"w:vorliegen":18,"w:vorläufig":2,"w:vorn":5,"w:vorne":7,"w:vornehmen":2,"w:vorrangig":2,"w:vorsagen":2,"w:vorschlagen":8,"w:vorsehen":5,"w:vorsichtig":5,"w:vorwerfen":3,"w:vorübergehend":7,"w:völlig":16,"w:wach":13,"w:wachsen":30,"w:wahnsinnig":2,"w:wahr":6,"w:wahrnehmen":3,"w:wahrscheinlich":14,"w:walten":3,"w:wandern":8,"w:wann":58,"w:warm":34,"w:warnen":4,"w:warten":69,"w:warum":46,"w:was":264,"w:waschen":6,"w:wechseln":14,"w:wecken":8,"w:weder":6,"w:wegen":90,"w:weggehen":2,"w:wegwerfen":9,"w:wehtun":6,"w:weiblich":2,"w:weich":5,"w:weil":83,"w:weinen":6,"w:weisen":11,"w:weit":46,"w:weiterhin":6,"w:weitgehend":3,"w:weiß":12,"w:welcher":76,"w:weltweit":2,"w:wenden":15,"w:wenig":78,"w:wenigstens":4,"w:wenn":262,"w:wer":162,"w:werden":734,"w:werfen":14,"w:wertvoll":3,"w:wetten":5,"w:wichtig":61,"w:widerlich":2,"w:widerrufen":7,"w:widersprechen":7,"w:wie":298,"w:wieder":130,"w:wiederholen":20,"w:wiederkehrend":2,"w:wiederkommen":21,"w:wiegen":4,"w:willkommen":16,"w:windig":3,"w:wir":679,"w:wirken":26,"w:wirklich":25,"w:wirksam":3,"w:wischen":4,"w:wissen":95,"w:wissenschaftlich":3,"w:wo":52,"w:woanders":3,"w:woher":7,"w:wohin":5,"w:wohl":11,"w:wohnen":54,"w:wollen":141,"w:woran":8,"w:wozu":3,"w:wunderbar":4,"w:wählen":16,"w:während":31,"w:wünschen":9,"w:wütend":5,"w:zahlen":41,"w:zahlreich":2,"w:zehn":87,"w:zeichnen":3,"w:zeigen":116,"w:zeitgemäß":3,"w:zeitnah":2,"w:zentral":22,"w:zerbrechen":5,"w:zerdrücken":2,"w:zerfallen":2,"w:zerlegen":3,"w:zerquetschen":3,"w:zerspringen":2,"w:zerstören":3,"w:ziehen":54,"w:ziemlich":10,"w:zitieren":2,"w:zittern":6,"w:zornig":2,"w:zu":924,"w:zudem":21,"w:zuerst":32,"w:zufolge":2,"w:zufrieden":17,"w:zufällig":3,"w:zugeben":15,"w:zugrunde":5,"w:zuhören":18,"w:zulassen":2,"w:zumachen":17,"w:zunehmen":6,"w:zunehmend":12,"w:zunächst":10,"w:zurück":48,"w:zurückführen":2,"w:zurückgeben":4,"w:zurückgehen":4,"w:zurückkommen":11,"w:zurückrufen":7,"w:zurückschicken":2,"w:zurückstellen":3,"w:zusagen":4,"w:zusammen":40,"w:zusammenbrechen":7,"w:zusammenfassen":18,"w:zusammenhalten":2,"w:zusammenhängen":3,"w:zustimmen":12,"w:zuständig":9,"w:zusätzlich":12,"w:zutreffen":12,"w:zuverlässig":3,"w:zuvor":7,"w:zwanzig":33,"w:zwar":17,"w:zwei":272,"w:zweifeln":3,"w:zweite":62,"w:zwingen":6,"w:zwischen":56,"w:zwölf":26,"w:zählen":19,"w:zögern":5,"w:ähnlich":6,"w:ändern":16,"w:ängstlich":2,"w:ärztlich":16,"w:äußerst":2,"w:öffentlich":7,"w:öffnen":32,"w:örtlich":6,"w:übel":6,"w:üben":9,"w:über":264,"w:überall":9,"w:überbringen":2,"w:überflüssig":4,"w:überfordert":2,"w:überfüllt":3,"w:übergeben":4,"w:überhaupt":14,"w:überholen":4,"w:überlegen":9,"w:übermorgen":2,"w:übernachten":2,"w:übernehmen":34,"w:überprüfen":2,"w:überqueren":2,"w:überraschen":8,"w:überreichen":2,"w:übersehen":7,"w:übersetzen":6,"w:übertragen":12,"w:übertreiben":6,"w:überweisen":5,"w:überwiegen":4,"w:überwiegend":6,"w:überzeugt":3,"w:üblich":7,"w:übrig":4,"w:übrigens":12};
+
+// ===== Mephisto · integrator 13.9 · principal-part fixes for verb cards whose info string was wrong (v3/v4 audit reports; owner l1).
+// c_l1.js replaces card.info by this text before it derives the verb forms, so the card back and tap-to-translate agree. Keys = card ids.
+var L1_INFOFIX={
+ "w:umsteigen":"steigt um · stieg um · ist umgestiegen · trennbar",
+ "w:abbiegen":"biegt ab · bog ab · ist abgebogen · trennbar",
+ "w:sich bewerben":"bewirbt sich · bewarb sich · hat sich beworben · um etw. (A)",
+ "w:wiederholen":"wiederholt · wiederholte · hat wiederholt · untrennbar",
+ "w:übersetzen":"übersetzt · übersetzte · hat übersetzt · untrennbar",
+ "w:wehtun":"tut weh · tat weh · hat wehgetan · trennbar · jmdm. (D)",
+ "w:sich wohlfühlen":"fühlt sich wohl · fühlte sich wohl · hat sich wohlgefühlt · trennbar",
+ "w:streiten":"streitet · stritt · hat gestritten",
+ "w:notieren":"notiert · notierte · hat notiert · etw. (A)",
+ "w:übergeben":"übergibt · übergab · hat übergeben · untrennbar",
+ "w:gucken":"guckt · guckte · hat geguckt · umgangssprachlich · Norden und Mitte · im Süden: schauen · neutral: sehen, schauen"
+};
 

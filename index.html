@@ -1120,6 +1120,9 @@ img[src^="media/art/"],image[href^="media/art/"]{filter:var(--duo,var(--a4-duo))
 :root[data-fx-kit="1"] .verdict.no{text-shadow:none}
 :root[data-fx-kit="1"][data-realm="V"] body::after{animation:none!important}
 
+/* integrator 13.9: the effects (i.hx-blot, i.hx-ink) are appended inside .fc; that broke app.js's ".fc .face:only-child" (a single-face card turned absolute and its verdict and "Woran lag's?" chips overflowed onto Weiter). Same rule by type: */
+.fc>.face:only-of-type{position:relative;inset:auto;min-height:280px}
+
 /* ===== a7 · motion rules (PLAN-A D9; A6-motion §5). Tokens (--t-*, --e-*, --d-*, --stagger, --s-*) are a1's (s_a1.css); the calm collapse
    (:root.calm / :root.nomotion → durations var(--m-dur), one iteration, pseudo-elements included) is a1's block in head.html.
    Rules here: only transform and opacity are animated; every duration is a token (tests/motion_lint.js); an element that must keep a real
@@ -1810,6 +1813,8 @@ html.ts-big #fIn .rate button{min-height:var(--tap-1,48px);padding-inline:var(--
 <script src="js/data-bib.js" charset="utf-8"></script>
 <script src="js/data-more.js" charset="utf-8"></script>
 <script src="js/data-l1.js" charset="utf-8"></script>
+<script src="js/data-v1.js" charset="utf-8"></script>
+<script src="js/data-v2.js" charset="utf-8"></script>
 <script src="js/data-l2.js" charset="utf-8"></script>
 <script src="js/data-l3.js" charset="utf-8"></script>
 <script src="js/data-l10.js" charset="utf-8"></script>
@@ -1821,6 +1826,8 @@ html.ts-big #fIn .rate button{min-height:var(--tap-1,48px);padding-inline:var(--
 <script src="js/data-l9.js" charset="utf-8"></script>
 <script src="js/data-integ.js" charset="utf-8"></script>
 <script src="js/data-l4.js" charset="utf-8"></script>
+<script src="js/data-v3.js" charset="utf-8"></script>
+<script src="js/data-v4.js" charset="utf-8"></script>
 <script src="js/app.js" charset="utf-8"></script>
 <!-- ===== Hand kit: hold to explain, hold menus, swipe cards, sliders (shared with Orange 8.1) ===== -->
 <style>
