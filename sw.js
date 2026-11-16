@@ -3,9 +3,9 @@
    - single download: "./" is not a second copy; files that did not change between versions are not fetched again;
    - resumable: every verified file is kept at once, so an interrupted install continues where it stopped;
    - atomic: the new version only takes over when every file is stored and matches its SHA-256 (a stale CDN copy fails and is retried later). */
-const VERSION = "13.7.0-2580f01a55";
+const VERSION = "13.8.0-66d15282c7";
 const FILES = {
-"index.html": "8370274cc14c343e31562bb77a9a25b3729b5cb051c0ccd4145000fa0c9c8d6c",
+"index.html": "bb0597703d33118f341d0f32c9dec6ff2c84bac41d59b2692a1c9b726774aca0",
 "manifest.webmanifest": "d573eb33cf31c814060c21e4f4cb29abf24b12f9ab8950b4ca18aabd1c360cd9",
 "fonts.css": "8d483729ffa0c8054319a0ab4223a52671c7471c86e678358d990a13b24fcd39",
 "icons/apple-touch-icon.png": "3911a4362fc845fbaf7c9fcc664ef3a538a6e3050a7dd7ad20f1435eb99fd0e7",
@@ -21,13 +21,13 @@ const FILES = {
 "fonts/sourceserif4-italic.woff": "65cb81b09f72ccd03e756b200d2c08bdd4e8a30e6634a59dc5310e43cba9857e",
 "fonts/sourceserif4.woff": "0375575b7d682774f40208171de11fd99a042c083fdd17b925721455ea21278f",
 "fonts/unifraktur.woff": "961e1cfdcf923c87df0dbf6215a32d3f02fa40b2f330e04c4b6dc90f842cfe35",
-"js/app.js": "6f779044e44347cb4031b6c2df44bb5497c13dd95fce87bc74c8401fad9baafd",
+"js/app.js": "942928fe5b220447135748dee49194874e086161b896513794bc823810e78992",
 "js/data-b2.js": "f1a561e5277a177631eb4ecfda8c324e5daa36f1bddfc5ec779ff06d5f90900a",
 "js/data-base.js": "19e2fb924bec6004f439f07f1b48519f784765db7993d22e828a382806779a6f",
-"js/data-bib.js": "dc6d0bf4d328c70f9abe260f5cc1abc2661f376283a6ab71b8d88feb036994a7",
+"js/data-bib.js": "72d77ed86f3e47c1ec8b680d151fe5b397b0dab81cfa0c114040633f36ad7624",
 "js/data-fix.js": "72c37f9b910ac55c00acae4288e34bee4396f37610e2248d58d7ca20cf8379f6",
-"js/data-integ.js": "1a43dcf663f99c8d334bf7b2ebb1f5b36659fc6b9f09f37decf04ad1ee09b30f",
-"js/data-l1.js": "4fb209b8ac22c80d913ca6dcc9bf0f6f89fc77859b50bf86f465413e549d8acb",
+"js/data-integ.js": "60993b0bea2696fe7fa95c6c26445611abfbee9564f3b14a213b40ec9fece9e2",
+"js/data-l1.js": "6db688017ba283f1353e2368199b09c705abdb136ebd3ec304eb8f2737221bbb",
 "js/data-l10.js": "8d50020c408a4b316020e1a205b97bef1a56c75773f1328fec8b9c5e70f26417",
 "js/data-l2.js": "2f20b02881dc2751c8031038e37605a6343361203d89dc418115bdc43c9e4049",
 "js/data-l3.js": "dbbcef4e391bebf8a707933aac71604fbe3de35de297c85a13f10cb3d830dd9d",
@@ -38,7 +38,7 @@ const FILES = {
 "js/data-l8.js": "7bf37c1e4ae44aa16bd0d92b28ca1db655cd42de127bdf3ba02e167e99a051d7",
 "js/data-l9.js": "93231079e6eac71efe66634c6136908475e46e19e8a42461fd12f3838bbac14c",
 "js/data-media.js": "07a5088b8e81c3f7271264c63f2f6baea8471d042d3faaa992ce6734c2cdbb38",
-"js/data-more.js": "544f60f9ac2c2aa30a4e8bb72ddfc4944721a47118f7d6b24f8742b60a72d2d6",
+"js/data-more.js": "98d2c8043ef0638e2dbd51a575f7ea4f8918e47cfc912c322f838b1b0a7a9384",
 "js/data-music.js": "036e9356d25cdc8871ae57fad447b5fc96ec326f263d824fb95d25c602bd6c78",
 "js/data-p3.js": "f69fddfe614c11b8a6b455009016c04bac812ee5bc84009ba96d81e1bc70622c",
 "js/data-scenes.js": "f03f49eaf7451280e8837616a9d1da0002482973249490f2647e0e4a476db7dd",
@@ -130,7 +130,7 @@ const FILES = {
 "media/art/struwwel_6@2x.webp": "b16729cea44c1e1443990ae0b2332b093489d45596fdfce21895b7f3c70bc86c",
 "media/art/vesalius_epitome.webp": "6e23316d7fcaccb6fa4ed6318f248329f689bddcdf9419c0b2318a5ef6776aec",
 "media/art/vesalius_epitome@2x.webp": "c001738f6b93bdebfddedda0f3849b2f3bea757e05d483326991e7fed04bcc9d",
-"media/bib.json": "944a63f2b5138833178b67ef869596985127a6de56c8b4f3f96cf105a0e4493d",
+"media/bib.json": "871ef0fd50bf4d7db9265761cf25add4eb02ecc3212e8e7a79861f093addc443",
 "media/fonts/a1-doc.woff2": "31b2f35a39d018797eb61234964b12f849bbc81722a42023f1d7eb2f9eddee36",
 "media/fonts/a1-feder.woff2": "6332314aca9c3a1c31f31c63651d3c7a0e96de42e45cdf88523393157e213ebf",
 "media/fonts/a1-fell-it.woff2": "63eae338969f08f6c012e4a5151abbfa772bfad4f366322b7a166268b62a5e5c",

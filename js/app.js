@@ -1134,7 +1134,7 @@ ACT.copyYuzu=()=>{const p=yuzuPack();copyText(JSON.stringify(p),$(".bk-txt"));to
 ACT.reset=()=>{const v=($(".rs-in")||{}).value;if(v!=="LÖSCHEN")return toast("Tippe LÖSCHEN zur Bestätigung");lsSet("mephisto_before_reset",JSON.stringify(S));S=fresh();saveNow();buildDict();applyPrefs();R.tab="home";toast("Zurückgesetzt. Eine Kopie liegt unter „mephisto_before_reset“.");rerender()};
 
 // ================= PHONE FEATURES (v10): speech check, Artikel-Blitz, numbers, terms, undo, haptics, coach, PWA =================
-const APP_VERSION="13.7.0";
+const APP_VERSION="13.8.0";
 const IS_PWA=!!window.MEPHISTO_PWA;
 const IS_STANDALONE=(()=>{try{return matchMedia("(display-mode: standalone)").matches||navigator.standalone===true}catch(e){return false}})();
 const IS_IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
@@ -3957,7 +3957,7 @@ MOD.after("viewHome","pakt",function(m){const p=P();const v=m.querySelector(".vi
   if(!p.signed){v.insertAdjacentHTML("afterbegin",`<div class="card orn stack s pk-fade">${pkSay(["Ein neues Zeitalter, Doktor. Unterschreiben Sie.","A new age, Doctor. Sign."])}<button class="go" data-act="pkProlog">☩ Den Pakt schließen</button></div>`);return}
   dayStart();
   const c=pkCh(),g=pkGate(c),gr=pkGreet();
-  v.insertAdjacentHTML("afterbegin",`<div class="card orn stack s pk-fade">${pkSay(gr.l,gr.k==="secret")}
+  v.insertAdjacentHTML("afterbegin",`<div class="card orn stack s pk-fade">${pkSay(gr.l,gr.k==="secret",gr.k==="secret"?"secret":"")}
     <div class="row between" style="gap:.5rem"><button class="ghost sm" data-go="pakt" style="text-align:left;justify-content:flex-start;min-width:0"><span style="min-width:0"><span class="eyebrow">Kapitel ${c.n} · ${esc(REALMS[c.r].de)}</span><br><b style="font-family:var(--display);font-weight:400;font-size:1.15rem">${esc(c.t)}</b></span></button>
     ${p.debt?`<button class="go sm" data-act="pkPay">Bußrunde · ${p.debt}<small style="display:block;font-size:.68rem">${p.debt} Schuldschein${p.debt>1?"e":""} · nächster ${typeof pkPayCost==="function"?pkPayCost(p):10} Karten</small></button>`:g.ready?`<button class="go sm" data-act="pkSeal">☩ Siegel brechen</button>`:`<button class="chip" data-go="pakt" title="Siegel-Aufgaben erledigt">Siegel ${g.items.filter(i=>!i.opt&&i.ok).length}/${g.items.filter(i=>!i.opt).length}<small class="en" style="display:block;font-size:.68rem">seal tasks done</small></button>`}</div></div>`)});
 const _finishPk=finishSession;finishSession=function(){const r=_finishPk.apply(this,arguments);try{/* P1 (systems 1): a session of skipped steps is not a session */if(!S.today||S.today.counts!==false)pkOnSession();else if(!S.today.warned){S.today.warned=1;setTimeout(()=>toast("Mephisto: Übersprungen ist nicht gelernt. Dieser Tag zählt nicht für das Siegel.",4200),900)}}catch(e){}return r};
@@ -10318,6 +10318,1478 @@ L10X.nextDrill=nextDrill;L10X.nextCall=nextCall;L10X.runRef=runRef;
 safe("reg",()=>{LX.reg({id:"l10.drill",skill:"klinik",pocket:false,next:nextDrill,run:runRef});LX.reg({id:"l10.telefon",skill:"klinik",pocket:true,next:nextCall,run:runRef})});
 })();
 
+// ===== Mephisto · track S · c_s16.js (owner s16) — the Rätselbuch: „Offene Fragen“ on the Pakt screen, arc labels and the arc title card (PLAN-S2 §1, §5).
+// Place: modules.json code → ["c_s16","story"] after ["c_s7","story"] (after every c_s* that changes scenes), before ["c_cloud","core"].
+// Data: v2/x_s16_mys.js (MYS, ARCS). API: build/s16/API.txt §7.
+// Exposed: mysPos(ref) · mysLine(ref) · mysSeen(id) · mysState(id) · mysAnswered(id) · mysCardHtml(id) · mysCard(id) · arcOf(n) · arcLabel(n) · S16
+// State: S.mys={seen:{"lampe.1":"dd/mm/yyyy","!lampe.1":…,"bett.hexe":…},read:{"7":"dd/mm/yyyy"},arc:{licht:"dd/mm/yyyy"}} — merge: union per map, earliest date.
+// Hooks: MOD.after("viewPakt","s16") (card, map legend, arc title card) · MOD.after("pkRead","s16") (pkRead is NOT one of the 15 listed hooks: after-only,
+//   it only notes which chapter the reader opened; recording happens when the reader closes, seen through a MutationObserver on #focus[hidden]).
+// Sober: Bett-vier plants are listed by visit only, never quoted (Frau Brandt's lines are never a clue). Nothing here throws at load.
+var MYS=MYS||{},ARCS=ARCS||[];
+const S16=(function(){
+  const BOSS_CH={hexe:8,golem:16,pudel:24,caligari:32,kommission:40};
+  const PART={scene:0,after:1,bett:2,finale:0};
+  const ddmmyyyy=()=>{try{return fmtDate(todayKey())}catch(e){const d=new Date();return String(d.getDate()).padStart(2,"0")+"/"+String(d.getMonth()+1).padStart(2,"0")+"/"+d.getFullYear()}};
+  const st=()=>{if(!S.mys||typeof S.mys!=="object")S.mys={};const m=S.mys;["seen","read","arc"].forEach(k=>{if(!m[k]||typeof m[k]!=="object")m[k]={}});return m};
+  const pk=()=>{try{return P()}catch(e){return {ch:1,sealed:{},bett:{}}}};
+  const ids=()=>Object.keys(MYS).filter(id=>MYS[id]&&Array.isArray(MYS[id].plants));
+  const refs=id=>{const m=MYS[id]||{};return (m.plants||[]).map(r=>[r,"P"]).concat((m.answers||[]).map(r=>[r,"A"]))};
+  const key=r=>r.bett?r.ch&&("bett."+r.bett):r.a&&r.a[0]==="?"?r.a.slice(1):r.a;
+  const bossOf=n=>{try{const b=Object.keys(BOSSES).find(k=>BOSSES[k].ch===n);if(b)return b}catch(e){}return Object.keys(BOSS_CH).find(k=>BOSS_CH[k]===n)||null};
+  const won=n=>{const b=bossOf(n);return !!(b&&(S.bossWins||{})[b])};
+  function pos(r){if(!r)return 0;if(r.bett)return (BOSS_CH[r.bett]||r.ch||1)*10000+2000;
+    let idx=500;try{if(r.part==="scene"&&typeof SCN_AT!=="undefined"&&SCN_AT[r.ch]&&SCN_AT[r.ch][r.a]!=null)idx=SCN_AT[r.ch][r.a]}catch(e){}
+    return (r.ch||1)*10000+(PART[r.part]||0)*1000+idx}
+  // was this ref read?
+  function seen(r){const p=pk(),m=st();const k=key(r);if(k&&m.seen[k])return true;
+    if(r.bett)return !!(p.bett&&p.bett[r.bett]);
+    if(r.ch===41||r.part==="finale")return !!p.done;
+    const passed=r.ch<(p.ch||1)||!!(p.sealed&&p.sealed[r.ch])||!!p.done;
+    if(r.part==="after")return won(r.ch)&&(passed||!!m.read[r.ch]);
+    return passed}
+  function record(n){try{const m=st(),d=ddmmyyyy(),p=pk();let ch=false;
+    if(!m.read[n]){m.read[n]=d;ch=true}
+    ids().forEach(id=>refs(id).forEach(([r])=>{if(r.bett||r.ch!==n)return;if(r.part==="after"&&!won(n))return;const k=key(r);if(k&&!m.seen[k]){m.seen[k]=d;ch=true}}));
+    if(n===CHAPTERS.length&&p.done)ids().forEach(id=>refs(id).forEach(([r])=>{if(r.ch===41){const k=key(r);if(!m.seen[k]){m.seen[k]=d;ch=true}}}));
+    const a=arcOf(n);if(a&&!m.arc[a.id]){m.arc[a.id]=d;ch=true}
+    if(ch&&typeof saveSoon==="function")saveSoon();
+    try{document.dispatchEvent(new CustomEvent("mys:read",{detail:{n}}))}catch(e){}}catch(e){try{logError(e)}catch(x){}}}
+  function state(id){const m=MYS[id];if(!m)return 0;if(!m.plants.some(seen))return 0;const fin=m.answers.find(r=>r.final);if(fin&&seen(fin))return 3;
+    return m.answers.some(r=>!r.final&&seen(r))?2:1}
+  function arcOf(n){return ARCS.find(a=>a.kind!=="zl"&&n>=a.from&&n<=a.to)||null}
+  // the line an anchor marks, as played
+  function line(r){try{if(!r||r.bett)return null;let L=null,i=-1;
+      if(r.part==="scene"){const c=CHAPTERS[r.ch-1];if(c&&typeof SCN_AT!=="undefined"&&SCN_AT[r.ch]&&SCN_AT[r.ch][r.a]!=null){L=c.scene;i=SCN_AT[r.ch][r.a]}}
+      else{const raw=r.part==="finale"?(typeof S7!=="undefined"&&S7.finaleRaw?S7.finaleRaw():FINX.finale):(SCN[r.ch]||{}).after;
+        if(Array.isArray(raw)){const j=raw.findIndex(l=>l[0]==="@"&&l[1]===r.a);if(j>=0){L=raw;i=j+1;while(L[i]&&L[i][0]==="@")i++}}}
+      if((!L||i<0)&&r.before){const nm=x=>String(x||"").replace(/[„“”"‚‘’']/g,"").replace(/\s+/g," ").trim();const want=nm(r.before);   // anchor not placed yet: find the line by its text
+        const src=r.part==="finale"?(typeof S7!=="undefined"&&S7.finaleRaw?S7.finaleRaw():FINX.finale):r.part==="after"?(SCN[r.ch]||{}).after:(CHAPTERS[r.ch-1]||{}).scene;
+        if(Array.isArray(src)){L=src;i=want.indexOf("C:")===0?src.findIndex(l=>l[0]==="C"&&l[1]===want.slice(2)):src.findIndex(l=>l[0]!=="@"&&nm(l.slice(1).filter(x=>typeof x==="string").join(" ")).indexOf(want)>=0)}}
+      if(!L||i<0)return null;let l=L[i];
+      while(l&&(l[0]==="C"||l[0]==="IF"||l[0]==="@"||l[0]==="SIG")&&i>0){i--;l=L[i]}   // a decision line: show what sets it up
+      return l&&["N","M","S","X","D"].includes(l[0])?l:null}catch(e){return null}}
+  const fill=s=>{try{return st3Fill(s)}catch(e){return String(s||"")}};
+  const cut=(s,n)=>{s=String(s||"");return s.length>n?s.slice(0,n-1).replace(/\s+\S*$/,"")+" …":s};
+  function lineHtml(l){const du=(()=>{try{return st3Du()}catch(e){return false}})();let who="",de="",en="";
+    switch(l[0]){case "N":if(l.length>=3){de=l[1];en=l[2]}else en=l[1];break;case "M":who="Mephisto";de=du&&l[3]?l[3]:l[1];en=l[2];break;
+      case "S":who="Dein Schatten";de=l[1];en=l[2];break;case "X":who=l[1];de=l[2];en=l[3];break;case "D":who=l[1];de=l[2];en=l[3];break}
+    return `${who?`<span class="s16-who">${esc(fill(who))}</span> `:""}${de?`<span class="s16-de">„${esc(cut(fill(de),220))}“</span>`:""}${en?`<span class="en">${esc(cut(fill(en),220))}</span>`:""}`}
+  const chName=n=>n>=41?"im Finale":"in Kapitel "+n;
+  const bettNo={hexe:1,golem:2,pudel:3,caligari:4};
+  function guess(id){const m=MYS[id],c=pk().ch||1;const f=(m.falsch||[]).filter(x=>x.from<=c);return f.length?f[f.length-1]:null}
+  function answeredCh(id){const m=MYS[id];const fin=m&&m.answers.find(r=>r.final);return fin&&seen(fin)?fin.ch:0}
+  function body(id,full){const m=MYS[id],s=state(id);if(!m||!s)return "";const p=pk();
+    const pl=m.plants.filter(seen).sort((a,b)=>pos(a)-pos(b)).map(r=>{if(r.bett)return `<li><span class="s16-ch">Bett vier</span> <span class="muted ui">${bettNo[r.bett]||""}. Besuch · nach dem Duell in Kapitel ${BOSS_CH[r.bett]||r.ch} <span class="en">visit after the duel</span></span></li>`;
+      const l=line(r);return `<li><span class="s16-ch">Kap. ${r.ch}</span> ${l?lineHtml(l):`<span class="muted ui">(Stelle noch nicht geschrieben)</span>`}</li>`}).join("");
+    const parts=m.answers.filter(r=>!r.final&&seen(r)).map(r=>r.ch);const uniq=[...new Set(parts)];
+    const g=s<3?guess(id):null;const fin=m.answers.find(r=>r.final);
+    return `<ul class="s16-plants">${pl}</ul>
+      ${g?`<div class="s16-guess"><span class="eyebrow">Deine Vermutung <span class="en">your guess</span></span><div>${esc(g.de)} <span class="en">${esc(g.en)}</span></div></div>`:""}
+      ${uniq.length&&s<3?`<div class="s16-state ui">Eingegrenzt ${uniq.map(chName).join(", ")} <span class="en">narrowed</span></div>`:""}
+      ${s===3?`<div class="s16-state ok ui">Beantwortet ${chName(fin.ch)} <span class="en">answered</span></div>`:""}
+      ${s===3&&full&&m.wahr?`<div class="s16-wahr"><span class="eyebrow">Heute weißt du <span class="en">now you know</span></span><div>${esc(m.wahr[0])} <span class="en">${esc(m.wahr[1])}</span></div></div>`:""}
+      ${s===3&&p.done&&m.reread?`<div class="s16-reread"><span class="eyebrow">Beim zweiten Lesen <span class="en">on a second reading</span></span><div>${esc(m.reread[0])} <span class="en">${esc(m.reread[1])}</span></div></div>`:""}`}
+  const chip=s=>s===3?`<span class="chip s16-c3">beantwortet</span>`:s===2?`<span class="chip s16-c2">eingegrenzt</span>`:`<span class="chip s16-c1">offen</span>`;
+  function cardHtml(id){const m=MYS[id];if(!m||!state(id))return "";
+    return `<div class="stack s s16-one"><div class="row between"><div class="eyebrow">${m.central?"Die Frage dieser Geschichte":"Offene Frage"}</div>${chip(state(id))}</div>
+      <h3 style="margin:.1rem 0">${esc(m.q[0])}</h3><div class="en">${esc(m.q[1])}</div>${body(id,true)}</div>`}
+  function openCard(id){try{const sh=$("#sheet"),inn=$("#sheetIn");if(!sh||!inn)return false;const h=cardHtml(id);if(!h)return false;
+    inn.innerHTML=`<div class="row between"><div class="eyebrow">Rätselbuch <span class="en">book of questions</span></div><button class="icon ghost" data-act="closeSheet" aria-label="Schließen">${typeof ic==="function"?ic("x"):"×"}</button></div>${h}`;
+    sh.hidden=false;return true}catch(e){return false}}
+  // ---------------------------------------------------------------- the Pakt screen
+  function paktCard(){const list=ids().filter(id=>state(id)>0);if(!list.length)return "";
+    list.sort((a,b)=>(MYS[b].central?1:0)-(MYS[a].central?1:0)||(state(a)===3)-(state(b)===3)||Math.min(...MYS[a].plants.map(pos))-Math.min(...MYS[b].plants.map(pos)));
+    const open=list.filter(id=>state(id)<3).length,done=list.length-open;
+    return `<div class="card stack s s16-card"><div class="row between"><div class="eyebrow">Offene Fragen <span class="en">open questions</span></div><small class="muted ui">${open} offen${done?` · ${done} beantwortet`:""}</small></div>
+      ${list.map(id=>{const m=MYS[id],s=state(id);return `<details class="s16-q${m.central?" s16-central":""}${s===3?" s16-done":""}" data-id="${id}"><summary><span class="s16-qt"><b>${esc(m.q[0])}</b> <span class="en">${esc(m.q[1])}</span></span>${chip(s)}</summary>${body(id,false)}</details>`}).join("")}
+      <small class="muted ui">Nur was du gelesen hast. Antworten stehen erst hier, wenn die Geschichte sie gegeben hat. <span class="en">Only what you have read; answers appear once the story has given them.</span></small></div>`}
+  function legend(){const p=pk(),c=p.ch||1;return `<div class="s16-arcs">${ARCS.filter(a=>a.kind!=="zl").map(a=>`<div class="s16-arc k-${a.kind}${c>=a.from&&c<=a.to?" here":""}${a.from>c?" locked":""}"><span class="s16-lbl">${esc(a.label[0])}</span> <b>${esc(a.n[0])} · ${esc(a.de)}</b> <small class="muted ui">${a.from}–${Math.min(a.to,CHAPTERS.length)}</small></div>`).join("")}</div>`}
+  function arcCard(a){return `<div class="card orn stack s s16-arccard k-${a.kind} pk-fade" data-arc="${a.id}"><div class="eyebrow">${esc(a.label[0])} · Kapitel ${a.from}–${Math.min(a.to,CHAPTERS.length)} <span class="en">${esc(a.label[1])}</span></div>
+      <h2 style="margin:.15rem 0">${esc(a.n[0])} · ${esc(a.de)}</h2>${a.sub?`<div class="s16-sub">${esc(a.sub[0])}</div>`:""}<div class="en">${esc(a.n[1])} · ${esc(a.en)}${a.sub?" · "+esc(a.sub[1]):""}</div></div>`}
+  function onPakt(m){const p=pk();if(!p.signed)return;const v=m.querySelector(".view");if(!v)return;const ms=st();
+    // arcs before the current one are marked silently (no title card for the past); the current arc's card stays until one of its chapters is opened
+    const cur=arcOf(p.ch||1);ARCS.forEach(a=>{if(a.kind!=="zl"&&cur&&a.to<cur.from&&!ms.arc[a.id])ms.arc[a.id]="—"});
+    const chCard=(()=>{const b=v.querySelector(`button[data-act="pkRead"][data-n="${p.ch}"]`);return b&&b.closest(".card")})();
+    if(cur&&!ms.arc[cur.id]&&!p.done&&!v.querySelector(".s16-arccard")){if(chCard)chCard.insertAdjacentHTML("beforebegin",arcCard(cur));else v.insertAdjacentHTML("afterbegin",arcCard(cur))}
+    if(cur&&chCard){const e=chCard.querySelector(".eyebrow");if(e&&/^Kapitel \d+ von/.test(e.textContent)&&!e.querySelector(".s16-lbl"))e.insertAdjacentHTML("beforeend",` · <span class="s16-lbl">${esc(cur.label[0])}</span>`)}
+    const map=[...v.querySelectorAll(":scope > .card")].find(c=>c.querySelector(".m-wrap,.pk-map"));
+    if(map&&!map.querySelector(".s16-arcs")){map.insertAdjacentHTML("beforeend",legend());
+      map.querySelectorAll(".m-node[data-n],.pk-chaps button[data-n]").forEach(el=>{const a=arcOf(+el.getAttribute("data-n"));if(!a)return;el.classList.add("s16-"+a.kind);el.setAttribute("data-arc",a.id);
+        if(el.tagName.toLowerCase()==="g"){const t=document.createElementNS("http://www.w3.org/2000/svg","title");t.textContent=a.label[0]+" · "+a.de;el.appendChild(t)}else el.title=(el.title?el.title+" · ":"")+a.label[0]})}
+    if(!v.querySelector(".s16-card")){const h=paktCard();if(h){if(map)map.insertAdjacentHTML("afterend",h);else v.insertAdjacentHTML("beforeend",h)}}}
+  return {pos,seen,record,state,arcOf,line,cardHtml,openCard,onPakt,paktCard,key,
+    merge(a,b){const o={seen:{},read:{},arc:{}};const early=(x,y)=>{if(!x)return y;if(!y)return x;const t=s=>{const m=/^(\d\d)\/(\d\d)\/(\d{4})$/.exec(s);return m?m[3]+m[2]+m[1]:"9"};return t(x)<=t(y)?x:y};
+      ["seen","read","arc"].forEach(k=>{const A=(a&&a[k])||{},B=(b&&b[k])||{};new Set(Object.keys(A).concat(Object.keys(B))).forEach(i=>o[k][i]=early(A[i],B[i]))});return o}}})();
+function mysPos(ref){return S16.pos(typeof ref==="string"?(()=>{for(const id in MYS){const r=(MYS[id].plants||[]).concat(MYS[id].answers||[]).find(x=>x.a===ref);if(r)return r}return null})():ref)}
+function mysLine(ref){return S16.line(typeof ref==="string"?(()=>{for(const id in MYS){const r=(MYS[id].plants||[]).concat(MYS[id].answers||[]).find(x=>x.a===ref);if(r)return r}return null})():ref)}
+function mysSeen(id){const m=MYS[id];return m?m.plants.filter(S16.seen):[]}
+function mysState(id){return S16.state(id)}
+function mysAnswered(id){const m=MYS[id];const f=m&&m.answers.find(r=>r.final);return f&&S16.seen(f)?f.ch:0}
+function mysCardHtml(id){return S16.cardHtml(id)}
+function mysCard(id){return S16.openCard(id)}
+function arcOf(n){return S16.arcOf(n)}
+function arcLabel(n){const a=S16.arcOf(n);return a?a.label[0]+" · "+a.de:""}
+(function(){
+try{MOD.after("viewPakt","s16",function(m){S16.onPakt(m)})}catch(e){try{logError(e)}catch(x){}}
+let pend=0;
+try{MOD.after("pkRead","s16",function(n){try{pend=+n||P().ch}catch(e){}})}catch(e){try{logError(e)}catch(x){}}
+try{const watch=()=>{const f=document.getElementById("focus");if(!f||typeof MutationObserver==="undefined")return false;
+    new MutationObserver(()=>{if(pend&&f.hidden){const n=pend;pend=0;S16.record(n)}}).observe(f,{attributes:true,attributeFilter:["hidden"]});return true};
+  if(!watch())setTimeout(watch,0)}catch(e){}
+try{ACT.s16Card=el=>{const id=el&&el.dataset?el.dataset.id:el;mysCard(id)}}catch(e){}
+try{const s=document.createElement("style");s.textContent=`
+.s16-q{border-top:1px solid var(--line,#333);padding:.45rem 0}.s16-q:first-of-type{border-top:0}
+.s16-q summary{display:flex;justify-content:space-between;align-items:flex-start;gap:.6rem;cursor:pointer;min-height:44px;list-style:none}
+.s16-q summary::-webkit-details-marker{display:none}.s16-qt{min-width:0;overflow-wrap:anywhere}.s16-qt b{font-family:var(--display,inherit);font-weight:400;font-size:1.08rem}
+.s16-central .s16-qt b{color:var(--accent,#F08A3F)}.s16-done .s16-qt b{opacity:.75}
+.s16-plants{margin:.4rem 0 .2rem;padding-left:1rem;display:flex;flex-direction:column;gap:.35rem}
+.s16-plants li{font-family:var(--body,inherit);line-height:1.45;overflow-wrap:anywhere}.s16-plants .en{display:block;font-size:.85rem;opacity:.75}
+.s16-ch{font-family:var(--ui,inherit);font-size:.72rem;letter-spacing:.06em;opacity:.7;margin-right:.25rem}.s16-who{font-family:var(--ui,inherit);font-size:.8rem;opacity:.8}
+.s16-guess,.s16-wahr,.s16-reread{margin:.4rem 0;padding:.4rem .6rem;border-left:2px solid var(--line,#555)}.s16-guess div{font-style:italic}
+.s16-reread{border-left-color:#7A4A26;color:#B07A4A}.s16-wahr{border-left-color:var(--accent,#F08A3F)}
+.s16-state{font-size:.85rem;margin:.3rem 0}.s16-state.ok{color:var(--good,#7FB069)}
+.s16-c1,.s16-c2,.s16-c3{flex:none;font-size:.72rem}.s16-c2{border-color:#B07A4A}.s16-c3{opacity:.7}
+.s16-arcs{display:flex;flex-direction:column;gap:.25rem;margin-top:.6rem}.s16-arc{font-size:.85rem;padding:.2rem .5rem;border-left:3px solid var(--line,#444);overflow-wrap:anywhere}
+.s16-arc.k-frage{border-left-color:#5E6E8C}.s16-arc.k-wende{border-left-color:#9B1C14}.s16-arc.k-antwort{border-left-color:var(--accent,#F08A3F)}
+.s16-arc.here{background:rgba(240,138,63,.08)}.s16-arc.locked{opacity:.5}.s16-lbl{font-family:var(--ui,inherit);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;opacity:.8}
+.s16-arccard{text-align:center}.s16-arccard .s16-sub{font-style:italic;font-family:var(--body,inherit)}
+`;document.head.appendChild(s)}catch(e){}
+})();
+
+// ===== Mephisto · track S · c_s11.js (owner s11) — „Zwischen den Seiten": Fundstücke (PLAN-S2 §3), their unlock logic, the quiet arrival card and the drawer.
+// Load: after c_s7 (the drawer sits after s7's Mappe card; works without it), before c_cloud. Needs x_s11_fund.js (FUNDE).
+// Optional readers, all guarded with typeof: sgPick/sgEnding (s4), MYS/ARCS/mysState/mysCard (s16), EV (i1), S.eggs, S.bossWins, P().bett, S.zl (s12).
+// Saved state: ONE key S.fu={got:{id:"dd/mm/yyyy"},read:{id:1},q:{id:n}}. Merge (fuMerge, registered as MERGE_RULES.fu when c_cloud has MERGE_RULES):
+//   got = union, earlier date wins · read = union · q = max per id. It is a join (commutative, associative, idempotent).
+// Hooks: MOD.after("viewPakt","s11",…) only. No shared function is wrapped or reassigned. Globals: FU, fuOpen, fuGrant, fuMerge, ACT.fu*.
+// Sober: fragments with sober:true set document.documentElement.dataset.sober="1" while open (PLAN-S §3.3) and restore the previous value on close.
+var FUNDE=FUNDE||[];
+var FU=FU||{};
+(function(){
+const H=()=>document.documentElement;
+function h(s){try{return esc(s)}catch(e){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c])}}
+function fill(s){try{return typeof st3Fill==="function"?st3Fill(String(s)):String(s)}catch(e){return String(s)}}
+function pk(){try{return typeof P==="function"?P():{}}catch(e){return {}}}
+const pad=n=>String(n).padStart(2,"0");
+FU.date=function(d){d=d||new Date();return pad(d.getDate())+"/"+pad(d.getMonth()+1)+"/"+d.getFullYear()};
+const dnum=s=>{const m=/^(\d\d)\/(\d\d)\/(\d{4})$/.exec(String(s||""));return m?+(m[3]+m[2]+m[1]):Infinity};
+
+// ---------------------------------------------------------------- 1. state and merge
+function st(){try{if(!S.fu||typeof S.fu!=="object")S.fu={};const f=S.fu;["got","read","q"].forEach(k=>{if(!f[k]||typeof f[k]!=="object")f[k]={}});return f}catch(e){return {got:{},read:{},q:{}}}}
+function save(){try{saveSoon()}catch(e){}}
+window.fuMerge=function(a,b){a=a&&typeof a==="object"?a:{};b=b&&typeof b==="object"?b:{};const o={got:{},read:{},q:{}};
+  [a,b].forEach(x=>{const g=x.got||{};Object.keys(g).forEach(k=>{if(o.got[k]==null||dnum(g[k])<dnum(o.got[k]))o.got[k]=g[k]})});
+  [a,b].forEach(x=>{Object.keys(x.read||{}).forEach(k=>{if(x.read[k])o.read[k]=1})});
+  [a,b].forEach(x=>{const q=x.q||{};Object.keys(q).forEach(k=>{const v=+q[k]||0;if(!(o.q[k]>=v))o.q[k]=v})});
+  return o};
+FU.merge=window.fuMerge;
+
+// ---------------------------------------------------------------- 2. unlock logic (PLAN-S2 §3.1)
+const BOSS_CH={hexe:8,golem:16,pudel:24,caligari:32,kommission:40};
+const BETT_CH=[8,16,24,32];
+const CHOICE_CH={l1:1,n2:2,b3:3,w5:5,z6:6,q7:7,s8:8,h9:9,g10:10,k11:11,k12:12,s12:12,s13:13,a14:14,r15:15,p17:17,d18:18,s20:20,t21:21,g22:22,v23:23,p24:24,
+  s25:25,z26:26,m27:27,a29:29,l30:30,b31:31,c32:32,m34:34,n36:36,g36:36,t37:37,k39:39,v40:40};
+const ZL_KEYS=["1","2","3","4","5","6","7","8","coda","bett1"];
+// position of an unlock in the story: chapter 1–40, 41 = finale/done, 42 = Zweite Lesung (for grouping and for myst_lint's ordering)
+FU.pos=function(u){if(!u)return 0;if(Array.isArray(u.all))return Math.max(0,...u.all.map(FU.pos));
+  if(u.sealed)return +u.sealed;if(u.boss)return BOSS_CH[u.boss]||0;if(u.bett)return BETT_CH[(+u.bett)-1]||32;
+  if(u.choice)return CHOICE_CH[String(u.choice).split(".")[0]]||0;if(u.done)return 41;if(u.zl!=null)return 42;return 0};
+// old-save fallback when s4's sgPick is absent: P().choices[id] holds an option index of the old CHOICES
+const OLD_KEYS={q7:["wer","warum"],v23:["verweile","weiter"],v40:["verweile","weiter"]};
+function live(){const p=pk();return {
+  sealed:n=>!!((p.sealed||{})[n])||(+p.ch||1)>n,
+  boss:id=>{try{return !!(S.bossWins||{})[id]}catch(e){return false}},
+  egg:id=>{try{return !!(S.eggs||{})[id]}catch(e){return false}},
+  bett:()=>Object.keys(p.bett||{}).length,
+  done:()=>!!p.done,
+  pick:id=>{try{if(typeof sgPick==="function"){const k=sgPick(id);return k==null||k===""?[]:String(k).split(",")}}catch(e){}
+    const out=[];const c=(p.choices||{})[id];if(c!=null){const m=OLD_KEYS[id];out.push(m&&m[c]?m[c]:String(c))}
+    if(id==="v23"&&(+p.verw||0)>0&&!out.includes("verweile"))out.push("verweile");return out},
+  ending:()=>{try{if(typeof sgEnding==="function")return sgEnding()||null}catch(e){}
+    const c=(p.choices||{}).v40;return p.done&&c===1?"A":null},
+  zl:k=>{try{const z=S.zl||{};const r=z.read||{};if(k==="all")return !!z.done||ZL_KEYS.every(x=>r[x]);return !!r[k]}catch(e){return false}}}}
+function ok(u,L){if(!u||typeof u!=="object")return false;
+  if(Array.isArray(u.all))return u.all.length>0&&u.all.every(x=>ok(x,L));
+  if(u.sealed!=null)return L.sealed(+u.sealed);
+  if(u.boss)return L.boss(u.boss);
+  if(u.egg)return L.egg(u.egg);
+  if(u.bett!=null)return L.bett()>=+u.bett;
+  if(u.choice){const [id,k]=String(u.choice).split(".");const ks=L.pick(id);return k==="*"?ks.length>0:ks.includes(k)}
+  if(u.done){if(!L.done())return false;return u.ending?L.ending()===u.ending:true}
+  if(u.zl!=null)return L.zl(String(u.zl));
+  return false}
+// fuOpen(f[, L]) → true when the fragment's unlock is met. L (optional) is a stub state for tests: {sealed(n),boss(id),egg(id),bett(),done(),pick(id)→[keys],ending(),zl(k)}
+window.fuOpen=function(f,L){try{if(typeof f==="string")f=FUNDE.find(x=>x.id===f);if(!f)return false;
+  if(f.gate==="lv"){try{const LV=["A1","A2","B1","B2","C1"];if(typeof learnerLv==="function"&&learnerLv()<LV.indexOf(f.lv))return false}catch(e){}}
+  return ok(f.unlock,L||live())}catch(e){return false}};
+FU.open=window.fuOpen;
+FU.has=id=>!!st().got[id];
+FU.list=()=>FUNDE.filter(f=>FU.has(f.id)||fuOpen(f));
+// s12's ["FU",id] grant (and anyone else's): records the fragment as found even if its unlock is not (yet) visible here.
+window.fuGrant=function(id){const f=FUNDE.find(x=>x.id===id);if(!f)return false;const s=st();if(!s.got[id]){s.got[id]=FU.date();save();return true}return false};
+// scan: record every newly opened fragment; returns the ids that are new
+FU.scan=function(){const s=st();const L=live();const fresh=[];
+  FUNDE.forEach(f=>{if(!s.got[f.id]&&fuOpen(f,L)){s.got[f.id]=FU.date();fresh.push(f.id)}});if(fresh.length)save();return fresh};
+
+// ---------------------------------------------------------------- 3. arcs and mysteries (s16 when present, else PLAN-S2 §1.1 / §1.2)
+const ARC_FB=[
+ {id:"licht",from:1,to:8,kind:"frage",de:"Das kalte Licht",en:"The cold light",sub:"Erste Erzählung · ein Schwarzwaldmärchen"},
+ {id:"akte",from:9,to:16,kind:"frage",de:"Die Prager Akte",en:"The Prague file",sub:"Zweite Erzählung · eine Erzählung aus dem Amt"},
+ {id:"blatt",from:17,to:20,kind:"frage",de:"Das fehlende Blatt",en:"The missing sheet",sub:"Dritte Erzählung · eine Studierstube"},
+ {id:"wette",from:21,to:24,kind:"wende",de:"Die Wette",en:"The wager",sub:"Wende"},
+ {id:"stimme",from:25,to:32,kind:"antwort",de:"Die Stimme",en:"The voice",sub:"Erste Antwort"},
+ {id:"brandt",from:33,to:41,kind:"antwort",de:"Der Fall Brandt",en:"The Brandt case",sub:"Letzte Antwort"}];
+const ARC_ZL={id:"zl",from:42,to:42,kind:"lesung",de:"Das kalte Licht, noch einmal",en:"The cold light, once more",sub:"Zweite Lesung"};
+FU.arcs=function(){let A=null;try{if(typeof ARCS!=="undefined"&&ARCS){const L=Array.isArray(ARCS)?ARCS:Object.keys(ARCS).map(k=>Object.assign({id:k},ARCS[k]));
+    const tx=x=>Array.isArray(x)?String(x[0]||""):String(x||"");
+    A=L.filter(a=>a&&+a.from>0&&+a.to>0&&!a.after&&a.kind!=="zl").map(a=>({id:a.id,from:+a.from,to:+a.to===40?41:+a.to,kind:a.kind,de:tx(a.de)||a.id,en:tx(a.en),sub:tx(a.n)||tx(a.sub)}))}}catch(e){A=null}
+  if(!A||!A.length)A=ARC_FB.slice();if(!A.some(a=>a.from<=42&&a.to>=42))A.push(ARC_ZL);return A.sort((a,b)=>a.from-b.from)};
+FU.arcOf=f=>{const p=FU.pos(f.unlock);return FU.arcs().find(a=>p>=a.from&&p<=a.to)||ARC_FB[0]};
+const MYS_FB={lampe:["Warum ist die Laterne kalt?","Why is the lantern cold?",1],schatten:["Wer geht hinter mir?","Who walks behind me?",1],
+ bett:["Welches Bett ist das?","Which bed is that?",5],stunde:["Welche Stunde gehört mir?","Which hour belongs to me?",1],tasse:["Für wen ist die zweite Tasse?","Who is the second cup for?",9],
+ para6:["Welches Verb sagt er nicht?","Which verb does he not say?",7],wette:["Worauf hat er gewettet, und mit wem?","What did he bet on, and with whom?",8],
+ mappen:["Wem gehören die vielen Mappen?","Whose are all those folders?",8],narbe:["Was ist das für eine Narbe?","What is that scar?",1],
+ schwelle:["Warum bleibt er an der Tür?","Why does he stay at the door?",5],name:["Wann sagt er meinen Namen?","When will he say my name?",2]};
+FU.mysQ=function(id){try{if(typeof MYS!=="undefined"&&MYS&&MYS[id]&&MYS[id].q){const q=MYS[id].q;return Array.isArray(q)?q:[q,""]}}catch(e){}const m=MYS_FB[id];return m?[m[0],m[1]]:[id,""]};
+FU.planted=function(id){try{if(typeof mysState==="function")return (+mysState(id)||0)>=1}catch(e){}
+  const m=MYS_FB[id];if(!m)return false;const p=pk();const reach=p.done?41:(+p.ch||1);return reach>=m[2]};
+
+// ---------------------------------------------------------------- 4. labels
+const KIND={schild:["Wegweiser","signpost"],zettel:["Zettel","note"],steckbrief:["Steckbrief","wanted poster"],etikett:["Etikett","label"],inventar:["Liste","inventory"],
+ fremdenbuch:["Fremdenbuch","guest register"],rechnung:["Rechnung","bill"],zeitung:["Zeitungsausschnitt","newspaper cutting"],polizei:["Polizeiakte","police file"],
+ amt:["Formular","official form"],meldezettel:["Meldezettel","registration slip"],quittung:["Quittung","receipt"],kurve:["Stationsnotiz","ward note"],
+ aufklaerung:["Aufklärungsbogen","consent form"],protokoll:["Protokoll","record"],programmzettel:["Programmzettel","programme"],visitenkarte:["Visitenkarte","visiting card"],
+ urkunde:["Urkunde","certificate"],befund:["Befund","findings"],vermerk:["Aktenvermerk","file note"],theaterzettel:["Theaterzettel","playbill"],
+ notizbuch:["Notizbuchseite","notebook page"],rand:["Randnotiz in brauner Tinte","margin note in brown ink"],fahrkarte:["Fahrkarte","ticket"]};
+FU.kind=k=>KIND[k]||["Fundstück","found item"];
+
+// ---------------------------------------------------------------- 5. the arrival card on the Pakt screen (one per newly found fragment, max three)
+function unread(){const s=st();return FUNDE.filter(f=>s.got[f.id]&&!s.read[f.id])}
+function arrivals(){try{if(H().dataset.sober==="1")return "";const U=unread();if(!U.length)return "";
+  if(U.length>3)return `<div class="card stack s fu-new"><div class="eyebrow">Zwischen den Seiten <span class="en">between the pages</span></div>
+    <p class="ui" style="margin:0">Zwischen den Seiten lagen ${U.length} Blätter. <span class="en">${U.length} sheets lay between the pages.</span></p>
+    <div class="row"><button class="sm" data-act="fuDrawer">Fundstücke öffnen</button></div></div>`;
+  return U.map(f=>{const k=FU.kind(f.kind);return `<div class="card stack s fu-new" data-fu="${h(f.id)}"><div class="eyebrow">Zwischen den Seiten <span class="en">between the pages</span></div>
+    <p class="ui" style="margin:0">Zwischen den Seiten lag etwas: ${h(k[0])}. <span class="en">Something lay between the pages: ${h(k[1])}.</span></p>
+    <div class="row"><button class="sm" data-act="fuDoc" data-id="${h(f.id)}">Ansehen</button></div></div>`}).join("")}catch(e){return ""}}
+
+// ---------------------------------------------------------------- 6. the drawer
+FU.stat=function(){const s=st();const got=FUNDE.filter(f=>s.got[f.id]);return {all:FUNDE.length,got:got.length,unread:got.filter(f=>!s.read[f.id]).length}};
+function reach(){const p=pk();return p.done?42:(+p.ch||1)}
+ACT.fuDrawer=function(){FU.soberOff();FU.scan();const s=st();const R0=reach();
+  const box=Focus.open({title:"Fundstücke",sub:"Zwischen den Seiten · found between the pages",onClose:()=>{try{if(R.tab==="pakt")rerender()}catch(e){}}});
+  const groups=FU.arcs().filter(a=>a.from<=R0).map(a=>{const L=FUNDE.filter(f=>{const p=FU.pos(f.unlock);return p>=a.from&&p<=a.to});
+    const open=L.filter(f=>s.got[f.id]),hid=L.length-open.length;if(!open.length&&!hid)return "";
+    return `<div class="card stack s"><div class="eyebrow">${h(a.sub?a.sub+" · ":"")}${h(a.de)} <span class="en">${h(a.en)}</span></div>
+     ${open.map(f=>{const k=FU.kind(f.kind);return `<button class="fu-row" data-act="fuDoc" data-id="${h(f.id)}"><span>${h(fill(f.title[0]))}<small class="muted ui"> · ${h(k[0])}</small></span><small class="ui">${h(f.lv)}${s.read[f.id]?" ✓":" ●"}</small></button>`}).join("")}
+     ${hid?`<small class="muted ui">${hid} ${hid===1?"Blatt":"Blätter"} verborgen <span class="en">${hid} hidden</span></small>`:""}</div>`}).join("");
+  box.innerHTML=`<div class="stack fu-drawer no-sig" style="max-width:680px;margin:0 auto">
+   <p class="ui muted" style="margin:.2rem 0">Briefe, Zettel, Akten und Randnotizen, die zwischen den Kapiteln liegen. Manche lesen sich beim zweiten Mal anders. <span class="en">Letters, notes, files and margin notes found between the chapters. Some read differently the second time.</span></p>
+   ${groups||`<p class="ui">Noch nichts gefunden. <span class="en">Nothing found yet.</span></p>`}</div>`;
+  Focus.foot(`<button class="go" data-act="fuClose">Schließen</button>`)};
+ACT.fuClose=()=>{FU.soberOff();Focus.close()};
+
+// ---------------------------------------------------------------- 7. one fragment
+function shuf(opts,seed){let x=0;for(const c of String(seed))x=(x*31+c.charCodeAt(0))|0;const o=opts.map((t,i)=>[t,i]);for(let i=o.length-1;i>0;i--){x=(x*1103515245+12345)|0;const j=Math.abs(x)%(i+1);[o[i],o[j]]=[o[j],o[i]]}return o}
+let soberPrev=null,soberOnNow=false;
+function soberOn(){const e=H();if(!soberOnNow){soberPrev=e.dataset.sober==null?null:e.dataset.sober;soberOnNow=true}e.dataset.sober="1"}
+function soberOff(){if(!soberOnNow)return;const e=H();if(soberPrev==null)delete e.dataset.sober;else e.dataset.sober=soberPrev;soberPrev=null;soberOnNow=false}
+FU.soberOff=()=>{try{soberOff()}catch(e){}};
+ACT.fuDoc=function(el){const id=el&&el.dataset?el.dataset.id:el;const f=FUNDE.find(x=>x.id===id);if(!f)return;FU.soberOff();FU.scan();const s=st();if(!s.got[id])return;
+  let sober=false;const box=Focus.open({title:"Fundstück",sub:fill(f.title[0]),onClose:()=>{if(sober)FU.soberOff();try{if(R.tab==="pakt")rerender()}catch(e){}}});
+  if(f.sober){soberOn();sober=true}
+  if(!s.read[id]){s.read[id]=1;save()}
+  const k=FU.kind(f.kind),rand=f.kind==="rand";const paras=fill(f.de).split(/\n/);const got={};
+  const qs=(f.q||[]).map((q,i)=>`<div class="card stack s fu-q" data-i="${i}"><div><b>${h(fill(q[0]))}</b> <span class="en">${h(q[1]||"")}</span></div>${shuf(q[2]||[],f.id+i).map(([t,j])=>`<button class="fu-opt" data-act="fuAns" data-q="${i}" data-k="${j}">${h(fill(t))}</button>`).join("")}</div>`).join("");
+  const mys=(f.mys||[]).filter(m=>FU.planted(m));
+  box.innerHTML=`<div class="stack no-sig fu-view" style="max-width:680px;margin:0 auto">
+   <div class="st-doc no-sig fu-doc k-${h(f.kind)}"><div class="st-doc-h">${h(k[0])} · ${h(fill(f.title[0]))}</div>${paras.map(p=>`<p class="${rand?"fu-hand":""}">${h(p)}</p>`).join("")}${f.note?`<p class="fu-hand">${h(f.note[0])}</p>`:""}</div>
+   <div class="row" style="gap:.5rem;flex-wrap:wrap"><button class="sm ghost" data-say="${h(fill(f.de).replace(/\n/g," ")+(f.note?" "+f.note[0]:""))}">${typeof ic==="function"?ic("vol"):""} Vorlesen</button></div>
+   ${(f.gl||[]).length?`<div class="card"><div class="eyebrow">Wörter <span class="en">glossary</span></div><div class="fu-gl">${f.gl.map(g=>`<div><b>${h(g[0])}</b> <span class="en">${h(g[g.length-1])}</span></div>`).join("")}</div></div>`:""}
+   <details class="card"><summary class="ui">English</summary><p class="en" style="white-space:pre-line">${h(fill(f.title[1]))}\n\n${h(fill(f.en))}${f.note?`\n\n${h(f.note[1]||"")}`:""}</p></details>
+   ${qs}
+   ${f.fic?`<small class="muted ui fu-fic">Erfunden: ${h(f.fic)} <span class="en">An invented document.</span></small>`:""}
+   ${mys.length?`<div class="row fu-mys" style="gap:.5rem;flex-wrap:wrap"><small class="muted ui">Zu welcher Frage? <span class="en">which question?</span></small>${mys.map(m=>`<button class="sm ghost" data-act="fuMys" data-id="${h(m)}">${h(FU.mysQ(m)[0])}</button>`).join("")}</div>`:""}</div>`;
+  ACT.fuAns=b=>{const i=+b.dataset.q,j=+b.dataset.k;if(got[i]!=null)return;const want=(f.q[i][3]||0);const right=j===want;got[i]=right;
+    b.closest(".fu-q").querySelectorAll(".fu-opt").forEach(x=>{x.disabled=true;if(+x.dataset.k===want)x.classList.add("right")});if(!right)b.classList.add("wrong");
+    const n=Object.values(got).filter(Boolean).length;if(!(s.q[id]>=n)){s.q[id]=n;save()}};
+  Focus.foot(`<button class="go" data-act="fuDrawer">Zu den Fundstücken</button>`)};
+ACT.fuMys=function(el){const id=el&&el.dataset?el.dataset.id:el;if(!FU.planted(id))return;FU.soberOff();
+  try{if(typeof mysCard==="function"){const r=mysCard(id);if(typeof r!=="string")return;const box=Focus.open({title:"Offene Frage",sub:FU.mysQ(id)[0]});box.innerHTML=r;Focus.foot(`<button class="go" data-act="fuClose">Schließen</button>`);return}}catch(e){}
+  const q=FU.mysQ(id);const box=Focus.open({title:"Offene Frage",sub:q[0]});
+  box.innerHTML=`<div class="stack" style="max-width:640px;margin:0 auto"><div class="card"><h2 style="margin:.2rem 0">${h(q[0])}</h2><small class="en">${h(q[1]||"")}</small></div></div>`;
+  Focus.foot(`<button class="go" data-act="fuClose">Schließen</button>`)};
+
+// ---------------------------------------------------------------- 8. the Pakt screen
+function card(){const t=FU.stat();if(!t.got)return "";
+  return `<div class="card orn stack s fu-card"><div class="eyebrow">Fundstücke · Zwischen den Seiten <span class="en">found between the pages</span></div><div class="werk-grid">
+   <button data-act="fuDrawer"><b>Fundstücke</b><small>${t.got} gefunden${t.unread?` · ${t.unread} ungelesen`:""}</small></button></div></div>`}
+try{if(typeof MOD!=="undefined"&&MOD.after)MOD.after("viewPakt","s11",function(m){const v=m&&m.querySelector(".view");if(!v||!pk().signed)return;FU.scan();
+  if(!v.querySelector(".fu-new")){const a=arrivals();if(a)v.insertAdjacentHTML("afterbegin",a)}
+  if(!v.querySelector(".fu-card")){const c=card();if(c){const s7=v.querySelector(".s7-card"),w=v.querySelector(".pk-werk");
+    if(s7)s7.insertAdjacentHTML("afterend",c);else if(w)w.insertAdjacentHTML("afterend",c);
+    else{const r=v.querySelector(":scope > .row:last-child");if(r)r.insertAdjacentHTML("beforebegin",c);else v.insertAdjacentHTML("beforeend",c)}}}})}catch(e){try{logError(e)}catch(x){}}
+
+// ---------------------------------------------------------------- 9. delivery events and merge registration (after c_cloud / i1 have loaded)
+setTimeout(function(){
+  try{if(window.EV&&typeof EV.on==="function")["chapter.sealed","boss.won","choice.made","secret.found","bett.read","pact.done"].forEach(n=>EV.on(n,()=>{try{FU.scan()}catch(e){}}))}catch(e){}
+  try{if(typeof MERGE_RULES!=="undefined"&&MERGE_RULES&&!MERGE_RULES.fu)MERGE_RULES.fu=(a,b)=>window.fuMerge(a,b)}catch(e){}},0);
+try{["zl:read","zl:done"].forEach(n=>document.addEventListener(n,()=>{try{FU.scan()}catch(e){}}))}catch(e){}
+
+// ---------------------------------------------------------------- 10. styles
+try{const s=document.createElement("style");s.textContent=`
+.fu-row{display:flex;justify-content:space-between;align-items:center;gap:.6rem;width:100%;text-align:left;padding:.65rem .8rem;min-height:48px;border:1px solid var(--line,#333);border-radius:6px;background:transparent}
+.fu-row span{min-width:0;overflow-wrap:anywhere}.fu-row small{flex:none}
+.fu-doc p{white-space:pre-line;overflow-wrap:anywhere}
+.fu-doc p.fu-hand{font-family:var(--body);font-style:italic;font-size:1.15rem;color:#6B4423;transform:rotate(-1.2deg);margin-top:.7rem}
+.fu-doc.k-rand{background:#EDE3CC}.fu-doc.k-zeitung{font-family:Georgia,serif}.fu-doc.k-kurve{background:#F1EEE6;transform:none}
+.fu-opt{display:block;width:100%;text-align:left;padding:.6rem .8rem;min-height:44px;border:1px solid var(--line,#333);border-radius:6px;background:transparent;margin-top:.3rem}
+.fu-opt.right{border-color:var(--good,#4a8);}.fu-opt.wrong{border-color:var(--bad,#c44)}
+.fu-gl div{margin:.15rem 0}.fu-fic{display:block}
+`;document.head.appendChild(s)}catch(e){}
+})();
+
+// ===== Mephisto · track S · c_s12.js (owner s12) — Die Zweite Lesung „Das kalte Licht, noch einmal" (PLAN-S2 §4, §5 s12).
+// After the finale (P().done) a card on the Pakt screen holds chapters 1–8, the Staufen coda and Bett vier 1, read again: a German narrator at the
+// learner's level (W), Mephisto's margins (R), the Shadow's unsaid lines (Z), the learner's own decisions read-only (ZC), the clue threads of s16's
+// mysteries, and one Fundstück per part (FU). No gates, no Glut, no seals, no score; nothing here writes s4's, s11's or i10's state.
+// Data: v2/x_s12_zl.js (ZL, ZCX, ZL_ORDER). Plays through st3Play (never replaced). With i1's RD: RD.kind("W"|"R"|"Z"|"ZC"|"FU"|"ZO").
+// Without RD: the lines are mapped to N/X lines and a small observer adds the labels and threads after each draw.
+// Hooks: MOD.after("viewPakt","s12",…) only. No function is reassigned, no MOD.around.
+// State: S.zl = {read:{"1".."8","coda","bett1","end": "dd/mm/yyyy"}, done:"dd/mm/yyyy"?}. Merge: zlMerge (union of read, earliest date; earliest done).
+// Events: on first reading of a part document "zl:read" {n} + EV "zl.read" {n}; when all ten parts are read, once: "zl:done" / EV "zl.done" {d}.
+// API: zlOn() · zlLines(k) → the lines that would be played · zlPlay(k) · ACT.zlOpen(el?) · ACT.zlFaden(el) · zlMerge(a,b) · zlState() · ZLX.stat
+var ZL=ZL||{},ZCX=ZCX||{},ZL_ORDER=ZL_ORDER||[1,2,3,4,5,6,7,8,"coda","bett1"];
+const ZLX={stat:{plays:0,skipped:[],moved:[],errors:[]}};
+function zlErr(e,w){try{ZLX.stat.errors.push((w||"")+": "+String(e&&e.message||e).slice(0,140));if(ZLX.stat.errors.length>20)ZLX.stat.errors.shift();if(typeof logError==="function")logError({message:"s12 "+w+": "+(e&&e.message||e)})}catch(x){}}
+function zlState(){if(!S.zl||typeof S.zl!=="object")S.zl={};if(!S.zl.read||typeof S.zl.read!=="object")S.zl.read={};return S.zl}
+function zlOn(){try{return !!P().done}catch(e){return false}}
+// ---------------------------------------------------------------- merge (dd/mm/yyyy, earliest wins; commutative, associative, idempotent)
+function zlDk(d){const m=/^(\d\d)\/(\d\d)\/(\d{4})$/.exec(String(d||""));return m?m[3]+m[2]+m[1]:(d?"9"+String(d):"")}
+function zlEarly(a,b){if(!a)return b||undefined;if(!b)return a;const x=zlDk(a),y=zlDk(b);return x<y?a:y<x?b:(String(a)<=String(b)?a:b)}
+function zlMerge(a,b){a=a&&typeof a==="object"?a:{};b=b&&typeof b==="object"?b:{};const ra=a.read||{},rb=b.read||{},r={read:{}};
+  Array.from(new Set(Object.keys(ra).concat(Object.keys(rb)))).sort().forEach(k=>{const v=zlEarly(ra[k],rb[k]);if(v)r.read[k]=v});
+  const d=zlEarly(a.done,b.done);if(d)r.done=d;return r}
+setTimeout(()=>{try{if(typeof MERGE_RULES!=="undefined"&&MERGE_RULES)MERGE_RULES.zl=zlMerge}catch(e){}},0);
+(function(){
+const KEYS=()=>(Array.isArray(ZL_ORDER)?ZL_ORDER:[]).map(String).filter(k=>ZL[k]);
+const FUA={z01:"fd65",z02:"fd66",z03:"fd67",z04:"fd68",z05:"fd69",z06:"fd70",z07:"fd71",z08:"fd72",z09:"fd73",z10:"fd74"};
+const today=()=>{try{return fmtDate(todayKey())}catch(e){return ""}};
+const du=()=>{try{return st3Du()}catch(e){return false}};
+const fill=s=>{try{return st3Fill(s)}catch(e){return String(s==null?"":s)}};
+const lvl=()=>{try{return typeof learnerLv==="function"?+learnerLv()||0:4}catch(e){return 4}};
+const meta=l=>{const x=l[l.length-1];return x&&typeof x==="object"&&!Array.isArray(x)?x:{}};
+const str=(l,i)=>typeof l[i]==="string"?l[i]:"";
+function emit(name,d){try{if(typeof EV!=="undefined"&&EV&&EV.emit)EV.emit(name.replace(":","."),d)}catch(e){}try{document.dispatchEvent(new CustomEvent(name,{detail:d}))}catch(e){}}
+// ---------------------------------------------------------------- reading the scene as written (REF)
+function src(k){try{if(typeof SCN==="undefined")return null;if(k==="coda")return {L:(SCN[8]&&SCN[8].after)||[],n:8};
+  if(k==="bett1")return {L:(typeof BETX!=="undefined"&&Array.isArray(BETX.hexe)&&BETX.hexe)||(typeof BETT!=="undefined"&&BETT.hexe)||[],n:8,bett:1};
+  const n=+k,s=SCN[n];return s?{L:s.scene||[],A:s.after||[],n}:null}catch(e){return null}}
+function prep(L){const out=[],at={},clue={};let pend=[];(L||[]).forEach(l=>{if(!Array.isArray(l))return;
+    if(l[0]==="@"){if(at[l[1]]==null)at[l[1]]=out.length;if(/^[?!]/.test(String(l[1])))pend.push(String(l[1]));return}
+    if(pend.length){clue[out.length]=pend.map(a=>a.slice(1).split(".")[0]);pend=[]}out.push(l)});return {out,at,clue}}
+const ltxt=l=>String((l[0]==="X"?l[2]:l[1])||"");
+function ref(k,l){const s=src(k);if(!s)return null;let a=String(l[1]),L=s.L;if(a.indexOf("after:")===0){L=s.A||[];a=a.slice(6)}
+  const p=prep(L),off=+l[2]||0,cnt=Math.max(1,+l[3]||1),exp=typeof l[4]==="string"?l[4]:"";
+  let i=a==="^"?off:(p.at[a]!=null?p.at[a]+off:-1);
+  if(exp&&(i<0||!p.out[i]||ltxt(p.out[i]).indexOf(exp)!==0)){const j=p.out.findIndex(x=>ltxt(x).indexOf(exp)===0);if(j>=0&&i!==j){ZLX.stat.moved.push(k+":"+l[1]+"→"+j);i=j}else if(j<0)i=-1}
+  if(i<0||i>=p.out.length){ZLX.stat.skipped.push(k+":"+l[1]);return null}
+  const r=[];for(let j=i;j<Math.min(p.out.length,i+cnt);j++){const x=p.out[j];if(!Array.isArray(x)||["C","IF","T","_","SIG"].includes(x[0]))continue;r.push({t:"O",l:x.slice(),m:p.clue[j]||null})}return r}
+// ---------------------------------------------------------------- conditions (read-only: s4's sgPick / sgEnding)
+function cond(c){c=String(c||"");let neg=false;if(c[0]==="!"){neg=true;c=c.slice(1)}let v=false;const m=/^(\w+)=(\w+)$/.exec(c);
+  try{if(m){if(m[1]==="end")v=typeof sgEnding==="function"&&sgEnding()===m[2];else{const p=typeof sgPick==="function"?sgPick(m[1]):null;v=p!=null&&String(p).split(",").includes(m[2])}}}catch(e){}
+  return neg?!v:v}
+// ---------------------------------------------------------------- items: the resolved script of one part
+function items(k){const z=ZL[k];if(!z||!Array.isArray(z.lines))return [];const out=[];let mark=null;
+  const one=l=>{if(!Array.isArray(l))return;const t=l[0],mm=meta(l);const ms=mark?[mark]:[];if(mm.m)ms.push(mm.m);
+    if(t==="@"){const a=String(l[1]||"");if(/^[?!]/.test(a))mark=a.slice(1).split(".")[0];return}
+    mark=null;
+    if(t==="REF"){const r=ref(k,l);if(r)r.forEach((x,i)=>{if(i===0&&ms.length)x.m=(x.m||[]).concat(ms);out.push(x)});return}
+    if(t==="ZIF"){if(cond(l[1]))one(l[2]);else if(l[3])one(l[3]);return}
+    if(t==="W"){const b2=str(l,3);out.push({t:"W",de:lvl()<4&&b2?b2:str(l,1),en:str(l,2),fix:!!mm.fix,m:ms});return}
+    if(t==="R"){out.push({t:"R",de:du()&&str(l,3)?str(l,3):str(l,1),en:str(l,2),fix:!!mm.fix,m:ms});return}
+    if(t==="Z"){out.push({t:"Z",de:str(l,1),en:str(l,2),m:ms});return}
+    if(t==="ZC"){out.push({t:"ZC",id:String(l[1])});return}
+    if(t==="FU"){out.push({t:"FU",id:String(l[1])});return}};
+  z.lines.forEach(one);return out}
+function zc(id){let C=null,pick=null,typed="";try{C=typeof CHOICES4!=="undefined"&&CHOICES4?CHOICES4[id]:null}catch(e){}
+  try{pick=typeof sgPick==="function"?sgPick(id):null}catch(e){}
+  try{const r=S.saga&&S.saga.ch&&S.saga.ch[id];if(r&&r.txt&&!r.rev&&!(C&&C.multi))typed=String(r.txt)}catch(e){}
+  if(!C||!Array.isArray(C.opts)||pick==null)return {none:true};
+  const keys=String(pick).split(",").filter(Boolean),lab=o=>fill(du()&&o.du?o.du:o.de);
+  const got=C.opts.filter(o=>keys.includes(o.k)),miss=C.opts.filter(o=>!keys.includes(o.k)&&!o.when);
+  return {multi:!!C.multi,typed,got:got.map(o=>({k:o.k,de:lab(o),en:o.en||""})),miss:miss.map(o=>{const w=(ZCX[id]||{})[o.k];return {k:o.k,de:lab(o),en:o.en||"",w:w?fill(w[0]):"",we:w?fill(w[1]):""}})}}
+function fund(id){try{if(typeof FUND==="undefined"||!Array.isArray(FUND))return null;const alt=FUA[id]||Object.keys(FUA).find(k=>FUA[k]===id);return FUND.find(f=>f&&(f.id===id||f.id===alt))||null}catch(e){return null}}
+function zlLines(k){k=String(k);const L=items(k);return hasRD()?L.map(toKind):L.map(toStd)}
+// ---------------------------------------------------------------- rendering
+const hasRD=()=>typeof RD!=="undefined"&&RD&&typeof RD.kind==="function";
+const tag=(de,en)=>`<div class="zl-tag">${esc(de)}${en?` <span class="en">${esc(en)}</span>`:""}</div>`;
+const enBox=en=>en?`<details class="zl-en"><summary>English</summary><div class="en">${esc(fill(en))}</div></details>`:"";
+function threads(ms){const u=Array.from(new Set((ms||[]).filter(Boolean)));return u.map(m=>{const M=typeof MYS!=="undefined"&&MYS?MYS[m]:null;
+  return `<button class="zl-fb" data-act="zlFaden" data-m="${esc(m)}" title="Faden"><i></i>${esc(M&&M.q?M.q[0]:"Ein Faden")}</button>`}).join("")}
+function zcHtml(id){const z=zc(id);if(z.none)return `${tag("Deine Antwort damals","your answer then")}<p class="muted ui">Deine Antwort damals ist nicht gespeichert. <span class="en">Your answer then was not saved.</span></p>`;
+  return `${tag("Deine Antwort damals","your answer then")}${z.got.map(o=>`<div class="st-pick zl-got"><span class="eyebrow">Du</span>${esc(z.typed||o.de)}</div>`).join("")}
+   ${z.miss.length?`${tag("Was die anderen Antworten geändert hätten","what the other answers would have changed")}${z.miss.map(o=>`<div class="zl-miss"><b>${esc(o.de)}</b>${o.w?`<div>${esc(o.w.replace(/^„[^“]*“\s*–\s*/,""))}</div>`:""}${o.we?enBox(o.we):""}</div>`).join("")}`:""}
+   <small class="muted ui">Nur zum Lesen: Diese Lesung ändert keine Entscheidung. <span class="en">Read-only.</span></small>`}
+function fuHtml(id){const f=fund(id);mark(cur);
+  return `${tag("Zwischen den Seiten lag etwas","something lay between the pages")}${f?`<div class="zl-fu-t">${esc(fill(Array.isArray(f.title)?f.title[0]:f.title||""))}</div>${f.de?`<div class="zl-fu-de">${glossify(fill(f.de))}</div>`:""}${f.note&&f.note[0]?`<div class="zl-ink">${esc(fill(f.note[0]))}</div>`:""}${enBox(f.en||"")}`
+   :`<small class="muted ui">Das Blatt liegt jetzt bei den Fundstücken. <span class="en">The sheet is now with the Fundstücke.</span></small>`}`}
+function html(it,curF){const f=curF?" pk-fade":"",th=threads(it.m);
+  if(it.t==="W")return `<div class="pk-nar st-nar zl-w${it.fix?" zl-fix":""}${it.m&&it.m.length?" zl-faden":""}${f}">${it.fix?tag("Was wirklich geschah · berichtigt","what really happened · corrected"):""}<div>${glossify(fill(it.de))}</div>${enBox(it.en)}${th}</div>`;
+  if(it.t==="R")return `<div class="card zl-r${it.fix?" zl-fix":""}${it.m&&it.m.length?" zl-faden":""}${f}">${tag(it.fix?"Was er nicht sagte · berichtigt":"Was er nicht sagte","what he did not say")}<div class="zl-ink">${glossify(fill(it.de))}</div>${enBox(it.en)}${th}</div>`;
+  if(it.t==="Z")return `<div class="card pk-shadow zl-z${it.m&&it.m.length?" zl-faden":""}${f}">${tag("Was der Schatten dachte","what the shadow thought")}<div class="sh-de">${glossify(fill(it.de))}</div>${enBox(it.en)}${th}</div>`;
+  if(it.t==="ZC")return `<div class="card zl-zc${f}">${zcHtml(it.id)}</div>`;
+  if(it.t==="FU")return `<div class="card orn zl-fu${f}">${fuHtml(it.id)}</div>`;
+  return ""}
+// RD path: own kinds; the original line keeps 13.0's renderer inside a „damals" frame
+function toKind(it){if(it.t==="O")return ["ZO",it.l,it.m||null];return ["ZL_"+it.t,it]}
+function regKinds(){if(!hasRD()||regKinds.done)return;regKinds.done=1;
+  ["ZL_W","ZL_R","ZL_Z","ZL_ZC","ZL_FU"].forEach(t=>RD.kind(t,{render:(l,cur)=>html(l[1],cur),wait:()=>false}));
+  RD.kind("ZO",{render:(l,cur,c)=>{let inner="";try{inner=st3Line(l[1],cur,c)}catch(e){inner=""}const ms=l[2]||[];
+      return `<div class="zl-damals${ms.length?" zl-faden":""}">${tag("damals","then")}${inner}${threads(ms)}</div>`},wait:()=>false})}
+// fallback path: standard lines; the observer adds labels, frames and threads by position
+function toStd(it){if(it.t==="O")return it.l.slice();
+  if(it.t==="W")return ["N",fill(it.de),fill(it.en)];
+  if(it.t==="R")return ["X","Mephisto · was er nicht sagte"+(it.fix?" · berichtigt":""),it.de,it.en];
+  if(it.t==="Z")return ["X","Dein Schatten · was er dachte",it.de,it.en];
+  if(it.t==="ZC"){const z=zc(it.id);if(z.none)return ["N","Deine Antwort damals ist nicht gespeichert.","Your answer then was not saved."];
+    return ["N","Deine Antwort damals: "+z.got.map(o=>z.typed||o.de).join(" · ")+(z.miss.length?" — Nicht gewählt: "+z.miss.map(o=>o.de+(o.w?" "+o.w.replace(/^„[^“]*“\s*–\s*/,""):"")).join(" · "):""),"Your answer then (read-only)."]}
+  if(it.t==="FU"){const f=fund(it.id);return ["N","Zwischen den Seiten lag etwas"+(f&&f.title?": "+(Array.isArray(f.title)?f.title[0]:f.title):"."),"Something lay between the pages."]}
+  return ["N",""]}
+let cur=null,obs=null;
+function mark(k){try{k=k==null?cur:k;if(k==null)return;k=String(k);const z=zlState();let ch=false;
+  if(!z.read[k]){z.read[k]=today();ch=true;emit("zl:read",{n:k})}
+  if(!z.done&&KEYS().every(x=>z.read[x])){z.done=today();ch=true;emit("zl:done",{d:z.done})}
+  if(ch&&typeof saveSoon==="function")saveSoon()}catch(e){zlErr(e,"mark")}}
+function decorate(list){try{if(obs)obs.disconnect();const box=document.getElementById("fIn");if(!box||typeof MutationObserver==="undefined")return;
+  const run=()=>{try{const r=box.querySelector(".st-read");if(!r)return;const kids=r.children;for(let j=0;j<list.length&&j<kids.length;j++){const it=list[j],el=kids[j];if(!el||el.dataset.zl)continue;el.dataset.zl=it.t;if(it.t==="FU")mark();
+      const lab={O:["damals","then"],R:[null],Z:[null],W:it.fix?["Was wirklich geschah · berichtigt","what really happened · corrected"]:[null]}[it.t]||[null];
+      el.classList.add({O:"zl-damals",W:"zl-w",R:"zl-r",Z:"zl-z",ZC:"zl-zc",FU:"zl-fu"}[it.t]||"zl-x");if(it.fix)el.classList.add("zl-fix");
+      if(lab[0])el.insertAdjacentHTML("afterbegin",tag(lab[0],lab[1]||""));if(it.m&&it.m.length){el.classList.add("zl-faden");el.insertAdjacentHTML("beforeend",threads(it.m))}}}catch(e){zlErr(e,"decorate")}};
+  obs=new MutationObserver(run);obs.observe(box,{childList:true});run()}catch(e){zlErr(e,"observe")}}
+// ---------------------------------------------------------------- playing a part
+function nextKey(k){const K=KEYS(),z=zlState();const i=K.indexOf(String(k));for(let j=1;j<=K.length;j++){const x=K[(i+j)%K.length];if(!z.read[x])return x}return null}
+function label(k){k=String(k);if(k==="coda")return "Staufen";if(k==="bett1")return "Bett vier";if(k==="end")return "Nachwort";return "Kapitel "+k}
+function tail(k){mark(k);const z=zlState(),nx=k==="end"?null:nextKey(k);
+  if(k!=="end"&&z.done)return `<div class="card orn stack s zl-endcard pk-fade">${tag("Zweite Lesung · Das kalte Licht","second reading · the cold light")}<p>${esc((ZL.end&&ZL.end.lines&&ZL.end.lines[0]&&ZL.end.lines[0][1])||"Zweite Lesung beendet.")}</p><button class="sm" data-act="zlOpen" data-k="end">Das Nachwort lesen</button></div>`;
+  return nx?`<div class="card pk-fade zl-next"><button class="sm ghost" data-act="zlOpen" data-k="${esc(nx)}">Weiterlesen: ${esc(label(nx))} · ${esc(ZL[nx].title[0])}</button></div>`:""}
+function zlPlay(k){k=String(k);try{if(!zlOn()){if(typeof toast==="function")toast("Die Zweite Lesung öffnet sich nach dem Pakt.");return false}
+  const z=ZL[k];if(!z)return false;regKinds();const n=/^\d+$/.test(k)?+k:8;let c=null;try{c=pkCh(n)}catch(e){c=CHAPTERS[n-1]}
+  const L=items(k);if(!L.length)return false;const rd=hasRD();const lines=rd?L.map(toKind):L.map(toStd);cur=k;ZLX.stat.plays++;
+  st3Play({c,title:"Zweite Lesung · "+z.title[0],sub:z.sub[0],lines,tail:()=>tail(k),
+    onClose:()=>{try{if(obs)obs.disconnect();obs=null}catch(e){}try{if(typeof R!=="undefined"&&R.tab==="pakt")rerender()}catch(e){}},
+    done:{label:"Schließen",fn:()=>{try{Focus.close()}catch(e){}}}});
+  if(z.sober){document.documentElement.dataset.sober="1";try{SCN_SET=true}catch(e){}}
+  if(!rd)decorate(L);return true}catch(e){zlErr(e,"play");return false}}
+// ---------------------------------------------------------------- the Pakt card
+function cardHtml(){const z=zlState(),K=KEYS();const nr=K.filter(k=>z.read[k]).length;
+  return `<div class="card orn stack s zl-card"><div class="eyebrow">Zweite Lesung · Das kalte Licht <span class="en">second reading · the cold light</span></div>
+   <p style="margin:.2rem 0">Dieselbe Geschichte. Diesmal kannst du sie lesen. <span class="en">The same story. This time you can read it.</span></p>
+   <div class="werk-grid zl-grid">${K.map(k=>`<button data-act="zlOpen" data-k="${esc(k)}" class="zl-e${z.read[k]?" zl-read":""}"><b>${esc(label(k))}${ZL[k].sub&&/^\d+$/.test(k)?" · "+esc(ZL[k].sub[0]):""}</b><small>${esc(ZL[k].title[0])}${z.read[k]?" · gelesen "+esc(z.read[k]):""}</small></button>`).join("")}
+   ${z.done&&ZL.end?`<button data-act="zlOpen" data-k="end" class="zl-e${z.read.end?" zl-read":""}"><b>Nachwort</b><small>${esc(ZL.end.title[0])}</small></button>`:""}</div>
+   <small class="muted ui">${nr} von ${K.length} gelesen · kein Siegel, keine Glut, keine Wertung <span class="en">no seal, no Glut, no score</span></small></div>`}
+try{if(typeof MOD!=="undefined"&&MOD.after)MOD.after("viewPakt","s12",function(m){if(!zlOn())return;const v=m&&m.querySelector?m.querySelector(".view"):null;if(!v||v.querySelector(".zl-card"))return;
+  const d=v.querySelector(".st-donecard");if(d)d.insertAdjacentHTML("afterend",cardHtml());else v.insertAdjacentHTML("afterbegin",cardHtml())})}catch(e){zlErr(e,"hook")}
+// ---------------------------------------------------------------- clue card (s16's mysCard when present; else a sheet from MYS)
+function fadenHtml(id){const M=(typeof MYS!=="undefined"&&MYS&&MYS[id])||null;if(!M)return "";const n=M.ans===41?"im Finale":M.ans?"in Kapitel "+M.ans:"";
+  const f=(M.falsch||[])[0];return `<div class="row between"><div class="eyebrow">Ein Faden <span class="en">a thread</span></div><button class="icon ghost" data-act="closeSheet">${typeof ic==="function"?ic("x"):"×"}</button></div>
+   <h3 class="xp-h">${esc(M.q[0])}</h3><small class="en">${esc(M.q[1])}</small>
+   ${f?`<p><b>Damals dachtest du …</b> ${esc(f.de)}</p>`:""}${M.wahr?`<p><b>Heute weißt du …</b> ${esc(M.wahr[0])}${n?` <small class="muted ui">beantwortet ${esc(n)}</small>`:""}</p>`:""}
+   ${M.reread?`<p class="zl-ink">${esc(M.reread[0])}</p>${enBox(M.reread[1])}`:""}`}
+ACT.zlFaden=el=>{try{const id=el&&el.dataset?el.dataset.m:"";if(!id)return;if(typeof mysCard==="function"){mysCard(id);return}
+  const h=fadenHtml(id);if(!h)return;const sh=$("#sheet"),inn=$("#sheetIn");if(!sh||!inn)return;inn.innerHTML=h;sh.hidden=false}catch(e){zlErr(e,"faden")}};
+ACT.zlOpen=el=>{try{const k=el&&el.dataset?el.dataset.k:null;if(k){zlPlay(k);return}
+  if(!zlOn()){if(typeof toast==="function")toast("Die Zweite Lesung öffnet sich nach dem Pakt.");return}
+  try{if(typeof Focus!=="undefined"&&Focus.isOpen())Focus.close(true)}catch(e){}if(typeof go==="function")go("pakt");
+  setTimeout(()=>{try{const c=document.querySelector(".zl-card");if(c)c.scrollIntoView({behavior:"smooth",block:"center"})}catch(e){}},120)}catch(e){zlErr(e,"open")}};
+// ---------------------------------------------------------------- styles (brown ink, thin thread; both themes)
+try{const s=document.createElement("style");s.textContent=`
+:root{--zl-ink:#7a4a24;--zl-thread:#8a5a32}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--zl-ink:#d2a77c;--zl-thread:#c08a5a}}
+:root[data-theme="dark"]{--zl-ink:#d2a77c;--zl-thread:#c08a5a}
+.zl-tag{font:600 .72rem/1.2 var(--ui,system-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--zl-ink);margin-bottom:.3rem}
+.zl-tag .en{text-transform:none;letter-spacing:0;font-weight:400;opacity:.75}
+.zl-r .zl-ink,.zl-ink{font-family:var(--body,Georgia,serif);font-style:italic;color:var(--zl-ink);font-size:1.06rem;line-height:1.5}
+.zl-r{border-left:3px solid var(--zl-ink)}
+.zl-damals{opacity:.86}.zl-damals>.zl-tag{margin:.2rem 0 -.1rem}
+.zl-fix>.zl-tag{color:var(--zl-ink)}
+.zl-faden{box-shadow:inset 2px 0 0 var(--zl-thread)}
+.zl-fb{display:inline-flex;align-items:center;gap:.4rem;margin-top:.45rem;min-height:36px;padding:.25rem .6rem;border:1px solid var(--zl-thread);border-radius:999px;background:transparent;color:var(--zl-ink);font:500 .82rem/1.2 var(--ui,system-ui);max-width:100%;text-align:left;overflow-wrap:anywhere}
+.zl-fb i{flex:none;width:14px;height:2px;background:var(--zl-thread);border-radius:2px}
+.zl-en{margin-top:.35rem}.zl-en summary{cursor:pointer;font:500 .78rem var(--ui,system-ui);color:var(--fg2,inherit);opacity:.8;min-height:28px}
+.zl-miss{opacity:.6;padding:.35rem 0;border-top:1px dashed var(--line,#4446)}.zl-miss b{font-weight:600}
+.zl-grid button.zl-read small{opacity:.7}.zl-e{text-align:left}
+.zl-fu-t{font-weight:700;margin:.2rem 0}.zl-fu-de{font-family:var(--body,Georgia,serif)}
+`;document.head.appendChild(s)}catch(e){}
+window.zlLines=zlLines;window.zlPlay=zlPlay;window.zlItems=k=>items(String(k));
+})();
+
+// ===== Mephisto · track S · c_s8.js (owner s8) — the Faust layer: epigraph speakers, „Auf der Bühne heute", Nachträge, „Faust lesen",
+// the Faustbuch as a book that fills, „Das Ohr", servant orders, asides, Valentin after a lost duel, Wagner's pace line, Gretchens Zettel.
+// Place: modules.json code → ["c_s8","story"] after ["c_s2","story"] and ["c_s3","story"] (and after c_s7 when it lands), before c_cloud.
+// Data: x_s8_faust.js (CHX faust/stage), x_s8_clause.js (CHX clause), x_s8_lesen.js (FAUST f11–f40), x_s8_cast.js (INS cast, FL_TXT).
+// Hooks (13.1 MOD): after viewPakt, viewLearn, readerView, saveSoon · around st3Play (adds two cards to the chapter tail), around say (slow mode).
+// One MutationObserver on #fIn (duel defeat → Valentin; Kuriositätenkabinett → one aside). No shared function is reassigned.
+// State: S.fl = {r:{id:dd}, z:[n…], as:{i:1}, ohr:{best}, who:{n:best}, ord:{d,used:[]}} — merge: r per id earliest date (union), z/as union,
+//   ohr/who per key max, ord device-local (later d wins). Nothing throws at load.
+var FL_TXT=typeof FL_TXT!=="undefined"?FL_TXT:{};
+const FL_OLD_CH={f1:3,f3:4,f4:24,f5:21,f7:5,f8:18,f9:22,f10:10};          // existing passages → the chapter leaf they seal in the Faustbuch
+const FL_OLD_ORD={f1:354,f2:377,f3:317,f4:1338,f5:1699,f6:940,f7:1112,f8:1224,f9:3374,f10:3415};
+let FL_SLOW=false;
+function flS(){if(!S.fl||typeof S.fl!=="object")S.fl={};const f=S.fl;f.r=f.r||{};f.z=Array.isArray(f.z)?f.z:[];f.as=f.as||{};f.ohr=f.ohr||{};f.who=f.who||{};f.ord=f.ord||{};return f}
+function flDu(){try{return P().du===true}catch(e){return false}}
+function flL(l){return [flDu()&&l[2]?l[2]:l[0],l[1]||""]}
+function flLv(){try{return typeof learnerLv==="function"?learnerLv():0}catch(e){return 0}}
+function flLvOf(s){const i=["A1","A2","B1","B2","C1"].indexOf(String(s||"").slice(0,2));return i<0?0:i}
+function flSealed(n){try{const p=P();return !!(p.sealed&&p.sealed[n])||(p.ch||1)>n||!!p.done}catch(e){return false}}
+function flOpen(f){if(!f.ch)return true;let ok=true;try{ok=P().signed?flSealed(f.ch):true}catch(e){}return ok&&flLv()>=flLvOf(f.lv)-1}
+function flLockWhy(f){try{if(P().signed&&f.ch&&!flSealed(f.ch))return `öffnet mit Kapitel ${f.ch}`}catch(e){}return `ab ${["A1","A2","B1","B2","C1"][Math.max(0,flLvOf(f.lv)-1)]}`}
+function flOrd(f){return f.ord!=null?f.ord:(FL_OLD_ORD[f.id]||99999)}
+function flChOrd(c){const v=c&&c.faust&&c.faust.v;if(v==="Prosa")return 4398;const n=parseInt(v,10);return isNaN(n)?c.n*300:n}
+function flFill(s,x){try{if(typeof sFill==="function")return sFill(s,x)}catch(e){}return String(s).replace(/\{(\w+)\}/g,(m,a)=>x&&x[a]!=null?x[a]:m)}
+function flShuf(n){const a=[...Array(n).keys()];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function flSober(){try{return document.documentElement.dataset.sober==="1"}catch(e){return false}}
+
+// ---------------------------------------------------------------- 1. at load: epigraph citation with speaker; FAUST in the order of the play
+(function(){try{
+  CHAPTERS.forEach(c=>{const f=c.faust;if(!f||!f.who||f.srcBase)return;f.srcBase=f.src;f.src=`${f.who} · ${f.src}${f.v&&f.v!=="Prosa"?" · V. "+f.v:""}`});
+  if(typeof FAUST!=="undefined"&&Array.isArray(FAUST)){FAUST.forEach(f=>{if(!f.ch&&FL_OLD_CH[f.id])f.chLeaf=FL_OLD_CH[f.id]});FAUST.sort((a,b)=>flOrd(a)-flOrd(b))}
+}catch(e){try{logError(e)}catch(x){}}})();
+
+// ---------------------------------------------------------------- 2. „Faust lesen": paraphrase and question under a passage (readerView hook)
+function flQuiz(el,item){const q=item.q;if(!q||!q.opts)return;const box=document.createElement("div");box.className="card stack s fl-q";
+  const draw=(msg)=>{const order=flShuf(q.opts.length);const done=!!flS().r[item.id];
+    box.innerHTML=`${item.para?`<details class="fl-para"><summary class="ui" style="cursor:pointer;font-weight:700">In einfachem Deutsch <span class="en">in simple German</span></summary><p class="fg2" style="margin:.4rem 0 0">${glossify(item.para)}</p></details>`:""}
+      <div class="eyebrow">Frage zur Stelle${item.lv?` · ${esc(item.lv)}`:""}</div><b>${esc(q.q)}</b>
+      <div class="stack s">${order.map(k=>`<button class="sm fl-opt" data-k="${k}" style="justify-content:flex-start;text-align:left">${esc(q.opts[k])}</button>`).join("")}</div>
+      ${msg||""}${done&&!msg?`<span class="pill good">verstanden</span>`:""}${item.mem?`<small class="muted ui">Faust II — Wortlaut nach dem Gedächtnis zitiert; vor dem Druck mit einer Ausgabe vergleichen.</small>`:""}`;
+    box.querySelectorAll(".fl-opt").forEach(b=>b.onclick=()=>{const k=+b.dataset.k;
+      if(k===q.a){const s=flS();if(!s.r[item.id])s.r[item.id]=todayKey();S.read[item.id]=true;try{logDay("read");logEvent("read","Faust lesen: "+item.title)}catch(e){}saveSoon();try{SND.fx("seal")}catch(e){}
+        draw(`<div class="tip">Richtig. ${esc(q.why||"")}</div>`)}
+      else{try{SND.fx("no")}catch(e){}draw(`<div class="tip">${esc(q.why||"Noch einmal lesen.")} <b>Noch einmal.</b></div>`)}})};
+  draw("");el.appendChild(box)}
+MOD.after("readerView","s8",function(el,item){if(!item||!item.lines||!item.q)return;
+  if(!flOpen(item)){const n=document.createElement("div");n.className="tip";n.textContent="Diese Stelle "+flLockWhy(item)+". Lesen dürfen Sie sie trotzdem.";el.insertBefore(n,el.firstChild)}
+  if(item.speaker||item.v){const h=el.querySelector(".head .pill");if(h&&item.v)h.textContent=h.textContent+" · V. "+item.v}
+  flQuiz(el,item)});
+
+// ---------------------------------------------------------------- 3. Lernen › Literatur › Faust: forty passages in the order of the play, locks, chapter
+MOD.after("viewLearn","s8",function(m){if(typeof R==="undefined"||R.seg!=="literatur"||typeof litSeg==="undefined"||litSeg!=="faust")return;
+  const list=m.querySelector(".list");if(!list||list.dataset.fl)return;list.dataset.fl="1";const rows=[...list.querySelectorAll("button.li")];
+  const byId=id=>FAUST.find(f=>"id:"+f.id===id);
+  rows.sort((a,b)=>flOrd(byId(a.dataset.arg)||{})-flOrd(byId(b.dataset.arg)||{})).forEach((r,i)=>{list.appendChild(r);const f=byId(r.dataset.arg);if(!f)return;
+    const n=r.querySelector(".n");if(n)n.textContent=i+1;const sm=r.querySelector("small");
+    if(f.ch&&sm)sm.textContent=`${f.scene} · ${f.speaker} · Kapitel ${f.ch} · ${f.lv}`;
+    if(flS().r[f.id]){const mm=r.querySelector(".m");if(mm&&!mm.innerHTML.includes("gelesen"))mm.innerHTML='<span class="pill good">verstanden</span>'}
+    if(!flOpen(f)){r.classList.add("fl-lock");r.style.opacity=".55";const mm=r.querySelector(".m");if(mm)mm.innerHTML=`<span class="pill">${esc(flLockWhy(f))}</span>`}});
+  const h=document.createElement("div");h.className="card tint stack s fl-head";
+  h.innerHTML=`<div class="eyebrow">Faust lesen <span class="en">${FAUST.length} passages, from the first verse of the play to the last</span></div><p class="fg2" style="margin:0">Vierzig Stellen in der Reihenfolge des Stücks. Jede Stelle öffnet sich mit ihrem Kapitel; sie zählt als gelesen, wenn Sie die Frage darunter richtig beantworten.</p>`;
+  list.parentNode.insertBefore(h,list)});
+
+// ---------------------------------------------------------------- 4. the chapter reader: „Auf der Bühne heute" + Nachtrag heading and legal term (around st3Play)
+function flPaktDate(){try{return fmtDate(P().date||"")||""}catch(e){return ""}}
+function flTermHTML(c){const k=c&&c.clause;if(!k)return "";let h="";
+  if(k.term)h+=`<details class="fl-term"><summary class="ui" style="cursor:pointer">Rechtswort: <b>${esc(k.term[0])}</b></summary><small class="muted ui">${esc(k.term[1])}</small></details>`;
+  if(k.full&&flLv()>=2)h+=`<details class="fl-full"><summary class="ui" style="cursor:pointer">Im Vertragsdeutsch</summary><p style="font-family:var(--body);margin:.3rem 0">${esc(k.full.de)}</p><small class="muted ui">${esc(k.full.en)}</small></details>`;return h}
+function flNachtrag(c){return `Nachtrag Nr. ${c.n} zum Pakt${flPaktDate()?" vom "+flPaktDate():""}`}
+function flStageHTML(c){if(!c||!c.stage)return "";const f=c.faust||{};
+  return `<div class="card pk-fade fl-stage"><div class="eyebrow">Auf der Bühne heute <span class="en">on stage today</span></div><b>${esc(c.stage)}</b>${f.who?`<small class="muted ui" style="display:block">Es spricht: ${esc(f.who)}</small>`:""}</div>`}
+MOD.around("st3Play","s8",function(orig,o){try{const c=o&&o.c;if(c&&typeof o.tail==="function"&&/^Kapitel /.test(String(o.title||""))){const t=o.tail;
+    o=Object.assign({},o,{tail:function(){let h=t.apply(this,arguments);try{h=String(h).replace('<div class="eyebrow">Klausel des Pakts</div>',`<div class="eyebrow">${esc(flNachtrag(c))}</div>`);
+      const i=h.lastIndexOf("</div>");h=flStageHTML(c)+(i>0?h.slice(0,i)+flTermHTML(c)+h.slice(i):h)}catch(e){}return h}})}}catch(e){}
+  return orig(o)});
+
+// ---------------------------------------------------------------- 5. the slow voice (order „Sprich langsamer!")
+MOD.around("say","s8",function(orig,text,o){if(FL_SLOW){o=Object.assign({},o||{});o.rate=(o.rate||S.ttsRate||1)*0.75}return orig(text,o)});
+
+// ---------------------------------------------------------------- 6. the Pakt screen: Nachtrag, Faustbuch, Wagner, Das Ohr, the orders
+MOD.after("viewPakt","s8",function(m){let p;try{p=P()}catch(e){return}if(!p.signed)return;const v=m.querySelector(".view");if(!v)return;const c=pkCh();
+  v.querySelectorAll(".eyebrow").forEach(e=>{const t=e.textContent.trim();
+    if(t==="Klausel"&&!e.dataset.fl){e.dataset.fl="1";e.textContent=flNachtrag(c);const host=e.parentNode;if(host)host.insertAdjacentHTML("beforeend",flTermHTML(c))}
+    if(t==="Das Faustbuch"&&!e.dataset.fl){e.dataset.fl="1";const card=e.parentNode;const n=CHAPTERS.filter(x=>flSealed(x.n)).length;const rd=Object.keys(flS().r).length;
+      card.innerHTML=`<div class="eyebrow" data-fl="1">Das Faustbuch</div><p class="fg2" style="margin:0">Ihre Ausgabe des Stücks: vierzig Blätter in der Reihenfolge der Szenen. ${n} beschrieben, ${rd} Stellen gelesen.</p><button class="sm" data-act="s8Book" style="justify-self:start">${ic("book")}Faustbuch öffnen</button>`}});
+  const extra=[];
+  if(p.ch>=17&&FL_TXT.wagner){const wk=typeof weekNumber==="function"?weekNumber():1;extra.push(`<div class="card stack s fl-wagner"><div class="eyebrow">Der Famulus <span class="en">Wagner keeps the plan</span></div><p style="margin:0">${esc(flFill(FL_TXT.wagner[0],{N:wk}))}</p><small class="muted ui">${esc(flFill(FL_TXT.wagner[1],{N:wk}))}</small></div>`)}
+  if(p.ch>=23&&FL_TXT.ohr)extra.push(`<div class="card stack s fl-ohrcard"><div class="eyebrow">Das Ohr <span class="en">six metres of Faust, by ear</span></div><p class="fg2" style="margin:0">Sechs Arten, wie Goethes Verse atmen. Hören, dann eine Frage.${flS().ohr.best?` Bestes Ergebnis: ${flS().ohr.best} / 6.`:""}</p><button class="sm" data-act="s8Ohr" style="justify-self:start">${ic("play")}Anhören</button></div>`);
+  if(p.ch>=21&&FL_TXT.orders){const o=flS().ord;const used=o.d===todayKey()?(o.used||[]):[];const left=FL_TXT.orders.filter(x=>!used.includes(x.id));
+    extra.push(`<div class="card stack s fl-orders"><div class="eyebrow">Befehle an den Diener <span class="en">under the wager he serves — type an order (imperative)</span></div>${pkSay(flL(["Nach der Wette bin ich Ihr Diener. Befehlen Sie. Dreimal am Tag – und richtig, bitte.","After the wager I am your servant. Give orders. Three times a day — and correctly, please.","Nach der Wette bin ich dein Diener. Befiehl. Dreimal am Tag – und richtig, bitte."]))}
+      <div class="row"><input class="fl-ord-in" placeholder="${esc(flDu()?"z. B. Sprich langsamer!":"z. B. Sprechen Sie langsamer!")}" style="flex:1;min-width:0" ${left.length?"":"disabled"}><button class="sm" data-act="s8Order" ${left.length?"":"disabled"}>Befehlen</button></div>
+      <small class="muted ui">${left.length?"Heute noch: "+left.map(x=>esc(x.hint[flDu()?1:0])).join(" · "):"Für heute sind alle drei Befehle verbraucht."}</small><div class="fl-ord-out"></div></div>`)}
+  if(extra.length){const anchor=[...v.querySelectorAll(".eyebrow")].find(e=>e.textContent.trim()==="Das Faustbuch");const card=anchor&&anchor.closest(".card");
+    if(card)card.insertAdjacentHTML("afterend",extra.join(""));else v.insertAdjacentHTML("beforeend",extra.join(""))}});
+
+// ---- the Faustbuch (P10): leaves in the order of the play; „Wer spricht?"; geflügelte Worte; the last leaf
+function flLeafRead(n){const s=flS().r;return FAUST.some(f=>(f.ch===n||f.chLeaf===n)&&(s[f.id]||(!f.q&&S.read&&S.read[f.id])))}
+ACT.s8Book=()=>{const box=Focus.open({title:"Das Faustbuch",sub:"Ihre Ausgabe des Stücks"});const p=P();
+  const leaves=CHAPTERS.slice().sort((a,b)=>flChOrd(a)-flChOrd(b));
+  const leaf=c=>{const f=c.faust||{};const on=flSealed(c.n);const rd=flLeafRead(c.n);
+    if(!on)return `<div class="card fl-leaf blank" style="opacity:.5"><div class="eyebrow">${esc(c.stage||f.srcBase||"")}</div><small class="muted ui">Ein leeres Blatt · Kapitel ${c.n}</small></div>`;
+    return `<div class="card fl-leaf" data-n="${c.n}"><div class="row between"><div class="eyebrow">${esc(c.stage||f.srcBase||"")}</div>${rd?`<span class="pill good" title="Stelle gelesen">☩</span>`:""}</div><div class="pk-faust">${esc(String(f.de||"").replace(/ \/ /g,"\n"))}<small class="fl-who">${esc(f.src||"")}</small></div><div class="row"><button class="sm ghost" data-act="s8Who" data-n="${c.n}">Wer spricht?</button><small class="muted ui">Kapitel ${c.n}</small></div><div class="fl-who-out"></div></div>`};
+  let last="";if(p.done){const k=p.choices&&p.choices.v40;const ch=typeof CHOICES!=="undefined"&&CHOICES.v40&&CHOICES.v40.opts&&k!=null&&CHOICES.v40.opts[k];
+    last=`<div class="card orn fl-last"><div class="eyebrow">Das letzte Blatt</div><div class="pk-faust" style="color:var(--accent)">${esc(ch?ch[0]:"Noch nicht.")}<small>${esc(fmtDate(p.done))}</small></div></div>`}
+  else last=`<div class="card fl-leaf blank" style="opacity:.5"><div class="eyebrow">Das letzte Blatt</div><small class="muted ui">Es bleibt leer bis zum letzten Kapitel.</small></div>`;
+  const W=(FL_TXT.worte||[]).map(w=>`<div class="stack s" style="margin-top:.4rem"><b>${esc(w.goethe)}</b><span>${glossify(w.heute)}</span><small class="muted ui">${esc(w.en)}</small></div>`).join("");
+  box.innerHTML=`<div class="stack" style="max-width:680px;margin:0 auto">${leaves.map(leaf).join("")}${last}
+    <div class="card stack s"><div class="eyebrow">Geflügelte Worte <span class="en">Faust lines that are everyday German</span></div><p class="fg2" style="margin:0">So sagt man heute:</p>${W}</div></div>`;
+  Focus.foot(`<button class="go" data-act="s8BookClose">Schließen</button>`)};
+ACT.s8BookClose=()=>Focus.close();
+ACT.s8Who=el=>{const n=+el.dataset.n;const c=pkCh(n);const f=c.faust||{};const card=el.closest(".fl-leaf");if(!card)return;const out=card.querySelector(".fl-who-out");const cite=card.querySelector(".fl-who");if(cite)cite.style.visibility="hidden";
+  const all=[...new Set(CHAPTERS.map(x=>x.faust&&x.faust.who).filter(Boolean))].filter(w=>w!==f.who);const opts=[f.who].concat(flShuf(all.length).slice(0,3).map(i=>all[i]));const ord=flShuf(opts.length);
+  out.innerHTML=`<div class="stack s" style="margin-top:.4rem">${ord.map(i=>`<button class="sm fl-w" data-ok="${i===0?1:0}" style="justify-content:flex-start">${esc(opts[i])}</button>`).join("")}</div>`;
+  out.querySelectorAll(".fl-w").forEach(b=>b.onclick=()=>{const ok=b.dataset.ok==="1";if(cite)cite.style.visibility="";const s=flS();if(ok){s.who[n]=1;saveSoon();try{SND.fx("seal")}catch(e){}}else{try{SND.fx("no")}catch(e){}}
+    out.innerHTML=`<div class="tip">${ok?"Richtig.":"Nein."} ${esc(f.who)} · ${esc(f.srcBase||"")}</div>`})};
+// ---- Das Ohr (P8)
+ACT.s8Ohr=()=>{const S6=FL_TXT.ohr||[];let i=0,score=0;const box=Focus.open({title:"Das Ohr",sub:"Sechs Versarten des Faust"});
+  const step=()=>{if(i>=S6.length){const s=flS();s.ohr.best=Math.max(s.ohr.best||0,score);saveSoon();box.innerHTML=`<div class="stack" style="max-width:640px;margin:0 auto"><h2>${score} / ${S6.length}</h2><div class="card orn">${pkSay(flL(FL_TXT.ohrEnd))}</div></div>`;Focus.foot(`<button class="go" data-act="s8BookClose">Schließen</button>`);return}
+    const x=S6[i];const F=FAUST.find(f=>f.id===x.f)||{lines:[]};const verses=F.lines.filter(l=>l[0]!=="— —").slice(0,6);const ord=flShuf(x.opts.length);Focus.progress({n:S6.length,i});
+    box.innerHTML=`<div class="stack" style="max-width:640px;margin:0 auto"><div class="eyebrow">Schritt ${i+1} · ${esc(x.t)} <span class="en">${esc(x.en)}</span></div><p class="fg2">${esc(x.hear)}</p>
+      <div class="card"><div class="pk-faust">${esc(verses.map(l=>l[0]).join("\n"))}<small>${esc(F.speaker||"")} · ${esc(F.scene||"")}</small></div><div class="row" style="margin-top:.5rem"><button class="sm" data-act="s8OhrPlay">${ic("play")}Vorlesen</button></div></div>
+      <div class="card stack s"><b>${esc(x.q)}</b>${ord.map(k=>`<button class="sm fl-o" data-k="${k}" style="justify-content:flex-start;text-align:left">${esc(x.opts[k])}</button>`).join("")}<div class="fl-o-out"></div></div></div>`;Focus.foot(null);
+    ACT.s8OhrPlay=async()=>{for(const l of verses){if(!Focus.isOpen())break;if(!(await say(l[0],{rate:.85})))break}};
+    box.querySelectorAll(".fl-o").forEach(b=>b.onclick=()=>{const ok=+b.dataset.k===0;if(ok)score++;box.querySelectorAll(".fl-o").forEach(z=>z.disabled=true);
+      box.querySelector(".fl-o-out").innerHTML=`<div class="tip">${ok?"Richtig.":"Nein."} ${esc(x.why)}</div>`;Focus.foot(`<button class="go" data-act="s8OhrNext">Weiter</button>`)})};
+  ACT.s8OhrNext=()=>{i++;step()};step()};
+// ---- orders (P7.2): typed imperative, form of address checked
+function flEasyCard(){try{const L=allCards().filter(c=>c.kind==="word"&&c.de&&c.en&&(!c.level||c.level==="A1"));const c=L[Math.floor(Math.random()*L.length)];if(!c)return;
+  const box=Focus.open({title:"Etwas Leichteres",sub:"Mephisto, auf Befehl"});box.innerHTML=`<div class="stack" style="max-width:520px;margin:0 auto;text-align:center"><h2>${esc(c.en)}</h2><p class="muted ui">Wie heißt das auf Deutsch – mit Artikel?</p><button class="sm" data-act="s8EasyShow">Aufdecken</button><div class="fl-easy"></div></div>`;
+  ACT.s8EasyShow=()=>{const o=box.querySelector(".fl-easy");if(o)o.innerHTML=`<h2 style="color:var(--accent)">${esc(c.de)}</h2>`;Focus.foot(`<button class="go" data-act="s8BookClose">Danke</button>`)}}catch(e){}}
+ACT.s8Order=el=>{const card=el.closest(".fl-orders");if(!card)return;const inp=card.querySelector(".fl-ord-in");const out=card.querySelector(".fl-ord-out");const t=String(inp&&inp.value||"").trim().replace(/\s+/g," ");if(!t)return;
+  const du=flDu();const o=flS().ord;if(o.d!==todayKey()){o.d=todayKey();o.used=[]}
+  const hit=FL_TXT.orders.find(x=>(du?x.du:x.sie).test(t));const other=FL_TXT.orders.find(x=>(du?x.sie:x.du).test(t));
+  if(!hit){out.innerHTML=pkSay(other?flL(du?["Du hast mir das Du angeboten. Dann befiehl auch mit du.","You offered me du. Then give orders with du.",""]:["Wir sind beim Sie. Dann befehlen Sie auch mit Sie: Verb zuerst, dann „Sie“.","We are on Sie terms. Then give orders with Sie: verb first, then 'Sie'.",""]):flL(FL_TXT.orderWrong));return}
+  if(o.used.includes(hit.id)){out.innerHTML=pkSay(flL(["Diesen Befehl haben Sie heute schon gegeben. Morgen wieder.","You have given this order today already. Again tomorrow.","Diesen Befehl hast du heute schon gegeben. Morgen wieder."]));return}
+  o.used.push(hit.id);saveSoon();out.innerHTML=pkSay(flL(hit.ok));try{SND.fx("bell")}catch(e){}
+  setTimeout(()=>{try{if(hit.id==="langsam")FL_SLOW=true;else if(hit.id==="erklaer"){const c=pkCh();if(c.lesson)go("learn","id:"+c.lesson)}else if(hit.id==="leicht")flEasyCard()}catch(e){}},700)};
+
+// ---------------------------------------------------------------- 7. Valentin after a lost duel (from the Golem on) · one aside in the Kabinett
+(function(){try{const root=document.getElementById("fIn");if(!root||typeof MutationObserver==="undefined")return;let busy=false;
+  new MutationObserver(()=>{if(busy)return;busy=true;try{
+    const h2=root.querySelector("h2");const tt=(document.getElementById("fTitle")||{}).textContent||"";
+    if(h2&&h2.textContent.trim()==="Niederlage"&&!root.querySelector(".fl-valentin")&&FL_TXT.valentin){const p=P();if(p.signed&&(p.ch||1)>=16&&!flSober()){const o=root.querySelector(".card.orn");
+      if(o)o.insertAdjacentHTML("afterend",`<div class="card st-x fl-valentin" style="text-align:left"><div class="eyebrow">Valentin</div><div class="st-de">${esc(FL_TXT.valentin[0])}</div><div class="pk-say" style="display:block"><div class="en">${esc(FL_TXT.valentin[1])}</div></div></div>`)}}
+    if(/^Kuriositätenkabinett/.test(tt)&&!root.querySelector(".fl-aside")&&FL_TXT.asides&&!flSober()){const s=flS();const i=FL_TXT.asides.findIndex((a,k)=>!s.as[k]);
+      if(i>=0){const o=root.querySelector(".card.orn");if(o){o.insertAdjacentHTML("afterend",`<div class="card fl-aside">${pkSay(flL(FL_TXT.asides[i]),true)}<small class="muted ui">beiseite <span class="en">aside, to the audience</span></small></div>`);s.as[i]=1;saveSoon()}}}
+  }catch(e){}busy=false}).observe(root,{childList:true,subtree:true})}catch(e){}})();
+
+// ---------------------------------------------------------------- 8. Gretchens Zettel: one per finished library book, seven in all
+function flBooksDone(){try{const B=S.bib||{};return (typeof BIB_META!=="undefined"?BIB_META:[]).filter(b=>{const d=B[b.id]&&B[b.id].done;return d&&b.n&&Object.keys(d).length>=b.n}).length}catch(e){return 0}}
+let FL_Z_T=0;
+MOD.after("saveSoon","s8",function(){if(FL_Z_T)return;FL_Z_T=setTimeout(()=>{FL_Z_T=0;try{const s=flS();const Z=FL_TXT.zettel||[];const n=Math.min(Z.length,flBooksDone());
+  const k=s.z.length;if(k>=n)return;s.z.push(k+1);const z=Z[k];const root=document.getElementById("fIn");
+  const html=`<div class="card fl-zettel no-sig" style="transform:rotate(-1deg);background:var(--paper,#F4ECD8);color:#2A1E14"><div class="eyebrow" style="color:#7A2A1A">Ein Zettel im Buch <span class="en">a note in the book · ${k+1} / ${Z.length}</span></div><p style="font-family:var(--hand,var(--body));font-size:1.05rem;margin:.3rem 0">${glossify(z[0])}</p><small class="en">${esc(z[1])}</small><div style="text-align:right;font-style:italic">– G.</div></div>`;
+  if(root&&typeof Focus!=="undefined"&&Focus.isOpen())root.insertAdjacentHTML("afterbegin",html);else toast("Ein Zettel im Buch: „"+z[0].slice(0,60)+"…“",4200);
+  saveSoon()}catch(e){}},400)});
+
+// ===== Mephisto 13.x · s5 · Mephisto's voice: engine, the cruelty dial, gags, toasts with gloss, du twins. Needs v2/x_s5_voice.js.
+// Hooks (MOD.around, approved 16/11/2026): pkLine, pkGreet, pkSay, toast, pkSpeak, zeugnisHTML. MOD.after: viewPakt. No other function is reassigned.
+// Answers: `hx:answer` (s6) when HX exists, else I9's EV bus, else one verdict observer (fallback only). State: S.vc (see vcState).
+var MEPH2=MEPH2||{},SHADOW2=SHADOW2||{},CRU_LINES=CRU_LINES||{},MILE2=MILE2||{},GAGS=GAGS||{},MEPH_DROP=MEPH_DROP||[],VC_FIX=VC_FIX||{};
+const VC_LV={A1:0,A2:1,B1:2,B2:3,C1:4},VC_R={I:0,II:1,III:2,IV:3,V:4};
+var sFill=typeof sFill==="function"?sFill:function(s,x){try{if(typeof lmFill==="function")return lmFill(s,x)}catch(e){}return String(s).replace(/\[\[(.*?)\|\|(.*?)\]\]/g,"$2").replace(/\{(\w+)\}/g,(m,a)=>x&&x[a]!=null?x[a]:(x&&a==="N"&&x.n!=null?x.n:m))};
+// ---- state: S.vc = {said:{bank:[idx…]}, gag:{id:stage}, day:"yyyy-mm-dd", k:{kind:[de,en]}, barks:{d,n}, l4:"", gq:{d,l}, sc, bw:{}, nw, paid, ms:{}, mile:{}, ev:{}}
+function vcState(){if(typeof S==="undefined")return {};if(!S.vc||typeof S.vc!=="object")S.vc={};const v=S.vc;
+  ["said","gag","k","bw","ms","mile","ev"].forEach(k=>{if(!v[k]||typeof v[k]!=="object")v[k]={}});if(!v.barks)v.barks={d:"",n:0};return v}
+function vcSave(){try{saveSoon()}catch(e){}}
+function vcHour(){return new Date().getHours()}
+function vcShiftNow(){try{return !!(S.shifts&&S.shifts[todayKey()])}catch(e){return false}}
+function vcLate(){const h=vcHour();return h>=22||h<6}
+// ---- stage and gating
+function vcStage(o){let p={ch:1};try{p=P()}catch(e){}const ch=+p.ch||1;let r="I";try{r=(o&&o.r)||pkCh().r||"I"}catch(e){}
+  return {ch,r,lv:VC_R[r]||0,w:ch>=22,t:ch>=24,p:!!p.done,ally:ch>=33,du:p.du===true}}
+function vcOk(l,st,fi){if(!l)return false;if((VC_LV[l[fi]]||0)>st.lv)return false;const f=String(l[fi+1]||"").split(/\s+/).filter(Boolean);
+  const rm=f.filter(x=>VC_R[x]!=null);if(rm.length&&!rm.includes(st.r))return false;
+  for(const x of f){if(x==="w"&&!st.w)return false;if(x==="t"&&!st.t)return false;if(x==="p"&&!st.p)return false;if(x==="ally"&&!st.ally)return false;
+    if(x==="ns"&&(vcShiftNow()||vcLate()))return false;const c=/^c(\d+)$/.exec(x);if(c&&st.ch<+c[1])return false}
+  return true}
+function vcResolve(l,st,vars,isShadow){const de=isShadow?l[0]:(st.du&&l[2]?l[2]:l[0]),en=l[1];const a=sFill(de,vars),b=sFill(en,vars);
+  if(/\{[A-Z_]+\}/.test(a)||/\{[A-Z_]+\}/.test(b))return null;try{if(typeof lmCan==="function"&&!lmCan(de,vars))return null}catch(e){}return [a,b]}
+// shuffle bag: no line repeats until every eligible line of its bank has been said; lines at the current level weigh 3, one below 2, else 1
+function vcDraw(bank,key,st,fi,vars,isShadow,filt){if(!Array.isArray(bank))return null;const v=vcState();const pool=[];
+  bank.forEach((l,i)=>{if(vcOk(l,st,fi)&&(!filt||filt(l))){const r=vcResolve(l,st,vars,isShadow);if(r)pool.push([i,r])}});if(!pool.length)return null;
+  let used=Array.isArray(v.said[key])?v.said[key]:[];let fresh=pool.filter(x=>!used.includes(x[0]));
+  if(!fresh.length){const last=used[used.length-1];used=[];fresh=pool.filter(x=>x[0]!==last);if(!fresh.length)fresh=pool}
+  const w=fresh.map(x=>{const d=st.lv-(VC_LV[bank[x[0]][fi]]||0);return d<=0?3:d===1?2:1});let r=Math.random()*w.reduce((a,b)=>a+b,0),k=0;while(k<fresh.length-1&&(r-=w[k])>0)k++;
+  used.push(fresh[k][0]);v.said[key]=used;vcSave();return fresh[k][1]}
+function vcPick(kind,vars,o){return vcDraw(MEPH2[kind],kind,vcStage(o),3,vars||{},false,o&&o.filt)}
+function vcShadow(kind,vars){return vcDraw(SHADOW2[kind],"s:"+kind,vcStage(),2,vars||{},true)}
+function vcCru(lv,vars,type){const B=CRU_LINES[lv];if(!B)return null;const st=vcStage();
+  if(type){const t=vcDraw(B,"cru"+lv+":"+type,st,3,vars,false,l=>l[5]===type);if(t)return t}
+  return vcDraw(B,"cru"+lv,st,3,vars,false,l=>!l[5])}
+// one line per kind and day for cards that are re-rendered (greeting on Pakt, home and rail)
+function vcDaily(kind,vars,fn){const v=vcState(),t=todayKey();if(v.day!==t){v.day=t;v.k={}}if(!v.k[kind]){const l=fn?fn():vcPick(kind,vars);if(!l)return null;v.k[kind]=l;vcSave()}return v.k[kind]}
+// ---- data for reactive lines
+function vcWeakLesson(){try{if(typeof LM!=="undefined"&&LM.weakLesson){const w=LM.weakLesson();if(w&&w.title)return w.title}}catch(e){}
+  try{const ids=Object.keys(S.lessons||{}).filter(id=>S.lessons[id]&&S.lessons[id].lastScore!=null&&S.lessons[id].lastScore<70);if(!ids.length)return null;ids.sort((a,b)=>S.lessons[a].lastScore-S.lessons[b].lastScore);const L=lessonById(ids[0]);return L?(L.title||L.t||null):null}catch(e){return null}}
+function vcWorstWord(){try{let best=null,n=2;for(const k in S.cards){const c=S.cards[k];if((c.lapses||0)>n){const C=card(k);if(C){n=c.lapses;best=C.de}}}return best}catch(e){return null}}
+// ---- the toast with gloss; time grows with the length of the line
+let VC_CSS=false;
+function vcCss(){if(VC_CSS)return;VC_CSS=true;try{const s=document.createElement("style");s.textContent=".toast .toast-en{display:block;font-weight:400;font-size:.86em;opacity:.78;margin-top:.15rem}.toast .toast-who{font-weight:700}.vc-shadow .de{font-style:italic}";document.head.appendChild(s)}catch(e){}}
+function mephToast(l,who){try{if(!l||!l[0])return;const t=$("#toast");if(!t)return;vcCss();const m=document.documentElement.dataset.en;const en=m!=="tap"&&m!=="off"&&l[1];
+  t.innerHTML=`<span class="toast-who">${esc(who||"Mephisto")}:</span> ${esc(l[0])}${en?`<span class="toast-en">${esc(l[1])}</span>`:""}`;t.classList.add("show");
+  const words=String(l[0]).split(/\s+/).length;clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),Math.max(3800,Math.min(14000,1800+words*420+(en?1400:0))))}catch(e){}}
+// German → English for toasts that other files send as plain text („Mephisto: …")
+let VC_EN=null;
+function vcEnIndex(){if(VC_EN)return VC_EN;VC_EN=new Map();const put=(de,en)=>{if(de&&en&&!VC_EN.has(de))VC_EN.set(String(de),String(en))};
+  try{Object.keys(MEPH).forEach(k=>(MEPH[k]||[]).forEach((l,i)=>{put(l[0],l[1]);try{put(MEPH_DU[k][i],l[1])}catch(e){}}))}catch(e){}
+  try{Object.keys(MILE).forEach(k=>{const x=MILE[k];put(x[0],x[1]);put(x[2],x[1])})}catch(e){}
+  try{Object.keys(MEPH2).forEach(k=>MEPH2[k].forEach(l=>{put(l[0],l[1]);put(l[2],l[1])}))}catch(e){}
+  put("Wie Sie wünschen. Distanz steht Ihnen.","As you wish. Distance suits you.");
+  put("Übersprungen ist nicht gelernt. Dieser Tag zählt nicht für das Siegel.","Skipped is not learned. This day does not count for the seal.");
+  return VC_EN}
+// ---- load-time data changes: MEPH_DROP (same index in MEPH_DU), MILE2
+(function(){try{Object.keys(MEPH).forEach(k=>{const L=MEPH[k];if(!Array.isArray(L))return;for(let i=L.length-1;i>=0;i--){if(L[i]&&MEPH_DROP.includes(L[i][0])){L.splice(i,1);try{if(MEPH_DU[k])MEPH_DU[k].splice(i,1)}catch(e){}}}
+    if(!L.length){delete MEPH[k];try{delete MEPH_DU[k]}catch(e){}}})}catch(e){}
+  try{Object.assign(MILE,MILE2)}catch(e){}})();
+// ---- running gags: vcGag(event, vars) queues the next stage of every gag waiting for that event; one gag line a day, shown as that day's greeting
+function vcGag(ev,vars){try{const v=vcState(),t=todayKey();if(v.gq&&v.gq.d===t)return false;const st=vcStage();
+  for(const id of Object.keys(GAGS)){const G=GAGS[id],i=+v.gag[id]||0,s=G[i];if(!s)continue;if(s[0]!==ev&&s[0]!==ev+"b")continue;
+    const l=[s[1],s[2],s[3],s[4],s[5]];if(!vcOk(l,st,3))continue;const r=vcResolve(l,st,vars||{},false);if(!r)continue;
+    v.gag[id]=i+1;v.gq={d:t,id,l:r};vcSave();return true}}catch(e){}return false}
+function vcGagScan(){try{const v=vcState(),p=P(),t=todayKey();if(!p.signed)return;
+  const seals=Object.keys(p.sealed||{}).map(Number).filter(n=>n>0).sort((a,b)=>a-b);const sc=+v.sc||0;
+  if(v.sc==null){v.sc=seals.length?seals[seals.length-1]:0;vcSave()}else seals.filter(n=>n>sc).forEach(n=>{v.sc=Math.max(+v.sc||0,n);vcGag("seal:"+n)});
+  if(p.ch)vcGag("open:"+p.ch);
+  Object.keys(S.bossWins||{}).forEach(b=>{if(!v.bw[b]){v.bw[b]=t;vcGag("boss:"+b)}});
+  const sk=typeof streak==="function"?streak():0;if(sk)vcGag("streak:"+sk);
+  const gap=typeof st3Gap==="function"?st3Gap():0;if(gap>=7)vcGag("back7");if(gap>=3)vcGag("back");
+  if(p.debt>0)vcGag("debt");if((+p.paid||0)>(+v.paid||0)){v.paid=+p.paid;vcGag("debtpaid")}
+  if(vcShiftNow())vcGag("shift");const d=new Date();if(d.getMonth()===3&&d.getDate()<30)vcGag("april");if(d.getMonth()===3&&d.getDate()===30)vcGag("date:04-30");
+  if(d.getHours()===3&&d.getMinutes()<16)vcGag(p.done?"time:03p":"time:03");
+  if(p.done){const n=diffDays(String(p.done).slice(0,10),t);if(n>=1)for(let k=1;k<=Math.min(n,7);k++)vcGag("after:"+k)}
+  try{if(typeof learnerLv==="function"&&learnerLv()>=1)vcGag("lvword:A2")}catch(e){}
+  const nw=+v.nw||0;if(nw>=1000)vcGag("errors:1000");if(nw>=100)vcGag("errors:100")}catch(e){}}
+function vcGagLine(){const v=vcState();return v.gq&&v.gq.d===todayKey()?v.gq.l:null}
+// ---- pkLine: the new banks first, old banks as fall-back
+MOD.around("pkLine","s5",function(orig,kind,n){try{const p=P(),v=vcState();const vars={n:n,N:n,STREAK:n,DAYS_AWAY:n};
+  if(kind==="chapter"){const cnt=Object.keys(p.sealed||{}).length;const k="seal"+cnt;
+    if(cnt>0&&cnt%3===0&&MILE2[k]&&!v.ms[k]){v.ms[k]=todayKey();vcSave();const x=MILE2[k];return [p.du===true&&x[2]?x[2]:x[0],x[1]]}
+    if(cnt===1||cnt===20)return orig(kind,n);const l=vcPick("chapter");if(l)return l;return orig(kind,n)}
+  if(kind==="idle"){const t=todayKey();if((v.ev.idle||"")===t+":2")return null;
+    if(document.querySelector(".view .prose, .view .lesson, .reader, .pk-reader, #focus .prose"))return null;
+    const c=(v.ev.idle||"").startsWith(t)?+(v.ev.idle.split(":")[1])||0:0;v.ev.idle=t+":"+(c+1);vcSave();return vcPick("idle")||orig(kind,n)}
+  if(kind==="wrong"||kind==="right"){const l=vcPick(kind,vars);if(l){VC_OBS={de:l[0],t:Date.now()};return l}return orig(kind,n)}
+  if(kind==="secret"&&(+p.ch||1)<22)kind="greet";
+  if(kind==="done"){const l=vcPick("done");if(l)return l;return orig(kind,n)}
+  if(["greet","morning","noon","evening","night","shift","streak","debt","back","after","secret","lesson","word"].includes(kind)){const l=vcDaily(kind,vars);if(l)return l}
+  else if(MEPH2[kind]){const l=vcPick(kind,vars);if(l)return l}}catch(e){}
+  return orig(kind,n)});
+let VC_OBS={de:"",t:0};
+// ---- pkGreet (S5 §7, with S7 E7: three missed days with an IOU get „back3", protected ones „dienst3")
+MOD.around("pkGreet","s5",function(orig){try{const p=P(),v=vcState();vcGagScan();const ml2=k=>{const x=MILE[k];return x?[p.du===true&&x[2]?x[2]:x[0],x[1]]:null};
+  const g=vcGagLine();if(g)return {k:"gag",l:g};
+  if(p.done){const l=vcDaily("after");if(l)return {k:"after",l}}
+  const gap=typeof st3Gap==="function"?st3Gap():0;
+  if(gap>=30)return (+p.ch||1)>=22?{k:"secret",l:ml2("back30")}:{k:"back",l:ml2("back30early")};
+  if(gap>=7)return {k:"back",l:p.debt>0?ml2("back7"):ml2("dienst7")};
+  if(gap>=3){if(!p.debt)return {k:"back",l:ml2("dienst3")};if(!v.mile.back3){v.mile.back3=todayKey();vcSave();return {k:"back",l:ml2("back3")}}
+    const l=vcDaily("back",{DAYS_AWAY:gap,N:gap});if(l)return {k:"back",l}}
+  if(p.debt>0){const l=vcDaily("debt",{N:p.debt});if(l)return {k:"debt",l}}
+  const T=S.today&&S.today.date===todayKey()?S.today:null;if(T&&T.finished){const l=vcDaily("done");if(l)return {k:"done",l}}
+  if(vcShiftNow()){const l=vcDaily("shift");if(l)return {k:"shift",l}}
+  const sk=typeof streak==="function"?streak():0;if(sk>=3&&sk%3===0){const l=vcDaily("streak",{STREAK:sk,N:sk});if(l)return {k:"streak",l}}
+  const h=[...todayKey()].reduce((a,c)=>a+c.charCodeAt(0),0),hr=vcHour();
+  if(h%11===0&&(+p.ch||1)>=22){const l=vcDaily("secret");if(l)return {k:"secret",l}}
+  if(h%5===1){const t=vcWeakLesson();if(t){const l=vcDaily("lesson",{LESSON:t});if(l)return {k:"lesson",l}}}
+  if(h%5===3){const w=vcWorstWord();if(w){const l=vcDaily("word",{WORD:w});if(l)return {k:"word",l}}}
+  const tk=hr>=23||hr<4?"night":hr<8?"morning":hr>=11&&hr<14?"noon":hr>=18?"evening":"";
+  if(tk&&(h%5===0||tk==="night"||tk==="morning")){const l=vcDaily(tk);if(l)return {k:tk,l}}
+  const l=vcDaily("greet");if(l)return {k:"greet",l}}catch(e){}
+  return orig()});
+// ---- pkSay: fixed inline lines, boss taunts with the boss's own face (S5 D6), a second line under boss ends and secrets
+const VC_BOSS_R={hexe:"I",golem:"II",pudel:"III",caligari:"IV",kommission:"V"};
+function vcBossOf(l,field){try{for(const id of Object.keys(BOSSES)){const B=BOSSES[id];if(field==="taunt"){if((B.taunt||[]).some(x=>x&&x[0]===l[0]))return id}else if(B[field]&&B[field][0]===l[0])return id}}catch(e){}return null}
+function vcBossSay(id,l){const B=BOSSES[id];const a=typeof pkArt==="function"?pkArt(B.art):null;
+  return `<div class="pk-say vc-boss"><div class="who">${a?`<img src="${a.u}" alt="${esc(B.n)}">`:""}</div><div><div class="eyebrow">${esc(B.n)}</div><div class="de">${esc(l[0])}</div>${l[1]?`<div class="en">${esc(l[1])}</div>`:""}</div></div>`}
+MOD.around("pkSay","s5",function(orig,l,secret,cls){try{if(l&&VC_FIX[l[0]])l=VC_FIX[l[0]];
+  if(l&&l[1]===""&&/^(Serie ×\d+!|Schnell\. Zu schnell für mich\.|Getroffen\.|Kritischer Treffer\.)$/.test(l[0])){const t=l[0].startsWith("Schnell")?"Kritischer Treffer.":l[0];
+    return `<div class="pk-say vc-hit"><div><div class="eyebrow">Du</div><div class="de">${esc(t)}</div></div></div>`}
+  if(l){const tb=vcBossOf(l,"taunt");if(tb)return vcBossSay(tb,l);
+    const w=vcBossOf(l,"win"),lo=w?null:vcBossOf(l,"lose");const b=w||lo;
+    if(b&&b!=="kommission"){const base=orig(l,secret,cls);if(w)vcGag("boss:"+b);const x=vcPick(w?"bosswon":"bosslost",{},{r:VC_BOSS_R[b]});return base+(x?orig(x,false,cls):"")}
+    if(typeof EGGS!=="undefined"&&Object.keys(EGGS).some(k=>EGGS[k]&&EGGS[k][2]===l[0])){const base=orig(l,secret,cls);const x=vcPick("egg");return base+(x?orig(x,false,cls):"")}}}catch(e){}
+  return orig(l,secret,cls)});
+// ---- toast: Mephisto's toasts get their gloss; the verdict observer's random bark yields to the dial; no name before chapter 40 (PLAN-S2 §1.5)
+MOD.around("toast","s5",function(orig,msg,ms){try{if(typeof msg==="string"&&msg.startsWith("Mephisto: ")){let de=msg.slice(10);
+    if(VC_OBS.de&&de===VC_OBS.de&&Date.now()-VC_OBS.t<4000){VC_OBS={de:"",t:0};return}
+    if(/^Gut, [^.]{1,40}\. Ab jetzt sind wir per du\./.test(de))return mephToast(["Gut. Ab jetzt sind wir per du. Deine Seele gehört mir trotzdem.","Good. From now on we say du. Your soul is still mine."]);
+    const en=vcEnIndex().get(de);if(en)return mephToast([de,en])}}catch(e){}
+  return orig(msg,ms)});
+// ---- TTS direction (S5 P8): „(leise)" lines are spoken quietly and slowly
+MOD.around("pkSpeak","s5",function(orig,de){try{const m=/^\((leise|flüsternd)\)\s*/.exec(String(de||""));if(m&&TTS_OK){speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(String(de).replace(/\((leise|flüsternd)\)\s*/g,""));u.lang="de-DE";if(DE_VOICE)u.voice=DE_VOICE;u.pitch=.6;u.rate=.82;u.volume=.55;speechSynthesis.speak(u);return}}catch(e){}
+  return orig.apply(this,[].slice.call(arguments,1))});
+// ---- Zeugnis: no gloat over a week of shifts (S10 P1); odd ISO weeks use the second line per grade
+function vcIsoWeek(k){const [y,m,d]=String(k).split("-").map(Number);const t=new Date(Date.UTC(y,m-1,d));const n=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-n);const y0=new Date(Date.UTC(t.getUTCFullYear(),0,1));return Math.ceil(((t-y0)/864e5+1)/7)}
+MOD.around("zeugnisHTML","s5",function(orig,z){const args=[].slice.call(arguments,1);if(!z||!z.note||typeof ZEUGNIS_NOTE==="undefined")return orig(...args);
+  const keep=ZEUGNIS_NOTE[z.note];let html=null;try{let sh=0;if(z.from&&S.shifts)for(let i=0;i<7;i++){if(S.shifts[addDays(z.from,i)])sh++}
+    if(sh>=3&&z.note>=5){const x=MILE2.zdienst;ZEUGNIS_NOTE[z.note]=[x[0],x[2]||x[0],x[1]];html=orig(...args);
+      html=html.replace(`Note ${z.note} · ${NOTE_NAME[z.note]}`,"Note — · Dienstwoche").replace(`<div class="z-note n${z.note}">${z.note}</div>`,`<div class="z-note">—</div>`)}
+    else if(vcIsoWeek(z.from||todayKey())%2===1&&MEPH2["z"+z.note]){const L=MEPH2["z"+z.note];const x=L[vcIsoWeek(z.from||todayKey())%L.length]||L[0];
+      if((VC_LV[x[3]]||0)<=vcStage().lv){ZEUGNIS_NOTE[z.note]=[x[0],x[2]||x[0],x[1]];html=orig(...args)}}}catch(e){html=null}
+  finally{ZEUGNIS_NOTE[z.note]=keep}return html!=null?html:orig(...args)});
+// ---- the Shadow under the greeting: tired evenings and shift days, returns after an absence (S5 P7; one line a day)
+MOD.after("viewPakt","s5",function(m){if(!m||!P().signed||document.documentElement.dataset.sober==="1")return;const gap=typeof st3Gap==="function"?st3Gap():0;
+  const kind=gap>=3?"absent":(P().ch>=33&&!vcShiftNow()?null:((vcShiftNow()||vcHour()>=22)?"tired":null));if(!kind)return;
+  const l=vcDaily("sh:"+kind,null,()=>vcShadow(kind,{DAYS_AWAY:gap,N:gap}));if(!l)return;const host=m.querySelector(".pk-say");if(!host)return;const card0=host.closest(".card")||host;
+  if(m.querySelector(".vc-shadow"))return;card0.insertAdjacentHTML("afterend",`<div class="card stack s vc-shadow"><div class="eyebrow">Dein Schatten</div><div class="de">${esc(l[0])}</div><div class="en">${esc(l[1])}</div></div>`)});
+// ---- the cruelty dial (PLAN-S §3.3, S10 P1). vcDial() → the current level: 0 Stille · 1 Kälte · 2 Spott · 3 Hohn · 4 Albtraum · "R" Rückkehr
+const VC_RUN={fails:0,right:0,sess:0,last:0,first:true,said5:{},pocket:{t:0,n:0},level:2,quiet5:false};
+function vcDial(){return VC_RUN.level}
+function vcExcuse(){try{const p=P();if(p.debt>0)return true;const y=addDays(todayKey(),-1),y2=addDays(todayKey(),-2);const act=k=>!!(S.log&&S.log[k]&&S.log[k].act);
+  return !!p.signed&&!act(y)&&act(y2)&&!(S.shifts&&S.shifts[y])}catch(e){return false}}
+function vcLevel(d){const ctx=d.ctx||"drill";if(ctx==="sober"||ctx==="speech"||ctx==="exam"||ctx==="clinic"||document.documentElement.dataset.sober==="1")return 0;
+  if(d.fails>=5)return 0;if(d.fails>=3)return 1;if(vcShiftNow()&&vcLate())return 1;
+  if(d.fails===1&&!vcShiftNow()&&vcState().l4!==todayKey()&&vcExcuse())return 4;
+  if((d.lapse||0)>=3||(d.fails===1&&(d.prevRight||0)>=8))return 3;return 2}
+function vcBudget(force){const now=Date.now(),v=vcState(),t=todayKey();if(v.barks.d!==t)v.barks={d:t,n:0};
+  if(now-VC_RUN.last<90000||VC_RUN.sess>=6||v.barks.n>=10)return false;
+  try{const ti=($("#fTitle")||{}).textContent||"";if(Focus.isOpen()&&/Taschenrunde/.test(ti)){if(now-VC_RUN.pocket.t>360000)VC_RUN.pocket={t:now,n:0};if(VC_RUN.pocket.n>=2)return false;VC_RUN.pocket.n++}}catch(e){}
+  VC_RUN.last=now;VC_RUN.sess++;v.barks.n++;vcSave();return true}
+function vcBark(l,who){if(!l)return;setTimeout(()=>mephToast(l,who),700)}
+function vcType(d){if(d.type&&/^(genus|order|case|verb|vocab|spell|reg)$/.test(d.type))return d.type;const g=String(d.got||d.given||"").trim(),w=String(d.want||"").trim();if(!g||!w)return null;
+  const art=/^(der|die|das)\s/i;if(art.test(w)&&art.test(g)&&g.split(/\s+/)[0].toLowerCase()!==w.split(/\s+/)[0].toLowerCase())return "genus";
+  const norm=s=>s.toLowerCase().replace(/ß/g,"ss").replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/[^a-z ]/g,"");if(norm(g)===norm(w))return "spell";
+  if(norm(g).split(" ").sort().join(" ")===norm(w).split(" ").sort().join(" "))return "order";return null}
+function vcOnAnswer(d){try{if(!d)return;let p;try{p=P()}catch(e){return}if(!p.signed)return;const v=vcState();
+  if(d.ctx==="duel")return;                                   // the boss speaks in a duel
+  const ok=!!d.ok;let fails=d.fails,right=d.rightRun;
+  if(fails==null){if(ok){VC_RUN.prev=VC_RUN.fails;VC_RUN.fails=0;VC_RUN.right++}else{VC_RUN.prevRight=VC_RUN.right;VC_RUN.fails++;VC_RUN.right=0}fails=VC_RUN.fails;right=VC_RUN.right}
+  else{if(ok){VC_RUN.prev=VC_RUN.fails;VC_RUN.fails=0;VC_RUN.right=right||0}else{VC_RUN.prevRight=VC_RUN.right;VC_RUN.fails=fails;VC_RUN.right=0}}
+  const vars={WORD:d.word||undefined,GOT:d.got||d.given||undefined,WANT:d.want||undefined,N:d.lapse||undefined};
+  if(ok){if((VC_RUN.prev||0)>=3){VC_RUN.prev=0;VC_RUN.level="R";document.documentElement.dataset.cru="R";if(vcBudget())vcBark(vcCru("R",vars));return}
+    VC_RUN.level=2;document.documentElement.dataset.cru="";
+    for(const k of [20,10,5])if(right===k&&!VC_RUN.said5[k]){VC_RUN.said5[k]=1;if(vcBudget())vcBark(vcPick("right"+k));return}
+    if(Math.random()<.12&&!VC_RUN.first&&vcBudget())vcBark(vcPick("right"));return}
+  v.nw=(+v.nw||0)+1;if(v.nw===100||v.nw===1000)vcGag("errors:"+v.nw);
+  const lv=vcLevel({ctx:d.ctx,fails,lapse:d.lapse,prevRight:VC_RUN.prevRight});VC_RUN.level=lv;document.documentElement.dataset.cru=String(lv);
+  if(fails===5&&lv===0&&!(d.ctx==="sober"||d.ctx==="speech"||d.ctx==="exam"||d.ctx==="clinic")){setTimeout(()=>{try{toast("Die Karte kommt morgen wieder.",3200)}catch(e){}},700);return}
+  if(lv===0)return;
+  if(VC_RUN.first){VC_RUN.first=false;return}                 // he lets the first slip of a session pass
+  if(d.type==="typed"||d.typed){const r=vcStage().r;if(r==="II")vcGag("typed:II");if(r==="IV")vcGag("typed:IV")}
+  let l=null,who=null;
+  if(vcStage().ally&&Math.random()<.15){l=vcShadow("ally");who="Dein Schatten"}
+  if(!l){if(lv===1)l=fails===3?(vcPick("wrong3")||vcCru(1,vars)):fails===4?(vcPick("wrong5")||vcCru(1,vars)):vcCru(1,vars);
+    else if(lv===2){if(Math.random()>=.35)return;const ty=vcType(d);l=(ty&&Math.random()<.6?vcCru(2,vars,ty):null)||vcPick("wrong",vars)}
+    else if(lv===3)l=vcCru(3,vars)||vcPick("wrong",vars);
+    else if(lv===4){l=vcCru(4,{N:p.debt||undefined});if(l){v.l4=todayKey();vcSave()}}}
+  if(l&&vcBudget())vcBark(l,who)}catch(e){}}
+// ---- answer sources (deferred: EV and HX may load after this file)
+let VC_SRC="";
+function vcObserve(){new MutationObserver(muts=>{for(const m of muts)for(const n of m.addedNodes){if(n.nodeType!==1)continue;const v=n.matches&&n.matches(".verdict")?n:(n.querySelector&&n.querySelector(".verdict"));if(!v)continue;
+  const bad=v.classList.contains("no")||v.classList.contains("bad");let ctx="drill";
+  try{if(v.closest(".duel"))ctx="duel";else if(v.closest("[data-nohor]"))ctx="speech";else{const ti=($("#fTitle")||{}).textContent||"";if(/Aussprache|Nachsprechen|Shadowing|Rezitation/i.test(ti))ctx="speech";else if(/Prüfung|Simulation|Modelltest|FSP|Kommission/i.test(ti))ctx="exam"}}catch(e){}
+  vcOnAnswer({ok:!bad,ctx})}}).observe(document.body,{childList:true,subtree:true})}
+function vcEvCtx(){try{if(document.documentElement.dataset.sober==="1")return "sober";const ti=($("#fTitle")||{}).textContent||"";if(/Aussprache|Nachsprechen|Shadowing|Rezitation/i.test(ti))return "speech";if(/Prüfung|Simulation|Modelltest|FSP|Kommission/i.test(ti))return "exam"}catch(e){}return "drill"}
+setTimeout(()=>{try{
+  if(typeof HX!=="undefined"){VC_SRC="hx";document.addEventListener("hx:answer",e=>vcOnAnswer(e&&e.detail))}
+  else if(typeof window!=="undefined"&&window.EV&&typeof EV.on==="function"){VC_SRC="ev";
+    EV.on("card.answer",d=>{d=d||{};const ty=d.typed||null;const lapse=+d.lapses||0,word=d.de||"";
+      vcOnAnswer({ok:d.ok!=null?!!d.ok:true,ctx:vcEvCtx(),lapse,word,got:ty&&ty.got,want:ty&&ty.want,type:ty?"typed":null,typed:!!ty});
+      try{const v=vcState();if(lapse>=5&&d.ok===false&&vcGag("leech:5",{WORD:word}))v.leech={id:d.id,r:0,w:word};else if(v.leech&&d.id===v.leech.id&&d.ok){v.leech.r++;if(v.leech.r>=3){vcGag("healed",{WORD:v.leech.w});v.leech=null}}}catch(e){}});
+    EV.on("ex.answer",d=>{d=d||{};vcOnAnswer({ok:!!d.ok,ctx:vcEvCtx(),got:d.given,want:d.want,type:d.type})});
+    EV.on("cards.round",d=>{try{if(d&&d.n>=10&&!d.missed){const v=vcState();const t=todayKey();v.pf=(v.pf||[]).filter(x=>diffDays(x,t)<7);v.pf.push(t);vcSave();
+      if(P().done)vcGag("perfect:after");else if(v.pf.length>=3)vcGag("perfect:3w");if(vcBudget())vcBark(vcPick("perfect"))}}catch(e){}});
+    EV.on("spell",()=>{try{vcGag("spell:1");if(!VC_RUN.caps){VC_RUN.caps=1;if(vcBudget())vcBark(vcPick("caps"))}}catch(e){}});
+    EV.on("lore.read",d=>{try{const v=vcState(),t=todayKey();if(d&&v.ev.chronik!==t){v.ev.chronik=t;vcSave();vcBark(vcPick("chronik"))}}catch(e){}})}
+  else{VC_SRC="dom";vcObserve()}}catch(e){}},0);
+if(typeof module!=="undefined")module.exports={vcPick,vcShadow,vcDaily,vcStage,vcOk,vcCru,vcLevel,vcOnAnswer,vcGag,vcDial,mephToast,sFill};
+
+// ===== s9 · Die Stuben: Märchenstube (12 tales, Formelschatz, Das Protokoll), Die Sammlung (Eponyme, Fallakten, Sätze, Wörter mit Geschichte),
+// secrets (triggers) and the forest's whispers (data in x_s9_eggs.js). Hooks: MOD.after viewPakt, viewLearn, showGloss. No shared function is reassigned.
+// State: S.st (one key) — see s9Merge at the end for the merge rule. Grave material (case files, WMG, „Nicht mehr sagen“) is sober: no horror,
+// no Mephisto line, no sting, no count, no reward.
+var MAERCHEN=typeof MAERCHEN!=="undefined"?MAERCHEN:[],FORMELN=typeof FORMELN!=="undefined"?FORMELN:[],PROTOKOLL=typeof PROTOKOLL!=="undefined"?PROTOKOLL:null;
+var EPONYME=typeof EPONYME!=="undefined"?EPONYME:[],EPONYME_ALT=typeof EPONYME_ALT!=="undefined"?EPONYME_ALT:[],FALLAKTEN=typeof FALLAKTEN!=="undefined"?FALLAKTEN:[];
+var WMG=typeof WMG!=="undefined"?WMG:[],MEPH_MED=typeof MEPH_MED!=="undefined"?MEPH_MED:[],SAETZE=typeof SAETZE!=="undefined"?SAETZE:[];
+var S9_EGGS=typeof S9_EGGS!=="undefined"?S9_EGGS:{},S9_EGG_PAGE=typeof S9_EGG_PAGE!=="undefined"?S9_EGG_PAGE:{};
+// ---------------------------------------------------------------- 0. helpers and state
+function s9St(){const s=S.st=S.st&&typeof S.st==="object"?S.st:{};["m","f","e","a","w","z","x"].forEach(k=>{if(!s[k]||typeof s[k]!=="object")s[k]={}});return s}
+function s9Ch(){try{const p=P();if(!p.signed)return 0;return p.done?99:(p.ch||1)}catch(e){return 0}}
+function s9Lv(){try{return typeof learnerLv==="function"?learnerLv():0}catch(e){return 0}}
+function s9LvI(l){const i=["A1","A2","B1","B2","C1"].indexOf(String(l||"A1").slice(0,2));return i<0?0:i}
+function s9Du(){try{return P().du===true}catch(e){return false}}
+function s9Line(l){return [s9Du()&&l[2]?l[2]:l[0],l[1]]}                       // [sie,en,du] → [de,en] for pkSay
+function s9Sober(on){const h=document.documentElement;try{if(on){h.dataset.sober="1";if(typeof HOR!=="undefined"&&HOR.pause)HOR.pause(true)}else{delete h.dataset.sober;if(typeof HOR!=="undefined"&&HOR.pause)HOR.pause(false)}}catch(e){}}
+function s9Today(){try{return todayKey()}catch(e){return new Date().toISOString().slice(0,10)}}
+function s9Esc(s){return typeof esc==="function"?esc(s):String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c])}
+function s9Card(id,de,en,ex,exEn,tag,level){try{if(!CATALOG.has(id))CATALOG.set(id,{id,de,en,type:"phrase",ex:ex||"",exEn:exEn||"",tag,kind:"satz",level:level||"A2",pl:"",info:"",syn:"",src:"s9"})}catch(e){}}
+// Formula and eponym cards exist in the catalogue as "satz" cards, so the normal intake never introduces them (it takes satz cards only when unlocked);
+// s9 puts them into S.cards itself.
+(function(){try{FORMELN.forEach(f=>s9Card("s9f:"+f[0],f[1].replace("___",f[2]),f[4],f[6],f[7],"formel","A2"));
+  EPONYME.forEach(e=>s9Card("s9e:"+e[0],e[1],e[5]+" — "+e[4],e[6],e[3],"eponym","C1"))}catch(e){}})();
+function s9AddCard(id){try{if(S.cards[id])return false;S.cards[id]=newState();if(typeof introducedNew==="function")introducedNew(false);saveSoon();return true}catch(e){return false}}
+// a lesson is open from its chapter; its exercises from its level
+function s9TaleOpen(m){return s9Ch()>=m.ch}
+function s9TaleEx(m){return s9Lv()>=s9LvI(m.lv)}
+function s9TaleDone(m){const r=s9St().m[m.id];return !!(r&&r.sc>=83)}
+// Formelschatz: formulas whose tale is done (or whose chapter is reached) enter the deck, at most two new per day
+function s9FormelDue(){return FORMELN.filter(f=>{const from=f[8];if(typeof from==="number")return s9Ch()>=from;const m=MAERCHEN.find(x=>x.id===from);return !!(m&&s9TaleDone(m))})}
+function s9FormelFeed(){try{const st=s9St(),d=s9Today();if(!st.fn||st.fn.d!==d)st.fn={d,n:0};let added=[];
+  for(const f of s9FormelDue()){if(st.fn.n>=2)break;if(st.f[f[0]])continue;st.f[f[0]]=d;st.fn.n++;s9AddCard("s9f:"+f[0]);added.push(f)}
+  if(added.length)saveSoon();return added}catch(e){return []}}
+// ---------------------------------------------------------------- 1. Werkstatt tiles (Pakt tab) and lesson links (Lernen)
+function s9Tiles(){const st=s9St();const nOpen=MAERCHEN.filter(s9TaleOpen).length,nDone=MAERCHEN.filter(s9TaleDone).length;
+  let h=`<button data-act="s9Stube" class="s9-tile"><b>Märchenstube · ${nDone} / ${MAERCHEN.length}</b><small>${nOpen} Märchen offen · Formeln · Grammatik</small></button>`;
+  if(s9Ch()>=29)h+=`<button data-act="s9Sammlung" class="s9-tile"><b>Die Sammlung</b><small>Eponyme · Fallakten · Sätze</small></button>`;return h}
+MOD.after("viewPakt","s9",function(m){if(!P().signed)return;const g=m.querySelector(".pk-werk .werk-grid");if(!g||g.querySelector(".s9-tile"))return;g.insertAdjacentHTML("afterbegin",s9Tiles())});
+MOD.after("viewLearn","s9",function(m){if(!R.id)return;const t=MAERCHEN.filter(x=>x.gram===R.id&&s9TaleOpen(x));if(!t.length||m.querySelector(".s9-link"))return;const v=m.querySelector(".view")||m;
+  v.insertAdjacentHTML("beforeend",`<div class="card stack s s9-link"><div class="eyebrow">Dazu ein Märchen <span class="en">a tale for this lesson</span></div>${t.map(x=>`<button class="sm" data-act="s9Tale" data-id="${x.id}">${s9Esc(x.t)} · ${s9Esc(x.tale)}</button>`).join("")}</div>`)});
+// ---------------------------------------------------------------- 2. Märchenstube
+ACT.s9Stube=()=>{s9FormelFeed();const box=Focus.open({title:"Märchenstube",sub:"Formel · Märchen · sechs Übungen"});const st=s9St();
+  const tile=m=>{const o=s9TaleOpen(m),ex=s9TaleEx(m),dn=s9TaleDone(m);const state=!o?`ab Kapitel ${m.ch}`:dn?"gelesen · Belohnung offen":!ex?`Formel und Märchen · Übungen ab ${m.lv}`:(st.m[m.id]?`${st.m[m.id].sc} %`:"neu");
+    return `<button class="card s9-ml${o?"":" locked"}" style="text-align:left;display:block" ${o?`data-act="s9Tale" data-id="${m.id}"`:"disabled"} data-ml="${m.id}"><div class="row between"><span class="eyebrow">${m.n} · ${s9Esc(m.lv)} · ${s9Esc(state)}</span></div><div style="font-family:var(--display);font-size:1.25rem">${s9Esc(o?m.t:"· · ·")}</div><small class="muted ui">${s9Esc(o?m.tale:"Diese Geschichte erzählt der Wald später.")}</small></button>`};
+  const fIn=FORMELN.filter(f=>st.f[f[0]]).length;const pOpen=PROTOKOLL&&s9Ch()>=PROTOKOLL.ch;
+  box.innerHTML=`<div class="stack" style="max-width:720px;margin:0 auto"><div class="card orn">${pkSay(["Märchen sind keine Kindersachen. Sie sind Grammatik, die man sich tausendmal vorgelesen hat.","Fairy tales are not for children. They are grammar that has been read aloud a thousand times."])}</div>
+   <p class="muted ui">Each tale: the formula → the story in simple German → six exercises. Five of six right opens „So steht es wirklich da“ — what the old editions say.</p>
+   ${MAERCHEN.map(tile).join("")}
+   <button class="card" style="text-align:left;display:block" data-act="s9Formeln"><span class="eyebrow">Formelschatz · ${fIn} / ${FORMELN.length} im Deck</span><div style="font-family:var(--display);font-size:1.2rem">Sätze, die jeder Deutsche ergänzen kann</div><small class="muted ui">Lines every German can finish · at most two new a day</small></button>
+   ${PROTOKOLL?`<button class="card${pOpen?"":" locked"}" style="text-align:left;display:block" ${pOpen?'data-act="s9Protokoll"':"disabled"}><span class="eyebrow">${s9Esc(PROTOKOLL.lv)}–B2 · ${pOpen?(st.x.pr!=null?st.x.pr+" %":"neu"):"ab Kapitel "+PROTOKOLL.ch}</span><div style="font-family:var(--display);font-size:1.2rem">${s9Esc(PROTOKOLL.t)}</div><small class="muted ui">${s9Esc(PROTOKOLL.sub[1])}</small></button>`:""}</div>`};
+function s9Sentences(t){return String(t).match(/[^.!?]+[.!?]+[“"'’]?|[^.!?]+$/g)||[t]}
+ACT.s9Tale=el=>{const m=MAERCHEN.find(x=>x.id===(el&&el.dataset&&el.dataset.id));if(!m||!s9TaleOpen(m))return;let step=1;const st=s9St();
+  const box=Focus.open({title:m.t,sub:m.tale,onClose:()=>{s9Sober(false)}});
+  const en=s9Lv()<2;   // English help under each sentence at A1–A2
+  const draw=()=>{Focus.progress({n:3,i:step-1});const tabs=[[1,"Formel"],[2,"Märchen"],[3,"Übungen"]].map(([k,n])=>`<button class="${step===k?"on":""}" data-s9s="${k}">${k} ${n}</button>`).join("");
+    let body="";
+    if(step===1)body=`<div class="card orn s9-formel" style="background:#0d0d0d;color:#e9e4da"><div class="eyebrow">Die Formel</div><p style="font-family:var(--display);font-size:1.3rem;line-height:1.5">${s9Esc(m.formel[0])}</p><p class="en">${s9Esc(m.formel[1])}</p><small class="muted ui">${s9Esc(m.src)}</small></div>
+      <div class="row" style="gap:.5rem;flex-wrap:wrap"><button class="sm" data-say="${s9Esc(m.formel[0])}">${ic("vol")} Anhören</button><button class="sm ghost s9-mic need-sr">${ic("mic")} Nachsprechen</button><span class="s9-sp muted ui"></span></div>
+      <p class="ui"><b>${s9Esc(m.point)}</b></p><button class="go s9-next">Weiter: das Märchen</button>`;
+    if(step===2){const SD=s9Sentences(m.text.de),SE=s9Sentences(m.text.en),pair=en&&SD.length===SE.length;body=`<div class="card stack s s9-text">${SD.map((s,i)=>{const e=pair?SE[i]:"";return `<p style="margin:.2rem 0"><span class="de">${glossify(s.trim())}</span>${e?`<br><small class="en">${s9Esc(e.trim())}</small>`:""}</p>`}).join("")}</div>
+      <div class="card"><div class="eyebrow">Wörter</div><div class="ui" style="font-size:.92rem">${Object.entries(m.gloss).map(([k,v])=>`<b>${s9Esc(k)}</b> – ${s9Esc(v)}`).join(" · ")}</div></div>
+      <div class="row" style="gap:.5rem"><button class="sm" data-say="${s9Esc(m.text.de)}">${ic("vol")} Vorlesen</button><button class="go s9-next">Weiter: die Übungen</button></div>`;if(en&&!pair)body=body.replace('<div class="card"><div class="eyebrow">Wörter',`<details class="card"><summary class="ui">English</summary><p class="en">${s9Esc(m.text.en)}</p></details><div class="card"><div class="eyebrow">Wörter`)}
+    if(step===3)body=s9TaleEx(m)?`<div class="card s9-run"></div>`:`<div class="card s9-lvnote"><div class="eyebrow">Noch gesperrt</div><p>Die Übungen öffnen sich ab ${s9Esc(m.lv)}. Formel und Märchen gehören Ihnen schon.</p><p class="en">The exercises open at ${s9Esc(m.lv)}. The formula and the tale are already yours.</p></div>`;
+    const dk=s9TaleDone(m)?`<details class="card s9-dark" ${step===3?"open":""}><summary class="ui"><b>So steht es wirklich da</b> <span class="en">what the old editions say</span></summary><p>${s9Esc(m.dark[0])}</p><p class="en">${s9Esc(m.dark[1])}</p></details>`:"";
+    box.innerHTML=`<div class="stack" style="max-width:680px;margin:0 auto"><div class="seg">${tabs}</div>${body}${step===3?dk:""}</div>`;
+    box.querySelectorAll("[data-s9s]").forEach(b=>b.onclick=()=>{step=+b.dataset.s9s;draw()});const nx=box.querySelector(".s9-next");if(nx)nx.onclick=()=>{step++;draw()};
+    const mic=box.querySelector(".s9-mic");if(mic&&typeof micListen==="function")mic.onclick=()=>micListen(mic,{}).then(t=>{if(t==null)return;const p=Math.round(100*similarity(t,m.formel[0].split(" · ")[0].split(" … ")[0]));const o=box.querySelector(".s9-sp");if(o)o.textContent=`${p} % · „${t}“`}).catch(()=>{});
+    const run=box.querySelector(".s9-run");if(run)gramRunner(run,m.ex,{lesson:m.gram,onDone:sc=>{const r=st.m[m.id]=st.m[m.id]||{sc:0};r.sc=Math.max(r.sc||0,sc);r.d=s9Today();saveSoon();
+      if(sc>=83){const add=s9FormelFeed();setTimeout(()=>{draw();if(add.length)toast(`Formelschatz: ${add.length} neue Karte${add.length>1?"n":""} im Deck`,3000)},400)}}})};
+  draw()};
+ACT.s9Formeln=()=>{s9FormelFeed();const st=s9St();const have=FORMELN.filter(f=>st.f[f[0]]);const box=Focus.open({title:"Formelschatz",sub:`${have.length} / ${FORMELN.length} Formeln`,onClose:()=>ACT.s9Stube()});
+  if(!have.length){box.innerHTML=`<div class="card" style="max-width:640px;margin:0 auto"><p>Noch keine Formel im Deck. Lesen Sie ein Märchen bis zur Belohnung.</p><p class="en">No formula yet. Finish a tale up to its reward.</p></div>`;return}
+  box.innerHTML=`<div class="stack" style="max-width:680px;margin:0 auto"><div class="card s9-run"></div><div class="card"><div class="eyebrow">Im Deck</div><div class="list">${have.map(f=>`<div class="li" style="cursor:default;align-items:flex-start"><span class="t"><b style="font-weight:400">${s9Esc(f[1].replace("___",f[2]))}</b><small>${s9Esc(f[4])}</small><small class="muted">${s9Esc(f[6])}</small></span></div>`).join("")}</div></div></div>`;
+  const ex=shuffle(have).slice(0,8).map(f=>({type:"gap",q:f[1],a:f[2],alt:f[3],why:f[5]+" · "+f[7]}));gramRunner(box.querySelector(".s9-run"),ex,{})};
+ACT.s9Protokoll=()=>{if(!PROTOKOLL||s9Ch()<PROTOKOLL.ch)return;const st=s9St();s9Sober(true);const box=Focus.open({title:PROTOKOLL.t,sub:"Konjunktiv I · B1–B2",onClose:()=>s9Sober(false)});
+  box.innerHTML=`<div class="stack" style="max-width:680px;margin:0 auto"><div class="card"><p>${s9Esc(PROTOKOLL.intro[0])}</p><p class="en">${s9Esc(PROTOKOLL.intro[1])}</p></div><div class="card s9-run"></div><div class="s9-end"></div></div>`;
+  gramRunner(box.querySelector(".s9-run"),PROTOKOLL.ex,{lesson:PROTOKOLL.gram,onDone:sc=>{st.x.pr=Math.max(st.x.pr||0,sc);saveSoon();const e=box.querySelector(".s9-end");if(e)e.innerHTML=`<div class="card"><p>${s9Esc(PROTOKOLL.end[0])}</p><p class="en">${s9Esc(PROTOKOLL.end[1])}</p></div>`}})};
+// ---------------------------------------------------------------- 3. Die Sammlung (from chapter 29)
+const S9_SAM=[["s9Epo","Eponyme","40 Namen, die Sie täglich hören werden · vier Übungen",33],["s9Alt","Nicht mehr sagen","Acht Namen, die man nicht mehr benutzt · nur lesen",33],["s9Akten","Fallakten","Historische Fälle als Arztbrief · vorstellen",29],["s9Saetze","Sätze, die man kennt","Wer hat es wirklich gesagt?",33],["s9Wmg","Wörter mit Geschichte","Zwölf Wörter und was man stattdessen sagt",39]];
+ACT.s9Sammlung=()=>{s9Sober(false);const box=Focus.open({title:"Die Sammlung",sub:"Medizingeschichte zum Üben"});const ch=s9Ch();
+  box.innerHTML=`<div class="stack" style="max-width:720px;margin:0 auto">${S9_SAM.map(([a,t,s,c])=>{const o=ch>=c;return `<button class="card${o?"":" locked"}" style="text-align:left;display:block" ${o?`data-act="${a}"`:"disabled"}><span class="eyebrow">${o?"offen":"ab Kapitel "+c}</span><div style="font-family:var(--display);font-size:1.25rem">${s9Esc(t)}</div><small class="muted ui">${s9Esc(s)}</small></button>`}).join("")}</div>`};
+// --- 3a. Eponyme: four modes, 10 items a round, untimed
+function s9EpoItems(n){return shuffle(EPONYME.slice()).slice(0,n||10)}
+function s9EpoWhy(e){return `${e[1]} — ${e[4]}. ${e[3]}${/source/.test(e[8])?" (Ort und Jahr ungeprüft)":""}`}
+function s9EpoEx(mode){const L=s9EpoItems(10);const other=(e,k)=>shuffle(EPONYME.filter(x=>x[0]!==e[0])).slice(0,2).map(x=>x[k]);
+  if(mode==="was")return L.map(e=>{const o=shuffle([e[4]].concat(other(e,4)));return {type:"mc",q:`Was ist ${e[1]}?`,o,a:o.indexOf(e[4]),why:s9EpoWhy(e),_ep:e[0]}});
+  if(mode==="intl")return L.map((e,i)=>{if(i%2){const o=shuffle([e[1]].concat(other(e,1)));return {type:"mc",q:`Auf Deutsch sagt man für „${e[5]}“ …`,o,a:o.indexOf(e[1]),why:s9EpoWhy(e),_ep:e[0]}}const o=shuffle([e[5]].concat(other(e,5)));return {type:"mc",q:`${e[1]} heißt international …`,o,a:o.indexOf(e[5]),why:s9EpoWhy(e),_ep:e[0]}});
+  return L.map(e=>{const b=e[7];const alt=[b.replace(/ß/g,"ss"),b.toLowerCase()];return {type:"gap",q:e[6].replace(b,"___"),a:b,alt,why:s9EpoWhy(e),_ep:e[0]}})}
+ACT.s9Epo=el=>{if(s9Ch()<33)return;s9Sober(false);const mode=(el&&el.dataset&&el.dataset.mode)||"";const st=s9St();
+  const box=Focus.open({title:"Eponyme",sub:mode?({hoeren:"Hören und sagen",was:"Was ist das?",intl:"International",satz:"Im Satz"})[mode]:"vier Übungen",onClose:()=>{if(mode)ACT.s9Epo({dataset:{}});else ACT.s9Sammlung()}});
+  if(!mode){const n=Object.keys(st.e).length;box.innerHTML=`<div class="stack" style="max-width:720px;margin:0 auto"><p class="muted ui">Every name here is in daily use on German wards. ${n} / ${EPONYME.length} practised.</p>
+    <div class="werk-grid">${[["hoeren","Hören und sagen","say it"],["was","Was ist das?","what is it"],["intl","International","the English name"],["satz","Im Satz","in the sentence"]].map(([k,t,s])=>`<button data-act="s9Epo" data-mode="${k}"><b>${t}</b><small>${s}</small></button>`).join("")}</div>
+    <div class="card"><div class="eyebrow">Alle 40 · ins Deck legen</div><div class="list">${EPONYME.map(e=>`<div class="li" style="cursor:default;align-items:flex-start"><span class="t"><b style="font-weight:400">${s9Esc(e[1])}</b><small>${s9Esc(e[2])}</small><small class="muted">${s9Esc(e[3])} · ${s9Esc(e[5])}</small></span><button class="sm ghost s9-add" data-id="${e[0]}">${S.cards["s9e:"+e[0]]?"Im Deck":"Ins Deck"}</button></div>`).join("")}</div></div></div>`;
+    box.querySelectorAll(".s9-add").forEach(b=>b.onclick=()=>{if(s9AddCard("s9e:"+b.dataset.id)){b.textContent="Im Deck";toast("Ins Deck gelegt")}});return}
+  const done=(sc,items)=>{(items||[]).forEach(e=>{const r=st.e[e]=st.e[e]||{n:0};r.n++;r.d=s9Today()});st.x.er=(st.x.er||0)+1;saveSoon();
+    const end=box.querySelector(".s9-end");if(end&&MEPH_MED.length&&!document.documentElement.dataset.sober)end.innerHTML=`<div class="card orn">${pkSay(s9Line(MEPH_MED[Math.floor(Math.random()*MEPH_MED.length)]))}</div>`};
+  if(mode==="hoeren"){const L=s9EpoItems(10);let i=0,ok=0;box.innerHTML=`<div class="stack" style="max-width:640px;margin:0 auto"><div class="card s9-run"></div><div class="s9-end"></div></div>`;const run=box.querySelector(".s9-run");
+    const drawH=()=>{if(i>=L.length){run.innerHTML=`<p>${ok} von ${L.length} sicher gesagt.</p>`;done(Math.round(100*ok/L.length),L.map(e=>e[0]));return}const e=L[i];Focus.progress({n:L.length,i});
+      run.innerHTML=`<div class="eyebrow">Hören und sagen · ${i+1} / ${L.length}</div><div style="font-family:var(--display);font-size:1.5rem">${s9Esc(e[1])}</div><p class="ui">${s9Esc(e[2])}</p><p class="muted ui">${s9Esc(e[4])}</p>
+       <div class="row" style="gap:.5rem;flex-wrap:wrap"><button class="sm" data-say="${s9Esc(e[1])}">${ic("vol")} Anhören</button><button class="sm" data-say="${s9Esc(e[6])}">${ic("vol")} Im Satz</button><button class="sm ghost s9-mic need-sr">${ic("mic")}</button><span class="s9-sp muted ui"></span></div>
+       <div class="row" style="gap:.5rem;margin-top:.6rem"><button class="go sm s9-y">Konnte ich</button><button class="sm ghost s9-n">Nochmal üben</button></div>`;
+      run.querySelector(".s9-y").onclick=()=>{ok++;i++;drawH()};run.querySelector(".s9-n").onclick=()=>{i++;drawH()};
+      const mic=run.querySelector(".s9-mic");if(mic&&typeof micListen==="function")mic.onclick=()=>micListen(mic,{}).then(t=>{if(t==null)return;const p=Math.round(100*similarity(t,e[1].replace(/^(der|die|das) /,"")));const o=run.querySelector(".s9-sp");if(o)o.textContent=`${p} % · „${t}“`}).catch(()=>{})};
+    drawH();return}
+  const ex=s9EpoEx(mode);box.innerHTML=`<div class="stack" style="max-width:680px;margin:0 auto"><div class="card s9-run"></div><div class="s9-end"></div></div>`;
+  gramRunner(box.querySelector(".s9-run"),ex,{retry:false,onDone:sc=>done(sc,ex.map(x=>x._ep))})};
+// --- 3b. Nicht mehr sagen (class D: reading only, sober, no score)
+ACT.s9Alt=()=>{if(s9Ch()<33)return;s9Sober(true);const box=Focus.open({title:"Nicht mehr sagen",sub:"alte Namen · heutige Namen",onClose:()=>s9Sober(false)});
+  box.innerHTML=`<div class="stack s9-grave" style="max-width:680px;margin:0 auto"><p class="ui">Diese Namen stehen noch in alten Büchern. Man benutzt sie nicht mehr, weil die Ärzte, nach denen sie heißen, an Verbrechen beteiligt waren oder davon profitierten. <span class="en">These names are still in old books. They are no longer used because the physicians they are named after took part in crimes or profited from them.</span></p>
+   ${EPONYME_ALT.map(a=>`<div class="card"><div class="eyebrow">nicht mehr: ${s9Esc(a[0])}</div><p style="margin:.2rem 0"><b>heute: ${s9Esc(a[1])}</b></p><p class="ui" style="margin:0">${s9Esc(a[2])}</p></div>`).join("")}</div>`};
+// --- 3c. Fallakten (class C: named real patients — sober, untimed, no Mephisto, no sting)
+function s9AktenOpen(){const ch=s9Ch();return FALLAKTEN.filter(f=>ch>=(f.ch||29))}
+ACT.s9Akten=()=>{const L=s9AktenOpen();if(!L.length)return;s9Sober(true);const st=s9St();const box=Focus.open({title:"Fallakten",sub:`${L.length} / ${FALLAKTEN.length} Akten`,onClose:()=>s9Sober(false)});
+  box.innerHTML=`<div class="stack" style="max-width:720px;margin:0 auto"><p class="muted ui">Rekonstruktion in heutiger Briefform, kein Originaldokument. <span class="en">Reconstructed in today's letter form; not an original document.</span></p>${L.map(f=>`<button class="card" style="text-align:left;display:block" data-act="s9Akte" data-id="${f.id}"><span class="eyebrow">${s9Esc(f.y)} · ${s9Esc(f.lv)}${st.a[f.id]?" · gelesen":""}</span><div style="font-family:var(--display);font-size:1.2rem">${s9Esc(f.t)}</div></button>`).join("")}</div>`};
+ACT.s9Akte=el=>{const f=FALLAKTEN.find(x=>x.id===(el&&el.dataset&&el.dataset.id));if(!f||s9Ch()<(f.ch||29))return;s9Sober(true);const st=s9St();let step=1;
+  const box=Focus.open({title:f.t,sub:"Rekonstruktion · kein Originaldokument",onClose:()=>{s9Sober(false);ACT.s9Akten()}});
+  const draw=()=>{Focus.progress({n:3,i:step-1});
+    if(step===1){box.innerHTML=`<div class="stack s9-grave" style="max-width:680px;margin:0 auto"><div class="card s9-brief" style="white-space:normal">${f.brief.split("\n\n").map(p=>`<p>${glossify(p)}</p>`).join("")}</div><div class="card s9-run"></div></div>`;
+      const ex=f.q.map(q=>({type:"mc",q:q[0],o:q[1],a:q[2],why:q[3]}));gramRunner(box.querySelector(".s9-run"),ex,{retry:false,onDone:sc=>{const r=st.a[f.id]=st.a[f.id]||{};r.d=s9Today();r.sc=Math.max(r.sc||0,sc);saveSoon();step=2;setTimeout(draw,300)}})}
+    else if(step===2){box.innerHTML=`<div class="stack s9-grave" style="max-width:680px;margin:0 auto"><div class="card"><div class="eyebrow">Wer war es?</div><p style="font-family:var(--display);font-size:1.2rem">${s9Esc(f.wer)}</p><p class="ui">${s9Esc(f.note)}</p>${f.conf&&f.conf!=="sure"?`<small class="muted ui">Ungeprüft: ${s9Esc(f.conf)}</small>`:""}</div><button class="go s9-vor">Diesen Fall vorstellen</button></div>`;box.querySelector(".s9-vor").onclick=()=>{step=3;draw()}}
+    else{const pts=["Name (Initialen), Alter, Beruf","Aufnahmeanlass oder Fragestellung","Diagnose","wichtigste Befunde","Verlauf und Therapie","Epikrise in einem Satz"];
+      box.innerHTML=`<div class="stack s9-grave" style="max-width:680px;margin:0 auto"><div class="card"><div class="eyebrow">Fallvorstellung</div><p class="ui">Stellen Sie den Fall in zwei Minuten vor, als Übergabe an einen Kollegen. Sprechen oder schreiben Sie. <span class="en">Present the case in two minutes, as a handover to a colleague.</span></p><p class="muted ui">„Ich stelle Ihnen Herrn/Frau … vor, … Jahre alt, der/die sich mit … vorstellte.“</p>
+        <textarea class="s9-pres" rows="7" spellcheck="false" style="width:100%"></textarea><div class="row" style="gap:.5rem"><button class="icon s9-mic need-sr" aria-label="Diktieren">${ic("mic")}</button><button class="sm" data-say="${s9Esc(f.brief.replace(/\n+/g," "))}">${ic("vol")} Brief anhören</button></div></div>
+        <div class="card"><div class="eyebrow">Habe ich alles?</div>${pts.map((p,i)=>`<label class="row" style="gap:.5rem"><input type="checkbox" class="s9-pt" data-i="${i}"> ${s9Esc(p)}</label>`).join("")}</div><button class="go s9-fin">Fertig</button></div>`;
+      const ta=box.querySelector(".s9-pres"),mic=box.querySelector(".s9-mic");if(mic&&typeof dictateInto==="function")mic.onclick=()=>dictateInto(mic,ta);
+      box.querySelector(".s9-fin").onclick=()=>{const n=box.querySelectorAll(".s9-pt:checked").length;const r=st.a[f.id]=st.a[f.id]||{};r.v=Math.max(r.v||0,n);saveSoon();try{if(typeof logDay==="function")logDay("speak")}catch(e){}toast(`${n} von 6 Punkten`,2500);Focus.close()}}};
+  draw()};
+// --- 3d. Sätze, die man kennt (untimed; no Mephisto because two entries are class C/D)
+ACT.s9Saetze=()=>{if(s9Ch()<33)return;const st=s9St();const box=Focus.open({title:"Sätze, die man kennt",sub:"wer es wirklich gesagt hat"});
+  box.innerHTML=`<div class="stack" style="max-width:680px;margin:0 auto">${SAETZE.map(z=>`<details class="card s9-satz" data-id="${z[0]}"><summary><span style="font-family:var(--display);font-size:1.15rem">${s9Esc(z[1])}</span><br><small class="en">${s9Esc(z[2])}</small></summary><p class="ui"><b>Quelle:</b> ${s9Esc(z[3])}${z[6]!=="sure"?` <small class="muted">(${s9Esc(z[6])})</small>`:""}</p><p class="ui"><b>Sie hören ihn:</b> ${s9Esc(z[4])} <span class="en">${s9Esc(z[5])}</span></p><button class="sm ghost" data-say="${s9Esc(z[1])}">${ic("vol")}</button></details>`).join("")}</div>`;
+  box.querySelectorAll(".s9-satz").forEach(d=>d.addEventListener("toggle",()=>{if(d.open){st.z[d.dataset.id]=s9Today();saveSoon()}}))};
+// --- 3e. Wörter mit Geschichte (class D adjacent: sober reading lesson, no score)
+ACT.s9Wmg=()=>{if(s9Ch()<39)return;s9Sober(true);const st=s9St();const box=Focus.open({title:"Wörter mit Geschichte",sub:"C1 · Register",onClose:()=>s9Sober(false)});
+  box.innerHTML=`<div class="stack s9-grave" style="max-width:680px;margin:0 auto"><p class="ui">Diese Wörter hören Sie vielleicht von älteren Kollegen oder lesen sie in alten Arbeiten. Sagen Sie sie nicht. <span class="en">You may hear these words from older colleagues or read them in old papers. Do not use them.</span></p>
+   ${WMG.map((w,i)=>`<div class="card s9-wmg" data-i="${i}"><div class="eyebrow">Nicht so: ${s9Esc(w[0])}</div><p class="ui" style="margin:.2rem 0">${s9Esc(w[1])} <span class="en">${s9Esc(w[2])}</span></p><p style="margin:.2rem 0"><b>Stattdessen:</b> ${s9Esc(w[3])}</p><p style="margin:.2rem 0"><span class="de">${s9Esc(w[4])}</span> <small class="en">${s9Esc(w[5])}</small> <button class="sm ghost" data-say="${s9Esc(w[4])}">${ic("vol")}</button></p></div>`).join("")}</div>`;
+  WMG.forEach((w,i)=>{if(!st.w[i])st.w[i]=s9Today()});saveSoon()};
+// ---------------------------------------------------------------- 4. Secrets: triggers (data: S9_EGGS in x_s9_eggs.js)
+// du twins for the pop-up (findEgg reads DU_MAP), and page links only where S1's page exists and has no chapter of its own.
+(function(){try{if(typeof DU_MAP!=="undefined")Object.keys(S9_EGGS).forEach(k=>{const g=S9_EGGS[k];if(g[4]&&EGGS[k]&&EGGS[k][2]===g[2]&&!DU_MAP[g[2]])DU_MAP[g[2]]=g[4]})}catch(e){}
+  try{Object.keys(S9_EGG_PAGE).forEach(k=>{const p=(typeof LORE!=="undefined"?LORE:[]).find(x=>x.id===S9_EGG_PAGE[k]);if(p&&!p.egg&&!p.ch&&!p.grave&&!p.sober)p.egg=k})}catch(e){}})();
+const S9_REALM=["I","II","III","IV","V"];
+function s9Realm(){try{return Math.max(0,S9_REALM.indexOf(pkCh().r))}catch(e){return 0}}
+function s9Quiet(){try{return document.documentElement.dataset.sober==="1"}catch(e){return false}}
+// find a secret: only after the pact, never inside a sober context (it waits), never twice
+function s9Egg(id,ms){if(!S9_EGGS[id]||!EGGS[id])return;setTimeout(()=>{try{if(!P().signed||eggs()[id])return;if(s9Quiet()){setTimeout(()=>s9Egg(id,0),20000);return}findEgg(id)}catch(e){}},ms||0)}
+// 4a. typed
+const S9_TYPED=[["goetz",/im arsch(e)? lecken/],["emet",/(^|[^a-zäöü])emet([^a-zäöü]|$)/],["odradek",/odradek/],["fenster",/fenstersturz/],["arconaut",/kafkat|kischt|werfelt|brodet/],
+ ["werden",/du mu(ss|ß)t caligari werden/],["nullen",/4[.,]2 billionen|4\s?200\s?000\s?000\s?000/],["haifisch",/haifisch/],["nachtigall",/nachti[gj]all,? i(ck|ch) h(ö|oe)r di(r|ch) trapsen/],
+ ["fraktur",/(^|[^a-zäöü])fraktur([^a-zäöü]|$)/],["knusper",/knusper,? knusper/],["spiegel",/spieglein,? spieglein an der wand/],["gedanken",/die gedanken sind frei/],["name",/mephostophiles/]];
+function s9Typed(v){v=String(v||"").toLowerCase();for(const [id,re] of S9_TYPED)if(re.test(v))s9Egg(id);
+  try{if(/^\s*du gehorchst mir[.!]?\s*$/.test(v)&&S.bossWins&&S.bossWins.golem)s9Egg("zettel")}catch(e){}}
+document.addEventListener("input",e=>{try{const t=e.target;if(!t||t.type==="password")return;s9Typed(t.value)}catch(x){}},true);
+// 4b. answers: one observer of verdicts (s6's HX publishes hx:answer later; this one only reads, it counts nothing for horror)
+const S9A={t0:Date.now(),fast3:0,fast2:0,wrong:0,order:0,lastWrong:{}};
+function s9Answer(ok,dt,el){try{const st=s9St();
+  if(ok){S9A.fast3=dt<3000?S9A.fast3+1:0;S9A.fast2=dt<2000?S9A.fast2+1:0;if(S9A.fast3>=6)s9Egg("freikugel",600);if(S9A.fast2>=7)s9Egg("streich",600)}else{S9A.fast3=0;S9A.fast2=0;S9A.wrong++;if(S9A.wrong===13)s9Egg("dreizehn",800)}
+  const h=new Date().getHours();if(h===4)s9Egg("hahn",900);
+  const q=el&&el.closest?el.closest(".q"):null;if(!q)return;
+  if(q.querySelector(".gr-line")){const n=q.querySelectorAll(".gr-line .gr-tok").length;if(ok&&n>=6){S9A.order++;if(S9A.order>=5)s9Egg("felsenmeer",600)}else if(!ok)S9A.order=0}
+  const inp=q.querySelector(".gr-in");if(inp&&!ok){const stem=((q.querySelector(".stem")||{}).textContent||"").trim();const v=normT(inp.value);if(v&&S9A.lastWrong[stem]===v)s9Egg("affe",600);S9A.lastWrong[stem]=v}}catch(e){}}
+new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes){if(n.nodeType!==1)continue;
+  if(n.matches&&(n.matches(".opts,.gr-pool,.typed,.gr-in")||n.querySelector&&n.querySelector(".opts,.gr-pool,.typed,.gr-in")))S9A.t0=Date.now();
+  const v=n.matches&&n.matches(".verdict")?n:(n.querySelector&&n.querySelector(".verdict"));if(!v||v.dataset.noxp)continue;
+  const ok=v.classList.contains("ok")||v.classList.contains("good"),no=v.classList.contains("no")||v.classList.contains("bad");if(!ok&&!no)continue;s9Answer(ok,Date.now()-S9A.t0,v);S9A.t0=Date.now()}}).observe(document.documentElement,{childList:true,subtree:true});
+// 4c. holding the lantern five seconds
+(function(){let t=null;const stop=()=>{clearTimeout(t);t=null;document.querySelectorAll(".st-lantern.s9-bite").forEach(x=>x.classList.remove("s9-bite"))};
+  document.addEventListener("pointerdown",e=>{const l=e.target&&e.target.closest&&e.target.closest(".st-lantern");if(!l)return;l.classList.add("s9-bite");t=setTimeout(()=>{stop();s9Egg("hexenbiss")},5000)},true);
+  ["pointerup","pointerleave","pointercancel"].forEach(k=>document.addEventListener(k,stop,true))})();
+// 4d. Chronik: the wolf in bed (three clicks on the plate of „rotkaeppchen“) and the hole without bottom (three more downward pushes at the end)
+(function(){let n=0,t=0;document.addEventListener("click",e=>{try{const img=e.target&&e.target.closest&&e.target.closest(".lore-page img,.lore-page .lore-fig");if(!img)return;const pg=LORE.find(x=>x.id==="rotkaeppchen");const h=(document.querySelector(".lore-page h1")||{}).textContent||"";
+  if(!pg||h.indexOf(pg.t)<0)return;const now=Date.now();n=now-t<1500?n+1:1;t=now;if(n>=3){n=0;s9Egg("jetta")}}catch(x){}},true)})();
+(function(){let n=0,t=0;const push=()=>{try{const b=document.querySelector("#fBody");if(!b||!document.querySelector("#fIn .chr"))return;if(b.scrollTop+b.clientHeight<b.scrollHeight-2)return;const now=Date.now();n=now-t<4000?n+1:1;t=now;if(n>=4){n=0;s9Egg("heidenloch")}}catch(e){}};
+  document.addEventListener("wheel",e=>{if(e.deltaY>0)push()},{capture:true,passive:true});document.addEventListener("keydown",e=>{if(e.key==="ArrowDown"||e.key==="PageDown")push()},true)})();
+// 4e. idle on Home: thorns after 100 s; at night with sound on, the wild hunt passes after 60 s
+let S9_IDLE=Date.now();["pointerdown","keydown","wheel","touchstart","input"].forEach(k=>document.addEventListener(k,()=>{S9_IDLE=Date.now()},{capture:true,passive:true}));
+function s9Hunt(){try{if(!SND.state().on)return;const C=window.AudioContext||window.webkitAudioContext;if(!C)return;const c=new C();const len=c.sampleRate*2,b=c.createBuffer(1,len,c.sampleRate),d=b.getChannelData(0);
+  for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*(Math.sin(i/c.sampleRate*Math.PI*12)>0.6?1:0.15);const s=c.createBufferSource();s.buffer=b;const f=c.createBiquadFilter();f.type="lowpass";f.frequency.value=700;const g=c.createGain();g.gain.value=.25;
+  const p=c.createStereoPanner?c.createStereoPanner():null;s.connect(f);f.connect(g);if(p){g.connect(p);p.connect(c.destination);p.pan.setValueAtTime(-1,c.currentTime);p.pan.linearRampToValueAtTime(1,c.currentTime+2)}else g.connect(c.destination);s.start();setTimeout(()=>{try{c.close()}catch(e){}},2600)}catch(e){}}
+function s9Cuckoo(n){try{if(!SND.state().on)return;const C=window.AudioContext||window.webkitAudioContext;if(!C)return;const c=new C();let t=c.currentTime+.1;for(let i=0;i<n;i++){[784,659].forEach((fr,k)=>{const o=c.createOscillator(),g=c.createGain();o.frequency.value=fr;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.2,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+.18);o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+.2);t+=.22});t+=.35}setTimeout(()=>{try{c.close()}catch(e){}},(t-c.currentTime)*1000+500)}catch(e){}}
+// the cuckoo's question: how many calls? (12-hour clock)
+function s9Kuckuck(d){d=d||new Date();const n=d.getHours()%12||12;if(document.querySelector(".s9-kuck"))return;s9Cuckoo(n);const w=document.createElement("div");w.className="s9-kuck card";
+  w.innerHTML=`<div class="eyebrow">Wie oft? <span class="en">how many times?</span></div><div class="s9-kp">${Array.from({length:12},(_,i)=>`<button class="sm" data-k="${i+1}">${i+1}</button>`).join("")}</div>`;document.body.appendChild(w);
+  const close=()=>{try{w.remove()}catch(e){}};const t=setTimeout(close,10000);w.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{clearTimeout(t);close();if(+b.dataset.k===n)s9Egg("kuckuck",200);else toast("Falsch gezählt.",1800)});return n}
+// 4f. clock and calendar (never under browser automation, like the hour secrets of c_final; tests call s9Clock(date,true))
+function s9Clock(d,force){try{if(!P().signed)return;if(!force&&(navigator.webdriver||document.hidden))return;d=d||new Date();const st=s9St();
+  const h=d.getHours(),mi=d.getMinutes(),wd=d.getDay(),md=String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+  const free=!Focus.isOpen()&&(R.tab==="home"||R.tab==="pakt"),home=!Focus.isOpen()&&R.tab==="home",rl=s9Realm();
+  if(wd===0&&h>=11&&h<14&&home)s9Egg("sonntagskind",1200);
+  if(wd===0&&h===20&&mi>=15&&mi<=20)s9Egg("tatort",1200);
+  if(md==="12-31"&&h>=18)s9Egg("dinner",1500);
+  if(wd===5&&d.getDate()===13)s9Egg("freitag13",1500);
+  if(mi===0&&!Focus.isOpen()&&R.tab==="pakt"&&rl>=1)s9Egg("orloj",800);
+  if(h===1&&free&&rl>=3)s9Egg("ringbahn",1500);
+  if(mi===0&&home&&rl===0&&h>=7&&h<=21&&!eggs().kuckuck&&st.x.kk!==s9Today()+"T"+h){st.x.kk=s9Today()+"T"+h;s9Kuckuck(d)}
+  const idle=Date.now()-S9_IDLE;
+  if(home&&idle>=100000&&!eggs().dornen){document.documentElement.classList.add("s9-dornen");setTimeout(()=>document.documentElement.classList.remove("s9-dornen"),6000);s9Egg("dornen",1500)}
+  if((h>=22||h<4)&&free&&idle>=60000&&!eggs().rodenstein&&SND.state().on){s9Hunt();s9Egg("rodenstein",2600)}
+  // day records: yesterday exactly 33 reviews (realm II on) · writing on three days in a row · a 23-day streak in realm IV · every legend read
+  const y=addDays(todayKey(),-1),L=S.log||{};if(rl>=1&&L[y]&&L[y].rev===33)s9Egg("jahr33",1500);
+  const w=[0,1,2].map(i=>L[addDays(todayKey(),-i)]);if(w.every(x=>x&&x.write)||[1,2,3].map(i=>L[addDays(todayKey(),-i)]).every(x=>x&&x.write))s9Egg("kisch",1500);
+  if(rl>=3&&typeof streak==="function"&&streak()>=23)s9Egg("jahre23",1500);
+  s9Library()}catch(e){}}
+function s9Library(){try{if(eggs().bibliothek)return;const seen=loreSeen();const pages=LORE.filter(p=>!p.grave&&!p.sober&&!(p.r==="M"));if(pages.length>=10&&pages.every(p=>seen[p.id]))s9Egg("bibliothek",1200)}catch(e){}}
+setInterval(()=>s9Clock(),30000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)s9Clock()});setTimeout(()=>s9Clock(),8000);
+// 4g. Albtraum switched off · the reset question cancelled · four untranslatable words looked up
+(function(){let h0=null;setInterval(()=>{try{const h=S.horror;if(h0!=null&&h0>0&&h===0)s9Egg("fuerchten",600);h0=h}catch(e){}},1500)})();
+(function(){let seen=null;new MutationObserver(()=>{try{const i=document.querySelector(".rs-in");if(i&&seen==null){seen=lsGet("mephisto_before_reset")||"";return}
+  if(!i&&seen!=null){const was=seen;seen=null;setTimeout(()=>{if((lsGet("mephisto_before_reset")||"")===was)s9Egg("brod")},800)}}catch(e){}}).observe(document.documentElement,{childList:true,subtree:true})})();
+MOD.after("showGloss","s9",function(word){try{const w=String(word||"").toLowerCase();const F=["fernweh","weltschmerz","schadenfreude","torschlusspanik"];if(!F.includes(w))return;const st=s9St();st.x.fw=Array.from(new Set((st.x.fw||[]).concat([w])));saveSoon();if(F.every(x=>st.x.fw.includes(x)))s9Egg("fernweh",600)}catch(e){}});
+// ---------------------------------------------------------------- 5. merge rule for S.st (integrator: mergeCore → else if(k==="st"){out[k]=s9Merge(a,b)})
+// m: per tale max sc, later d · f: union, earliest day · fn: later d · e: per id max n, later d · a: per id max sc/v, later d · w, z: union · x.pr, x.er: max · x.fw: union · x.kk: later
+function s9Merge(a,b){a=a||{};b=b||{};const o={};const later=(x,y)=>String(x||"")>String(y||"")?x:y;
+  const per=(A,B,f)=>{const r={};new Set(Object.keys(A||{}).concat(Object.keys(B||{}))).forEach(k=>{r[k]=A&&A[k]!=null&&B&&B[k]!=null?f(A[k],B[k]):(A&&A[k]!=null?A[k]:B[k])});return r};
+  const rec=(x,y)=>{const r=Object.assign({},x,y);["sc","n","v"].forEach(k=>{if(x[k]!=null||y[k]!=null)r[k]=Math.max(x[k]||0,y[k]||0)});r.d=later(x.d,y.d);if(x.dk||y.dk)r.dk=1;return r};
+  o.m=per(a.m,b.m,rec);o.e=per(a.e,b.e,rec);o.a=per(a.a,b.a,rec);o.f=per(a.f,b.f,(x,y)=>x<y?x:y);o.w=per(a.w,b.w,(x,y)=>x<y?x:y);o.z=per(a.z,b.z,later);
+  const fa=a.fn||{},fb=b.fn||{};o.fn=String(fa.d||"")>=String(fb.d||"")?Object.assign({},fa,fa.d===fb.d?{n:Math.max(fa.n||0,fb.n||0)}:{}):fb;
+  const xa=a.x||{},xb=b.x||{};o.x=Object.assign({},xa,xb);["pr","er"].forEach(k=>{if(xa[k]!=null||xb[k]!=null)o.x[k]=Math.max(xa[k]||0,xb[k]||0)});o.x.fw=Array.from(new Set((xa.fw||[]).concat(xb.fw||[])));o.x.kk=later(xa.kk,xb.kk);return o}
+// ---------------------------------------------------------------- 6. styles
+(function(){const s=document.createElement("style");s.textContent=`
+.s9-ml.locked{opacity:.55}.s9-formel .en{opacity:.8}
+.s9-kuck{position:fixed;left:50%;bottom:5.5rem;transform:translateX(-50%);z-index:70;max-width:min(92vw,420px)}.s9-kp{display:grid;grid-template-columns:repeat(6,1fr);gap:.35rem}
+.st-lantern.s9-bite{filter:drop-shadow(0 0 6px #b3261e)}
+:root.s9-dornen body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:60;box-shadow:inset 0 0 0 10px rgba(20,40,10,.85),inset 0 0 60px 30px rgba(10,25,5,.6);animation:s9Thorn 6s ease-out forwards}
+@keyframes s9Thorn{0%{opacity:0}20%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){:root.s9-dornen body::after{animation:none;opacity:.6}}
+.s9-grave .card{border-left:2px solid #9a958a}
+`;document.head.appendChild(s)})();
+
+// ===== Mephisto · track S · c_s4.js (owner s4) — Das Gedächtnis (logic): remembered and typed decisions, pay-offs, storylets, Verweile, three endings.
+// Base: S7-interactive c_story4.js, rebased in wave 2 on i1's reader dispatcher (PLAN-I R2):
+//   · no reassignment of st3Play / st3Scene / st3Line / ACT.st3Pick — RD.pass("s4",30,…) flattens IF, made decisions, pay-offs, Bett-vier and finale layers;
+//     RD.kind("C",…) renders and resolves every ["C",id] of CHOICES4 (typed and tap), RD.resolve(lines) splices the consequence.
+//   · every other change is MOD.around / MOD.after (listed in MANIFEST); the gate item goes through GATE.add("s4.scene") when i4 is present.
+// Part A is pure (tests/story4.test.js runs it in Node). Part B touches the DOM.
+// State: S.saga only (merge: sgMerge, commutative/associative/idempotent). Never writes P().tk or P().bv.
+
+// ================================================================ A. pure logic
+// ---- A1. state
+//  ch   : {id:{k:"optKey[,optKey…]", d:ISO, txt?, n?, cap?, rev?, g?}}   ev : {name:number} counters/peaks   seen : {id:{d,n}}
+//  vw   : [{on,ch,soul,off}]   end : {k,d}|null   day : {date,greet,scene,sceneDone}
+function sg(){if(!S.saga||typeof S.saga!=="object")S.saga={};const g=S.saga;if(!g.v)g.v=1;["ch","ev","seen"].forEach(k=>{if(!g[k]||typeof g[k]!=="object")g[k]={}});if(!Array.isArray(g.vw))g.vw=[];if(g.end===undefined)g.end=null;return g}
+function sgRec(id){const r=sg().ch[id];return r&&!r.rev?r:null}
+function sgKeys(id){const r=sgRec(id);return r?String(r.k).split(","):[]}
+// ---- A2. derived flags and qualities (never stored)
+let SG_CACHE=null;
+function sgDerive(){const g=sg();const key=JSON.stringify(g.ch);if(SG_CACHE&&SG_CACHE.key===key)return SG_CACHE;const f={},q={};SAGA_Q.forEach(n=>q[n]=0);
+  Object.keys(g.ch).forEach(id=>{const r=sgRec(id),c=CHOICES4[id];if(!r||!c)return;
+    String(r.k).split(",").forEach(k=>{const o=c.opts.find(x=>x.k===k);if(!o)return;if(o.set)Object.assign(f,o.set);if(o.q)for(const n in o.q)q[n]=(q[n]||0)+o.q[n]});
+    if(r.cap!=null&&c.typed&&c.typed.cap)f[c.typed.cap.name]=r.cap});
+  return SG_CACHE={key,f,q}}
+// ---- A3. variables
+const SG_DAY=864e5;
+function sgToday(){try{return todayKey()}catch(e){return new Date().toISOString().slice(0,10)}}
+function sgDays(a,b){try{return Math.round((new Date(String(b).slice(0,10))-new Date(String(a).slice(0,10)))/SG_DAY)}catch(e){return 0}}
+function sgAcc(days){let ok=0,rev=0,k=sgToday();for(let i=0;i<days;i++){const L=S.log&&S.log[k];if(L){ok+=L.ok||0;rev+=L.rev||0}k=addDays(k,-1)}return {ok,rev,pct:rev?Math.round(100*ok/rev):undefined}}
+function sgWeak(){try{const p=P();let best=null;CHAPTERS.forEach(c=>{if(c.n>p.ch||!c.lesson)return;const L=S.lessons&&S.lessons[c.lesson];if(!L||!(L.n||L.tries))return;const b=L.best||0;if(b<60&&(!best||b<best.pct))best={id:c.lesson,pct:b}});
+  if(best){const G=(typeof GRAMMAR!=="undefined"?GRAMMAR:[]).find(x=>x.id===best.id);best.t=G?(G.title||G.t||best.id):best.id}return best}catch(e){return null}}
+function sgErrTop(){try{const E=S.errors||{};const k=Object.keys(E).filter(x=>x!=="Sonstiges"&&E[x]>0).sort((a,b)=>E[b]-E[a])[0];return k||"Artikel/Genus"}catch(e){return "Artikel/Genus"}}
+function sgVw(){const v=sg().vw;const e=v[v.length-1];return e&&!e.off?e:null}
+function sgCh(){try{return pkCh()}catch(e){return {r:"I",n:1}}}
+const SAGA_VARS={
+ ch:()=>P().ch, realm:()=>sgCh().r, du:()=>P().du===true?1:0, done:()=>P().done?1:0, signed:()=>P().signed?1:0,
+ hour:()=>new Date().getHours(), hour12:()=>((new Date().getHours()+11)%12)+1, wday:()=>((new Date().getDay()+6)%7)+1, md:()=>sgToday().slice(5), date:()=>sgToday(),
+ night:()=>{const h=new Date().getHours();return h>=23||h<4?1:0}, shift:()=>S.shifts&&S.shifts[sgToday()]?1:0,
+ streak:()=>typeof streak==="function"?streak():0, streakMax:()=>sg().ev.streakMax||0,
+ debt:()=>P().debt||0, debtMax:()=>Math.max(sg().ev.debtMax||0,P().debtPeak||0,P().debt||0), paid:()=>P().paid||0,
+ gap:()=>typeof st3Gap==="function"?st3Gap():0, gapMax:()=>sg().ev.gapMax||0,
+ acc7:()=>{const a=sgAcc(7);return a.rev>=20?a.pct:undefined}, rev7:()=>sgAcc(7).rev, acc30:()=>{const a=sgAcc(30);return a.rev>=100?a.pct:undefined},
+ accToday:()=>sgAcc(1).pct, revToday:()=>sgAcc(1).rev||undefined, sessToday:()=>S.today&&S.today.date===sgToday()&&S.today.finished?1:0,
+ weak:()=>{const w=sgWeak();return w?w.id:undefined}, weakPct:()=>{const w=sgWeak();return w?w.pct:undefined},
+ words:()=>typeof knownWords==="function"?knownWords():0, lvl:()=>typeof learnerLv==="function"?learnerLv():0,
+ soul:()=>Math.round(pkSoul()), mistakes:()=>(S.mistakes||[]).length, shadowWork:()=>Object.keys(S.shadowDone||{}).length, lore:()=>Object.keys(S.loreSeen||{}).length,
+ bettN:()=>Object.keys(P().bett||{}).length, ending:()=>sgEnding()||"",
+ vw:()=>sgVw()?1:0, vwN:()=>sg().vw.length, vwDays:()=>{const e=sgVw();return e?sgDays(e.on,sgToday()):0}, vwTotal:()=>sg().vw.reduce((s,e)=>s+sgDays(e.on,e.off||sgToday()),0),
+ lossMax:()=>{let m=0;const ev=sg().ev;Object.keys(BOSSES).forEach(b=>{if(!(S.bossWins||{})[b])m=Math.max(m,ev["try_"+b]||0)});return m}
+};
+const SG_IQ=["tk","bv","gate","lv"];   // track I's read-only namespaces (i1 IQ.cond)
+function sgVal(name){try{
+  if(SAGA_VARS[name])return SAGA_VARS[name]();
+  const dot=name.indexOf(".");if(dot>0){const a=name.slice(0,dot),b=name.slice(dot+1);
+    if(SG_IQ.includes(a))return typeof IQ!=="undefined"&&IQ.cond?IQ.cond(name):undefined;
+    if(a==="win")return (S.bossWins||{})[b]?1:0; if(a==="try")return sg().ev["try_"+b]||0; if(a==="loss")return Math.max(0,(sg().ev["try_"+b]||0)-((S.bossWins||{})[b]?1:0));
+    if(a==="bett")return (P().bett||{})[b]?1:0; if(a==="egg")return (S.eggs||{})[b]?1:0; if(a==="lesson")return ((S.lessons||{})[b]||{}).best; if(a==="err")return (S.errors||{})[b]||0;
+    if(a==="since"){const r=sgRec(b);return r?sgDays(r.d,sgToday()):undefined} if(a==="seen")return sg().seen[b]?sg().seen[b].n:0; if(a==="q")return sgDerive().q[b]}
+  const r=sgRec(name);if(r)return r.k;
+  const d=sgDerive();if(name in d.f)return d.f[name];if(name in d.q)return d.q[name];
+  const ev=sg().ev;if(name in ev)return ev[name];
+  return undefined}catch(e){return undefined}}
+// ---- A4. conditions
+function sgAtom(s){s=s.trim();if(!s)return true;const m=/^(!?)\s*([\w.äöüÄÖÜß/-]+)\s*(>=|<=|!=|=|>|<|~)?\s*(.*)$/.exec(s);if(!m)return false;const v=sgVal(m[2]);const op=m[3],w=m[4].trim();
+  if(!op){const t=!(v===undefined||v===null||v===0||v===""||v===false);return m[1]?!t:t}
+  let r;const nv=Number(v),nw=Number(w),num=w!==""&&!isNaN(nw)&&v!==undefined&&v!==null&&v!==""&&typeof v!=="boolean"&&!isNaN(nv);
+  if(op==="=")r=num?nv===nw:String(v)===w&&v!==undefined; else if(op==="!=")r=v===undefined?true:(num?nv!==nw:String(v)!==w);
+  else if(op==="~")r=v!==undefined&&String(v).split(",").includes(w); else if(!num)r=false;
+  else r=op===">="?nv>=nw:op==="<="?nv<=nw:op===">"?nv>nw:nv<nw;
+  return m[1]?!r:r}
+function sgCond(c){if(c==null||c==="")return true;return String(c).split("|").some(or=>or.split("&").every(sgAtom))}
+// ---- A5. flatten: IF lines, @references, decisions already made, conditional decisions
+function sgEndBlock(part){try{const e=sgEnding()||sgEndingCalc();const B=FINALE4[e];return (B&&B[part])||[]}catch(x){return []}}
+function sgBvTail(){try{if(typeof BV_TAIL==="undefined"||typeof bvFateTier!=="function")return [];const x=BV_TAIL[bvFateTier()];if(!x)return [];
+  if(typeof x==="string")return [["N",x,""]];if(Array.isArray(x)&&typeof x[0]==="string"&&x.length<=3&&!/^[A-Z]{1,3}$/.test(x[0]))return [["N",x[0],x[1]||""]];
+  if(Array.isArray(x)&&Array.isArray(x[0]))return x;if(Array.isArray(x))return [x];return []}catch(e){return []}}
+function sgLines(ref){if(Array.isArray(ref))return ref;
+  switch(ref){case "@VW_ENTER":return VERWEILE.enter;case "@VW_ENTER40":return VERWEILE.enter40;case "@EPILOG":return FINALE4.epilog;
+    case "@E_PRE":return sgEndBlock("pre");case "@E_POST":return sgEndBlock("post");case "@E_CLOSE":return sgEndBlock("close");case "@BV_TAIL":return sgBvTail();
+    case "@DUERFT":try{return (typeof FINX!=="undefined"&&Array.isArray(FINX.v40_duerft)&&FINX.v40_duerft[1])||[]}catch(e){return []}}
+  return []}
+function sgIsLine(x){return Array.isArray(x)&&typeof x[0]==="string"}
+function sgSealed(n){try{return !!(P().sealed||{})[n]}catch(e){return false}}
+function sgFlat(lines,opt){const out=[];opt=opt||{};(lines||[]).forEach(l=>{
+  if(typeof l==="string"){sgFlat(sgLines(l),opt).forEach(x=>out.push(x));return}
+  if(!Array.isArray(l))return;
+  if(l[0]==="IF"){const br=sgCond(l[1])?l[2]:l[3];if(br==null)return;sgFlat(sgIsLine(br)||typeof br==="string"?[br]:br,opt).forEach(x=>out.push(x));return}
+  if(l[0]==="C"&&l[2]==null&&!opt.raw){const c=CHOICES4[l[1]];
+    if(c&&c.cond&&!sgCond(c.cond))return;                                  // a decision that does not apply (g36 without „Darf ich gehen?“)
+    const keys=sgKeys(l[1]);
+    if(c&&keys.length){keys.forEach(k=>{const i=c.opts.findIndex(o=>o.k===k);if(i<0)return;out.push(["C",l[1],i]);sgFlat(sgLines(c.opts[i].lines),opt).forEach(x=>out.push(x))});
+      const open=c.multi&&keys.length<c.multi&&!keys.some(k=>(c.opts.find(o=>o.k===k)||{}).end)&&!sgSealed(c.ch);if(open)out.push(["C",l[1]]);return}}
+  out.push(l.slice())});return out}
+function sgPending(n){const c=CHAPTERS[n-1];if(!c)return [];return sgFlat(c.scene).filter(l=>l[0]==="C"&&l[2]==null&&CHOICES4[l[1]]).map(l=>l[1])}
+// ---- A6. the matcher for typed decisions
+function sgNorm(s){return String(s||"").toLowerCase().replace(/ß/g,"ss").replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/[.,!?;:„"“”‚‘’'()«»–—-]/g," ").replace(/\s+/g," ").trim()}
+function sgLev(a,b){if(a===b)return 0;const m=a.length,n=b.length;if(!m)return n;if(!n)return m;let p=Array.from({length:n+1},(_,j)=>j);for(let i=1;i<=m;i++){const c=[i];for(let j=1;j<=n;j++)c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));p=c}return p[n]}
+const SG_STOP=new Set("der die das den dem des ein eine einen einem einer eines kein keine keinen keinem keiner mein meine meinen meinem meiner dein deine deinen ihr ihre ihren ihrem ihrer sein seine ich du er sie es wir mich dich ihn mir dir ihm ihnen ist sind bin bist seid war hat habe hast haben wird werde nicht und oder aber weil dass ob wenn zu in an auf mit von bei nach aus fuer um".split(" "));
+function sgSnap(norm,lex,tiles){const L=[...new Set((lex||[]).concat((tiles||[]).map(sgNorm)).filter(w=>w&&w.length>=5&&!SG_STOP.has(w)))];const known=new Set(L.concat((tiles||[]).map(sgNorm)));const fixed=[];
+  const out=norm.split(" ").map(t=>{if(t.length<5||SG_STOP.has(t)||known.has(t))return t;let best=null,bd=9;L.forEach(w=>{if(w.slice(-2)!==t.slice(-2))return;const d=sgLev(t,w);if(d<bd){bd=d;best=w}});
+    if(best&&bd<=(t.length>=9?2:1)){fixed.push([t,best]);return best}return t}).join(" ");return {text:out,fixed}}
+function sgMatch(T,input){const raw=String(input||"").trim();const sn=sgSnap(sgNorm(raw),T.lex,T.tiles);const s=sn.text;
+  if(!s)return {ok:false,hint:["Schreiben Sie einen Satz.","Write a sentence."]};
+  for(const b of T.bad||[])if(new RegExp(b.re).test(s))return {ok:false,hint:b.hint,err:b.err||""};
+  for(const n of T.need||[])if(!new RegExp(n.re).test(s))return {ok:false,hint:n.hint};
+  const m=(T.map||[]).find(x=>new RegExp(x.re).test(s)&&sgCond(x.when));
+  if(!m)return {ok:false,hint:(T.need&&T.need[0]&&T.need[0].hint)||["Das verstehe ich nicht. Noch einmal, einfacher.","I do not understand that. Again, more simply."]};
+  let cap;if(T.cap){if(T.cap.raw){const w=raw.replace(/[.,!?;:„"“”‚‘’'()«»]/g," ").trim().split(/\s+/).pop()||"";cap=w.replace(/[^A-Za-zÄÖÜäöüß-]/g,"").slice(0,T.cap.max||16)}
+    else{const x=new RegExp(T.cap.re).exec(s);cap=x?x[1]:undefined;if(T.cap.num){cap=T.cap.num[cap]!=null?T.cap.num[cap]:parseInt(cap,10);if(isNaN(cap))cap=undefined}}}
+  return {ok:true,k:m.k,cap,fixed:sn.fixed}}
+// ---- A7. the ending: flags first, then learning data
+function sgEndingScores(){const d=sgDerive(),q=d.q,f=d.f;const v40=(sgRec("v40")||{}).k,k39=(sgRec("k39")||{}).k;
+  const shadowLost=f.verkauft&&!f.zurueck;
+  const elig={A:true,B:!shadowLost&&k39!=="du"&&q.gnade>=5,C:!!f.par6||v40==="gehen"||f.frei==="geht"};
+  const a30=sgVal("acc30");
+  const sc={A:q.streben+(a30>=85?2:0)+(sgVal("debtMax")<=2?1:0)+(sgVal("vwN")===0?1:0)+(sgVal("streakMax")>=21?1:0)-(q.strasse>=3?1:0),
+            B:q.gnade+(sgVal("shadowWork")>=10?2:0)+(k39==="zusammen"?2:0)+(sgVal("gapMax")>=7?1:0),
+            C:q.trotz+(f.frei==="geht"?2:0)+(f.zweitpakt?-2:0)+(sgVal("lore")>=30?1:0)};
+  return {elig,sc,v40}}
+// stable read API for s11/s12 (PLAN-S2 §6): sgPick(id) → option key(s) or null · sgEnding() → "A"|"B"|"C" once v40 is decided (or reached), else null
+function sgPick(id){const r=sgRec(id);return r?String(r.k):null}
+function sgEnding(){const g=sg();if(g.end&&g.end.k)return g.end.k;const v=sgRec("v40");if(!v||v.k==="verweile")return null;return sgEndingCalc()}
+function sgEndingCalc(){const {elig,sc,v40}=sgEndingScores();
+  if(v40==="gehen"&&elig.C)return "C"; if(v40==="schatten"&&elig.B)return "B"; if(sgDerive().f.frei==="geht")return "C";
+  let best="A";["B","C"].forEach(k=>{if(elig[k]&&sc[k]>sc[best])best=k});return best}
+// ---- A8. storylets
+const SG_REALMS=["I","II","III","IV","V"];
+function sgVariant(s){const r=SG_REALMS.indexOf(sgCh().r);for(let i=r;i>=0;i--)if(s.v[SG_REALMS[i]])return s.v[SG_REALMS[i]];return null}
+function sgHash(s){let h=0;for(const c of String(s))h=(h*31+c.charCodeAt(0))>>>0;return h}
+function sgEligible(s){const g=sg(),p=P();if(!p.signed)return false;if(p.ch<s.ch[0]||p.ch>s.ch[1])return false;if(!!sgVw()!==!!s.vw)return false;if(!sgVariant(s))return false;
+  const se=g.seen[s.id];if(se){if(!s.cd)return false;if(sgDays(se.d,sgToday())<s.cd)return false}
+  return sgCond(s.cond)}
+function sgStorylet(slot){const g=sg(),t=sgToday();if(!g.day||g.day.date!==t)g.day={date:t,greet:"",scene:"",sceneDone:false};
+  if(g.day[slot]){const s=STORYLETS.find(x=>x.id===g.day[slot]);if(s&&(slot==="greet"||!g.day.sceneDone))return s;return null}
+  const c=STORYLETS.filter(s=>s.slot===slot&&sgEligible(s));if(!c.length)return null;
+  const top=Math.max(...c.map(s=>s.prio));const tier=c.filter(s=>s.prio===top).sort((a,b)=>{const da=(g.seen[a.id]||{}).d||"",db=(g.seen[b.id]||{}).d||"";return da!==db?(da<db?-1:1):sgHash(t+a.id)-sgHash(t+b.id)});
+  g.day[slot]=tier[0].id;return tier[0]}
+function sgSeen(id){const g=sg();const s=g.seen[id]||{d:"",n:0};g.seen[id]={d:sgToday(),n:s.n+1}}
+// ---- A9. merge across devices (MERGE_RULES.saga / c_cloud mergeCore: else if(k==="saga"){out[k]=sgMerge(a,b)})
+function sgPickJ(x,y){return JSON.stringify(x)>=JSON.stringify(y)?x:y}
+function sgMerge(a,b){if(!a)return b;if(!b)return a;const out={v:Math.max(a.v||1,b.v||1),ch:{},ev:{},seen:{},vw:[],end:null,day:null};
+  const better=(x,y)=>{const gx=x.g||0,gy=y.g||0;if(gx!==gy)return gx>gy?x:y;const rx=x.rev||"",ry=y.rev||"";if(rx!==ry)return rx>ry?x:y;if(x.d!==y.d)return x.d<y.d?x:y;return sgPickJ(x,y)};
+  for(const id of new Set([...Object.keys(a.ch||{}),...Object.keys(b.ch||{})])){const x=(a.ch||{})[id],y=(b.ch||{})[id];out.ch[id]=!x?y:!y?x:better(x,y)}
+  for(const k of new Set([...Object.keys(a.ev||{}),...Object.keys(b.ev||{})])){const x=(a.ev||{})[k],y=(b.ev||{})[k];out.ev[k]=x===undefined?y:y===undefined?x:(x>=y?x:y)}
+  for(const k of new Set([...Object.keys(a.seen||{}),...Object.keys(b.seen||{})])){const x=(a.seen||{})[k],y=(b.seen||{})[k];out.seen[k]=!x?y:!y?x:{d:x.d>=y.d?x.d:y.d,n:Math.max(x.n||0,y.n||0)}}
+  const ep={};[...(a.vw||[]),...(b.vw||[])].forEach(e=>{const o=ep[e.on];if(!o){ep[e.on]=Object.assign({},e);return}const offs=[o.off,e.off].filter(Boolean).sort();ep[e.on]={on:e.on,ch:Math.max(o.ch||0,e.ch||0),soul:Math.min(o.soul==null?999:o.soul,e.soul==null?999:e.soul),off:offs[0]||""}});
+  out.vw=Object.keys(ep).sort().map(k=>ep[k]);
+  const ea=a.end,eb=b.end;out.end=!ea?eb||null:!eb?ea:(ea.d!==eb.d?(ea.d<eb.d?ea:eb):sgPickJ(ea,eb));
+  const nd=d=>d?{date:d.date||"",greet:d.greet||"",scene:d.scene||"",sceneDone:!!d.sceneDone}:null;const da=nd(a.day),db=nd(b.day);
+  out.day=!da?db:!db?da:(da.date!==db.date?(da.date>db.date?da:db):{date:da.date,greet:sgPickJ(da.greet,db.greet),scene:sgPickJ(da.scene,db.scene),sceneDone:da.sceneDone||db.sceneDone});
+  const so=o=>{const r={};Object.keys(o).sort().forEach(k=>r[k]=o[k]);return r};out.ch=so(out.ch);out.ev=so(out.ev);out.seen=so(out.seen);
+  return out}
+// ---- A10. Verweile arithmetic
+function sgVwCost(){const e=sgVw();const days=e?Math.max(1,sgDays(e.on,sgToday())):1;const n=sg().vw.length;return {days,cards:Math.min(60,(n>1?30:15)+5*days),debt:Math.min(7,2+Math.floor(days/3))}}
+// ---- A11. „meine Straße“: steps taken (decisions whose option has q.strasse), list and count tokens, the bill on the day after
+function sgStrasse(){const out=[];Object.keys(STRASSE4.label).forEach(id=>{const c=CHOICES4[id],r=sgRec(id);if(!c||!r)return;
+  String(r.k).split(",").forEach(k=>{const o=c.opts.find(x=>x.k===k);if(o&&o.q&&o.q.strasse>0)out.push({id,d:String(r.d||"").slice(0,10)})})});return out}
+function sgStrList(en){const L=sgStrasse().map(x=>STRASSE4.label[x.id][en?1:0]);if(L.length<2)return L.join("");return L.slice(0,-1).join(", ")+(en?" and ":" und ")+L[L.length-1]}
+function sgStrTimes(en){const n=sgStrasse().length;const T=STRASSE4.times[Math.max(0,Math.min(STRASSE4.times.length-1,n-1))];return T?T[en?1:0]:""}
+// ---- A12. canon lines that depend on a decision (CANON_IF): returns the lines with the matched line wrapped; `miss` collects rules not found
+function sgCanonApply(L,rules,miss){(rules||[]).forEach(r=>{const i=L.findIndex(l=>Array.isArray(l)&&l[0]===r.t&&typeof l[1]==="string"&&l[1].indexOf(r.start)===0);
+  if(i<0){if(miss&&!r.opt)miss.push((r.fin?"finale":"ch "+r.n)+": "+r.start);return}
+  if(r.mode==="if")L[i]=["IF",r.cond,L[i],r.els==null?undefined:r.els];else if(r.mode==="after")L.splice(i+1,0,...r.lines.map(x=>x.slice()))});return L}
+
+// ---- A13. the finale layers (pure): split FINX.finale at ["C","v40"], add FINALE4.open, CANON_IF and the ending/epilogue references
+function sgFinParts(L0){const L=L0.slice();let iv=L.findIndex(l=>Array.isArray(l)&&l[0]==="C"&&l[1]==="v40"&&l[2]==null);if(iv<0)return null;const miss=[];
+  if(iv>0)L.splice(iv-1,0,...FINALE4.open.map(x=>x.slice()));iv=L.findIndex(l=>Array.isArray(l)&&l[0]==="C"&&l[1]==="v40"&&l[2]==null);
+  const head=L.slice(0,iv+1),rest=L.slice(iv+1);const marks=rest.filter(l=>Array.isArray(l)&&l[0]==="@"),tail=rest.filter(l=>!(Array.isArray(l)&&l[0]==="@")).map(l=>Array.isArray(l)?l.slice():l);
+  sgCanonApply(tail,CANON_IF.filter(r=>r.fin),miss);
+  const si=tail.findIndex(l=>Array.isArray(l)&&l[0]==="SIG");if(si>=0){tail.splice(si,0,"@E_PRE");const sl=tail.findIndex((l,j)=>j>si+1&&Array.isArray(l)&&l[0]==="M");if(sl>=0)tail.splice(sl+1,0,"@E_POST");else miss.push("finale: signature line")}else miss.push("finale: SIG");
+  const ii=tail.findIndex(l=>Array.isArray(l)&&l[0]==="N"&&typeof l[1]==="string"&&l[1].indexOf("Heidelberg. Notaufnahme. 03:07")===0);
+  if(ii>=0){tail.splice(ii+1,0,"@BV_TAIL");tail.splice(ii,0,"@E_CLOSE","@EPILOG")}else{miss.push("finale: last image");tail.push("@E_CLOSE","@EPILOG","@BV_TAIL")}   // every ending closes on the last image; only i6's BV_TAIL follows it (PLAN-I R1)
+  return {head,tail,marks,miss}}
+
+// ================================================================ B. wiring (browser)
+if(typeof document!=="undefined")(function(){
+const T4=(f,where)=>{try{return f()}catch(e){try{logError({message:"s4 "+where+": "+(e&&e.message||e)})}catch(x){}}};
+const around=(name,fn)=>T4(()=>{if(typeof MOD!=="undefined"&&MOD.around&&typeof window[name]==="function"){MOD.around(name,"s4",fn);return true}return false},"around "+name);
+// ---- B1. chapter canon lines (in place: anchor indices of the loader stay valid)
+T4(()=>{const miss=[];CANON_IF.filter(r=>!r.fin).forEach(r=>{const c=CHAPTERS[r.n-1];if(c)sgCanonApply(c.scene,[r],miss)});if(miss.length)logError({message:"s4 CANON_IF not found: "+miss.join(" | ")})},"canon");
+T4(()=>{if(typeof S7!=="undefined")S7.zeugin=function(){return sgCond("bettN>=3")}},"zeugin");   // canon §2.3: the witness only after three Bett-vier visits (s7's rule, read through sgCond)
+// ---- B2. tokens
+around("st3Fill",function(orig,s){s=orig(s);try{if(String(s).indexOf("{")<0)return s;const f=sgDerive().f,w=sgWeak()||{},c=sgVwCost(),p=P();
+  const T={STIRN:f.stirn||"Anfänger",ACC7:sgVal("acc7")==null?"?":sgVal("acc7"),REVTODAY:sgVal("revToday")||0,WEAKT:w.t||"",WEAKPCT:w.pct==null?"":w.pct,
+   DEBT:p.debt||0,DEBTMAX:sgVal("debtMax"),GAP:sgVal("gap"),STREAK:sgVal("streak"),DAYS:Math.max(1,sgDays(p.date||sgToday(),sgToday())),WORDS:sgVal("words"),
+   VWDAYS:c.days,VWTOTAL:sgVal("vwTotal"),VWCOST:c.cards,VWDEBT:c.debt,ERRTOP:sgErrTop(),MISTAKES:sgVal("mistakes"),SHADOWWORK:sgVal("shadowWork"),
+   STRASSE:sgStrTimes(false),STRASSE_EN:sgStrTimes(true),STRLIST:sgStrList(false),STRLIST_EN:sgStrList(true)};
+  return String(s).replace(/\{([A-Z0-9_]+)\}/g,(m,k)=>T[k]!=null?T[k]:m)}catch(e){return s}});
+function sFill4(s,x){try{if(typeof lmFill==="function")return lmFill(s,x)}catch(e){}return st3Fill(s)}
+// ---- B3. the reader: pass 30 and the C kind
+const ASKED={};let FIN=null;     // FIN: {tail} the part of the finale after v40, held until v40 is decided
+function bettInsert(L,boss,endIdx){const add=BETT4[boss];if(!add||endIdx<1)return;L.splice(endIdx-1,0,...add.map(x=>x.slice()))}
+function finale(L){const P4=sgFinParts(L);if(!P4)return L;
+  if(P4.miss.length)T4(()=>logError({message:"s4 finale anchors not found: "+P4.miss.join(" | ")}),"fin");
+  const k=sgKeys("v40")[0];
+  if(k==="verweile"&&sgVw())return P4.head.concat([["C","_vwstay"]],P4.marks);           // the last door while he has won: nothing after the warm chair
+  if(k)return P4.head.concat(P4.tail,P4.marks);                                            // decided (re-read): flattened with the ending
+  FIN={tail:P4.tail};return P4.head.concat(P4.marks)}                                      // undecided: the rest arrives with the decision
+if(typeof RD!=="undefined"&&RD.pass){
+  RD.pass("s4",30,function(L,c,ctx){for(const k in ASKED)delete ASKED[k];FIN=null;
+    T4(()=>{const b=ctx.kind==="bett"?ctx.boss:(ctx.at("bett_end")>=0?ctx.boss:"");if(b&&BETT4[b])bettInsert(L,b,ctx.at("bett_end"))},"bett");
+    L=T4(()=>finale(L),"finale")||L;
+    const out=sgFlat(L);
+    T4(()=>setTimeout(()=>{try{if(Focus.isOpen()&&document.querySelector("#focus .st-read")&&!KEYS)KEYS=sgKeysFn}catch(e){}},0),"keys");
+    return out});
+}
+// line rendering
+function lab(o){const du=st3Du();return esc(st3Fill(du&&o.du?o.du:o.de))}
+function enOn(){return S.enMode!=="off"}
+function optBtn(id,x){return `<button class="st-opt" data-act="sgPick" data-id="${id}" data-o="${x.k}">${lab(x.o)}${enOn()&&x.o.en?`<small class="en" style="display:block;font-size:.8rem;opacity:.7">${esc(st3Fill(x.o.en))}</small>`:""}</button>`}
+function render(ln,cur,c){const f=cur?" pk-fade":"",id=ln[1];
+  if(id==="_vwstay")return `<div class="card stack s sg-cold${f}"><div class="eyebrow">Die Laterne ist kalt</div><p class="ui" style="margin:0">${esc(VERWEILE.gate[0])}${enOn()?`<span class="en" style="display:block">${esc(VERWEILE.gate[1])}</span>`:""}</p></div>`;
+  const ch=CHOICES4[id];if(!ch)return "";
+  if(ln[2]!=null){const o=ch.opts[ln[2]];if(!o)return "";const r=sgRec(id);const typed=ln[3]||(r&&r.txt&&!ch.multi?r.txt:"");return `<div class="st-pick${f}"><span class="eyebrow">Du</span>${typed?esc(typed):lab(o)}</div>`}
+  const asked=sgKeys(id).concat(ASKED[id]||[]);const open=ch.opts.map((o,k)=>({o,k:o.k,i:k})).filter(x=>sgCond(x.o.when)&&!asked.includes(x.o.k));
+  if(!cur)return "";   // an open decision never stays behind as a form in the history
+  if(!ch.typed)return `<div class="st-choice${f}"><div class="eyebrow">Deine Antwort <span class="en">your answer</span></div>${open.map(x=>optBtn(id,x)).join("")}</div>`;
+  const T=ch.typed;const tiles=T.tiles.map(t=>st3Fill(t));const pr=st3Du()&&T.prompt[2]?T.prompt[2]:T.prompt[0];
+  return `<div class="st-choice st-typed${f}" data-id="${id}"><div class="eyebrow">Schreib deine Antwort <span class="en">write your answer</span></div>
+    <p class="st-q">${esc(st3Fill(pr))}${enOn()?`<small class="en" style="display:block">${esc(st3Fill(T.prompt[1]))}</small>`:""}</p>
+    <input class="st-in" lang="de" autocapitalize="sentences" autocomplete="off" spellcheck="false" aria-label="${esc(st3Fill(pr))}">
+    <div class="st-tiles">${tiles.map(t=>`<button class="sm ghost st-tile" data-act="sgTile" data-t="${esc(t)}">${esc(t)}</button>`).join("")}<button class="sm ghost" data-act="sgTile" data-t="⌫" aria-label="Löschen">⌫</button></div>
+    <div class="row" style="gap:.5rem"><button class="go st-send" data-act="sgSay" data-id="${id}">Sagen</button>${typeof dictateInto==="function"?`<button class="sm ghost" data-act="sgMic" aria-label="Sprechen">${ic("mic")}</button>`:""}</div>
+    <div class="st-hint" role="status" aria-live="polite"></div>
+    <div class="st-model"${(TRIES[id]||0)>=3?"":" hidden"}><small class="muted ui">Oder wähle einen dieser Sätze <span class="en">or choose one of these sentences</span></small>${open.filter(x=>!x.o.end).map(x=>optBtn(id,x)).join("")}</div>
+    ${open.filter(x=>x.o.end&&asked.length).map(x=>optBtn(id,x)).join("")}</div>`}
+const TRIES={};
+function sgCommit(id,k,ds){const g=sg(),c=CHOICES4[id],o=c.opts[k],now=new Date().toISOString();const prev=sgRec(id);
+  const fx=String(o.fx||"").split(",");
+  if(prev&&!c.multi&&!fx.includes("again")&&!c.replay)return false;                      // the first decision stands (re-reads never rewrite it)
+  if(fx.includes("again")&&!c.multi){g.ev["ask_"+id]=(g.ev["ask_"+id]||0)+1}           // loop options of single decisions are facts, not decisions
+  else{const keys=prev&&c.multi?String(prev.k).split(","):[];if(!keys.includes(o.k))keys.push(o.k);
+    const old=g.ch[id];g.ch[id]={k:keys.join(","),d:prev?prev.d:now};if(old&&(old.g||old.rev))g.ch[id].g=(old.g||0)+(old.rev?1:0);
+    if(ds&&ds.txt)g.ch[id].txt=String(ds.txt).slice(0,120);if(ds&&ds.n)g.ch[id].n=+ds.n;if(ds&&ds.cap!==undefined&&ds.cap!==""&&ds.cap!=null){g.ch[id].cap=isNaN(+ds.cap)?ds.cap:+ds.cap}}
+  SG_CACHE=null;const p=P();
+  (o.eff?String(o.eff).split(","):[]).forEach(e=>{
+    if(/^debt[+-]\d$/.test(e)){p.debt=Math.max(0,Math.min(7,(p.debt||0)+(+e.slice(4))));p.debtPeak=Math.max(p.debtPeak||0,p.debt);g.ev.debtMax=Math.max(g.ev.debtMax||0,p.debt)}
+    else if(e==="vw")sgVwEnter(c.ch)
+    else if(e==="frei"){p.debt=0;p.debtPeak=0}});
+  if(o.q&&o.q.strasse>0)g.ev["strD_"+id]=+sgToday().replace(/-/g,"");                   // a step on his road: comfort today, the bill tomorrow (sgStrBill)
+  if(id==="v40"&&o.k!=="verweile")g.end={k:sgEndingCalc(),d:now};
+  try{if(typeof EV!=="undefined"&&EV.emit)EV.emit("choice.made",{id,k:o.k,ch:c.ch})}catch(e){}
+  saveSoon();return true}
+function consequence(id,k){const c=CHOICES4[id],o=c.opts[k];const fx=String(o.fx||"").split(",");
+  let ins=sgFlat(sgLines(o.lines));if(fx.includes("secretFace"))ins=ins.map(x=>{if(x[0]==="M"){x=x.slice();x[4]="secret"}return x});
+  const keys=sgKeys(id),left=c.opts.filter(x=>sgCond(x.when)&&!keys.includes(x.k)&&!(ASKED[id]||[]).includes(x.k)&&!x.end).length;
+  if(c.multi){if(!o.end&&keys.length<c.multi&&left)ins.push(["C",id])}else if(fx.includes("again"))ins.push(["C",id]);
+  if(id==="v40"){if(o.k==="verweile")ins.push(["C","_vwstay"]);else if(FIN&&FIN.tail){ins=ins.concat(sgFlat(FIN.tail));FIN=null}}
+  if(fx.includes("dark"))T4(()=>st3Dark(),"dark");const egg=fx.find(x=>x.indexOf("egg:")===0);if(egg)setTimeout(()=>{try{findEgg(egg.slice(4))}catch(e){}},2900);
+  return ins}
+function pick(cur,id,k,ds,api){if(!cur||cur[0]!=="C"||cur[1]!==id||cur[2]!=null)return;const c=CHOICES4[id];if(!c||!c.opts[k])return;
+  sgCommit(id,k,ds);(ASKED[id]=ASKED[id]||[]).push(c.opts[k].k);
+  const ins=consequence(id,k);cur[2]=k;if(ds&&ds.txt&&!c.multi)cur[3]=String(ds.txt).slice(0,120);
+  try{SND.fx("page")}catch(e){}
+  (api&&api.resolve||RD.resolve)(ins);
+  setTimeout(()=>{try{const inp=document.querySelector("#focus .st-in");if(inp)inp.focus()}catch(e){}},60)}
+if(typeof RD!=="undefined"&&RD.kind)RD.kind("C",{
+  has:l=>!!(CHOICES4[l[1]]||l[1]==="_vwstay"),
+  render:(l,cur,c)=>render(l,cur,c),
+  wait:l=>l[2]==null,
+  foot:l=>l[1]==="_vwstay"?`<button class="go" data-act="sgVwStay">Sitzen bleiben <span class="en">stay seated</span></button>`:null,
+  act:{
+    sgPick:(el,cur,api)=>{const id=el.dataset.id,c=CHOICES4[id];if(!c)return;const k=c.opts.findIndex(o=>o.k===el.dataset.o);pick(cur,id,k,null,api)},
+    sgSay:(el,cur,api)=>{const id=el.dataset.id,ch=CHOICES4[id],box=el.closest(".st-typed"),inp=box.querySelector(".st-in"),hint=box.querySelector(".st-hint");const r=sgMatch(ch.typed,inp.value);
+      if(!r.ok){TRIES[id]=(TRIES[id]||0)+1;hint.innerHTML=`<div class="verdict no" data-noxp="1"><b>${esc(r.hint[0])}</b>${enOn()?`<small class="en" style="display:block">${esc(r.hint[1])}</small>`:""}</div>`;
+        if(r.err)T4(()=>{const model=ch.opts.find(o=>sgCond(o.when))||ch.opts[0];addErrors([{type:r.err,original:inp.value.trim().slice(0,80),fix:st3Fill(model.de).replace(/[„“]/g,""),why:r.hint[0]}],"story")},"err");
+        if(TRIES[id]>=3){const m=box.querySelector(".st-model");if(m)m.hidden=false}T4(()=>SND.fx("no"),"snd");return}
+      const k=ch.opts.findIndex(o=>o.k===r.k);if(k<0)return;T4(()=>logDay("write"),"write");
+      pick(cur,id,k,{txt:inp.value.trim(),cap:r.cap==null?"":String(r.cap),n:(TRIES[id]||0)+1},api)},
+    sgTile:el=>{const box=el.closest(".st-typed"),inp=box&&box.querySelector(".st-in"),t=el.dataset.t;if(!inp)return;if(t==="⌫")inp.value=inp.value.replace(/\s*\S+\s*$/,"");else inp.value=/^[.,?!]$/.test(t)?inp.value.replace(/\s+$/,"")+t:(inp.value&&!/\s$/.test(inp.value)?inp.value+" ":inp.value)+t;inp.focus()},
+    sgMic:el=>{const inp=el.closest(".st-typed").querySelector(".st-in");try{dictateInto(el,inp,()=>{})}catch(e){}},
+    sgVwStay:()=>{try{Focus.close(true);go("pakt")}catch(e){}}}});
+// keyboard and gamepad (E4): Enter/Space = Weiter, 1–9 = option; focus follows the reader
+function sgKeysFn(e){if(/^(INPUT|TEXTAREA)$/.test(e.target.tagName)){if(e.key==="Enter"){e.preventDefault();const b=document.querySelector("#focus .st-send");if(b)b.click()}return}
+  if(e.key==="Enter"||e.key===" "){const b=document.querySelector("#fFootIn .go");if(b){e.preventDefault();b.click()}}
+  else if(/^[1-9]$/.test(e.key)){const b=document.querySelectorAll("#focus .st-choice:last-of-type > .st-opt, #focus .st-choice:last-of-type .st-model:not([hidden]) .st-opt")[+e.key-1];if(b)b.click()}}
+T4(()=>{const ff=document.getElementById("fFootIn");if(ff)new MutationObserver(()=>{try{if(!Focus.isOpen()||!document.querySelector("#focus .st-read"))return;const a=document.activeElement;if(a&&a!==document.body&&a.isConnected&&a.closest("#focus"))return;
+  const t=document.querySelector("#focus .st-in")||document.querySelector("#focus .st-choice:last-of-type .st-opt")||document.querySelector("#fFootIn .go");if(t)t.focus({preventScroll:true})}catch(e){}}).observe(ff,{childList:true})},"focus");
+// E10: typing „Verweile doch“ in the reader does not fire the c_lore secret over the scene (window capture runs before c_lore's document listener)
+T4(()=>window.addEventListener("input",e=>{try{if(e.target&&e.target.closest&&e.target.closest(".st-typed"))e.stopImmediatePropagation()}catch(x){}},true),"e10");
+// E3: Bett vier counts as seen when it was played to the end, not when it opens
+around("st3Bett",function(orig,id,then){const p=P();p.bett=p.bett||{};const had=p.bett[id];
+  const r=orig(id,function(){try{const q=P();q.bett=q.bett||{};q.bett[id]=q.bett[id]||had||sgToday();saveSoon()}catch(e){}return typeof then==="function"?then.apply(this,arguments):undefined});
+  try{if(!had)delete p.bett[id]}catch(e){}return r});
+// ---- B4. Verweile
+function sgVwEnter(ch){const g=sg(),p=P();if(sgVw())return;let soul=0;try{soul=pkSoul()}catch(e){}g.vw.push({on:sgToday(),ch:ch||p.ch,soul,off:""});g.ev.vwN=g.vw.length;p.debt=0;p.debtPeak=0;saveSoon();T4(()=>kabGrant("vw_kalt"),"kab");setTimeout(()=>T4(()=>applyPrefs(),"prefs"),2700)}
+ACT.sgVwExit=()=>{const e=sgVw();if(!e)return;const cost=sgVwCost(),X=VERWEILE.exit,box=Focus.open({title:X.ask[0],sub:"Verweile · Tag "+cost.days});
+  box.innerHTML=`<div class="stack st-read" style="max-width:640px;margin:0 auto"><div class="card orn"><p class="ui">${esc(st3Fill(X.warn[0]))}<span class="en" style="display:block">${esc(st3Fill(X.warn[1]))}</span></p></div>
+    <div class="st-choice st-typed" data-id="_vwx"><p class="st-q">${esc(X.typed.prompt[0])}<small class="en" style="display:block">${esc(X.typed.prompt[1])}</small></p><input class="st-in" lang="de" autocomplete="off" spellcheck="false">
+    <div class="st-tiles">${X.typed.tiles.map(t=>`<button class="sm ghost st-tile" data-act="sgTile" data-t="${esc(t)}">${esc(t)}</button>`).join("")}</div><button class="go" data-act="sgVwPay">Zurücknehmen und bezahlen</button><div class="st-hint" role="status" aria-live="polite"></div></div></div>`};
+if(!ACT.sgTile)ACT.sgTile=el=>{const box=el.closest(".st-typed"),inp=box&&box.querySelector(".st-in"),t=el.dataset.t;if(inp){inp.value=(inp.value&&!/\s$/.test(inp.value)?inp.value+" ":inp.value)+t;inp.focus()}};
+ACT.sgVwPay=el=>{const box=el.closest(".st-typed"),r=sgMatch(VERWEILE.exit.typed,box.querySelector(".st-in").value);if(!r.ok){box.querySelector(".st-hint").innerHTML=`<div class="verdict no" data-noxp="1"><b>${esc(r.hint[0])}</b></div>`;return}
+  const cost=sgVwCost(),q=(typeof buildQueue==="function"?buildQueue():[]).slice(0,cost.cards);const fin=()=>{const g=sg(),p=P(),e=sgVw();if(!e)return;const scene=sgFlat(VERWEILE.exit.scene).map(l=>l.map(x=>typeof x==="string"?st3Fill(x):x));
+    e.off=sgToday();p.debt=cost.debt;p.debtPeak=Math.max(p.debtPeak||0,cost.debt);g.ev.debtMax=Math.max(g.ev.debtMax||0,cost.debt);p.chSess=0;p.lastCheck=addDays(sgToday(),-1);
+    ["v40","vx"].forEach(id=>{const rec=g.ch[id];if(rec&&!rec.rev&&String(rec.k).split(",").includes("verweile"))rec.rev=new Date().toISOString()});SG_CACHE=null;   // v40/vx may be decided again; v23 stays on the record
+    if(typeof saveNow==="function")saveNow();else saveSoon();T4(()=>applyPrefs(),"prefs");
+    st3Play({c:pkCh(),title:"Die Laterne brennt wieder",sub:"Verweile · beendet",lines:scene,art:"clarke_58",onClose:()=>go("pakt"),done:{label:"Zum Pakt",fn:()=>{Focus.close(true);go("pakt")}}})};
+  if(!q.length)return fin();const b2=Focus.open({title:"Rückkaufrunde",sub:cost.cards+" Karten · die Laterne"});cardRunner(b2,q,{standalone:true,onDone:fin})};
+// the state's effect on the rest of the app — learning is never blocked; only the story and its rewards stop
+around("pkLine",function(orig,kind,n){try{if(sgVw()){const B=VERWEILE.warm[kind]||VERWEILE.warm.greet;const x=B[sgHash(sgToday()+kind)%B.length];return [st3Du()&&x[2]?x[2]:x[0],x[1]]}}catch(e){}return orig(kind,n)});
+around("pkGreet",function(orig){try{const p=P();if(p.signed&&!p.done){
+    sgStrBill();
+    if(sgVw())return {k:"warm",l:pkLine("greet")};
+    if(sgStrToday()){const x=STRASSE4.warm;return {k:"strasse",l:[st3Du()&&x[2]?x[2]:x[0],x[1]]}}
+    const s=sgStorylet("greet");if(s){const v=sgFlat(sgVariant(s),{raw:true});const x=v[sgHash(sgToday())%v.length];if(!sg().seen[s.id]||sg().seen[s.id].d!==sgToday()){sgSeen(s.id);saveSoon()}return {k:"saga",l:[sFill4(st3Du()&&x[2]?x[2]:x[0]),sFill4(x[1])]}}
+    if(sgDerive().f.frei==="geht"){const x=MEPH_FREI[sgHash(sgToday())%MEPH_FREI.length];return {k:"frei",l:[st3Du()&&x[2]?x[2]:x[0],x[1]]}}}}catch(e){}return orig()});
+function sgStrToday(){try{const t=+sgToday().replace(/-/g,""),ev=sg().ev;return Object.keys(ev).some(k=>k.indexOf("strD_")===0&&ev[k]===t)}catch(e){return false}}
+// the bill: on the first day after a step, one debt note (once per step; ev strP_<id> = paid marker; merges by max)
+function sgStrBill(){try{const g=sg(),p=P(),t=+sgToday().replace(/-/g,"");let n=0;Object.keys(g.ev).forEach(k=>{if(k.indexOf("strD_")!==0)return;const id=k.slice(5);if(g.ev[k]<t&&!g.ev["strP_"+id]){g.ev["strP_"+id]=1;n++}});
+  if(!n||sgVw()||sgDerive().f.frei==="geht")return;p.debt=Math.min(7,(p.debt||0)+n);p.debtPeak=Math.max(p.debtPeak||0,p.debt);g.ev.debtMax=Math.max(g.ev.debtMax||0,p.debt);saveSoon();
+  const x=STRASSE4.bill;setTimeout(()=>{try{toast("Mephisto: "+(st3Du()&&x[2]?x[2]:x[0]),5200)}catch(e){}},1200)}catch(e){}}
+around("applyPrefs",function(orig){const r=orig.apply(this,[].slice.call(arguments,1));try{const on=!!sgVw();document.documentElement.classList.toggle("vw",on);document.documentElement.classList.toggle("sg-warm",!on&&sgStrToday());SND.hush(on)}catch(e){}return r});
+around("pkOnSession",function(orig){try{if(sgVw()){const p=P();if(p.counted!==sgToday()){p.counted=sgToday();saveSoon();setTimeout(()=>{try{toast("Mephisto: "+pkLine("done")[0],4200)}catch(e){}},900)}return}}catch(e){}return orig.apply(this,[].slice.call(arguments,1))});
+if(typeof zeugnisHTML==="function")around("zeugnisHTML",function(orig,z,compact,extra){if(sgVw())return `<div class="card stack s zeugnis"><div class="eyebrow">Zeugnis</div><p class="ui" style="margin:0">${esc(VERWEILE.zeugnis[0])}<span class="en" style="display:block">${esc(VERWEILE.zeugnis[1])}</span></p>${extra||""}</div>`;return orig(z,compact,extra)});
+// functions track I replaces by declaration (i3 pkSoul, i8 pkCheckDebt, i7 bossDuel, i4 pkGate): wrapped after every file has loaded, so the wrapper sits on the final version
+setTimeout(()=>{
+  around("pkSoul",function(orig){try{const e=sgVw();if(e&&!P().done)return e.soul||0}catch(x){}return orig.apply(this,[].slice.call(arguments,1))});
+  around("pkCheckDebt",function(orig){const a=[].slice.call(arguments,1);try{const p=P(),g=sg();if(sgVw()||sgDerive().f.frei==="geht"){p.lastCheck=addDays(sgToday(),-1);return}
+      const r=orig.apply(this,a);g.ev.debtMax=Math.max(g.ev.debtMax||0,p.debt||0,p.debtPeak||0);g.ev.gapMax=Math.max(g.ev.gapMax||0,st3Gap());g.ev.streakMax=Math.max(g.ev.streakMax||0,streak());return r}catch(e){}return orig.apply(this,a)});
+  around("bossDuel",function(orig){const a=[].slice.call(arguments,1);try{if(sgVw()){toast("Die Gegner schlafen. Die Laterne ist kalt.",3500);return}const id=a[0];const ev=sg().ev;ev["try_"+id]=(ev["try_"+id]||0)+1;saveSoon()}catch(e){}return orig.apply(this,a)});
+  // gate item „Die Szene lesen und entscheiden“ (+ Verweile): i4's GATE when present, else an around on pkGate
+  const items=c=>{const out=[];try{c=c||pkCh();if(sgPending(c.n).length)out.push({k:"scene",ok:false,de:"Die Szene lesen und entscheiden",en:"read the scene and decide",act:"pkRead",id:String(c.n)});
+    if(sgVw())out.push({k:"vw",ok:false,de:VERWEILE.gate[0],en:VERWEILE.gate[1],act:"sgVwExit",id:""})}catch(e){}return out};
+  if(typeof GATE!=="undefined"&&GATE.add)T4(()=>GATE.add("s4.scene",items),"gate");
+  else around("pkGate",function(orig,c){const g=orig(c);try{const it=items(c);if(it.length&&g&&Array.isArray(g.items)){g.items=g.items.concat(it);g.ready=false}}catch(e){}return g});
+  // merge rule (P2's MERGE_RULES when present; integrator: one line in c_cloud mergeCore otherwise)
+  T4(()=>{if(typeof MERGE_RULES!=="undefined")MERGE_RULES.saga=sgMerge},"merge");
+},0);
+// ---- B5. the ending card
+around("st3End",function(orig){const r=orig.apply(this,[].slice.call(arguments,1));try{const e=sg().end&&sg().end.k;const C=e&&FINALE4[e]&&FINALE4[e].card;if(!C)return r;const b=document.querySelector("#focus .st-end");if(!b)return r;
+    const h=b.querySelector("h2");if(h)h.textContent=C[0];const p=b.querySelector(".pk-nar");if(p)p.innerHTML=`${esc(C[1])}<br><span class="en ui">${esc(C[2])}</span>`;if(typeof stopConfetti==="function")stopConfetti()}catch(x){}return r});
+// ---- B6. storylet scenes (one card „Zwischenspiel“ on Heute and the Pakt screen) and Das schwarze Buch
+function sgSceneCard(){const s=sgStorylet("scene");if(!s)return "";return `<button class="card orn pk-fade sg-scene" data-act="sgScene" style="text-align:left;display:block"><span class="eyebrow">Zwischenspiel <span class="en">interlude</span></span><b style="display:block;font-family:var(--display);font-weight:400;font-size:1.2rem">${esc(s.t)}</b></button>`}
+ACT.sgScene=()=>{const s=sgStorylet("scene");if(!s)return;const back=R.tab;const H=document.documentElement;if(s.sober)H.dataset.sober="1";
+  st3Play({c:pkCh(),title:s.t,sub:"Zwischenspiel",lines:sgVariant(s),onClose:()=>{try{if(s.sober)delete H.dataset.sober}catch(e){}go(back)},done:{label:s.act==="quiz5"?"Fünf Karten":"Weiter",fn:()=>{sgSeen(s.id);sg().day.sceneDone=true;saveSoon();Focus.close(true);
+    if(s.act==="quiz5"){const worst=Object.keys(S.cards||{}).filter(k=>S.cards[k].lapses>0).sort((a,b)=>S.cards[b].lapses-S.cards[a].lapses).slice(0,5);const q=(typeof allCards==="function"?allCards():[]).filter(c=>worst.includes(c.id));
+      if(q.length){const b=Focus.open({title:"Die Maschine fragt ab",sub:"5 Karten"});cardRunner(b,q,{standalone:true,onDone:()=>{Focus.close(true);go(back)}});return}}
+    go(back)}}})};
+function sgBookRows(){return Object.keys(CHOICES4).filter(id=>id[0]!=="_").sort((a,b)=>CHOICES4[a].ch-CHOICES4[b].ch).map(id=>{const c=CHOICES4[id],r=sgRec(id);
+  if(!r)return sgSealed(c.ch)&&(!c.cond||sgCond(c.cond))?{ch:c.ch,id,open:true}:null;
+  const labs=String(r.k).split(",").map(k=>{const o=c.opts.find(x=>x.k===k);return o?st3Fill(st3Du()&&o.du?o.du:o.de):k});return {ch:c.ch,id,d:String(r.d||"").slice(0,10),txt:r.txt&&!c.multi?r.txt:labs.join(" · ")}}).filter(Boolean)}
+ACT.sgBook=()=>{const rows=sgBookRows(),q=sgDerive().q;const bar=(n,de)=>{const v=Math.max(0,Math.min(10,q[n]||0));return `<div class="sg-bar"><small class="ui">${de}</small><i style="width:${v*10}%"></i></div>`};
+  const box=Focus.open({title:"Das schwarze Buch",sub:rows.filter(r=>!r.open).length+" Einträge · Mephistos Buchführung",onClose:()=>{try{if(R.tab==="pakt")rerender()}catch(e){}}});
+  box.innerHTML=`<div class="stack s" style="max-width:640px;margin:0 auto">${rows.length?rows.map(r=>r.open?`<button class="card sg-row" data-act="pkRead" data-n="${r.ch}"><span class="eyebrow">Kapitel ${r.ch} · offen</span><small class="muted ui">Die Szene lesen und entscheiden</small></button>`
+     :`<div class="card sg-row"><span class="eyebrow">Kapitel ${r.ch} · ${typeof fmtDate==="function"?fmtDate(r.d):r.d}</span><div style="font-family:var(--body);font-size:1.1rem">${esc(r.txt)}</div></div>`).join("")
+     :`<p class="ui muted">Noch steht nichts darin. <span class="en">Nothing is written in it yet.</span></p>`}
+    <div class="card stack s">${bar("streben","strebend")}${bar("gnade","barmherzig")}${bar("trotz","widerspenstig")}</div></div>`};
+function sgBookCard(){const n=sgBookRows().filter(r=>!r.open).length;if(!n)return "";return `<button class="card sg-book" data-act="sgBook" style="text-align:left;display:block"><span class="eyebrow">Das schwarze Buch <span class="en">the black book</span></span><b style="display:block">${n} Einträge</b></button>`}
+const viewSec=withBook=>function(m){try{if(!P().signed||P().done)return;const v=m.querySelector(".view")||m;if(v.querySelector(".sg-scene,.sg-cold,.sg-book"))return;
+  const first=v.querySelector(".card.orn");const cold=sgVw()?`<div class="card stack s sg-cold"><div class="eyebrow">Die Laterne ist kalt · Tag ${sgVwCost().days}</div><p class="ui" style="margin:0">${esc(VERWEILE.soul[0])} <span class="en">${esc(VERWEILE.soul[1])}</span></p><button class="sm" data-act="sgVwExit">${esc(VERWEILE.exit.ask[0])}</button></div>`:"";
+  const html=cold+sgSceneCard()+(withBook?sgBookCard():"");if(html&&first)first.insertAdjacentHTML("afterend",html);else if(html)v.insertAdjacentHTML("beforeend",html)}catch(e){}};
+T4(()=>{MOD.after("viewHome","s4",viewSec(false));MOD.after("viewPakt","s4",viewSec(true))},"views");
+// ---- B7. Kabinett
+around("kabCards",function(orig){const L=orig();try{const g=sg();L.push({id:"vw_kalt",r:"legendär",t:"Die kalte Laterne",art:"clarke_58",flav:"Es ist sehr still. – M.",how:"Den Satz sagen",ok:g.vw.length>0});
+  ["A","B","C"].forEach(k=>L.push({id:"end_"+k,r:"legendär",t:{A:"Strebend",B:"Der Schatten trägt die Laterne",C:"§ 6"}[k],art:"clarke_7",flav:FINALE4[k].card[1],how:"Ein Ende des Pakts",ok:!!(g.end&&g.end.k===k)}))}catch(e){}return L});
+// ---- B8. styles
+T4(()=>{const s=document.createElement("style");s.id="s4-sty";s.textContent=`
+.st-typed .st-in{width:100%;box-sizing:border-box;font-family:var(--body);font-size:1.25rem;padding:.8rem 1rem;min-height:52px;border:1px solid var(--accent);background:rgba(240,138,63,.06);color:var(--fg);border-radius:6px}
+.st-typed .st-q{font-family:var(--body);font-size:1.15rem;margin:.2rem 0 .5rem}.st-tiles{display:flex;flex-wrap:wrap;gap:.35rem;margin:.5rem 0}.st-tile{font-family:var(--body)!important;font-size:1.05rem!important;min-height:44px;padding:.35rem .7rem!important}
+.st-model{display:grid;gap:.5rem;margin-top:.6rem}.st-model[hidden]{display:none}.st-hint .verdict{margin-top:.5rem}
+:root.vw{--accent:#8C8578!important;--realm-hi:#8C8578!important}:root.vw .pk-flicker{animation:none!important;opacity:.35}:root.vw .pk-soul .meter i{background:#5a564e!important}:root.vw #pakt-scene{filter:saturate(.15) brightness(.8)}
+:root.vw .st-lantern{box-shadow:none;background:none}:root.vw .st-lantern i{display:none}.sg-cold{border-style:dashed!important}
+:root.sg-warm .pk-flicker{filter:sepia(.5) saturate(1.6) hue-rotate(-12deg)}
+.sg-bar{display:grid;grid-template-columns:7.5rem 1fr;align-items:center;gap:.5rem}.sg-bar i{display:block;height:6px;background:var(--accent);border-radius:3px;min-width:2px}
+`;document.head.appendChild(s)},"style");
+T4(()=>applyPrefs(),"prefs0");
+})();
+if(typeof module!=="undefined")module.exports={sg,sgRec,sgKeys,sgPick,sgEndingCalc,sgDerive,sgVal,sgCond,sgFlat,sgLines,sgNorm,sgSnap,sgMatch,sgEnding,sgEndingScores,sgStorylet,sgEligible,sgMerge,sgVwCost,sgVw,sgSeen,sgPending,sgCanonApply,sgFinParts,sgStrasse,sgStrList,sgStrTimes,SAGA_VARS};
+
 // ===== Mephisto · i2 · One progression (PLAN-I R4, §2.3): the chapter is the only clock.
 // SYLLABUS (v2/x_i2_syl.js) binds every lesson, word slot, input, clinical item, task and station to one chapter; P().ch stays the only
 // stored position. Level comes from i3 (learnerLv), seals from i4 (pkGate); this file derives the week, says what today must teach and
@@ -13355,7 +14827,7 @@ function shiftCard(){const t=T();if(!isShiftDay(t))return "";const W=week(wkOf(t
     ${counted(t)?"":`<div class="row" style="gap:.5rem;flex-wrap:wrap"><button class="go sm" data-act="${late?"pocketCards":IF_RUNDE[next][2]}">${late?"10 Karten":"Jetzt · 5 Minuten"}</button>${late?"":`<button class="sm ghost" data-act="pocketAny">andere Runde</button>`}</div>`}
     ${n>=1&&!counted(t)?`<small class="ui muted">${esc(lineOf("ration_done")[0])} ${n===1?"Noch zwei, dann zählt der Tag.":"Noch eine, dann zählt der Tag."}</small>`:""}</div>`}
 function penCard(){const pd=penDue();if(!pd)return "";return `<div class="card stack s i8-card i8-pen"><div class="eyebrow">${Sie("Ihre","Deine")} Strafe wartet ${en("your own punishment — it blocks only the seal")}</div><p class="ui" style="margin:0"><b>${esc(I8_PEN[pd.pen][0])}</b> · ${esc(I8_PEN[pd.pen][1])}</p><button class="go sm" data-act="i8PenGo" style="align-self:flex-start">Strafe antreten</button></div>`}
-function closeCard(){if(typeof dayItem==="function")return "";const t=T(),m=pm();const fin=S.today&&S.today.date===t&&S.today.finished;if(!fin&&!counted(t))return "";
+function closeCard(){/* integrator 13.8: yield to i9 only when i9 actually closed today (a pay round has no session.close) */if(typeof dayItem==="function"&&S.day&&S.day.date===T()&&S.day.closed)return "";const t=T(),m=pm();const fin=S.today&&S.today.date===t&&S.today.finished;if(!fin&&!counted(t))return "";
   if(m.cl&&m.cl.d===t){if(m.cl.v)return "";return `<div class="card stack s i8-card i8-door"><div class="big">☩</div>${sayH(lineOf("feierabend",3))}<button class="sm ghost" data-act="i8Vol" style="align-self:center">Freiwillig weiter</button></div>`}
   const c=dayClose();const tm=c.tomorrow;
   return `<div class="card orn stack s i8-card i8-close"><div class="row between"><div class="eyebrow">Feierabend ${en("the end of the day")}</div><small class="muted ui">${I8_WD[wdOf(t)]} ${short(t)}</small></div>
@@ -13687,6 +15159,173 @@ try{MOD.around("bossPool","s6",function(orig,id){const q=orig(id);try{if(id==="h
   try{MOD.around("omenHTML","s6",function(orig){let h=orig();try{const o=omenToday();if(o&&o.dark&&o.x&&o.x.sign)h=String(h).replace("Tippen, um das Siegel zu brechen",esc(o.x.sign[0]))}catch(e){}return h})}catch(e){}})();
 // ---------- nightmare choices are registered at load (ids nm1a … nm10c; the s2 loader hides unknown ids)
 try{if(typeof CHOICES!=="undefined"&&typeof NIGHTMARE!=="undefined")for(const k in NIGHTMARE)Object.assign(CHOICES,NIGHTMARE[k].choices)}catch(e){}
+
+// ===== Mephisto 13.2 · i9 · "Ein Tag im Pakt" (story in the daily loop) and "Der Pakt als Lesetext" (40 graded retellings + the finale).
+// Data: v2/x_i9_day.js (DAY_STEP, DAY_PLAN, DAY_REALM, DAY_BARK, DAY_TURN, DAY_UI, DAY_CH[1..40]) · v2/x_i9_reader.js (READER, 41 entries).
+// Slots (PLAN-A §2.7, a8 fires them): home.hero · session.open · step.enter · item.right · item.wrong · session.close. Without a8 (no UIX) the Home card
+// comes through MOD.after("viewHome","i9"). Screens: MOD.after("viewPakt","i9") (chapter card), MOD.after("viewPractice","i9") (Lesebuch tile).
+// No shared function is reassigned; no MOD.around. State: S.rd (synced, merge rdMerge) · S.day (device-local day budget, not synced).
+// Reads (all guarded): pkCh, pkGate, P, st3Fill, st3Du, st3Gap, dueKeys, GATE, ECON.dayClose, arcLabel, mysState, MYS, EV, evLog, qBlock, gradeQ, scoreLine, say.
+window.SLOT=window.SLOT||{h:{},on(n,tag,f){(this.h[n]=this.h[n]||[]).push([tag,f])},
+  fill(n,el,ctx){(this.h[n]||[]).forEach(([t,f])=>{try{f(el,ctx)}catch(e){try{logError({message:"SLOT "+n+"/"+t+": "+e.message})}catch(x){}}})}};
+const I9=(function(){
+  const BUD={gapMs:90000,perStep:4,perSession:10};
+  const T=(x,d)=>{try{return x()}catch(e){return d}};
+  (function css(){if(document.getElementById("i9-css"))return;const s=document.createElement("style");s.id="i9-css";s.textContent=`
+.i9-l .de{font-family:var(--body);font-size:1.05rem;line-height:1.4}.i9-l .en{font-family:var(--ui);font-size:.8rem;color:var(--muted);margin-top:.12rem}
+.i9-nar .de{font-style:italic}.i9-hero{display:grid;gap:.6rem;color:var(--fg)}.i9-tail{display:grid;gap:.6rem;margin-top:.6rem}.i9-fold>summary{list-style:none;cursor:pointer;display:grid;gap:.6rem}.i9-fold>summary::-webkit-details-marker{display:none}/* integrator 13.8: on a phone the day card starts folded (a8 two-screen Home); the Pakt greeting yields to it */html[data-layout=phone] .i9-fold:not([open])>summary .i9-nar .en{display:none}html[data-layout=phone] .i9-fold:not([open])>summary{gap:.3rem}html[data-layout=phone] .i9-fold:not([open])>summary .i9-nar .de{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}html[data-layout=phone] .i9-fold:not([open])>summary .eyebrow{flex-wrap:nowrap;white-space:nowrap;overflow:hidden}html[data-layout=phone] .i9-fold:not([open])>summary .eyebrow>span:first-child{overflow:hidden;text-overflow:ellipsis}html[data-layout=phone] #main:has(.i9-fold:not([open])) .pk-fade:not(.du-offer)>.pk-say:not(.secret){display:none}.i9-hero .eyebrow{display:flex;justify-content:space-between;gap:.5rem;flex-wrap:wrap}
+.i9-gate{list-style:none;margin:0;padding:0;display:grid;gap:.3rem;font-family:var(--ui);font-size:.86rem}.i9-gate li{display:flex;gap:.5rem;align-items:baseline}.i9-gate .ok{color:var(--good,#7fd18a)}
+.i9-bark{display:block;font-family:var(--body);font-size:.95rem;line-height:1.3;margin:.35rem 0 0;opacity:.92}.i9-bark .en{display:block;font-family:var(--ui);font-size:.74rem;color:var(--muted)}
+.i9-eb{font-family:var(--ui);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin:.1rem 0 .25rem}
+.i9-rd .reader{font-family:var(--body);font-size:1.1rem;line-height:1.6;white-space:pre-wrap}.i9-pre{display:flex;flex-wrap:wrap;gap:.4rem}.i9-pre span{border:1px solid var(--line);border-radius:99px;padding:.2rem .6rem;font-family:var(--ui);font-size:.88rem}
+.i9-pre small{color:var(--muted)}.i9-book .li{display:flex;justify-content:space-between;gap:.6rem;align-items:center}.i9-book .li[disabled]{opacity:.45}
+.i9-close{display:grid;gap:.5rem;margin-top:.6rem}.i9-econ{font-family:var(--ui);font-size:.86rem;color:var(--muted)}`;document.head.appendChild(s)})();
+
+  // ---------- state
+  function rdS(){if(!S.rd||typeof S.rd!=="object")S.rd={};return S.rd}
+  function dayS(){const t=todayKey();const off=S.day&&S.day.off;if(!S.day||S.day.date!==t)S.day={date:t,barks:0,step:-1,stepBarks:0,last:0,ok:0,bad:0,run:0,miss:{},off:!!off};return S.day}
+  function on(){return T(()=>dayS().off!==true&&P().signed&&!P().done,false)}
+  function sober(el){return document.documentElement.dataset.sober==="1"||!!(el&&el.closest&&el.closest('[data-sober="1"],[data-hx="sober"],[data-hx="clinic"],[data-hx="exam"]'))}
+  // ---------- chapter, night, tokens
+  const realmOf=n=>["I","II","III","IV","V"][Math.min(4,Math.floor((Math.max(1,n)-1)/8))];
+  function cur(){return T(()=>P().ch,1)||1}
+  function data(n){n=n||cur();return (typeof DAY_CH!=="undefined"&&DAY_CH[n])||(typeof DAY_REALM!=="undefined"&&DAY_REALM[realmOf(n)])||null}
+  function night(){const p=T(()=>P(),{});const c=T(()=>pkCh(),null);let d=(p.chSess||0)+(p.counted===todayKey()?0:1),need=0;
+    const g=T(()=>pkGate(c),null);if(g){need=g.need||0;if(!need){const it=(g.items||[]).find(i=>/day|tag/i.test(String(i.k))&&i.of);if(it){need=it.of;if(it.n!=null)d=Math.max(1,it.n+(it.ok?0:1))}}}
+    if(!need)need=[5,5,6,6,7][Math.min(4,Math.floor((cur()-1)/8))];return {d:Math.max(1,d),need}}
+  function ctx(x){const n=night(),D=dayS(),c=T(()=>pkCh(),{}),Td=S.today||{steps:[]};const ls=(Td.steps||[]).find(s=>s.t==="learn"||s.t==="l5gram");
+    const L=ls&&ls.ref&&T(()=>lessonById(ls.ref.id),null),G=c.lesson&&T(()=>lessonById(c.lesson),null);const tk=todayKey();
+    const old=T(()=>Object.keys(S.cards).filter(k=>S.cards[k].due<tk).length,0);
+    return Object.assign({D:n.d,NEED:n.need,DUE:T(()=>dueKeys().length,0),NEW:T(()=>Math.max(0,S.newPerDay-((S.newToday&&S.newToday.n)||0)),0),LESSON:L?L.title:null,GATELESSON:G?G.title:null,
+      CH:c.t,MIN:Td.minutes||S.minutes,GAP:T(()=>st3Gap(),0),DUEOLD:old,OKN:D.ok,WRONGN:D.bad,K:Object.keys(D.miss||{}).length},x||{})}
+  const du=()=>T(()=>st3Du(),false);
+  // a line is [Sie, en, du]; any token without a value drops the whole line (returns null)
+  function fill(line,c){if(!line)return null;c=c||ctx();let miss=false;const f=s=>{s=String(s==null?"":s);s=T(()=>st3Fill(s),s);return s.replace(/\{([A-Z]+)\}/g,(m,k)=>{if(c[k]==null||c[k]===""){miss=true;return ""}return c[k]})};
+    const r=[f(du()&&line[2]?line[2]:line[0]),f(line[1])];return miss?null:r}
+  const nth=(a,d)=>Array.isArray(a)&&a.length?a[Math.min(Math.max(d,1),a.length)-1]:null;
+  function lineHTML(line,c,cls){const l=fill(line,c);return l?`<div class="i9-l ${cls||""}"><div class="de" lang="de">${esc(l[0])}</div><div class="en">${esc(l[1])}</div></div>`:""}
+  function say1(line,c){const l=fill(line,c);return l?T(()=>pkSay(l),`<div class="i9-l"><div class="de">${esc(l[0])}</div><div class="en">${esc(l[1])}</div></div>`):""}
+  function gateHTML(max){const g=T(()=>pkGate(pkCh()),null);if(!g||!g.items)return "";const it=g.items.filter(i=>!i.opt);const show=it.slice(0,max||3);
+    return `<ul class="i9-gate" data-slot="gate.progress">${show.map(i=>`<li><span class="${i.ok?"ok":""}">${i.ok?"☩":"○"}</span><span>${esc(i.de||i.k)}${i.n!=null&&i.of?` · ${i.n} / ${i.of}`:""}</span></li>`).join("")}${it.length>show.length?`<li><small class="muted">+${it.length-show.length} weitere</small></li>`:""}</ul>`}
+
+  // ---------- step kinds (13.0 steps and l5 plan blocks) → DAY_STEP keys / pocket keys
+  function stepKey(s){if(!s)return null;const t=String(s.t||"");const r=s.ref||{};
+    if(t==="review"||t==="l5cards"||t==="l5mix"||t==="l5err")return "review";if(t==="learn"||t==="l5gram")return "learn";
+    if(t==="input"||/^l5_(hoer|les)/.test(t))return /hoer/.test(t)||r.kind==="hoeren"||r.kind==="dialog"||r.kind==="kino"?"listen":"read";
+    if(t==="output"||/^l5_schr/.test(t))return "write";if(t==="l5rede"||/^l5_(spr|laut)/.test(t))return "talk";
+    if(t==="fluency")return r.kind==="dict"?"dict":r.kind==="432"?"talk":"shadow";if(t==="culture")return "culture";return null}
+  function pocketKey(s){const k=stepKey(s);return k==="review"?"cards":k==="read"?"omen":k==="listen"||k==="shadow"||k==="talk"?"shadow":"palace"}
+  const shiftOn=()=>T(()=>typeof isShift==="function"?isShift():!!(S.shifts&&S.shifts[todayKey()]),false);
+
+  // ---------- barks (in-session lines tied to the item; budgeted; silent in sober contexts)
+  function lev1(a,b){a=String(a||"").toLowerCase();b=String(b||"").toLowerCase();if(a===b||Math.abs(a.length-b.length)>1)return false;let i=0;while(i<a.length&&a[i]===b[i])i++;return a.slice(i+1)===b.slice(i+1)||a.slice(i)===b.slice(i+1)||a.slice(i+1)===b.slice(i)}
+  function dayItem(ev){ev=ev||{};const ok=ev.ok!=null?!!ev.ok:ev.right!=null?!!ev.right:ev.correct!=null?!!ev.correct:null;if(ok===null)return null;
+    const D=dayS(),R=["I","II","III","IV","V"].indexOf(realmOf(cur()));const W=ev.want||ev.answer||ev.de||ev.w||null,GOT=ev.got||ev.typed||null,key=ev.key||ev.ref||W;
+    let kind;if(ok){D.run++;const m=key&&D.miss[key];if(m){kind="redeemed";delete D.miss[key]}else kind=D.run===10?"streak10":D.run===5?"streak5":null}
+    else{D.run=0;const n=key?(D.miss[key]=(D.miss[key]||0)+1):1;const lapses=T(()=>S.cards[ev.id||key].lapses,0)||0;kind=lapses>=2||n>=2?"wrongAgain":GOT&&W&&lev1(GOT,W)?"wrongNear":/^(der|die|das) /i.test(String(W||""))&&GOT?"wrongGender":"wrong"}
+    if(!kind||typeof DAY_BARK==="undefined")return null;const ch=data();const own=ch&&ch.bark&&ch.bark[kind];const pool=(own||[]).concat((DAY_BARK[kind]||[]).filter(l=>["I","II","III","IV","V"].indexOf(l[3]||"I")<=R));
+    if(!pool.length)return null;const c=ctx({W,GOT,N:key?D.miss[key]||T(()=>S.cards[ev.id||key].lapses,0):0});const pick=pool[(D.barks+(D.ok+D.bad))%pool.length];return fill(pick,c)}
+  function bark(el,ev){if(!on()||sober(el))return;const D=dayS(),now=Date.now();if(D.barks>=BUD.perSession||D.stepBarks>=BUD.perStep||now-D.last<BUD.gapMs)return;
+    const l=dayItem(ev);if(!l)return;D.barks++;D.stepBarks++;D.last=now;el.insertAdjacentHTML("beforeend",`<span class="i9-bark" lang="de">${esc(l[0])}<span class="en">${esc(l[1])}</span></span>`)}
+  function count(ev){const D=dayS();const ok=ev&&(ev.ok!=null?ev.ok:ev.right!=null?ev.right:ev.correct);if(ok==null)return;if(ok)D.ok++;else D.bad++}
+
+  // ---------- slot fillers
+  function heroHTML(){const n=cur(),k=data(n);if(!k)return "";const c=ctx(),gap=c.GAP||0,arc=T(()=>arcLabel(n),"");
+    const meph=gap>=3&&k.back?k.back:k.want;const wh=nth(k.where,c.D);
+    const ph=T(()=>document.documentElement.dataset.layout==="phone",false);
+    return `<div class="card i9-hero" data-i9="hero"><details class="i9-fold"${ph?"":" open"}><summary><div class="eyebrow"><span>Kapitel ${n} · ${esc(c.CH||"")}</span><span>${esc((DAY_UI.night||["Nacht {D} von {NEED}"])[0].replace("{D}",c.D).replace("{NEED}",c.NEED))}</span></div>
+      ${lineHTML(wh,c,"i9-nar")}</summary><div class="i9-tail">${say1(meph,c)}${gapHTML(gap)}${gateHTML(3)}
+      <div class="row" style="gap:.5rem;flex-wrap:wrap"><button class="sm ghost" data-act="i9Read" data-n="${rdLast()}">${ic("book")} Das Kapitel als Lesetext</button>${arc?`<small class="muted ui">${esc(arc)}</small>`:""}</div></div></details></div>`}
+  function gapHTML(gap){if(gap<3||typeof READER==="undefined")return "";const n=cur();const two=READER.filter(r=>r.ch<=n&&r.ch>=n-2&&r.ch<=40&&rdUnlocked(r.ch)).slice(-2);
+    const qs=T(()=>typeof MYS!=="undefined"&&typeof mysState==="function"?Object.keys(MYS).filter(id=>{const st=mysState(id);return st===1||st===2}).map(id=>MYS[id].q):[],[]);
+    if(!two.length&&!qs.length)return "";
+    return `<details class="i9-was"><summary class="ui">Was bisher geschah <small class="muted">· what happened so far</small></summary>${two.map(r=>`<p class="ui" style="margin:.4rem 0"><b>${r.ch}. ${esc(r.title)}</b> – ${esc(firstSent(r.text,2))} <button class="sm ghost" data-act="i9Read" data-n="${r.ch}">Lesen</button></p>`).join("")}
+      ${qs.length?`<div class="eyebrow" style="margin-top:.4rem">Ihre offenen Fragen</div><ul class="ui" style="margin:.2rem 0 0 1rem">${qs.slice(0,5).map(q=>`<li>${esc(q[0])} <small class="muted">${esc(q[1]||"")}</small></li>`).join("")}</ul>`:""}</details>`}
+  const firstSent=(t,k)=>String(t).replace(/\s+/g," ").split(/(?<=[.!?])\s+/).slice(0,k).join(" ");
+  function sessionOpen(el,cx){if(!on())return;const k=data();if(!k)return;const c=ctx();const shift=shiftOn();
+    const plan=[];const b=Math.floor((cur()-1)/8)<2?"lo":"hi";const P_=typeof DAY_PLAN!=="undefined"?DAY_PLAN:{};
+    if(shift&&P_.shift)plan.push(P_.shift[b]);else{plan.push(c.DUE?P_.review&&P_.review[b]:P_.none&&P_.none[b]);if(c.NEW&&P_.new)plan.push(P_.new[b]);if(c.LESSON&&P_.lesson)plan.push((c.LESSON===c.GATELESSON&&P_.gate?P_.gate:P_.lesson)[b])}
+    el.insertAdjacentHTML("beforeend",`<div class="i9-open" data-i9="open">${lineHTML(nth(k.where,c.D),c,"i9-nar")}${say1(k.want,c)}${plan.filter(Boolean).map(x=>lineHTML(x,c)).join("")}</div>`)}
+  function stepEnter(el,cx){if(!on()||sober(el))return;const D=dayS();D.stepBarks=0;D.step=cx&&cx.i;const s=cx&&cx.step;const k=data();if(!s||!k)return;const c=ctx();const R=realmOf(cur());
+    let line=null,fic="";if(shiftOn()&&k.pocket){line=k.pocket[pocketKey(s)];fic=(DAY_UI.today||["Heute im Pakt"])[0]}
+    else{const key=stepKey(s);const st=key&&typeof DAY_STEP!=="undefined"&&DAY_STEP[key];if(!st)return;line=st.l&&st.l[R];fic=st.fic}
+    const h=lineHTML(line,c);if(!h)return;el.insertAdjacentHTML("beforeend",`<div class="i9-step" data-i9="step"><div class="i9-eb">${esc(fic)}</div>${h}</div>`)}
+  function sessionClose(el,cx){if(!on())return;const k=data();if(!k)return;const st=(cx&&cx.stats)||{};const D=dayS();if(!D.ok&&st.ok)D.ok=st.ok;if(!D.bad&&st.cards&&st.ok!=null)D.bad=Math.max(0,st.cards-st.ok);
+    const c=ctx();const nt=c.D;let econ="";T(()=>{if(typeof ECON!=="undefined"&&typeof ECON.dayClose==="function"){const r=ECON.dayClose();econ=typeof r==="string"?esc(r):r&&r.html?r.html:r&&typeof r==="object"?Object.keys(r).filter(x=>typeof r[x]!=="object").map(x=>`${esc(x)}: ${esc(r[x])}`).join(" · "):""}});
+    const cd=cdHTML();D.closed=1;
+    el.insertAdjacentHTML("beforeend",`<div class="i9-close" data-i9="close">${lineHTML(D.bad?k.moved:k.clean,c)}${cd}
+      <div class="i9-eb">${esc((DAY_UI.tomorrow||["Morgen"])[0])}</div>${lineHTML(nth(k.cliff,nt),c,"i9-nar")}${gateHTML(4)}${econ?`<div class="i9-econ">${econ}</div>`:""}</div>`)}
+  function cdHTML(){const n=cur(),k=data(n);const c=ctx();let x=lineHTML(k&&k.cando,c);
+    T(()=>{if(typeof cdOfChapter==="function"&&typeof CANDO!=="undefined"){const L=cdOfChapter(n)||[];const items=L.map(o=>CANDO.find(z=>z.id===o.id)).filter(Boolean).slice(0,3);
+      if(items.length)x+=`<ul class="ui" style="margin:.2rem 0 0 1rem;font-size:.86rem">${items.map(z=>`<li>${esc(z.de)}</li>`).join("")}</ul>`}});
+    return x?`<div class="i9-eb">${esc(du()?(DAY_UI.candoDu||["Was du jetzt kannst"])[0]:(DAY_UI.cando||["Was Sie jetzt können"])[0])}</div>${x}`:""}
+  SLOT.on("home.hero","i9",(el)=>{if(on())el.insertAdjacentHTML("beforeend",heroHTML())});
+  SLOT.on("session.open","i9",sessionOpen);SLOT.on("step.enter","i9",stepEnter);
+  SLOT.on("item.right","i9",(el,d)=>{if(typeof EV==="undefined"||!EV.on)count(Object.assign({ok:true},d));bark(el,Object.assign({ok:true},d))});
+  SLOT.on("item.wrong","i9",(el,d)=>{if(typeof EV==="undefined"||!EV.on)count(Object.assign({ok:false},d));bark(el,Object.assign({ok:false},d))});
+  SLOT.on("session.close","i9",sessionClose);
+  setTimeout(()=>{T(()=>{if(typeof EV!=="undefined"&&EV.on){["card.answer","ex.answer"].forEach(n=>EV.on(n,d=>T(()=>{if(d&&d.src==="rd")return;count(d)})))}})},0);
+  // Home without a8: the same card at the top of the view
+  T(()=>MOD.after("viewHome","i9",function(m){if(typeof UIX!=="undefined"||!on()||m.querySelector('[data-i9="hero"]'))return;const v=m.querySelector(".view")||m;
+    v.insertAdjacentHTML("afterbegin",heroHTML());setTimeout(()=>{const c=v.querySelector('[data-i9="hero"]');if(c&&v.firstElementChild!==c)v.prepend(c)},0)}));
+
+  // ---------- READER: "Der Pakt als Lesetext"
+  function rd(n){return typeof READER!=="undefined"?READER.find(r=>r.ch===+n):null}
+  function rdUnlocked(n){n=+n;const p=T(()=>P(),{});if(n===41)return !!p.done;if(!p.signed)return n===1;if(n<p.ch||p.done)return true;if(n>p.ch)return false;
+    return true}
+  function rdAfterOk(n){const p=T(()=>P(),{});return n<p.ch||!!p.done}
+  function rdLast(){const n=cur();for(let k=n;k>=1;k--)if(rdUnlocked(k))return k;return 1}
+  const words=t=>(String(t).match(/\S+/g)||[]).length;
+  function rdView(n,stage){const r=rd(n);if(!r)return;const box=Focus.body?Focus.body():$("#fIn");const R=rdS()[n]||{};const gk=T(()=>glossKey(r.gloss||{}),"");const fillT=t=>T(()=>st3Fill(t),t);
+    const sub=`${r.lv} · ${words(r.text)} Wörter`;T(()=>Focus.title(`Kapitel ${n>40?"40 · Finale":n} · ${r.title}`,sub));T(()=>Focus.progress({n:4,i:stage}));
+    if(stage===0){box.innerHTML=`<div class="stack i9-rd" style="max-width:680px;margin:0 auto"><div class="eyebrow">Vor dem Lesen <span class="en">before reading · ten words</span></div>
+      <div class="i9-pre" data-gk="${gk}">${(r.pre||[]).map(w=>`<span>${glossify(w)}</span>`).join("")}</div><p class="muted ui" style="font-size:.85rem">Tippen Sie ein Wort an, um es zu übersetzen. Diese Wörter stehen im Text mindestens zweimal.</p></div>`;
+      Focus.foot(`<button class="go" data-act="i9Stage" data-n="${n}" data-s="1">Lesen ${ic("chev")}</button>`);return}
+    if(stage===1||stage===3){const t0=Date.now();R.t0=t0;rdS()[n]=Object.assign(rdS()[n]||{},{});I9._t0=t0;
+      const body=fillT(r.text)+(r.after&&rdAfterOk(n)?"\n\n— Nach dem Duell —\n\n"+fillT(r.after):"");
+      box.innerHTML=`<div class="stack i9-rd" style="max-width:680px;margin:0 auto">${stage===3?`<div class="eyebrow">Noch einmal <span class="en">second reading · timed</span></div>`:""}
+        <div class="card"><div class="reader" lang="de" data-gk="${gk}">${glossify(body)}</div></div>
+        <div class="row"><button class="sm ghost" data-act="i9Say" data-n="${n}">${ic("vol")} Vorlesen</button></div></div>`;
+      Focus.foot(stage===1?`<button class="go" data-act="i9Stage" data-n="${n}" data-s="2">Zu den Fragen ${ic("chev")}</button>`:`<button class="go" data-act="i9Stage" data-n="${n}" data-s="4">Fertig gelesen</button>`);return}
+    if(stage===2){const dt=(Date.now()-(I9._t0||Date.now()))/60000;if(dt>0.2){const w=Math.round(words(r.text)/dt);rdSet(n,{wpm1:w})}
+      box.innerHTML=`<div class="stack i9-rd" style="max-width:680px;margin:0 auto"><div class="eyebrow">Fragen <span class="en">five questions · 4 of 5 pass</span></div>${qBlock(r.q)}<div class="rd-out"></div></div>`;
+      Focus.foot(`<button class="go rd-chk">Abgeben</button>`);const b=$("#fFootIn .rd-chk");if(b)b.onclick=()=>{const right=gradeQ(box,r.q);rdSet(n,{q:right});rdEvidence(n,box,r);
+        const s=scoreLine(right,r.q.length);$(".rd-out",box).innerHTML=s.html;Focus.foot(`<button class="go" data-act="i9Stage" data-n="${n}" data-s="3">Noch einmal lesen ${ic("chev")}</button><button class="sm ghost" data-act="closeFocus">Schließen</button>`)};return}
+    if(stage===4){const dt=(Date.now()-(I9._t0||Date.now()))/60000;if(dt>0.2)rdSet(n,{wpm2:Math.round(words(r.text)/dt)});const RR=rdS()[n]||{};
+      const nach=r.retell&&r.retell.length;box.innerHTML=`<div class="stack i9-rd" style="max-width:680px;margin:0 auto"><div class="card"><div class="eyebrow">Ergebnis</div><p class="ui">Fragen: ${RR.q!=null?RR.q:"–"} / 5${RR.wpm1?` · erstes Lesen ${RR.wpm1} Wörter/Min.`:""}${RR.wpm2?` · zweites Lesen ${RR.wpm2} Wörter/Min.`:""}</p></div>
+        ${nach?`<div class="card stack s"><div class="eyebrow">Nacherzählen <span class="en">retell in three sentences</span></div>${r.retell.map(p=>`<div class="ui"><b>${esc(p[0])}</b> <small class="muted">${esc(p[1])}</small></div>`).join("")}
+          <textarea class="rd-nach" rows="5" spellcheck="false" placeholder="Drei Sätze …">${esc(RR.nachT||"")}</textarea><div class="rd-nout ui muted"></div></div>`:""}</div>`;
+      Focus.foot(nach?`<button class="go rd-nchk">Prüfen</button><button class="sm ghost" data-act="closeFocus">Schließen</button>`:`<button class="go" data-act="closeFocus">Schließen</button>`);
+      const nb=$("#fFootIn .rd-nchk");if(nb)nb.onclick=()=>{const v=$(".rd-nach",box).value;const res=nachCheck(v,r);rdSet(n,{nach:res.ok?1:0,nachT:v.slice(0,800)});$(".rd-nout",box).innerHTML=esc(res.msg);};return}}
+  function nachCheck(v,r){const sents=String(v).split(/[.!?]+/).map(s=>s.trim()).filter(s=>s.split(/\s+/).length>=3);const low=String(v).toLowerCase();
+    const used=(r.pre||[]).filter(w=>{const h=String(w).replace(/^(der|die|das|sich) /,"").toLowerCase();return low.includes(h.slice(0,Math.max(4,h.length-2)))});
+    const ok=sents.length>=3&&used.length>=3;return {ok,msg:ok?`Gut: ${sents.length} Sätze, ${used.length} Wörter aus der Liste.`:`Noch nicht: ${sents.length} von 3 Sätzen, ${used.length} von 3 Wörtern aus der Liste (${(r.pre||[]).slice(0,5).join(", ")} …).`}}
+  function rdSet(n,o){const R=rdS();const x=R[n]=R[n]||{};Object.keys(o).forEach(k=>{if(k==="q"||k==="wpm1"||k==="wpm2"||k==="nach")x[k]=Math.max(x[k]||0,o[k]);else x[k]=o[k]});x.d=todayKey();T(()=>saveSoon())}
+  function rdEvidence(n,box,r){T(()=>$$(".q-item",box).forEach((el,i)=>{const q=r.q[+el.dataset.i];const sel=el.querySelector("input:checked");const ok=!!sel&&sel.value===String(q.answer);const key="r:rd"+n+":"+(+el.dataset.i);
+    T(()=>{if(typeof evLog==="function")evLog(key,ok,{f:0})});T(()=>{if(typeof EV!=="undefined"&&EV.emit)EV.emit("ex.answer",{src:"rd",ref:"rd"+n,key,ok,flags:0})})}))}
+  function rdOpen(n){n=+n||rdLast();if(!rdUnlocked(n)){T(()=>toast("Dieses Kapitel ist noch nicht erreicht."));return}T(()=>Focus.open({title:"Das Kapitel als Lesetext",sub:""}));rdView(n,0)}
+  function rdBook(){const p=T(()=>P(),{});const box=Focus.open({title:"Der Pakt · Lesebuch",sub:"40 Kapitel als Lesetext · graded reader"});const L=typeof READER!=="undefined"?READER:[];
+    box.innerHTML=`<div class="stack i9-book" style="max-width:680px;margin:0 auto">${L.map(r=>{const u=rdUnlocked(r.ch);const R=rdS()[r.ch]||{};const arc=T(()=>r.ch<=40?arcLabel(r.ch):"",""),done=R.q>=4;
+      return `<button class="li card" ${u?"":"disabled"} data-act="i9Read" data-n="${r.ch}"><span><b>${r.ch>40?"Finale":r.ch}. ${esc(r.title)}</b><small class="muted ui" style="display:block">${esc(r.lv)} · ${words(r.text)} Wörter${arc?" · "+esc(arc):""}</small></span><span class="ui">${u?(done?"☩ "+R.q+"/5":R.q!=null?R.q+"/5":"lesen"):"–"}</span></button>`}).join("")}</div>`}
+  ACT.i9Read=a=>rdOpen(a&&a.dataset?(a.dataset.n||a.dataset.id):a);ACT.i9Book=()=>rdBook();ACT.i9Stage=a=>rdView(+a.dataset.n,+a.dataset.s);
+  ACT.i9Say=a=>{const r=rd(a.dataset.n);if(r)T(()=>say(T(()=>st3Fill(r.text),r.text),{rate:.92}))};ACT.i9Off=()=>{dayS().off=!dayS().off;T(()=>saveSoon());T(()=>rerender())};
+  // Pakt: chapter card; Werkstatt: Lesebuch tile
+  T(()=>MOD.after("viewPakt","i9",function(m){if(!T(()=>P().signed,false)||m.querySelector('[data-i9="pkcard"]'))return;const n=rdLast(),r=rd(n);if(!r)return;const R=rdS()[n]||{};const arc=T(()=>arcLabel(n),"");
+    const v=m.querySelector(".view")||m;v.insertAdjacentHTML("beforeend",`<div class="card stack s" data-i9="pkcard"><div class="eyebrow">Das Kapitel als Lesetext${arc?` <span class="en">${esc(arc)}</span>`:""}</div>
+      <p class="ui" style="margin:0"><b>${n}. ${esc(r.title)}</b> · ${esc(r.lv)} · ${words(r.text)} Wörter · etwa ${Math.max(2,Math.round(words(r.text)/90))} Minuten${R.q!=null?` · Fragen ${R.q}/5`:""}</p>
+      <div class="row" style="gap:.5rem"><button class="primary sm" data-act="i9Read" data-n="${n}">Lesen</button><button class="sm ghost" data-act="i9Book">Lesebuch</button><button class="sm ghost" data-act="i9Off">${dayS().off?"Tagesrahmen an":"Tagesrahmen aus"}</button></div></div>`)}));
+  T(()=>MOD.after("viewPractice","i9",function(m){if(m.querySelector('[data-i9="book"]'))return;const v=m.querySelector(".view")||m;
+    v.insertAdjacentHTML("beforeend",`<button class="card li" data-i9="book" data-act="i9Book" style="width:100%;text-align:left"><span><b>Der Pakt · Lesebuch</b><small class="muted ui" style="display:block">Die Geschichte als Lesetext, Kapitel für Kapitel, auf Ihrem Niveau</small></span></button>`)}));
+  // optional gate item (i4) and merge rule (P2)
+  setTimeout(()=>{T(()=>{if(typeof GATE!=="undefined"&&GATE.add)GATE.add("i9.reader",c=>{const n=c&&c.n;if(!rd(n))return [];const R=rdS()[n]||{};
+      return [{k:"i9.reader",ok:(R.q||0)>=4,de:"Lesetext: 4 von 5 Fragen",en:"retelling: 4 of 5 questions",act:"i9Read",id:n,opt:true,n:R.q||0,of:5}]})});
+    T(()=>{if(typeof MERGE_RULES!=="undefined")MERGE_RULES.rd=rdMerge})},0);
+  function rdMerge(a,b){a=a||{};b=b||{};const o={};new Set(Object.keys(a).concat(Object.keys(b))).forEach(k=>{const x=a[k]||{},y=b[k]||{};const z={};
+    ["q","wpm1","wpm2","nach"].forEach(f=>{const v=Math.max(x[f]||0,y[f]||0);if(x[f]!=null||y[f]!=null)z[f]=v});
+    const dx=x.d||"",dy=y.d||"";z.d=dx>dy?dx:dy;const tx=dx>dy?x.nachT:dy>dx?y.nachT:([x.nachT||"",y.nachT||""].sort().pop());if(tx)z.nachT=tx;if(!z.d)delete z.d;o[k]=z});return o}
+  return {ctx,fill,data,night,stepKey,pocketKey,dayItem,heroHTML,rdOpen,rdBook,rdUnlocked,rdMerge,rd,nachCheck,_t0:0};
+})();
+function dayItem(ev){return I9.dayItem(ev)}
 
 // ===== Mephisto · track I · c_i1_pre.js — Vorwissen: the next chapter's words enter the new-card queue before the chapter opens (owner: i1).
 // Source: beta r8 I3 §6.4 (c_preteach.js), with PLAN-I i1 step 4: canon lists (x_i1_pre.js, generated by tools/gen_preteach.js), new arm rule,
@@ -14148,6 +15787,412 @@ l5Try("css",()=>{if(typeof document==="undefined"||document.getElementById("l5cs
 .l5-rc b{font-size:.85rem}.l5-rc small{font-size:.62rem;line-height:1;opacity:.85}.l5-rc.today{outline:2px solid var(--accent)}
 .l5-rc.cF{background:rgba(226,101,28,.18)}.l5-rc.cS{background:rgba(47,100,181,.2)}.l5-rc.cN{background:rgba(60,60,90,.35)}.l5-rc.cD{background:rgba(127,127,127,.25)}.l5-rc.cX{background:rgba(42,138,85,.18)}
 .l5-card .steps{margin-top:.3rem}.l5-ext .chip{cursor:pointer}`;document.head.appendChild(s)});
+
+// ===== Mephisto · S1 (16/11/2026) · Chronik registration: du twins for secret lines, unlock rules for pages with `unlock`, the third Chronik tab
+// „Sagen · Medizin · Archiv“ (shelves S, M, A from LORE_SHELF), and a fallback that keeps grave pages out of „Neue Seite“ cards if P2's c_lore is absent.
+// Hooks: MOD.around("loreOpen","s1"), MOD.around("loreNew","s1"); ACT.chronik is wrapped (not a MOD hook: ACT.* is an object property) — kept, try/catch.
+// No new saved state. Reads S.zl.done (s12) for n_urfaust.
+// ---------------------------------------------------------------- 1. du twins (linguist §2 no. 3; keys = the Sie lines as they stand in x_lore.js / x_lore2.js)
+try{Object.assign(DU_MAP,{
+ "In der Hölle gibt es keine Cheats. Aber für Sie mache ich eine Ausnahme.":"In der Hölle gibt es keine Cheats. Aber für dich mache ich eine Ausnahme.",
+ "Siebenmal. Jetzt sieht es Sie auch.":"Siebenmal. Jetzt sieht es dich auch.",
+ "An diesem Tag ist die Grenze dünn. Gut, dass Sie gekommen sind.":"An diesem Tag ist die Grenze dünn. Gut, dass du gekommen bist.",
+ "Sie zupfen an Ihrem Schatten? Vorsicht. Ein Kollege von mir hat einmal einen gekauft. Für einen Geldbeutel.":"Du zupfst an deinem Schatten? Vorsicht. Ein Kollege von mir hat einmal einen gekauft. Für einen Geldbeutel.",
+ "Sie haben einen Raben gefangen. Die anderen fliegen noch – also schläft der alte Kaiser weitere hundert Jahre. Sie hätten alle fangen müssen.":"Du hast einen Raben gefangen. Die anderen fliegen noch – also schläft der alte Kaiser weitere hundert Jahre. Du hättest alle fangen müssen.",
+ "Jetzt kennen Sie beide Wetten: die über den Weg und die über den Augenblick. Ich hätte das Blatt besser verstecken sollen. Ich wollte nicht.":"Jetzt kennst du beide Wetten: die über den Weg und die über den Augenblick. Ich hätte das Blatt besser verstecken sollen. Ich wollte nicht.",
+ "Viermal Bett vier. Sie kommen wieder, obwohl ich Sie nicht zwinge. Das steht in keinem meiner Verträge.":"Viermal Bett vier. Du kommst wieder, obwohl ich dich nicht zwinge. Das steht in keinem meiner Verträge."})}catch(e){}
+// ---------------------------------------------------------------- 2. unlock rules (data in LORE[].unlock: {zl:1} | {egg, ch})
+function s1Grave(e){return !!(e&&(e.grave||e.sober))}
+try{MOD.around("loreOpen","s1",function(orig,e){try{if(e&&e.unlock){const u=e.unlock;if(u.zl)return !!(S.zl&&S.zl.done);let ok=false;if(u.egg)ok=!!(S.eggs||{})[u.egg];if(u.ch){const p=P();ok=ok||!!(p.signed&&(p.ch||1)>=u.ch)}return ok}}catch(x){}return orig(e)})}catch(e){try{logError(e)}catch(x){}}
+try{MOD.around("loreNew","s1",function(orig){const L=orig();try{return L.filter(e=>!s1Grave(e))}catch(x){return L}})}catch(e){try{logError(e)}catch(x){}}
+document.addEventListener("zl:done",()=>{try{if(P().signed)setTimeout(()=>toast("Neue Seite in der Chronik: Der Urfaust",4200),1500)}catch(e){}});
+// ---------------------------------------------------------------- 3. the third Chronik tab
+function s1Shelf(id){return (typeof LORE_SHELF!=="undefined"?LORE_SHELF:[]).find(s=>s.id===id)}
+function s1ShelfHTML(){const seen=(S.loreSeen||{});const tile=e=>{const o=loreOpen(e);const nw=o&&!s1Grave(e)&&!seen[e.id];
+   return `<button class="chr-tile${o?"":" locked"}${nw?" new":""}${s1Grave(e)?" grave":""}" ${o?`data-act="loreRead" data-id="${e.id}"`:""}>${s1Grave(e)?"":loreArt(e.art,"chr-img")}<span class="chr-y">${esc(e.y)}</span><b>${o?esc(e.t):"Versiegelt"}</b><small>${o?"":e.hint?esc(e.hint):"Kapitel "+e.ch}</small>${nw?`<i class="chr-nw">neu</i>`:""}</button>`};
+  const block=(r,sym)=>{const L=LORE.filter(e=>e.r===r);return `<div class="chr-realm" data-s1="${r}"><div class="chr-rh"><span class="num">${sym}</span><div><b>${esc(LORE_REALM[r]||r)}</b><small>${L.filter(loreOpen).length} von ${L.length} Seiten</small></div></div><div class="chr-grid">${L.map(tile).join("")}</div></div>`};
+  const A=LORE.filter(e=>e.r==="A");const ao=A.filter(loreOpen);const sh=s1Shelf("archiv")||{threshold:["",""]};
+  const arch=`<div class="chr-realm s1-archiv" data-s1="A"><div class="chr-rh"><span class="num">·</span><div><b>${esc(LORE_REALM.A||"Archiv")}</b><small>Archiv ${ao.length} / ${A.length}</small></div></div>
+    ${ao.length?`<p class="s1-thr">${esc(sh.threshold[0])}</p><details class="s1-thr-en"><summary class="ui">English</summary><p>${esc(sh.threshold[1])}</p></details>
+    <div class="s1-rows">${ao.map(e=>`<button class="s1-row" data-act="loreRead" data-id="${e.id}"><span>${esc(e.y)}</span><b>${esc(e.t)}</b></button>`).join("")}</div>`:`<p class="ui muted">Öffnet mit Kapitel 39.</p>`}</div>`;
+  return block("S","§")+block("M","⚕")+arch}
+let S1TAB=0;
+(function(){const orig=ACT.chronik;if(typeof orig!=="function")return;
+  ACT.chronik=function(el){const mine=el&&el.dataset&&el.dataset.tab==="s1";const was=typeof CHR_TAB!=="undefined"?CHR_TAB:null;
+    let r;try{r=orig.call(this,mine?{dataset:{tab:"reiche"}}:el)}catch(e){try{logError(e)}catch(x){}}
+    try{if(mine)S1TAB=1;else if(el&&el.dataset&&el.dataset.tab)S1TAB=0;
+      const chr=document.querySelector("#fIn .chr");if(!chr)return r;const seg=chr.querySelector(".seg");
+      if(seg&&!seg.querySelector('[data-tab="s1"]'))seg.insertAdjacentHTML("beforeend",`<button data-act="chronik" data-tab="s1">Sammlung</button>`);
+      if(S1TAB){seg&&seg.querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.tab==="s1"));chr.querySelectorAll(".chr-realm,.chr-time").forEach(n=>n.remove());chr.insertAdjacentHTML("beforeend",s1ShelfHTML())}
+      // locked pages that open by a rule other than chapter or secret: show their hint
+      chr.querySelectorAll(".chr-realm").forEach(R=>{if(R.dataset.s1)return;const name=(R.querySelector(".chr-rh b")||{}).textContent;const r=Object.keys(LORE_REALM).find(k=>LORE_REALM[k]===name);if(!r)return;const L=LORE.filter(e=>e.r===r);R.querySelectorAll(".chr-tile").forEach((t,i)=>{const e=L[i];if(e&&e.hint&&!e.egg&&!loreOpen(e)){const s=t.querySelector("small");if(s)s.textContent=e.hint}})});
+    }catch(e){try{logError(e)}catch(x){}}return r}})();
+// opening a page from another tab clears the S1 tab
+(function(){const s=document.createElement("style");s.textContent=`
+.s1-archiv{border-top:1px solid var(--line2,#333);padding-top:.6rem}.s1-thr{font-family:var(--body);font-size:1.02rem;margin:.2rem 0;opacity:.9}
+.s1-rows{display:grid;gap:.25rem}.s1-row{display:flex;gap:.8rem;align-items:baseline;text-align:left;background:none!important;border:0!important;border-bottom:1px solid var(--line2,#2a2a2a)!important;border-radius:0!important;padding:.45rem .2rem;min-height:40px}
+.s1-row span{min-width:4.6rem;font-family:var(--body);opacity:.7}.s1-row b{font-weight:500}`;document.head.appendChild(s)})();
+
+// ===== Mephisto · a9 (16/11/2026) · Die Chronik als Ort: Halle → Flügel → Seite, Zeitstrahl, Karte, Register/Suche, das nüchterne Archiv,
+// das Kabinett als Album, und der Geheimnis-Zettel statt des Overlays, das eine Sitzung verdeckte (A10 D8).
+// Built on A10's prototype (beta/r8/A10/proto/chx.js) with an adapter for S1's fields (people places works words q conf, shelves S/M/A, grave/sober).
+// Data: v2/x_a9_chx.js (generated by tools/a9/gen_chx.js). Styles: v2/s_a9.css. Module "story", after c_s1 (it absorbs S1's „Sammlung“ tab).
+// Entry points replaced (originals kept): ACT.chronik → ACT._chronik13, ACT.loreRead → ACT._loreRead13, ACT.kabinett → ACT._kabinett13.
+// Hooks: MOD.around("kabCards","a9") (never-list), MOD.around("kabCheck","a9") (silent first run), MOD.after("chrome","a9") (flush the secret queue).
+// One MutationObserver on <body> (childList only): an .egg-pop is removed at once and becomes the slip #chx-slip.
+// State: S.loreRead {id:{d,q}} (synced: union, earlier date, higher q) · S.chx {lang,sort,tiles,k_*,tlLane,tlPpy,mapV,archOk,kabInit,mig} (device-local).
+// Public API (PLAN-A §2.8): CHX.mount(el) CHX.go(view,arg) CHX.secret(id) CHX.slip() — non-enumerable methods on the existing data object `CHX`
+// (x_s2_scn.js already declares `var CHX` for chapter patches keyed by number). Test handle: window.CHXA9.
+(function(){
+"use strict";
+const D=document,H=D.documentElement;
+const E=s=>(typeof esc==="function"?esc(s):String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])));
+const log=e=>{try{logError({message:"a9: "+(e&&e.message||e)})}catch(x){}};
+const today=()=>{try{return todayKey()}catch(e){return new Date().toISOString().slice(0,10)}};
+const fmt=d=>{try{return fmtDate(d)}catch(e){return d||""}};
+const has=n=>{if(n==="EGGS")return typeof EGGS!=="undefined";return typeof window[n]!=="undefined"};
+// ---------------------------------------------------------------- 0. adapter (S1's fields first, A10's names as fallback)
+const A={
+  ch:()=>{try{const p=P();return p.signed?(p.ch||1):0}catch(e){return 0}},
+  eggs:()=>{try{return eggs()}catch(e){return (S.eggs=S.eggs||{})}},
+  seen:()=>{try{return loreSeen()}catch(e){return (S.loreSeen=S.loreSeen||{})}},
+  read:()=>(S.loreRead=S.loreRead||{}),
+  prefs:()=>(S.chx=S.chx&&typeof S.chx==="object"?S.chx:{}),
+  sealed:()=>{try{return P().sealed||{}}catch(e){return {}}},
+  signed:()=>{try{return P().date||""}catch(e){return ""}},
+  save:()=>{try{saveSoon()}catch(e){}},
+  plate:id=>{try{return id?(has("plateMeta")?plateMeta(id):pkArt(id)):null}catch(e){return null}},
+  open:e=>{try{return !!loreOpen(e)}catch(x){return false}},
+  du:()=>{try{return typeof st3Du==="function"&&!!st3Du()}catch(e){return false}},
+  chTitle:n=>{try{return pkCh(n).t}catch(e){return ""}},
+  dictCard:de=>{try{const k=String(de).replace(/^(der|die|das|sich) /,"").split(/[ ,(]/)[0].toLowerCase();return DICT[k]||null}catch(e){return null}},
+  inDeck:de=>{const c=A.dictCard(de);if(c)return !!S.cards[c.id];try{return (S.custom||[]).some((x,i)=>x.de===de&&S.cards["c:"+i])}catch(e){return false}},
+  addWord:(de,en)=>{try{const c=A.dictCard(de);if(c){if(!S.cards[c.id]){S.cards[c.id]=newState();try{introducedNew(false)}catch(x){}}}
+    else if(!A.inDeck(de)){S.custom.push({de,en,ex:""});buildDict();S.cards["c:"+(S.custom.length-1)]=newState();try{introducedNew(false)}catch(x){}}A.save()}catch(e){log(e)}},
+  busy:()=>{try{if(D.hidden)return true;if(H.dataset.sober==="1")return true;
+    if(D.querySelector("#lore-cine,.pk-prolog,#p2-tab"))return true;const sh=D.getElementById("sheet");if(sh&&!sh.hidden)return true;
+    const a=D.activeElement;if(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)&&!a.classList.contains("chx-search"))return true;
+    if(Focus.isOpen()&&!D.querySelector("#fIn .chx"))return true;return false}catch(e){return false}}};
+// ---------------------------------------------------------------- 1. model
+const LV=["I","II","III","IV","V"];
+const norm=s=>String(s==null?"":s).toLowerCase().replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/ß/g,"ss").normalize("NFD").replace(/[̀-ͯ]/g,"");
+const MAPX=lon=>(lon-5.4)*46,MAPY=lat=>(55.2-lat)*72;
+let PG=null,PGN=-1,PINS=null;
+function frameOf(e){return e.grave||e.r==="A"?"archive":e.sober?"sober":e.frame==="archive"||e.frame==="sober"?e.frame:"gothic"}
+function qOf(e){const q=e.q||[];return q.map(x=>Array.isArray(x)?{q:x[0],ans:x[1]}:x&&x.a&&Array.isArray(x.a)?{q:x.q,a:x.a,ok:x.ok,why:x.why}:null).filter(Boolean)}
+function pages(){if(PG&&PGN===LORE.length)return PG;PGN=LORE.length;PINS=null;
+  PG=LORE.map((e,i)=>{const x=String((has("CHX_X")&&CHX_X[e.id])||"").split("|");const frame=frameOf(e);const y0=Math.floor(Number(e.sort)||0);
+    const grp=frame==="archive"?(y0<1933?"Vor 1933":y0<=1945?"1933 bis 1945":"Nach 1945"):(e.grp||x[0]||"Weitere Seiten");
+    const kind=e.kind||x[1]||(e.r==="M"?"medizin":"sage");
+    const lane=frame==="archive"?"A":e.lane||x[2]||({medizin:"M",film:"F",werk:"L",person:"L",geschichte:"G",ort:"G"})[kind]||(e.r==="H"?"H":"S");
+    const people=(e.people||e.ppl||[]).map(String),works=(e.works||[]).map(String),motifs=(e.motifs||[]).map(String);
+    const places=(e.places||e.place||[]).map(p=>typeof p==="string"?{n:p}:p).filter(p=>p&&p.n);
+    const words=(e.words||e.vok||[]).filter(w=>Array.isArray(w)&&w[0]).map(w=>[w[0],w[1]||"",w[2]||""]);
+    return {e,id:e.id,i,r:e.r,w:frame==="archive"?"A":e.r,frame,grp,kind,lane,y0,people,works,motifs,places,words,q:qOf(e),
+      t:e.t,y:e.y,de:e.de,en:e.en,dk:e.dk,dken:e.dken,art:frame==="archive"?"":e.art,egg:e.egg,ch:e.ch,link:e.link,lv:e.lv,src:e.src,conf:e.conf,unlock:e.unlock,hint:e.hint,sort:Number(e.sort)||0}});
+  return PG}
+const byId=id=>pages().find(p=>p.id===id);
+const isOpen=p=>A.open(p.e);
+function state(p){if(!isOpen(p))return "locked";if(A.read()[p.id])return "read";if(A.seen()[p.id])return "seen";return "new"}
+const isNew=p=>p.frame==="gothic"&&state(p)==="new";
+const counted=p=>p.frame!=="archive";
+function wingPages(w){return pages().filter(p=>p.w===w)}
+function wingStat(w){const L=wingPages(w);return {n:L.length,open:L.filter(isOpen).length,read:L.filter(p=>state(p)==="read").length,nw:L.filter(isNew).length}}
+function wingOpen(W){if(W.w==="A")return A.ch()>=39||wingStat("A").open>0;if(W.w==="H"||W.w==="N"||W.w==="S"||W.w==="M")return wingStat(W.w).open>0;return A.ch()>=W.open}
+function wingShut(W){if(W.w==="N")return "Öffnet mit dem ersten Geheimnis";if(W.w==="H")return "Öffnet mit dem ersten Fund";
+  const L=wingPages(W.w).filter(p=>!p.egg&&p.ch>0);const m=L.length?Math.min(...L.map(p=>p.ch)):W.open;return `Öffnet mit Kapitel ${m}`}
+function lockText(p){if(p.egg){const g=has("EGGS")&&EGGS[p.egg];return g?g[1]:"Ein Geheimnis."}if(p.unlock||p.hint)return p.hint||"Öffnet später.";
+  const d=p.ch-A.ch();return `Öffnet mit Kapitel ${p.ch}`+(d>0?` · noch ${d} Kapitel`:"")}
+function chapOf(p){return !p.egg&&(p.link||p.ch)||0}
+// pins: A10's 58 places (lon/lat) + S1's coordinates; a page's places resolve by alias, name, then distance (≤ 0.12°)
+function pins(){if(PINS&&PGN===LORE.length)return PINS;pages();const P=[],byN={};
+  const add=(id,n,lon,lat,reg)=>{const x=MAPX(lon),y=MAPY(lat);const o={id,n,reg:reg||"",lon,lat,x:+x.toFixed(1),y:+y.toFixed(1),pages:[]};P.push(o);byN[norm(n)]=o;return o};
+  (has("CHX_PLACES")?CHX_PLACES:[]).forEach(q=>add(q.id,q.n,q.lon,q.lat,q.reg));
+  const ali=has("CHX_PLACE_ALIAS")?CHX_PLACE_ALIAS:{};
+  const find=pl=>{const a=ali[pl.n];if(a){const o=P.find(z=>z.id===a);if(o)return o}const o=byN[norm(pl.n)];if(o)return o;
+    if(pl.lat!=null&&pl.lon!=null){let best=null,bd=.12;P.forEach(z=>{const d=Math.hypot(z.lat-pl.lat,(z.lon-pl.lon)*.65);if(d<bd){bd=d;best=z}});if(best)return best;
+      return add("s1_"+norm(pl.n).replace(/[^a-z0-9]+/g,"_"),pl.n,pl.lon,pl.lat,"")}return null};
+  PG.forEach(p=>{p.pins=[];p.places.forEach(pl=>{const o=find(pl);if(o&&!p.pins.includes(o.id))p.pins.push(o.id)});
+    if(!p.places.length)(has("CHX_PLACES")?CHX_PLACES:[]).forEach(q=>{if((q.pg||[]).includes(p.id)&&!p.pins.includes(q.id))p.pins.push(q.id)})});
+  PG.forEach(p=>p.pins.forEach(id=>{const o=P.find(z=>z.id===id);if(o)o.pages.push(p.id)}));
+  PINS=P.filter(o=>o.pages.length&&o.x>=4&&o.x<=548&&o.y>=4&&o.y<=687);return PINS}
+// sentence pairs: split both languages, pair when the counts match, else one block
+const split=s=>String(s||"").split(/(?<=[.!?…][“"’'»]?)\s+(?=[A-ZÄÖÜ„"'‚»(0-9])/).filter(Boolean);
+function segs(p){if(p.e.seg)return p.e.seg;const a=split(p.de),b=split(p.en);return a.length===b.length?a.map((s,i)=>[s,b[i]]):[[p.de,p.en]]}
+const stem=w=>String(w).replace(/^(der|die|das|sich) /,"").split(/[ ,(]/)[0].toLowerCase();
+function gmap(p){if(p._gm)return p._gm;const m=Object.assign({},has("GL_COMMON")?GL_COMMON:{},has("GL_FUNC")?GL_FUNC:{});
+  p.people.forEach(n=>String(n).split(/[\s,.()]+/).forEach(w=>{if(/^\p{Lu}\p{Ll}{2,}/u.test(w)&&!m[w])m[w]="Name: "+n}));
+  p.places.forEach(pl=>String(pl.n).split(/[\s,()]+/).forEach(w=>{if(/^\p{Lu}\p{Ll}{2,}/u.test(w)&&!m[w])m[w]="Ortsname: "+pl.n}));
+  Object.assign(m,has("GL_NAMES")?GL_NAMES:{});p.words.forEach(w=>{const s=stem(w[0]);if(s)m[s]=w[1]+" ("+w[0]+")"});return (p._gm=m)}
+function wordFor(p,tok){const k=tok.toLowerCase();return p.words.find(w=>{const s=stem(w[0]);return s&&s.length>2&&(k===s||k.startsWith(s.slice(0,Math.max(4,s.length-2))))})||null}
+function words(t,p){return String(t).split(/(\s+)/).map(tok=>{if(!tok.trim())return tok;const m=tok.match(/^([„"(\[«‚»]*)(.*?)([.,;:!?)\]"“»«–—‘’]*)$/);if(!m||!m[2]||/^[\d.,:–-]+$/.test(m[2]))return E(tok);
+  const isV=!!wordFor(p,m[2]);return E(m[1])+`<span class="chx-w${isV&&p.frame!=="archive"?" voc":""}" tabindex="0" role="button" data-w="${E(m[2])}">${E(m[2])}</span>`+E(m[3])}).join("")}
+// ---------------------------------------------------------------- 2. router
+const CX={view:"hall",arg:null,stack:[],root:null,q:[],cur:null,soberMine:false};
+const NAV=[["hall","❦","Halle"],["time","⌛","Zeitstrahl"],["map","✥","Karte"],["index","§","Register"],["kab","❖","Kabinett"]];
+function scroller(){return D.getElementById("fBody")||D.scrollingElement}
+CX.mount=function(root){if(!root)return;CX.root=root;root.classList.add("chx");root.setAttribute("data-a9","1");
+  root.innerHTML=`<nav class="chx-nav" aria-label="Chronik">${NAV.map(([v,i,l])=>`<button type="button" data-cgo="${v}" data-pad="${v==="hall"?"l":v==="kab"?"r":""}"><span><b aria-hidden="true">${i}</b>${l}</span></button>`).join("")}</nav><div class="chx-body"><header class="chx-top"></header><div class="chx-main" tabindex="-1"></div></div>`;
+  root.addEventListener("click",CX.click);
+  root.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.matches&&e.target.matches(".chx-w,.chx-pin")){e.preventDefault();e.stopPropagation();e.target.dispatchEvent(new MouseEvent("click",{bubbles:true}))}});
+  root.addEventListener("input",e=>{if(e.target.matches(".chx-search")){CX.arg=e.target.value;searchRender()}});
+  migrate();CX.stack=[];CX.go("hall",null,true)};
+// Escape goes back one view before Focus closes (capture listener, registered once)
+D.addEventListener("keydown",e=>{if(e.key!=="Escape"||!CX.root||!CX.root.isConnected||!Focus.isOpen())return;const sh=D.getElementById("sheet");if(sh&&!sh.hidden)return;
+  const pop=CX.root.querySelector(".chx-pop");if(pop){pop.remove();e.stopPropagation();e.preventDefault();return}
+  if(CX.stack.length){e.stopPropagation();e.preventDefault();CX.back()}},true);
+CX.go=function(view,arg,replace){if(!CX.root)return;if(!V[view])view="hall";const sc=scroller();if(!replace)CX.stack.push([CX.view,CX.arg,sc?sc.scrollTop:0]);CX.view=view;CX.arg=arg==null?null:arg;CX.render();if(sc)sc.scrollTop=0};
+CX.back=function(){const s=CX.stack.pop();if(!s)return;CX.view=s[0];CX.arg=s[1];CX.render();const sc=scroller();if(sc)sc.scrollTop=s[2]||0};
+CX.click=function(e){const R=CX.root;const pop=R.querySelector(".chx-pop");if(pop&&!e.target.closest(".chx-pop"))pop.remove();
+  const g=e.target.closest("[data-cgo]");if(g){e.stopPropagation();e.preventDefault();const nav=!!g.closest(".chx-nav");if(nav)CX.stack=[];return CX.go(g.dataset.cgo,g.dataset.carg||null,nav)}
+  const d=e.target.closest("[data-cdo]");if(d&&ACTS[d.dataset.cdo]){e.stopPropagation();e.preventDefault();try{ACTS[d.dataset.cdo](d,e)}catch(x){log(x)}return}
+  const w=e.target.closest(".chx-w,.chx-text .w,.chx-note .w");if(w){e.stopPropagation();e.preventDefault();return gloss(w)}};
+function setSober(on){try{if(on){if(H.dataset.sober!=="1"){H.dataset.sober="1";CX.soberMine=true}}else if(CX.soberMine){delete H.dataset.sober;CX.soberMine=false}}catch(e){}}
+CX.render=function(){const R=CX.root;if(!R)return;R.querySelectorAll(".chx-pop").forEach(x=>x.remove());
+  const pg=CX.view==="page"?byId(CX.arg):null;if(CX.view==="page"&&!pg){CX.view="hall";CX.arg=null}
+  const arch=pg&&pg.frame==="archive"||CX.view==="wing"&&CX.arg==="A"||CX.view==="thresh";R.classList.toggle("arch",!!arch);
+  setSober(!!arch||!!(pg&&pg.frame==="sober"));
+  R.querySelectorAll(".chx-nav button").forEach(b=>b.setAttribute("aria-current",b.dataset.cgo===CX.view||(b.dataset.cgo==="hall"&&/wing|page|thresh|search|credits/.test(CX.view))||(b.dataset.cgo==="kab"&&CX.view==="kbcard")?"page":"false"));
+  let v;try{v=V[CX.view](CX.arg)}catch(x){log(x);v={title:"Die Chronik",html:`<p class="muted">Diese Ansicht ließ sich nicht öffnen.</p>`}}
+  const waiting=CX.q.length&&!arch;
+  R.querySelector(".chx-top").innerHTML=`${CX.stack.length?`<button type="button" class="chx-back" data-cdo="back" data-pad="b" aria-label="Zurück">‹</button>`:""}<h1>${v.title}</h1>${v.crumb?`<span class="crumb">${v.crumb}</span>`:""}${waiting?`<button type="button" class="chx-back chx-wax" data-cdo="slipNext" data-n="${CX.q.length}" aria-label="${CX.q.length} ${CX.q.length===1?"Geheimnis wartet":"Geheimnisse warten"}">⚷</button>`:""}<button type="button" class="chx-back" data-cgo="search" data-pad="y" aria-label="Suche">⌕</button>`;
+  const M=R.querySelector(".chx-main");M.innerHTML=v.html;M.dataset.view=CX.view;try{if(v.after)v.after(M)}catch(x){log(x)}
+  try{if(typeof markLang==="function")markLang(R)}catch(x){}};
+const V={},ACTS={back:()=>CX.back()};
+// ---------------------------------------------------------------- 3. shared pieces
+function thumb(p){const a=p.art&&A.plate(p.art);return a?`<span class="th"><img src="${E(a.u)}" alt="" width="${a.w||56}" height="${a.h||56}" loading="lazy" decoding="async"></span>`:`<span class="th"></span>`}
+const ST={new:"neu",seen:"angesehen",read:"gelesen",locked:"versiegelt"};
+function item(p,o){o=o||{};const st=state(p),op=st!=="locked",K=(has("CHX_KIND")&&CHX_KIND[p.kind])||["",""];
+  if(p.frame==="archive")return `<button type="button" class="chx-item" data-frame="archive" ${op?`data-cgo="page" data-carg="${p.id}"`:`data-cdo="locked" data-id="${p.id}"`}><span class="ay">${E(p.y)}</span><span><b>${op?E(p.t):"Noch nicht geöffnet"}</b><small>${op?"":E(lockText(p))}</small></span><span></span></button>`;
+  const W=o.wing?(CHX_WINGS.find(x=>x.w===p.w)||{}).t:"";
+  return `<button type="button" class="chx-item${op?"":" locked"}" data-w="${p.w}" data-frame="${p.frame}" ${op?`data-cgo="page" data-carg="${p.id}"`:`data-cdo="locked" data-id="${p.id}"`}>${op&&p.frame==="gothic"?thumb(p):`<span class="th" aria-hidden="true">${op?"":p.egg?"⚷":"✕"}</span>`}<span><span class="y">${E(p.y)}</span> <b>${op?E(p.t):p.egg?"Hinter einem Schloss":E(K[1])+" · versiegelt"}</b><small>${op?`${K[0]} ${E(K[1])}${W?" · "+E(W):""}${p.lv?" · "+E(p.lv):""}`:E(lockText(p))}</small></span><span class="chx-st ${p.frame==="gothic"?st:st==="new"?"seen":st}" role="img" aria-label="${ST[st]}"></span></button>`}
+ACTS.locked=d=>{const p=byId(d.dataset.id);if(!p)return;const n=A.ch();pop(d,`<b>${p.egg?"Hinter einem Schloss":"Versiegelt"}</b><small>${E(p.y)} · ${E(((has("CHX_KIND")&&CHX_KIND[p.kind])||["",""])[1])}</small>${E(lockText(p))}${p.egg||!n?"":`<br><button type="button" data-cdo="toChapter" data-n="${n}">Weiter mit Kapitel ${n} ›</button>`}`)};
+ACTS.toChapter=d=>{const n=+d.dataset.n;if(!n)return;try{setSober(false);Focus.close(true);pkRead(n)}catch(e){log(e)}};
+function pop(anchor,html){const R=CX.root,o=R.querySelector(".chx-pop");if(o)o.remove();const p=D.createElement("div");p.className="chx-pop";p.setAttribute("role","status");p.innerHTML=html;R.appendChild(p);
+  const r=anchor.getBoundingClientRect(),rr=R.getBoundingClientRect();const x=Math.max(8,Math.min(rr.width-p.offsetWidth-8,r.left-rr.left));let y=r.bottom-rr.top+6;
+  if(r.bottom+p.offsetHeight+12>innerHeight)y=r.top-rr.top-p.offsetHeight-6;p.style.left=x+"px";p.style.top=Math.max(0,y)+"px";return p}
+// a word note: the page's words, then function words, then the deck; no empty sheet — the app's input sheet only behind „Selbst eintragen“
+function gloss(w){const R=CX.root;R.querySelectorAll(".chx-w.on,.w.on").forEach(x=>x.classList.remove("on"));w.classList.add("on");const p=CX.cur||{words:[],frame:"gothic"};const word=w.dataset.w||w.textContent;
+  let r={en:""};try{r=lookup(word,gmap(p))}catch(e){}const v=wordFor(p,word);const c=r.c;const inD=v?A.inDeck(v[0]):c?!!S.cards[c.id]:false;
+  pop(w,`<b>${E(word)}</b>${r.en?`<br>${E(r.en)}`:`<small>Kein Eintrag</small>`}<br><button type="button" data-say="${E(word)}">▶ Anhören</button> ${v&&!inD?`<button type="button" data-cdo="addW" data-de="${E(v[0])}" data-en="${E(v[1])}">＋ ${E(v[0])}</button>`:c&&!inD&&!v?`<button type="button" data-cdo="addW" data-de="${E(c.de)}" data-en="${E(c.en)}">＋ ins Deck</button>`:inD?`<small>im Deck</small>`:""}${r.en?"":` <button type="button" data-cdo="selfW" data-w="${E(word)}">Selbst eintragen</button>`}`)}
+ACTS.addW=d=>{A.addWord(d.dataset.de,d.dataset.en);d.textContent="✓ im Deck";d.disabled=true};
+ACTS.selfW=d=>{try{showGloss(d.dataset.w)}catch(e){log(e)}};
+// ---------------------------------------------------------------- 4. entrance hall
+V.hall=()=>{const P=pages(),nw=P.filter(isNew),all=P.filter(counted);const cont=P.filter(p=>counted(p)&&state(p)==="seen").sort((a,b)=>String(A.seen()[b.id]).localeCompare(String(A.seen()[a.id])))[0];
+  const EK=has("EGGS")?Object.keys(EGGS):[],found=EK.filter(k=>A.eggs()[k]).length;
+  const doors=CHX_WINGS.map(W=>{const s=wingStat(W.w),op=wingOpen(W),shut=wingShut(W);
+   if(W.w==="A")return `<button type="button" class="chx-door${op?"":" shut"}" data-w="A" ${op?`data-cgo="${A.prefs().archOk?"wing":"thresh"}" data-carg="A"`:`aria-disabled="true"`} aria-label="Das Archiv${op?"":": "+E(shut)}"><span class="dn" aria-hidden="true">ARCHIV</span><b>Das Archiv</b><small>${op?"Geschichte ohne Sage":E(shut)}</small></button>`;
+   return `<button type="button" class="chx-door${op?"":" shut"}" data-w="${W.w}" ${op?`data-cgo="wing" data-carg="${W.w}"`:`aria-disabled="true"`} aria-label="${E(W.t)}: ${op?`${s.open} von ${s.n} Seiten offen, ${s.read} gelesen${s.nw?`, ${s.nw} neu`:""}`:E(shut)}">
+    <span class="dn" aria-hidden="true">${W.n}</span>${op&&s.nw?`<span class="new" aria-hidden="true">${s.nw}</span>`:""}<b>${E(W.t)}</b><small>${op?E(W.sub):E(shut)}</small>
+    ${W.w==="N"?`<span class="chx-keys" aria-hidden="true">${EK.map(k=>`<i class="${A.eggs()[k]?"on":""}"></i>`).join("")}</span>`:""}
+    <span class="chx-bar" aria-hidden="true"><i style="width:${(100*s.read/Math.max(1,s.n)).toFixed(1)}%"></i><i style="width:${(100*(s.open-s.read)/Math.max(1,s.n)).toFixed(1)}%"></i></span><small>${s.read} gelesen · ${s.open} / ${s.n}${W.w==="N"?` · ${found} / ${EK.length} Schlüssel`:""}</small></button>`}).join("");
+  const mot={};P.filter(p=>counted(p)&&isOpen(p)).forEach(p=>p.motifs.forEach(m=>mot[m]=(mot[m]||0)+1));const topM=Object.keys(mot).filter(m=>mot[m]>1).sort((a,b)=>mot[b]-mot[a]||a.localeCompare(b,"de")).slice(0,8);
+  return {title:"Die Chronik",crumb:`${all.filter(p=>state(p)==="read").length} gelesen · ${all.filter(isOpen).length} / ${all.length} offen`,
+   html:`<div class="chx-hall"><div><div class="chx-doors">${doors}</div></div>
+    <aside class="chx-side">${cont?`<div class="chx-eyebrow">Weiterlesen</div>${item(cont,{wing:1})}`:""}
+     <div class="chx-eyebrow">Neu für Sie${nw.length?` · ${nw.length}`:""}</div>${nw.length?nw.slice(0,5).map(p=>item(p,{wing:1})).join("")+(nw.length>5?`<button type="button" class="chx-chip" data-cgo="search" data-carg="is:neu">alle ${nw.length} neuen Seiten</button>`:""):`<p class="chx-mut">Nichts Neues. Die nächste Seite kommt mit dem nächsten Kapitel.</p>`}
+     ${topM.length?`<div class="chx-eyebrow">Wege durch die Chronik</div><div class="chx-row">${topM.map(m=>`<button type="button" class="chx-chip" data-cgo="search" data-carg="motiv:${E(m)}">${E(m)}</button>`).join("")}</div>`:""}
+     <button type="button" class="chx-chip" data-cgo="credits">Bildnachweis</button></aside></div>`}};
+// ---------------------------------------------------------------- 5. wing: shelves, sort, filter, density
+V.wing=w=>{const W=CHX_WINGS.find(x=>x.w===w)||CHX_WINGS[0];w=W.w;const pr=A.prefs(),sort=pr.sort||"story",kind=pr["k_"+w]||"",tiles=!!pr.tiles&&w!=="A";let L=wingPages(w);const kinds=[...new Set(L.map(p=>p.kind))];
+  if(kind)L=L.filter(p=>p.kind===kind);const ord="new seen read locked".split(" ");
+  const cmp={story:(a,b)=>(a.egg?99:chapOf(a)||a.ch||0)-(b.egg?99:chapOf(b)||b.ch||0)||a.sort-b.sort||a.i-b.i,year:(a,b)=>a.sort-b.sort||a.i-b.i,unread:(a,b)=>ord.indexOf(state(a))-ord.indexOf(state(b))||a.i-b.i}[sort]||((a,b)=>a.i-b.i);
+  const groups=sort==="story"||w==="A"?[...new Set(L.slice().sort(cmp).map(p=>p.grp))].map(g=>[g,L.filter(p=>p.grp===g).sort(cmp)]):[[({year:"Nach Jahr",unread:"Ungelesenes zuerst"})[sort],L.slice().sort(cmp)]];
+  const s=wingStat(w);const seg=(k,l)=>`<button type="button" data-cdo="sort" data-k="${k}" aria-pressed="${sort===k}">${l}</button>`;const KD=has("CHX_KIND")?CHX_KIND:{};
+  const archHead=w==="A"&&has("LORE_SHELF")?(LORE_SHELF.find(x=>x.id==="archiv")||{}).threshold:null;
+  return {title:E(W.t),crumb:w==="A"?"":`${s.read} gelesen · ${s.open} / ${s.n}`,
+   html:`<section data-w="${w}"><div class="chx-wing-h"><h2>${E(W.t)}</h2><p>${E(archHead?archHead[0]:W.intro)}</p>
+     <div class="chx-row"><span class="chx-seg" role="group" aria-label="Sortierung">${seg("story",w==="A"?"Zeitabschnitt":"Erzählfolge")}${seg("year","Jahr")}${w==="A"?"":seg("unread","Ungelesen")}</span>
+     ${w==="A"?"":`<button type="button" class="chx-chip" data-cdo="tiles" aria-pressed="${tiles}">▦ Tafeln</button>`}${LV.includes(w)?`<button type="button" class="chx-chip" data-cdo="auftakt" data-r="${w}">▶ Auftakt</button>`:""}</div>
+     ${kinds.length>1&&w!=="A"?`<div class="chx-scroll"><button type="button" class="chx-chip" data-cdo="kind" data-k="" aria-pressed="${!kind}">Alle ${wingPages(w).length}</button>${kinds.map(k=>`<button type="button" class="chx-chip" data-cdo="kind" data-k="${k}" aria-pressed="${kind===k}">${(KD[k]||["",""])[0]} ${E((KD[k]||["",k])[1])}</button>`).join("")}</div>`:""}</div>
+    ${groups.map(([g,G])=>`<div class="chx-shelf"><h3>${E(g)} <small>${w==="A"?`${G.length} ${G.length===1?"Seite":"Seiten"}`:`${G.filter(p=>state(p)==="read").length} / ${G.length} gelesen`}</small></h3><div class="chx-list${tiles?" tiles":""}">${G.map(p=>item(p)).join("")}</div></div>`).join("")}</section>`}};
+ACTS.sort=d=>{A.prefs().sort=d.dataset.k;A.save();CX.render()};ACTS.kind=d=>{A.prefs()["k_"+CX.arg]=d.dataset.k;A.save();CX.render()};ACTS.tiles=()=>{const p=A.prefs();p.tiles=!p.tiles;A.save();CX.render()};
+ACTS.auftakt=d=>{try{realmIntro(d.dataset.r,false)}catch(e){log(e)}};
+// the Archive threshold: shown once, then remembered (S4 R2); S1's threshold sentence
+V.thresh=()=>{const t=(has("LORE_SHELF")&&(LORE_SHELF.find(x=>x.id==="archiv")||{}).threshold)||["Diese Seiten sind keine Sagen. Hier gibt es keine dunkle Fußnote – nur die Fortsetzung.","These pages are not legends. There is no dark footnote here — only the continuation."];
+  return {title:"Das Archiv",html:`<div class="chx-thresh"><p>${E(t[0])}</p><p class="en" lang="en">${E(t[1])}</p>
+  <p class="chx-small">Im Archiv gibt es keine Bilder, keine Musik, keine Sammelkarten und keine Zählung. Die Seiten gehören zu keiner Statistik. Sie können jederzeit gehen.</p>
+  <p class="chx-small en" lang="en">The Archive has no pictures, no music, no collectible cards and no counting. These pages belong to no statistic. You can leave at any time.</p>
+  <div class="chx-row"><button type="button" class="chx-btn" data-cdo="archIn">Eintreten</button><button type="button" class="chx-btn" data-cdo="back">Zurück zur Halle</button></div></div>`}};
+ACTS.archIn=()=>{A.prefs().archOk=1;A.save();CX.stack.pop();CX.go("wing","A")};
+// ---------------------------------------------------------------- 6. the page as a spread
+function plateBlock(p){const a=p.art&&A.plate(p.art);if(!a)return "";const cap=a.t||"",credit=[a.a,a.y,a.src].filter(Boolean).join(" · ");
+  let h="";try{if(has("plateHTML"))h=plateHTML(p.art,"chronik",{cap,credit})}catch(e){}
+  if(!h)h=`<figure class="plate plate--chronik"><div class="plate-mat"><div class="plate-win"><img class="plate-img" src="${E(a.u)}" width="${a.w}" height="${a.h}" alt="${E(cap||p.t)}" loading="lazy" decoding="async"></div></div><figcaption class="plate-cap"><span class="plate-t">${E(cap)}</span><span class="plate-c">${E(credit)}</span></figcaption></figure>`;
+  const w=a.w||1,hh=a.h||1;return `<div class="chx-plate" style="--chx-mw:calc(52vh * ${(w/hh).toFixed(4)});--chx-nw:${Math.round((a.px||a.w||600)*1.3)}px">${h}</div>`}
+V.page=id=>{pins();const p=byId(id);if(!p||!isOpen(p))return V.hall();const Ar=p.frame==="archive",So=p.frame==="sober",Go=p.frame==="gothic";CX.cur=p;
+  const first=!Object.keys(A.seen()).length;if(!A.seen()[id]){A.seen()[id]=today();A.save();if(first&&Go)setTimeout(()=>{try{if(!A.busy()||D.querySelector("#fIn .chx"))toast("Mephisto: "+ml("lore1")[0],5200)}catch(e){}},1200)}
+  const W=CHX_WINGS.find(x=>x.w===p.w)||{t:""},pr=A.prefs(),lang=pr.lang||(innerWidth>=1100?"both":"de"),sg=segs(p);
+  const sib=pages().filter(x=>x.w===p.w&&isOpen(x)).sort((a,b)=>a.w==="A"?a.sort-b.sort:(chapOf(a)||99)-(chapOf(b)||99)||a.sort-b.sort),k=sib.indexOf(p),prev=sib[k-1],next=sib[k+1];
+  const chap=chapOf(p);const rd=A.read()[id];
+  const rel=Ar?[]:pages().filter(x=>x!==p&&counted(x)&&isOpen(x)&&(x.motifs.some(m=>p.motifs.includes(m))||x.people.some(m=>p.people.includes(m)))).slice(0,4);
+  const chips=[...p.pins.map(pid=>{const o=pins().find(z=>z.id===pid);return o?`<button type="button" class="chx-chip" data-cgo="map" data-carg="${o.id}">✥ ${E(o.n)}</button>`:""}),
+    ...p.people.slice(0,4).map(x=>`<button type="button" class="chx-chip" data-cgo="search" data-carg="person:${E(x)}">☺ ${E(x)}</button>`),
+    ...p.works.slice(0,3).map(x=>`<button type="button" class="chx-chip" data-cgo="search" data-carg="werk:${E(x)}">❡ ${E(x)}</button>`),
+    ...(Ar?[]:p.motifs.slice(0,4).map(x=>`<button type="button" class="chx-chip" data-cgo="search" data-carg="motiv:${E(x)}">${E(x)}</button>`))].join("");
+  const ini=s=>{if(!Go)return words(s,p);try{if(typeof loreInitial==="function"){const r=loreInitial(s);if(r&&r.has)return r.html}}catch(e){}return words(s,p)};
+  const qs=p.q.length?`<section class="chx-qs" aria-label="Fragen"><div class="chx-eyebrow">${Ar?"Zum Text":"Verstanden?"}</div>${p.q.map((q,i)=>q.a?`<div class="chx-q" data-i="${i}"><p>${i+1}. ${E(q.q)}</p>${q.a.map((o,j)=>`<button type="button" data-cdo="answer" data-j="${j}">${E(o)}</button>`).join("")}<div class="why" hidden>${E(q.why||"")}</div></div>`
+     :`<div class="chx-q" data-i="${i}"><p>${i+1}. ${E(q.q)}</p><button type="button" class="chx-btn" data-cdo="reveal">Antwort zeigen</button><div class="ans" hidden><p lang="de">${E(q.ans)}</p>${Ar?"":`<span class="chx-row"><button type="button" class="chx-btn" data-cdo="self" data-v="1">Gewusst</button><button type="button" class="chx-btn" data-cdo="self" data-v="0">Noch nicht</button></span>`}</div></div>`).join("")}</section>`:"";
+  const markBtn=Ar?"":`<div class="chx-row chx-mark"><button type="button" class="chx-btn${rd?"":" go"}" data-cdo="markRead">${rd?"✓ Gelesen am "+E(fmt(rd.d)):"Als gelesen markieren"}</button></div>`;
+  const vok=p.words.length?`<div><div class="chx-eyebrow">Wörter dieser Seite</div><div class="chx-vok">${p.words.map((v,i)=>{const d=A.inDeck(v[0]);return `<label class="${d?"in":""}"><input type="checkbox" data-i="${i}" ${d?"checked disabled":"checked"}><span lang="de">${E(v[0])}</span><small>${d?"im Deck":E(v[1])+(v[2]?" · "+E(v[2]):"")}</small></label>`}).join("")}</div><button type="button" class="chx-btn${Ar?"":" go"}" data-cdo="addVok">Ausgewählte ins Deck</button></div>`:"";
+  const srcs=p.src?(Array.isArray(p.src)?p.src:[p.src]):[];
+  const credit=Ar?"":"";
+  return {title:Ar?"Archiv":E(W.t),crumb:`<button type="button" data-cgo="wing" data-carg="${p.w}">${E(p.grp)}</button> · Seite ${k+1} von ${sib.length}`,
+   html:`<article class="chx-spread" data-w="${p.w}" data-frame="${p.frame}" data-id="${p.id}" data-fx-protect>
+   ${Ar?"":plateBlock(p)}
+   <div class="chx-folio">
+    ${Ar?`<div class="chx-place">${E([p.places.map(x=>x.n).slice(0,2).join(" · "),p.y].filter(Boolean).join(" · "))}</div>`:`<span class="y">${E(p.y)}</span>`}<h2>${E(p.t)}</h2>
+    <div class="chx-meta">${chap&&!Ar?`<button type="button" class="chx-chip" data-cdo="toChapter" data-n="${chap}">Kapitel ${chap} · ${E(A.chTitle(chap))}</button>`:""}${p.lv?`<span class="chx-chip">${E(p.lv)}</span>`:""}${chips}</div>
+    <div class="chx-tools"><span class="chx-seg" role="group" aria-label="Sprache">${[["de","Deutsch"],["both","Deutsch + English"],["en","English"]].map(([v,l])=>`<button type="button" data-cdo="lang" data-v="${v}" aria-pressed="${lang===v}">${l}</button>`).join("")}</span>
+     <button type="button" class="chx-btn" data-say="${E(p.de+" "+(p.dk||""))}">▶ Vorlesen</button><button type="button" class="chx-btn" data-cdo="readSlow">½ langsam</button></div>
+    <div class="chx-text" data-lang="${lang}" lang="de">${sg.map((s,i)=>`<div class="chx-s" data-i="${i}"><button type="button" class="sn" data-cdo="sent" aria-label="Satz ${i+1}: Englisch zeigen"></button><div class="de">${i===0?ini(s[0]):words(s[0],p)}</div><div class="en" lang="en">${E(s[1])}</div></div>`).join("")}</div>
+    ${qs}${markBtn}
+    <nav class="chx-pn" aria-label="Blättern">${prev?`<button type="button" class="chx-btn" data-cgo="page" data-carg="${prev.id}" data-pad="left">‹ ${E(prev.t.slice(0,26))}</button>`:"<span></span>"}${next?`<button type="button" class="chx-btn" data-cgo="page" data-carg="${next.id}" data-pad="right">${E(next.t.slice(0,26))} ›</button>`:""}</nav>
+   </div>
+   <aside class="chx-margin">
+    ${p.dk?`<div class="chx-note"><div class="chx-eyebrow">${Ar?"Was daraus folgt":So?"Nachsatz":"Die dunkle Fußnote"}</div><span lang="de">${words(p.dk,p)}</span><span class="en" lang="en">${E(p.dken||"")}</span></div>`:""}
+    ${vok}
+    ${rel.length?`<div><div class="chx-eyebrow">Verwandte Seiten</div><div class="chx-rel">${rel.map(x=>item(x,{wing:1})).join("")}</div></div>`:""}
+    ${srcs.length?`<div class="chx-src"><div class="chx-eyebrow">Quellen</div><ul>${srcs.map(s=>`<li>${E(s)}</li>`).join("")}</ul>${p.conf&&p.conf!=="sure"?`<p class="chx-small">Stand der Prüfung: ${E(p.conf==="check"?"noch zu prüfen":p.conf==="fairly sure"?"ziemlich sicher, nicht nachgeprüft":p.conf)}</p>`:""}</div>`:""}${credit}
+   </aside></article>`,
+   after:()=>{if(Go){try{motif(p.r==="H"||p.r==="N"||p.r==="S"||p.r==="M"?"H":p.r)}catch(e){}}}}};
+ACTS.lang=d=>{A.prefs().lang=d.dataset.v;A.save();const t=CX.root.querySelector(".chx-text");if(t)t.dataset.lang=d.dataset.v;d.parentElement.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b===d)))};
+ACTS.sent=d=>d.closest(".chx-s").classList.toggle("show");
+ACTS.readSlow=()=>{try{say(CX.cur.de,{rate:.6})}catch(e){}};
+function finishQs(){const p=CX.cur;if(!p||p.frame==="archive")return;const B=[...CX.root.querySelectorAll(".chx-q")];if(!B.length||!B.every(b=>b.dataset.done))return;
+  const q=B.filter(b=>b.dataset.done==="1").length;const R0=A.read();const o=R0[p.id];if(!o||!o.d)R0[p.id]={d:today(),q};else if(q>(o.q||0))o.q=q;A.save();
+  const m=CX.root.querySelector(".chx-mark .chx-btn");if(m){m.textContent="✓ Gelesen am "+fmt(R0[p.id].d);m.classList.remove("go")}}
+ACTS.answer=d=>{const box=d.closest(".chx-q"),q=CX.cur.q[+box.dataset.i],j=+d.dataset.j;if(box.dataset.done)return;
+  if(j===q.ok){d.classList.add("ok");box.dataset.done=box.dataset.miss?"0":"1";box.querySelector(".why").hidden=false;box.querySelectorAll("button").forEach(b=>b.disabled=true);finishQs()}
+  else{d.classList.add("no");d.disabled=true;box.dataset.miss="1"}};   // no HOR.hurt: reading is not punished
+ACTS.reveal=d=>{const box=d.closest(".chx-q");box.querySelector(".ans").hidden=false;d.hidden=true;if(CX.cur.frame==="archive")box.dataset.done="0"};
+ACTS.self=d=>{const box=d.closest(".chx-q");box.dataset.done=d.dataset.v==="1"?"1":"0";box.querySelectorAll('[data-cdo="self"]').forEach(b=>{b.disabled=true;b.setAttribute("aria-pressed",String(b===d))});finishQs()};
+ACTS.markRead=d=>{const R0=A.read(),p=CX.cur;if(!R0[p.id])R0[p.id]={d:today(),q:0};A.save();d.textContent="✓ Gelesen am "+fmt(R0[p.id].d);d.classList.remove("go")};
+ACTS.addVok=d=>{let n=0;CX.root.querySelectorAll(".chx-vok input:checked:not(:disabled)").forEach(i=>{const v=CX.cur.words[+i.dataset.i];A.addWord(v[0],v[1]);i.disabled=true;i.closest("label").classList.add("in");n++});d.textContent=n?`✓ ${n} ${n===1?"Wort":"Wörter"} im Deck`:"Schon im Deck"};
+// ---------------------------------------------------------------- 7. timeline: proportional lanes on wide screens, elastic list on phones
+const visible=p=>p.frame!=="archive"||!!A.prefs().archOk;
+V.time=()=>{const pr=A.prefs(),lane=pr.tlLane||"";const wide=innerWidth>=900;const L=CHX_LANES.filter(l=>l[0]!=="A"||pr.archOk);
+  return {title:"Zeitstrahl",crumb:"vom Mittelalter bis heute",html:`<div class="chx-row chx-tlbar"><div class="chx-scroll"><button type="button" class="chx-chip" data-cdo="tlLane" data-k="" aria-pressed="${!lane}">Alle Bahnen</button>${L.map(l=>`<button type="button" class="chx-chip" data-cdo="tlLane" data-k="${l[0]}" aria-pressed="${lane===l[0]}" style="--lc:${l[2]}">${E(l[1])}</button>`).join("")}<button type="button" class="chx-chip" data-cdo="tlLane" data-k="own" aria-pressed="${lane==="own"}">✦ Ihr Weg</button></div>
+    ${wide?`<span class="chx-seg"><button type="button" data-cdo="tlZoom" data-d="-1" aria-label="Verkleinern">−</button><button type="button" data-cdo="tlZoom" data-d="0">Alles</button><button type="button" data-cdo="tlZoom" data-d="1" aria-label="Vergrößern">+</button></span>`:""}</div><div id="chx-tl"></div>`,after:m=>wide?tlWide(m.querySelector("#chx-tl"),lane):tlPhone(m.querySelector("#chx-tl"),lane)}};
+ACTS.tlLane=d=>{A.prefs().tlLane=d.dataset.k;A.save();CX.render()};
+const TLY0=1100,TLY1=2030,TLG=150,ZOOM=[0,1.2,2.5,5,10,20];
+const tlFit=box=>Math.max(.4,(box.clientWidth-TLG-20)/(TLY1-TLY0));
+ACTS.tlZoom=d=>{const p=A.prefs(),box=CX.root.querySelector(".chx-tl"),old=p.tlPpy||0,ppy=old||(box?tlFit(box):1),mid=box?(box.scrollLeft+box.clientWidth/2-TLG)/ppy:0;
+  let i=ZOOM.indexOf(old);if(i<0)i=0;i=+d.dataset.d===0?0:Math.max(0,Math.min(ZOOM.length-1,i+ +d.dataset.d));p.tlPpy=ZOOM[i];A.save();CX.render();const b=CX.root.querySelector(".chx-tl");if(b&&ZOOM[i])b.scrollLeft=mid*ZOOM[i]+TLG-b.clientWidth/2};
+function own(){const sl=A.sealed(),out=[];Object.keys(sl).forEach(n=>{const pg=pages().find(p=>counted(p)&&!p.egg&&chapOf(p)===+n&&p.sort>=TLY0);if(pg)out.push({n:+n,y:pg.y0,d:sl[n],pg})});return out.sort((a,b)=>a.n-b.n)}
+function tlWide(host,only){host.innerHTML=`<div class="chx-tl" tabindex="0" aria-label="Zeitstrahl, waagrecht scrollbar"><div class="chx-tl-in"></div></div>`;const box=host.firstChild,inn=box.firstChild;const ppy=A.prefs().tlPpy||tlFit(box);
+  const X=y=>TLG+(Math.max(TLY0,y)-TLY0)*ppy,Wd=X(TLY1)+20;let html="",top=46;const P=pages().filter(visible);const step=ppy>8?10:ppy>3?25:ppy>1.5?50:100;
+  CHX_ERAS.forEach((Er,i)=>{const x1=X(Er[0]),x2=X((CHX_ERAS[i+1]||[TLY1])[0]);html+=`<div class="chx-era" style="left:${x1.toFixed(1)}px;width:${(x2-x1).toFixed(1)}px"><span>${E(Er[1])}</span></div>`});
+  for(let y=TLY0;y<=2020;y+=step)html+=`<div class="chx-tick" style="left:${X(y).toFixed(1)}px"><span>${y}</span></div>`;
+  const lanes=CHX_LANES.filter(l=>(!only||only===l[0])&&only!=="own").map(l=>[l,P.filter(p=>p.lane===l[0])]).filter(l=>l[1].length);
+  const place=(items)=>{const rows=[];let h="";items.sort((a,b)=>a.x-b.x).forEach(it=>{let r=rows.findIndex(end=>end+6<it.x);if(r<0){r=rows.length;rows.push(0)}const w=Math.min(190,26+it.label.length*6.6);rows[r]=it.x+w;h+=it.html(top+22+r*32)});return [h,rows.length]};
+  lanes.forEach(([l,L])=>{const pre=L.filter(p=>p.sort<TLY0);const [h,n]=place(L.filter(p=>p.sort>=TLY0).map(p=>{const o=isOpen(p),lab=o?p.t:"versiegelt";const x=X(p.sort);
+     return {x,label:lab,html:y=>`<button type="button" class="chx-ev${o?"":" locked"}${isNew(p)?" new":""}" data-frame="${p.frame}" style="left:${x.toFixed(1)}px;top:${y}px;--lc:${l[2]}" ${o?`data-cgo="page" data-carg="${p.id}"`:`data-cdo="locked" data-id="${p.id}"`} title="${E(p.y)} · ${E(lab)}">${E(lab)}</button>`}}));
+   const hh=22+Math.max(1,n,pre.length)*32+8;html+=`<div class="chx-lane" style="top:${top}px;height:${hh}px;--lc:${l[2]}"><span>${E(l[1])}</span></div>`+h+pre.map((p,i)=>{const o=isOpen(p);return `<button type="button" class="chx-ev pre${o?"":" locked"}" data-frame="${p.frame}" style="left:6px;top:${top+22+i*32}px;width:${TLG-14}px;--lc:${l[2]}" ${o?`data-cgo="page" data-carg="${p.id}"`:`data-cdo="locked" data-id="${p.id}"`} title="${E(p.y)}">‹ ${E(o?p.t:p.y)}</button>`}).join("");top+=hh});
+  if(!only||only==="own"){const O=own();const sg=A.signed();const items=O.map(o=>({x:X(o.y),label:`Kap. ${o.n} · ${fmt(o.d)}`,html:y=>`<button type="button" class="chx-ev own" style="left:${X(o.y).toFixed(1)}px;top:${y}px" data-cgo="page" data-carg="${o.pg.id}" title="Kapitel ${o.n} besiegelt am ${E(fmt(o.d))} — ${E(o.pg.t)}">Kap. ${o.n} · ${E(fmt(o.d))}</button>`}));
+   if(sg)items.push({x:X(2026)-120,label:"Pakt "+fmt(sg),html:y=>`<span class="chx-ev own" style="left:${(X(2026)-120).toFixed(1)}px;top:${y}px">Pakt ${E(fmt(sg))}</span>`});
+   const [h,n]=place(items);const hh=22+Math.max(1,n)*32+8;html+=`<div class="chx-lane" style="top:${top}px;height:${hh}px;--lc:var(--accent)"><span>✦ Ihr Weg</span></div>`+h;top+=hh}
+  inn.style.width=Wd+"px";inn.style.height=top+"px";inn.innerHTML=html;if(A.prefs().tlPpy)box.scrollLeft=X(1750)-200}
+function tlPhone(host,only){const ow={};own().forEach(o=>ow[o.pg.id]=o);const P=pages().filter(visible).filter(p=>!only||only==="own"?(only!=="own"||ow[p.id]):p.lane===only).sort((a,b)=>a.sort-b.sort);let html="",era=-2,last=null;
+  P.forEach(p=>{let k=-1;CHX_ERAS.forEach((Er,i)=>{if(p.sort>=Er[0])k=i});if(k!==era){era=k;html+=`<div class="era">${k<0?"Vorzeit und Frühzeit":CHX_ERAS[k][0]+" · "+E(CHX_ERAS[k][1])}</div>`;last=null}
+   if(last!=null){const d=Math.floor(p.sort)-Math.floor(last);if(d>=25&&last>=TLY0)html+=`<div class="gap" style="height:${Math.min(64,14+d/3).toFixed(0)}px">· ${d} Jahre ·</div>`}last=p.sort;
+   const o=isOpen(p),l=CHX_LANES.find(x=>x[0]===p.lane)||CHX_LANES[0],w=ow[p.id];
+   html+=`<button type="button" class="chx-ev${o?"":" locked"}${isNew(p)?" new":""}" data-frame="${p.frame}" style="--lc:${l[2]}" ${o?`data-cgo="page" data-carg="${p.id}"`:`data-cdo="locked" data-id="${p.id}"`}><span class="yy">${E(p.sort<-9999?"Vorzeit":String(p.y).replace(" n. Chr.",""))}</span><span>${E(o?p.t:"versiegelt · "+lockText(p))}${w?`<br><span class="own-l">✦ Kapitel ${w.n} besiegelt am ${E(fmt(w.d))}</span>`:""}</span></button>`});
+  host.innerHTML=`<div class="chx-tlv">${html||`<p class="chx-mut">Noch nichts auf dieser Bahn.</p>`}</div>`}
+// ---------------------------------------------------------------- 8. map
+const MAPV=[null,"60 250 300 320","90 370 130 140"];
+V.map=sel=>{const PI=pins().filter(o=>o.pages.some(id=>visible(byId(id))));return {title:"Karte",crumb:`${PI.length} Orte`,html:`<div class="chx-mapwrap"><div class="chx-mapbox">${CHX_MAP_SVG}<div class="chx-mapzoom"><button type="button" data-cdo="mapZ" data-d="1" aria-label="Vergrößern">+</button><button type="button" data-cdo="mapZ" data-d="-1" aria-label="Verkleinern">−</button><button type="button" data-cdo="mapZ" data-d="0" aria-label="Ganze Karte">⤢</button></div></div><div id="chx-place" aria-live="polite"></div></div>`,
+  after:m=>{const g=m.querySelector(".mp-pins"),NS="http://www.w3.org/2000/svg";const sorted=PI.slice().sort((a,b)=>a.y-b.y||a.x-b.x);
+   sorted.forEach(o=>{const pg=o.pages.map(byId).filter(p=>p&&visible(p)),op=pg.filter(isOpen).length;const el=D.createElementNS(NS,"g");el.setAttribute("class","chx-pin "+(op===0?"none":op<pg.length?"part":"")+(sel===o.id?" on":""));
+     el.setAttribute("tabindex","0");el.setAttribute("role","button");el.setAttribute("data-cdo","place");el.setAttribute("data-id",o.id);el.setAttribute("aria-label",`${o.n}: ${op} von ${pg.length} Seiten offen`);if(pg.length>=3)el.setAttribute("data-big","1");
+     const r=pg.length>3?6.5:pg.length>1?5:3.6;const left=o.x>430;el.innerHTML=`<circle cx="${o.x}" cy="${o.y}" r="14" class="hit"/><circle cx="${o.x}" cy="${o.y}" r="${r}"/>${pg.length>1?`<text class="ct" x="${o.x}" y="${o.y+2}">${pg.length}</text>`:""}<text x="${(o.x+(left?-r-2:r+2)).toFixed(1)}" y="${(o.y+2.2).toFixed(1)}"${left?' style="text-anchor:end"':""}>${E(o.n)}</text>`;g.appendChild(el)});
+   mapView(m,A.prefs().mapV||null);placePanel(m,sel||(PI.find(o=>o.id==="heidelberg")||PI[0]||{}).id)}}};
+function mapView(m,v){const s=m.querySelector(".chx-map");if(!s)return;s.setAttribute("viewBox",v||"0 0 552 691");s.classList.toggle("z",!!v);m.querySelectorAll(".chx-pin text:not(.ct)").forEach(t=>t.style.fontSize=(v?6.5*Math.max(.45,v.split(" ")[2]/552*1.6):6.5)+"px")}
+ACTS.mapZ=d=>{const p=A.prefs();let i=MAPV.indexOf(p.mapV||null);i=+d.dataset.d===0?0:Math.max(0,Math.min(2,i+ +d.dataset.d));p.mapV=MAPV[i];A.save();mapView(CX.root,p.mapV)};
+ACTS.place=d=>{CX.root.querySelectorAll(".chx-pin.on").forEach(x=>x.classList.remove("on"));d.classList.add("on");placePanel(CX.root,d.dataset.id)};
+function placePanel(m,id){const o=pins().find(z=>z.id===id);const box=m.querySelector("#chx-place");if(!o||!box)return;const pg=o.pages.map(byId).filter(p=>p&&visible(p));
+  box.innerHTML=`${o.reg?`<div class="chx-eyebrow">${E(o.reg)}</div>`:""}<h2 class="chx-ph">${E(o.n)}</h2>${pg.map(p=>item(p,{wing:1})).join("")||`<p class="chx-mut">Noch keine Seite.</p>`}`}
+// ---------------------------------------------------------------- 9. register + search
+const lastName=n=>{const s=String(n).replace(/\s*\(.*\)$/,"").split(" ").filter(w=>!/^(von|van|der|de|zu)$/.test(w));return s.length>1?s[s.length-1]:n};
+function refs(key,name){return pages().filter(p=>visible(p)&&p[key].includes(name))}
+const refBtns=L=>L.map(p=>isOpen(p)?`<button type="button" data-cgo="page" data-carg="${p.id}">${E(p.t)}</button>`:`<button type="button" class="locked" data-cdo="locked" data-id="${p.id}">versiegelt</button>`).join("");
+V.index=()=>{const P=pages().filter(visible);const coll=key=>{const m={};P.forEach(p=>p[key].forEach(x=>(m[x]=m[x]||[]).push(p)));return m};
+  const sec=(h,key,sortKey,min)=>{const m=coll(key);const ks=Object.keys(m).filter(k=>m[k].length>=(min||1)).sort((a,b)=>sortKey(a).localeCompare(sortKey(b),"de"));return ks.length?`<h3>${h}</h3>`+ks.map(k=>`<dl><dt>${E(k)}</dt><dd>${refBtns(m[k])}</dd></dl>`).join(""):""};
+  const PI=pins().filter(o=>o.pages.some(id=>visible(byId(id)))).sort((a,b)=>a.n.localeCompare(b.n,"de"));
+  return {title:"Register",crumb:"Personen · Werke · Motive · Orte",html:`<div class="chx-idx">${sec("Personen","people",lastName)}${sec("Werke","works",x=>x.replace(/^(Der|Die|Das|Des|Ein|Eine) /,""))}${sec("Motive","motifs",x=>x,2)}<h3>Orte</h3>${PI.map(o=>`<dl><dt>${E(o.n)} ${o.reg?`<small>${E(o.reg)}</small>`:""}</dt><dd><button type="button" data-cgo="map" data-carg="${o.id}">✥ Karte</button>${refBtns(o.pages.map(byId).filter(p=>p&&visible(p)))}</dd></dl>`).join("")}</div>`}};
+function search(q){q=String(q||"").trim();const m=q.match(/^(person|werk|motiv|is):(.+)$/);const P=pages().filter(visible);
+  if(m){const k=m[2];if(m[1]==="is")return {head:"Neue Seiten",L:P.filter(isNew)};const key={person:"people",werk:"works",motiv:"motifs"}[m[1]];return {head:k,L:refs(key,k)}}
+  const n=norm(q);if(n.length<2)return {head:"",L:[]};
+  // locked pages match only on what the learner can already see: year and place — never title or text (no spoilers)
+  return {head:"",L:P.map(p=>{const o=isOpen(p);const pl=p.places.map(x=>x.n);const hay=o?[p.t,p.y,p.de,p.dk,p.en,p.dken,...p.people,...p.works,...pl,...p.motifs,...p.words.map(w=>w[0]+" "+w[1])]:[p.y,...pl];
+    const sc=hay.reduce((s,h,i)=>s+(h&&norm(h).includes(n)?(i===0?8:i<2?4:1):0),0);return [sc,p]}).filter(x=>x[0]).sort((a,b)=>b[0]-a[0]).map(x=>x[1])}}
+V.search=q=>({title:"Suche",html:`<input class="chx-search" type="search" placeholder="Titel, Person, Ort, Jahr, deutsches oder englisches Wort …" value="${E(q&&!/^(person|werk|motiv|is):/.test(q)?q:"")}" aria-label="Chronik durchsuchen"><div id="chx-res" aria-live="polite"></div>`,after:m=>{searchRender();if(!q){const i=m.querySelector(".chx-search");if(i&&innerWidth>=900)i.focus()}}});
+function searchRender(){const box=CX.root&&CX.root.querySelector("#chx-res");if(!box)return;const q=CX.arg||"",R=search(q);const n=norm(q);
+  const snip=p=>{if(!isOpen(p)||/:/.test(q))return "";const src=[p.de,p.dk,p.en].find(t=>t&&norm(t).includes(n));if(!src)return "";const i=norm(src).indexOf(n);const a=Math.max(0,i-40);return `<p class="chx-snip">${a?"…":""}${E(src.slice(a,i))}<mark>${E(src.slice(i,i+q.length))}</mark>${E(src.slice(i+q.length,i+q.length+60))}…</p>`};
+  const mot={};pages().filter(p=>counted(p)&&isOpen(p)).forEach(p=>p.motifs.forEach(m=>mot[m]=(mot[m]||0)+1));const topM=Object.keys(mot).filter(m=>mot[m]>1).sort((a,b)=>mot[b]-mot[a]).slice(0,24);
+  box.innerHTML=q?`${R.head?`<h2 class="chx-ph">${E(R.head)}</h2>`:""}<div class="chx-eyebrow">${R.L.length} ${R.L.length===1?"Seite":"Seiten"}</div><div class="chx-list">${R.L.map(p=>`<div>${item(p,{wing:1})}${snip(p)}</div>`).join("")}</div>`
+   :`<div class="chx-eyebrow">Motive</div><div class="chx-row">${topM.map(m=>`<button type="button" class="chx-chip" data-cgo="search" data-carg="motiv:${E(m)}">${E(m)}</button>`).join("")}</div>`}
+// Bildnachweis (a4's plateCredits): only plates that hang on an open page
+V.credits=()=>{const used=new Set(pages().filter(p=>p.frame!=="archive"&&isOpen(p)&&p.art).map(p=>p.art));let L=[];try{L=has("plateCredits")?plateCredits().filter(c=>used.has(c.id)):[]}catch(e){}
+  return {title:"Bildnachweis",crumb:`${L.length} Tafeln`,html:`<p class="chx-small">Alle Tafeln sind gemeinfreie Drucke oder eigene Zeichnungen; die Angaben stammen aus der Bildliste des Projekts.</p><div class="chx-cred">${L.map(c=>`<dl><dt>${E(c.t||c.id)}</dt><dd>${E([c.a,c.y].filter(Boolean).join(" · "))}${c.src?`<br><small>${E(c.src)}</small>`:""}${c.lic?`<br><small>${E(c.lic)}</small>`:""}</dd></dl>`).join("")||`<p class="chx-mut">Keine Angaben gefunden.</p>`}</div>`}};
+// ---------------------------------------------------------------- 10. the secret slip (replaces .egg-pop): never modal, never over a task
+CX.secret=id=>{if(!has("EGGS")||!EGGS[id])return;const lp=LORE.find(e=>e.egg===id);if(lp&&(lp.grave||lp.sober))return;if(!CX.q.includes(id))CX.q.push(id);if(!A.busy())CX.slip();else if(CX.root&&CX.root.isConnected)CX.render()};
+CX.slip=()=>{try{if(D.getElementById("chx-slip")||!CX.q.length||A.busy())return;const id=CX.q.shift(),g=EGGS[id];if(!g)return CX.slip();const lore=LORE.find(e=>e.egg===id),n=Object.keys(A.eggs()).filter(k=>EGGS[k]).length,N=Object.keys(EGGS).length;
+  const s=D.createElement("div");s.id="chx-slip";s.className="chx-slip";s.setAttribute("role","status");s.setAttribute("aria-live","polite");
+  s.innerHTML=`<span class="seal" aria-hidden="true">${n}</span><span class="tx"><small>Schlüssel ${n} von ${N}</small><b>${E(g[0])}</b>${lore?` — <i>${E(lore.t)}</i>`:""}</span><span class="bt">${lore?`<button type="button" class="go1" tabindex="-1">Lesen</button>`:""}<button type="button" class="x1" tabindex="-1" aria-label="Später">✕</button></span>`;
+  D.body.appendChild(s);requestAnimationFrame(()=>s.classList.add("on"));let done=false;const close=()=>{if(done)return;done=true;s.classList.remove("on");setTimeout(()=>{s.remove();if(CX.root&&CX.root.isConnected)CX.render();CX.slip()},450)};const t=setTimeout(close,8000);
+  s.querySelector(".x1").onclick=e=>{e.stopPropagation();clearTimeout(t);close()};const go=s.querySelector(".go1");if(go)go.onclick=e=>{e.stopPropagation();clearTimeout(t);close();openChronik("page",lore.id)}}catch(e){log(e)}};
+ACTS.slipNext=()=>CX.slip();
+// one observer on <body> (childList only): the old overlay is removed at once, its secret is queued
+function eggIdOf(el){const id=el.dataset&&el.dataset.id;if(id&&EGGS[id])return id;const h=el.querySelector("h2");const t=h?h.textContent.trim():"";return Object.keys(EGGS).find(k=>EGGS[k][0]===t)||null}
+try{new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes){if(n.nodeType===1&&n.classList&&n.classList.contains("egg-pop")){const id=has("EGGS")?eggIdOf(n):null;n.remove();if(id)CX.secret(id)}}}).observe(D.body||D.documentElement,{childList:true})}catch(e){log(e)}
+// ---------------------------------------------------------------- 11. Kabinett: album pages by set, material cards, hinting slots, detail
+const neverRe=()=>has("KB_NEVER")&&KB_NEVER instanceof RegExp?KB_NEVER:/^bett_/;
+function never(c){if(!c||!c.id)return false;if(neverRe().test(c.id))return true;if(/^egg_/.test(c.id)){const k=c.id.slice(4);const lp=LORE.find(e=>e.egg===k);if(lp&&(lp.grave||lp.sober||lp.r==="A"))return true}return false}
+function kbSets(){let C=[];try{C=kabCards().filter(c=>!never(c))}catch(e){log(e)}const used=new Set();
+  const pick=spec=>{if(Array.isArray(spec))return spec.flatMap(pick);const m=/^ch:(\d+)-(\d+)$/.exec(spec);if(m){const a=+m[1],b=+m[2];return C.filter(c=>{const k=/^ch_(\d+)$/.exec(c.id);return k&&+k[1]>=a&&+k[1]<=b})}
+    if(/\*$/.test(spec))return C.filter(c=>c.id.startsWith(spec.slice(0,-1)));const c=C.find(x=>x.id===spec);return c?[c]:[]};
+  const sets=KB_SETS.map(s=>{const cs=pick(s.ids).filter(c=>!used.has(c.id));cs.forEach(c=>used.add(c.id));return Object.assign({},s,{cards:cs,got:cs.filter(c=>c.ok).length})}).filter(s=>s.cards.length);
+  const rest=C.filter(c=>!used.has(c.id));if(rest.length)sets.push({id:"weitere",t:"Weitere Stücke",mat:"kupfer",glyph:"✶",cards:rest,got:rest.filter(c=>c.ok).length,line:null});return sets}
+const MAT={papier:"Papier",kupfer:"Kupfer",silber:"Silber",bein:"Bein"};
+const MATD={papier:"Papier – ein Kapitelsiegel",kupfer:"Kupfer – Fleiß über Wochen",silber:"Silber – gefunden, nicht verdient",bein:"Bein – einem Gegner abgenommen"};
+const short=t=>String(t||"").replace(/^(Siegel|Trophäe|Geheimnis|Schlüssel|Buch|Auswendig): /,"");
+function cardHTML(c,mat,big){const a=c.art&&A.plate(c.art);const tag=big?"div":"button";return `<${tag} ${big?"":'type="button"'} class="kb-card ${mat}" ${big?"":`data-cgo="kbcard" data-carg="${E(c.id)}"`} aria-label="${E(short(c.t))} · ${MAT[mat]}"><span class="art">${a?`<img src="${E(a.u)}" alt="" width="${a.w||100}" height="${a.h||140}" loading="lazy" decoding="async">`:""}</span><span class="mat">${MAT[mat]}</span><span class="nm">${E(short(c.t))}</span></${tag}>`}
+const lineOf=s=>s&&s.line?(A.du()&&s.line[2]?s.line[2]:s.line[0]):"";
+V.kab=()=>{silentKab();const S0=kbSets(),tot=S0.reduce((a,s)=>a+s.cards.length,0),got=S0.reduce((a,s)=>a+s.got,0);
+  return {title:"Kuriositätenkabinett",crumb:`${got} / ${tot} · ${S0.filter(s=>s.got===s.cards.length).length} / ${S0.length} Sätze vollständig`,html:S0.map(s=>{const done=s.got===s.cards.length;let nx=false;
+   return `<section class="kb-set${done?" done":""}" aria-label="${E(s.t)}"><header><h3>${E(s.t)}</h3><span class="chx-chip">${s.got} / ${s.cards.length}</span>${s.line?`<span class="rw">${done?"✓ Vollständig":"Vollständig gibt es"}: <b>ein Satz von Mephisto</b></span>`:""}</header>${done&&s.line?`<q class="kb-line" lang="de">${E(lineOf(s))}</q>`:""}<div class="kb-grid">${s.cards.map(c=>{if(c.ok)return cardHTML(c,s.mat);const first=!nx;nx=true;
+     return `<button type="button" class="kb-slot${first?" next":""}" data-cgo="kbcard" data-carg="${E(c.id)}"><i aria-hidden="true">${s.glyph||"◉"}</i>${E(c.how||"")}</button>`}).join("")}</div></section>`}).join("")}};
+V.kbcard=id=>{const s=kbSets().find(x=>x.cards.some(c=>c.id===id));if(!s)return V.kab();const c=s.cards.find(x=>x.id===id);const got=S.kab&&S.kab[id];const done=s.got===s.cards.length;
+  return {title:E(s.t),html:`<div class="kb-detail">${c.ok?cardHTML(c,s.mat,true):`<div class="kb-slot next big"><i aria-hidden="true">${s.glyph||"?"}</i>Noch leer</div>`}<div class="kb-info">
+   <h2>${c.ok?E(short(c.t)):"Ein leerer Platz"}</h2>${c.ok&&c.flav?`<blockquote lang="de">${E(c.flav)}</blockquote>`:""}
+   <dl><dt>${c.ok?"Verdient durch":"So bekommen Sie sie"}</dt><dd>${E(c.how||"")}</dd>${c.ok&&got?`<dt>Erhalten am</dt><dd>${E(fmt(got))}</dd>`:""}<dt>Satz</dt><dd>${E(s.t)} · ${s.got} / ${s.cards.length}</dd><dt>Material</dt><dd>${E(MATD[s.mat]||"")}</dd>${s.line?`<dt>Der Satz bringt</dt><dd>einen Satz von Mephisto</dd>`:""}</dl>
+   ${done&&s.line?`<div class="chx-quote"><div class="chx-eyebrow">Mephisto</div><q lang="de">${E(lineOf(s))}</q><small lang="en">${E(s.line[1])}</small></div>`:""}</div></div>`}};
+// first visit after the update: mark what is already earned without a toast (A10 §7: no „(+48)“)
+function silentKab(){try{const pr=A.prefs();if(pr.kabInit)return false;S.kab=S.kab||{};const t=today();kabCards().forEach(c=>{if(c.ok&&!S.kab[c.id])S.kab[c.id]=t});pr.kabInit=1;A.save();return true}catch(e){log(e);return false}}
+try{MOD.around("kabCards","a9",function(orig){const L=orig();try{return L.filter(c=>!never(c))}catch(e){return L}})}catch(e){log(e)}
+try{MOD.around("kabCheck","a9",function(orig){try{if(silentKab())return []}catch(e){}return orig()})}catch(e){log(e)}
+// ---------------------------------------------------------------- 12. state: read state, one-time backfill, merge registration
+function migrate(){try{const pr=A.prefs();if(pr.mig)return;const R0=A.read(),Sn=A.seen();Object.keys(Sn).forEach(id=>{if(!R0[id])R0[id]={d:Sn[id],q:0,mig:1}});pr.mig=1;A.save()}catch(e){log(e)}}
+function loreReadMerge(a,b){a=a||{};b=b||{};const o={};new Set([...Object.keys(a),...Object.keys(b)]).forEach(k=>{const x=a[k],y=b[k];if(!x||!y){o[k]=x||y;return}
+  const d=[x.d,y.d].filter(Boolean).sort()[0]||"";const q=Math.max(+x.q||0,+y.q||0);o[k]={d,q};if(x.mig&&y.mig)o[k].mig=1});return o}
+setTimeout(()=>{try{if(typeof MERGE_RULES!=="undefined"&&MERGE_RULES&&!MERGE_RULES.loreRead)MERGE_RULES.loreRead=(a,b)=>loreReadMerge(a,b)}catch(e){}
+  try{if(typeof DEVICE_KEYS!=="undefined"&&DEVICE_KEYS&&DEVICE_KEYS.add)DEVICE_KEYS.add("chx")}catch(e){}},0);
+// ---------------------------------------------------------------- 13. entry points
+function openChronik(view,arg,title){try{let root=D.querySelector("#fIn .chx[data-a9]");
+  if(!root||!Focus.isOpen()){const box=Focus.open({title:title||"Die Chronik",sub:"",onClose:()=>{setSober(false);CX.root=null;setTimeout(()=>CX.slip(),400)}});box.classList.add("chx-host");box.innerHTML='<div class="chx-root"></div>';root=box.firstChild;CX.mount(root)}
+  else Focus.title(title||"Die Chronik","");
+  if(view&&view!=="hall"){CX.stack=[];CX.go(view,arg,true)}else if(CX.view!=="hall"){CX.stack=[];CX.go("hall",null,true)}
+  setTimeout(()=>CX.slip(),600)}catch(e){log(e);try{(ACT._chronik13||function(){})()}catch(x){}}}
+ACT._chronik13=ACT._chronik13||ACT.chronik;ACT._loreRead13=ACT._loreRead13||ACT.loreRead;ACT._kabinett13=ACT._kabinett13||ACT.kabinett;
+ACT.chronik=el=>{const t=el&&el.dataset&&el.dataset.tab;if(t==="zeit")return openChronik("time");if(t==="funde")return openChronik("wing","N");if(t==="karte")return openChronik("map");openChronik("hall")};
+ACT.loreRead=el=>{const id=el&&el.dataset&&el.dataset.id;const p=id&&byId(id);if(!p||!isOpen(p))return;if(p.frame==="archive"&&!A.prefs().archOk)return openChronik("thresh");openChronik("page",id)};
+ACT.kabinett=()=>openChronik("kab",null,"Kuriositätenkabinett");
+try{MOD.after("chrome","a9",function(){try{if(!Focus.isOpen()||!D.querySelector("#fIn .chx[data-a9]"))setSober(false)}catch(e){}setTimeout(()=>{try{CX.slip()}catch(e){}},300)})}catch(e){log(e)}
+// public API on the existing CHX data object (non-enumerable, so `for…in`/Object.keys over chapter patches stay unchanged)
+try{const T=(typeof CHX!=="undefined"&&CHX)||(window.CHX={});[["mount",el=>CX.mount(el)],["go",(v,a)=>{if(CX.root&&CX.root.isConnected)CX.go(v,a);else openChronik(v,a)}],["secret",id=>CX.secret(id)],["slip",()=>CX.slip()]].forEach(([k,f])=>Object.defineProperty(T,k,{value:f,enumerable:false,configurable:true,writable:true}))}catch(e){log(e)}
+window.CHXA9={CX,A,pages,pins,state,isNew,kbSets,never,search,segs,gmap,loreReadMerge,busy:()=>A.busy(),open:openChronik};
+})();
 
 // ===== Mephisto · track A · c_a8.js (owner: a8) — Home "Heute", navigation, one Werkstatt, one settings page, onboarding
 // "Der Handel" (pact signed by pad or by name), the session shell, wide layouts (Deck 1280, 27" 2560) and the seven layout slots.
@@ -14854,6 +16899,36 @@ DEVICE_KEYS.add("sim");
 DEVICE_KEYS.add("a3");
 //   power "auto"|"voll"|"spar" (a7: battery choice per device) — device-local (a7 MANIFEST)
 DEVICE_KEYS.add("power");
+// ---- integrator 13.8 (story batch): rules the packages specified but did not register
+//   mys {seen,read,arc} (s16: mystery registry) — per map union, earliest dd/mm/yyyy date (S16.merge)
+//   st {m,f,fn,e,a,w,z,x} (s9: Märchenstube / Sammlung) — s9Merge (per tale/eponym/case max score, later date; formulas earliest day …)
+//   fl {r,z,as,ohr,who,ord} (s8: Faust layer) — r per id earliest date; z/as/who union; ohr.best max; ord later d, equal d → union of used
+//   vc {said,gag,ms,mile,bw,nw,paid,sc,day,k,barks,gq,l4,ev,pf,leech} (s5: Mephisto's voice) — as s5's MANIFEST lists
+//   day (i9: today's barks and step state) is device-local (PLAN-I §2.7)
+DEVICE_KEYS.add("day");
+if(typeof setTimeout==="function")setTimeout(()=>{try{if(typeof S16!=="undefined"&&S16.merge&&!MERGE_RULES.mys)MERGE_RULES.mys=(a,b)=>S16.merge(a,b)}catch(e){}
+  try{if(typeof s9Merge==="function"&&!MERGE_RULES.st)MERGE_RULES.st=(a,b)=>{const o=s9Merge(a,b);   // made order-free: s9Merge's fw list and equal-day fn depended on argument order
+    if(o.x&&Array.isArray(o.x.fw))o.x.fw=[...new Set(o.x.fw)].sort();const fa=(a&&a.fn)||{},fb=(b&&b.fn)||{};
+    if(String(fa.d||"")===String(fb.d||""))o.fn=Object.assign({},stableJ(fa)>=stableJ(fb)?fa:fb,{n:Math.max(fa.n||0,fb.n||0)});if(!fa.d&&!fb.d&&!Object.keys(fa).length&&!Object.keys(fb).length)o.fn={};return o}}catch(e){}},0);
+const _b3o=x=>isObj(x)?x:{},_b3keys=(A,B)=>[...new Set([...Object.keys(A),...Object.keys(B)])].sort(),_b3early=(x,y)=>x===undefined?y:y===undefined?x:(String(x)<=String(y)?x:y);
+const _b3late=(x,y)=>x===undefined?y:y===undefined?x:(String(x)>=String(y)?x:y);
+const _b3uni=(x,y)=>{const m=new Map();[].concat(Array.isArray(x)?x:[],Array.isArray(y)?y:[]).forEach(v=>m.set(stableJ(v),v));return [...m.keys()].sort().map(k=>m.get(k))};
+const _b3per=(A,B,f)=>{A=_b3o(A);B=_b3o(B);const o={};for(const k of _b3keys(A,B))o[k]=A[k]===undefined?B[k]:B[k]===undefined?A[k]:f(A[k],B[k]);return o};
+const _b3pick=(x,y,dk)=>{const X=_b3o(x),Y=_b3o(y);const dx=String(dk(X)||""),dy=String(dk(Y)||"");if(dx!==dy)return dx>dy?x:y;return stableJ(x)>=stableJ(y)?x:y};
+MERGE_RULES.fl=(a,b)=>{const A=_b3o(a),B=_b3o(b);const o={};
+  if(A.r||B.r)o.r=_b3per(A.r,B.r,_b3early);if(A.z||B.z)o.z=_b3uni(A.z,B.z).sort((p,q)=>p-q);if(A.as||B.as)o.as=_b3per(A.as,B.as,()=>1);
+  if(A.who||B.who)o.who=_b3per(A.who,B.who,(x,y)=>joinDeep(x,y));if(A.ohr||B.ohr)o.ohr={best:Math.max(+_b3o(A.ohr).best||0,+_b3o(B.ohr).best||0)};
+  if(A.ord||B.ord){const x=_b3o(A.ord),y=_b3o(B.ord);if(A.ord===undefined)o.ord=B.ord;else if(B.ord===undefined)o.ord=A.ord;else if(String(x.d||"")!==String(y.d||""))o.ord=String(x.d||"")>String(y.d||"")?A.ord:B.ord;else o.ord={d:x.d,used:_b3uni(x.used,y.used)}}
+  for(const k of _b3keys(A,B))if(!(k in o))o[k]=joinDeep(A[k],B[k]);return o};
+MERGE_RULES.vc=(a,b)=>{const A=_b3o(a),B=_b3o(b);const o={};const has=k=>A[k]!==undefined||B[k]!==undefined;
+  if(has("said"))o.said=_b3per(A.said,B.said,(x,y)=>_b3uni(x,y).sort((p,q)=>p-q));if(has("gag"))o.gag=_b3per(A.gag,B.gag,(x,y)=>Math.max(+x||0,+y||0));
+  ["ms","mile","bw"].forEach(k=>{if(has(k))o[k]=_b3per(A[k],B[k],_b3early)});["nw","paid","sc"].forEach(k=>{if(has(k))o[k]=Math.max(+A[k]||0,+B[k]||0)});
+  if(has("day")||has("k")){const w=_b3pick({day:A.day,k:A.k},{day:B.day,k:B.k},X=>X.day);if(w.day!==undefined)o.day=w.day;if(w.k!==undefined)o.k=w.k}
+  if(has("barks"))o.barks=A.barks===undefined?B.barks:B.barks===undefined?A.barks:_b3pick(A.barks,B.barks,X=>X.d);
+  if(has("gq"))o.gq=A.gq===undefined?B.gq:B.gq===undefined?A.gq:_b3pick(A.gq,B.gq,X=>X.d);
+  ["l4","ev","leech"].forEach(k=>{if(has(k))o[k]=A[k]===undefined?B[k]:B[k]===undefined?A[k]:(stableJ(A[k])>=stableJ(B[k])?A[k]:B[k])});
+  if(has("pf"))o.pf=_b3uni(A.pf,B.pf).sort().slice(-7);
+  for(const k of _b3keys(A,B))if(!(k in o))o[k]=joinDeep(A[k],B[k]);return o};
 //   hx {seen:{lineId:date}, nm:{nightmareId:date}, …device counters} (s6: horror director) — seen/nm per id the later date (whispers and
 //   nightmares do not repeat across devices); the other fields are per-device counters (fails, wr, rr, se, hh, …): s6 asks "keep local", which a
 //   symmetric rule cannot know, so they come whole from the side whose counters sort higher (stableJ) — deterministic, commutative, associative
@@ -14928,7 +17003,7 @@ function mergePakt(a,b,ta,tb){if(!isObj(a)||!isObj(b))return isObj(a)?a:isObj(b)
   if(a.choices||b.choices||a.choicesAt||b.choicesAt){const ch={},at={};const A=a.choices||{},B=b.choices||{},AT=a.choicesAt||{},BT=b.choicesAt||{};
     for(const k of [...new Set([...Object.keys(A),...Object.keys(B)])].sort()){const x=A[k],y=B[k];let w;if(x==null)w="b";else if(y==null)w="a";else{const tx=String(AT[k]||""),ty=String(BT[k]||"");w=tx!==ty?(tx>ty?"a":"b"):(+x<=+y?"a":"b")}ch[k]=w==="a"?x:y;const t=w==="a"?AT[k]:BT[k];if(t)at[k]=t}
     o.choices=ch;if(Object.keys(at).length)o.choicesAt=at;else delete o.choicesAt}else{delete o.choices;delete o.choicesAt}
-  for(const f in PAKT_RULES){try{if(a[f]===undefined)o[f]=b[f];else if(b[f]===undefined)o[f]=a[f];else o[f]=PAKT_RULES[f](a[f],b[f],a,b);if(o[f]===undefined)delete o[f]}catch(e){o[f]=pick(a[f],b[f])}}
+  for(const f in PAKT_RULES){try{if(a[f]===undefined)o[f]=b[f];else if(b[f]===undefined)o[f]=a[f];else o[f]=stableJ(a[f])===stableJ(b[f])?a[f]:PAKT_RULES[f](a[f],b[f],a,b);if(o[f]===undefined)delete o[f]}catch(e){o[f]=pick(a[f],b[f])}}
   return o}
 // ---- whole reset: what survives from the side that did not see it
 function epochFilter(X,E){const o={_epoch:E};for(const k of DEVICE_KEYS)if(X[k]!==undefined)o[k]=X[k];const day=E.slice(0,10);
@@ -14945,7 +17020,7 @@ function mergeCore(L0,R0){
       if(gone>have&&(v===null||typeof v!=="object")&&k[0]!=="_")continue; // a setting that was removed later than it was last set stays removed
       out[k]=Array.isArray(v)&&k!=="custom"&&!MERGE_RULES[k]?mergeArr(v,[]):v;continue}
     try{
-    if(MERGE_RULES[k]){out[k]=MERGE_RULES[k](a,b,L,R)}
+    if(MERGE_RULES[k]){out[k]=stableJ(a)===stableJ(b)?a:MERGE_RULES[k](a,b,L,R)}   // integrator 13.8: identical sides stay as they are (merge(S,S)=S even where a rule normalises shape, e.g. saga, fl)
     else if(k==="_ts"||k==="del"||k==="_epochs"){const o=Object.assign({},b);for(const x in a)o[x]=(a[x]||"")>(o[x]||"")?a[x]:o[x];out[k]=o}
     else if(k==="_epoch"){out[k]=a>b?a:b}
     else if(k==="cards"){const o={};for(const id of new Set([...Object.keys(a),...Object.keys(b)])){const c=cardWin(a[id],b[id]);if(c)o[id]=c}out[k]=o}

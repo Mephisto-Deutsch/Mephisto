@@ -2612,6 +2612,238 @@ Madrigalvers|der Madrigalvers|madrigal verse (free-length rhymed lines)|
 leidenschaftlicher|leidenschaftlich|more passionate; passionate|
 Zeilenlänge|die Zeilenlänge|line length|
 Worte|das Wort|words (in context: what is said)|Plural von „das Wort“ (Worte = utterance, Wörter = single words)
+
+// --- integrator 13.8 (gloss rule, story batch: rewritten chapters 1–40, retellings, Fundstücke, clauses): words without a gloss, English by the integrator
+Abendkurier|der Abendkurier|the Evening Courier (newspaper)|
+Abgabe|die Abgabe|handing in; submission|
+Abschrift|die Abschrift|copy, transcript|
+Abzweigungen|die Abzweigung|turnings, forks (of a road)|
+Anführungszeichen|das Anführungszeichen|quotation marks|
+Ankündigung|die Ankündigung|announcement|
+Antiquariat|das Antiquariat|second-hand bookshop|
+Anweisung|die Anweisung|instruction|
+Anweisungen|die Anweisung|instructions|
+Ast|der Ast|branch (of a tree)|
+Aushang|der Aushang|notice (on a board)|
+Balken|der Balken|beam (of wood)|
+Bearbeitungsdauer|die Bearbeitungsdauer|processing time|
+Block|der Block|block; (writing) pad|
+Brotkrumen|die Brotkrume|breadcrumbs|
+Deich|der Deich|dyke, embankment|
+Drama|das Drama|drama, play|
+Einheit|die Einheit|unit; unity|
+Erlassen|erlassen|issuing (an order); waiving|
+Feder|die Feder|feather; pen (nib)|
+Felder|das Feld|fields; boxes (on a form)|
+Fund|der Fund|find, discovery|
+Geistigem|geistig|(of the) intellectual, mental|
+Gendarmerie|die Gendarmerie|rural police|
+Gendarmerieposten|der Gendarmerieposten|rural police post|
+Gewehr|das Gewehr|rifle, gun|
+Gitter|das Gitter|bars, grille|
+Hahn|der Hahn|cockerel; tap|
+Handschriftlich|handschriftlich|handwritten|
+handschriftlich|handschriftlich|handwritten|
+Hausmedikation|die Hausmedikation|regular medication (taken at home)|
+Hilfsmittel|das Hilfsmittel|aid, aids (e.g. glasses, walking frame)|
+Infinitiv|der Infinitiv|infinitive|
+Inventar|das Inventar|inventory|
+Kachelofen|der Kachelofen|tiled stove|
+Kapelle|die Kapelle|chapel; band|
+Kissen|das Kissen|pillow, cushion|
+Kliniker|der Kliniker|clinician|
+Kohlenmeiler|der Kohlenmeiler|charcoal kiln|
+Kragen|der Kragen|collar|
+Krug|der Krug|jug|
+Krüge|der Krug|jugs|
+Krümel|der Krümel|crumb(s)|
+Köhler|der Köhler|charcoal burner|
+Löwen|der Löwe|lion(s); also the inn name „Zum Löwen“|
+Messing|das Messing|brass|
+Messingschild|das Messingschild|brass plate|
+Moos|das Moos|moss|
+Muster|das Muster|pattern; sample|
+Rad|das Rad|wheel; bicycle|
+Rasse|die Rasse|"race" (historical term; used only in quoted documents)|
+Retorte|die Retorte|retort (glass vessel)|
+Revision|die Revision|audit, review; appeal|
+Rückumwandlung|die Rückumwandlung|conversion back|
+Umwandlung|die Umwandlung|conversion, transformation|
+SBAR-Schema|das SBAR-Schema|SBAR scheme (Situation, Background, Assessment, Recommendation)|
+Schlamm|der Schlamm|mud|
+Schublade|die Schublade|drawer|
+Selbstbezeichnung|die Selbstbezeichnung|self-designation, the name a group uses for itself|
+Silbe|die Silbe|syllable|
+Singular|der Singular|singular|
+Spott|der Spott|mockery|
+Steckbrief|der Steckbrief|wanted poster; profile|
+Tinte|die Tinte|ink|
+Titel|der Titel|title|
+Truhen|die Truhe|chests (boxes)|
+Ufer|das Ufer|bank, shore|
+Uhrmacher|der Uhrmacher|clockmaker|
+Verjährung|die Verjährung|limitation (a claim expires after a time)|
+Vernehmungsprotokoll|das Vernehmungsprotokoll|record of the interrogation|
+Verstoß|der Verstoß|breach, violation|
+Verwechslung|die Verwechslung|mix-up, confusion|
+Verzeichnis|das Verzeichnis|list, register|
+Verzug|der Verzug|delay; im Verzug = in arrears|
+Vorsatzblatt|das Vorsatzblatt|endpaper (of a book)|
+Vorsilbe|die Vorsilbe|prefix|
+Wirtin|die Wirtin|landlady; innkeeper (woman)|
+Worten|das Wort|words (dative plural: mit anderen Worten = in other words)|
+Währenddessen|währenddessen|meanwhile|
+währenddessen|währenddessen|meanwhile|
+Zerstreuungen|die Zerstreuung|distractions, amusements|
+Zufriedenheitserklärung|die Zufriedenheitserklärung|declaration of satisfaction|
+Zöllner|der Zöllner|customs officer|
+Ärmeln|der Ärmel|sleeves|
+öfter|oft|more often; quite often|
+abgeschmackten|abgeschmackt|tasteless, insipid|
+angefasst|anfassen|touched|
+benennen|benennen|to name|
+berichtigt|berichtigen|corrected|
+beschuldigt|beschuldigen|accused|
+bewirbt|sich bewerben|applies (for a job)|
+blättert|blättern|leafs through, turns the pages|
+ch|ch|the letters ch (a sound)|
+dahingewelkt|dahinwelken|withered away|
+derer|derer|of those (genitive plural of der/die/das as a pronoun)|
+drüben|drüben|over there|
+durchgestrichener|durchgestrichen|crossed-out|
+eingeschlossen|einschließen|included; locked in|
+empört|empört|indignant, outraged|
+entlang|entlang|along|
+erlöschen|erlöschen|to go out (a light); to expire|
+erneuert|erneuern|renewed|
+existiert|existieren|exists|
+faltet|falten|folds|
+gefaltet|falten|folded|
+flackert|flackern|flickers|
+gebildet|bilden|formed; (adj.) educated|
+geklopft|klopfen|knocked|
+klopft|klopfen|knocks|
+gestattet|gestatten|permitted|
+getilgt|tilgen|erased; paid off (a debt)|
+gez|gezeichnet|signed (gez. = gezeichnet)|
+gleichwertiger|gleichwertig|equivalent|
+glänzt|glänzen|shines, gleams|
+grüßt|grüßen|greets|
+hereingelassen|hereinlassen|let in|
+hierzulande|hierzulande|in this country|
+historisch|historisch|historical(ly)|
+hämmert|hämmern|hammers|
+indes|indes|meanwhile; however|
+jeweils|jeweils|each, in each case|
+knackte|knacken|crackled|
+kniet|knien|kneels|
+knistert|knistern|crackles|
+korrekt|korrekt|correct|
+kristallisieren|kristallisieren|to crystallise|
+kräht|krähen|crows (the cock)|
+mangelt|mangeln|is lacking (es mangelt an … = there is a lack of …)|
+mitzuliefern|mitliefern|to supply along with|
+nichtig|nichtig|void, null|
+pro|pro|per|
+ratsam|ratsam|advisable|
+sanft|sanft|gentle, soft|
+schwingt|schwingen|swings|
+seither|seither|since then|
+spitzen|spitz|pointed (spitzen = inflected form)|
+stockt|stocken|falters, stops short|
+telefonisch|telefonisch|by telephone|
+unbesehen|unbesehen|unseen, without looking|
+unterschiedlich|unterschiedlich|different|
+untrennbare|untrennbar|inseparable|
+unverzüglich|unverzüglich|immediately, without delay|
+verbeugte|sich verbeugen|bowed|
+verbleibt|verbleiben|remains|
+verbucht|verbuchen|booked, entered (in the books)|
+verfüttern|verfüttern|to feed (to animals)|
+verkohlten|verkohlt|charred|
+vermissen|vermissen|to miss (someone)|
+verpflichtet|verpflichten|obliged, committed|
+verschleudert|verschleudern|squandered, sold off cheaply|
+verschläft|verschlafen|oversleeps|
+verschweigt|verschweigen|keeps quiet about|
+verwischt|verwischen|smudged, blurred|
+verärgert|verärgert|annoyed|
+vorzubringen|vorbringen|to put forward, to present|
+vorzuführen|vorführen|to show, to demonstrate|
+vorzuhalten|vorhalten|to reproach (someone with something)|
+wiederbelebt|wiederbeleben|revived, resuscitated|
+winkt|winken|waves|
+zuklappst|zuklappen|close, snap shut (a book)|
+zulasten|zulasten|at the expense of|
+zulässig|zulässig|permissible|
+zurückzuweisen|zurückweisen|to reject|
+Bl|Bl.|sheet (Bl. = Blatt)|
+st|-st|the ending -st (du form)|
+Charakter|der Charakter|character|
+Diebstahl|der Diebstahl|theft|
+Einspruch|der Einspruch|objection|
+Fleiß|der Fleiß|diligence, hard work|
+Gedeckt|gedeckt|covered (a cheque, a debt)|
+gedeckt|gedeckt|covered (a cheque, a debt)|
+Grammatisch|grammatisch|grammatical(ly)|
+grammatisch|grammatisch|grammatical(ly)|
+Haken|der Haken|hook; catch|
+Hilfsverb|das Hilfsverb|auxiliary verb|
+Inhabers|der Inhaber|(of the) owner|
+Inhaber|der Inhaber|owner, holder|
+Karteikasten|der Karteikasten|card index box|
+Kästchen|das Kästchen|small box; checkbox|
+Maske|die Maske|mask|
+Monster|das Monster|monster|
+Neugier|die Neugier|curiosity|
+Offenbarungseid|der Offenbarungseid|declaration of insolvency; (fig.) admission of failure|
+Reflexiv|reflexiv|reflexive|
+Reflexive|reflexiv|reflexive|
+reflexiv|reflexiv|reflexive|
+Rückgrat|das Rückgrat|backbone, spine|
+Schadenfroh|schadenfroh|gloating|
+schadenfroh|schadenfroh|gloating|
+Souffleur|der Souffleur|prompter (theatre)|
+Wetterbeobachtung|die Wetterbeobachtung|weather observation|
+Wörtlich|wörtlich|literal(ly), word for word|
+wörtlich|wörtlich|literal(ly), word for word|
+Zeugin|die Zeugin|witness (woman)|
+begehrt|begehren|desires; (adj.) sought-after|
+beschuldigen|beschuldigen|to accuse|
+beschuldigst|beschuldigen|(you) accuse|
+formal|formal|formal(ly)|
+geschäftsschädigend|geschäftsschädigend|bad for business|
+gesteht|gestehen|confesses|
+inhaltlich|inhaltlich|in content, as to the content|
+kannibalisch|kannibalisch|cannibalistic (Goethe: „Uns ist ganz kannibalisch wohl“ = we feel wildly good)|
+klebt|kleben|sticks|
+klopfe|klopfen|(I) knock|
+künftigen|künftig|future|
+makellos|makellos|flawless|
+neuesten|neu|newest, latest|
+parat|parat|ready, at hand|
+quietscht|quietschen|squeaks|
+rührte|rühren|stirred; moved|
+schüttelte|schütteln|shook|
+soeben|soeben|just (now)|
+tadellos|tadellos|impeccable|
+unbrauchbarer|unbrauchbar|useless|
+wehren|sich wehren|to defend oneself, to resist|
+willen|um … willen|for the sake of (um Gottes willen etc.)|
+zerknittert|zerknittert|crumpled|
+Wegweiser|der Wegweiser|signpost|
+glänzen|glänzen|to shine, to gleam|
+Feld|das Feld|field; box (on a form)|
+Wiedervorlage|die Wiedervorlage|resubmission (file to come back on a set date)|
+entliehen|entleihen|borrowed|
+Ehrgeiz|der Ehrgeiz|ambition|
+wiederbeleben|wiederbeleben|to resuscitate|
+Hohlhand|die Hohlhand|palm (of the hand)|
+glattrandig|glattrandig|smooth-edged|
+Gewahrsam|der Gewahrsam|custody|
+Tragödie|die Tragödie|tragedy|
+Ziffer|die Ziffer|digit, number|
+verschlafen|verschlafen|to oversleep; sleepy|
 `;
 // Homographs that capitalisation alone cannot decide: word (lower case) → rules, first match wins.
 //   when: "cap" (capitalised mid-sentence) | "low" (lower case) | "start" (first word of the sentence) | "any"
@@ -2685,6 +2917,7 @@ const L1_HOMO={
 };
 // Names and words of the story world that are not vocabulary: tap shows who or what it is, never "Noch nicht im Wörterbuch".
 const L1_NAMES={
+ "Arco":"Café Arco (Prague café)","Elli":"Elli (first name)","Gutachtal":"Gutach valley (Black Forest)","Hessen":"Hesse (German state)","Josefstadt":"Josefov, Prague's Jewish quarter","Josefstädter":"of the Josefstadt (Prague)","Kandel":"the Kandel (mountain in the Black Forest)","Kniebis":"Kniebis (pass in the Black Forest)","Mummelsee":"the Mummelsee (lake in the Black Forest)","Mummelsees":"of the Mummelsee","Paule":"Paule (nickname for Paul)","Schwerdtlein":"Frau Schwerdtlein (Marthe, in Goethe's Faust)","Svobodová":"Svobodová (Czech surname)","Tannenbühl":"Tannenbühl (village name)","Taussig":"Taussig (surname)","Taussigs":"Taussig's","Triberg":"Triberg (Black Forest town)","Zander":"Zander (surname)","Weimarer":"Weimar (adj.: Weimarer Republik = the Weimar Republic)",
  "Holland":"Holland (the Netherlands)","Mannheim":"Mannheim (city near Heidelberg)","Albrecht":"Albrecht (first name)","Sou":"Souček (Czech surname; „č“ = ch as in church)","ek":"Souček (end of the surname)","Aleph":"aleph, the first letter of the Hebrew alphabet","emet":"emet, Hebrew „truth“ (the word on the golem’s forehead)","met":"met, Hebrew „dead“ (emet without its first letter)","Wolfgang":"Wolfgang (Johann Wolfgang von Goethe)","Marthe":"Marthe (Gretchen’s neighbour in Faust)","Sachs":"Hans Sachs (16th-c. Nuremberg poet, master of the Knittelvers)",
   "Mephisto":"Mephisto(pheles): the devil of the Faust legend; here your tutor","Mephistopheles":"the devil of the Faust legend","Faust":"Dr. Faust, the scholar who sells his soul; also: die Faust = fist","Fausts":"Faust's","Gretchen":"Gretchen (Margarete), the girl Faust ruins","Margarete":"Margarete (Gretchen)","Goethe":"Johann Wolfgang von Goethe (1749–1832), author of „Faust“","Goethes":"Goethe's","Wagner":"Wagner, Faust's assistant","Brandt":"Frau Brandt, the patient in bed four","Brandts":"Frau Brandt's","Amron":"Amron (your first name)","Ismail":"Ismail (your surname)","Heidelberg":"Heidelberg, university town on the Neckar","Heidelberger":"of Heidelberg; person from Heidelberg","Neckar":"the Neckar (river through Heidelberg)","Prag":"Prague","Prager":"of Prague","Berlin":"Berlin","Berliner":"of Berlin; Berliner","Weimar":"Weimar, Goethe's town","Leipzig":"Leipzig","Brocken":"the Brocken, highest peak of the Harz, site of Walpurgis Night","Harz":"the Harz mountains","Schwarzwald":"the Black Forest","Walpurgisnacht":"Walpurgis Night (30 April), the witches' night on the Brocken","Golem":"the Golem, the clay man of Prague","Golems":"the Golem's","Caligari":"Dr. Caligari (silent film, 1920)","Cesare":"Cesare, Caligari's sleepwalker","Kafka":"Franz Kafka (1883–1924), Prague writer","Kafkas":"Kafka's","Gregor":"Gregor Samsa, hero of Kafka's „Die Verwandlung“","Samsa":"Gregor Samsa","Brod":"Max Brod, Kafka's friend and editor","Rudolf":"Emperor Rudolf II","Löw":"Rabbi Löw of Prague","Virchow":"Rudolf Virchow (1821–1902), pathologist","Bismarck":"Otto von Bismarck","Röntgen":"Wilhelm Conrad Röntgen; also: das Röntgen = X-ray","Koch":"Robert Koch; also: der Koch = cook","Semmelweis":"Ignaz Semmelweis","Vesal":"Andreas Vesalius, anatomist","Paracelsus":"Paracelsus, physician and alchemist","Grimm":"the Brothers Grimm","Nosferatu":"Nosferatu (silent film, 1922)","Orlok":"Count Orlok (Nosferatu)","Hameln":"Hamelin","Rumpelstilzchen":"Rumpelstiltskin","Rotkäppchen":"Little Red Riding Hood","Hänsel":"Hansel","Gretel":"Gretel","Hans":"Hans (a first name)","Erlkönig":"the Erl-King (Goethe's ballad)","Sandmann":"the Sandman","Lemuren":"lemures: spirits of the dead who dig Faust's grave","Pudel":"poodle (Mephisto first appears as a black poodle)","Doktor":"doctor (title, form of address)","Herr":"Mr; gentleman; lord","Frau":"Mrs, Ms; woman; wife","FSP":"Fachsprachprüfung: the medical language exam","EKG":"ECG","CT":"CT scan","MRT":"MRI","OP":"operation; operating theatre","Kyffhäuser":"the Kyffhäuser mountain (legend of the sleeping emperor)","Barbarossa":"Emperor Frederick Barbarossa","Teutoburger":"Teutoburg (Forest)","Neuruppin":"Neuruppin","Köpenick":"Köpenick (Berlin)","Bunsen":"Robert Bunsen, chemist","Freud":"Sigmund Freud","Hoffmann":"E. T. A. Hoffmann, Romantic writer","Schiller":"Friedrich Schiller","Heine":"Heinrich Heine","Auerbachs":"Auerbach's (cellar in Leipzig)","Auerbach":"Auerbach's cellar, Leipzig","Wittenberg":"Wittenberg","Staufen":"Staufen im Breisgau, where the historical Faust is said to have died","Knittlingen":"Knittlingen, said birthplace of the historical Faust","Nürnberger":"of Nuremberg","Genfer":"of Geneva","Karzer":"student prison (of old universities)","TK":"Techniker Krankenkasse (a health insurance fund)","Dr":"Dr. = Doktor (title)","Prof":"Prof. = Professor","SBAR":"SBAR: structured handover (situation, background, assessment, recommendation)","ISBAR":"ISBAR: structured handover (identify, situation, background, assessment, recommendation)","Babylon":"Babylon; „Babylon Berlin“","Halensee":"Halensee (district of Berlin)","Holstenwall":"Holstenwall (a street in Hamburg; the fair in „Caligari“)","Lunapark":"Lunapark, the amusement park at Halensee, Berlin","Metropolis":"„Metropolis“ (Fritz Lang's film, 1927)","Coppelius":"Coppelius, the sandman figure in E. T. A. Hoffmann's „Der Sandmann“","Coppola":"Coppola, the barometer seller in „Der Sandmann“","Nathanael":"Nathanael, hero of „Der Sandmann“","Olimpia":"Olimpia, the automaton in „Der Sandmann“","Alexanderplatz":"Alexanderplatz, square in Berlin","Wendt":"(a surname)","Lohmann":"Kommissar Lohmann (in Fritz Lang's „M“)","Keller":"Dr. Keller (a doctor in the course)","Lang":"Fritz Lang, film director; also: lang = long","Murnau":"F. W. Murnau, film director","Schlemihl":"Peter Schlemihl, who sold his shadow (Chamisso)","Chamisso":"Adelbert von Chamisso, poet","Hiob":"Job (the Book of Job)","Kepler":"Johannes Kepler, astronomer","Charité":"the Charité, Berlin's university hospital","Europa":"Europe","Europas":"Europe's","Wien":"Vienna","München":"Munich","Frankfurt":"Frankfurt","Nürnberg":"Nuremberg","Hannover":"Hanover","Basel":"Basel","Genf":"Geneva","Frankreich":"France","Thüringen":"Thuringia","Mark":"Mark (currency until 2001); also a first name","Christus":"Christ (in dates: nach Christus = AD)","Zuckmayer":"Carl Zuckmayer, playwright","Voigt":"Wilhelm Voigt, the „Hauptmann von Köpenick“","Döblin":"Alfred Döblin, author of „Berlin Alexanderplatz“","Lessing":"Gotthold Ephraim Lessing, writer","Alzheimer":"Alois Alzheimer, psychiatrist","Kraepelin":"Emil Kraepelin, psychiatrist","Twain":"Mark Twain","Frankenstein":"„Frankenstein“ (Mary Shelley)","Perkeo":"Perkeo, the dwarf who guarded the Heidelberg Tun","Agrippa":"Agrippa von Nettesheim, scholar","Dracula":"Dracula","Wilhelm":"Wilhelm (a first name)","Friedrich":"Friedrich (a first name)","Johann":"Johann (a first name)","Johannes":"Johannes (a first name)","Heinrich":"Heinrich (a first name)","Franz":"Franz (a first name)","Max":"Max (a first name)","Fritz":"Fritz (a first name)","Robert":"Robert (a first name)","Carl":"Carl (a first name)","Peter":"Peter (a first name)","Anna":"Anna (a first name)","Bertha":"Bertha (a first name)","Jacob":"Jacob (a first name)","Georg":"Georg (a first name)","Alfred":"Alfred (a first name)","Gustav":"Gustav (a first name)","Theodor":"Theodor (a first name)","Ignaz":"Ignaz (a first name)","Emil":"Emil (a first name)","Alois":"Alois (a first name)","Konrad":"Konrad (a first name)","Conrad":"Conrad (a first name)","Mary":"Mary (a first name)","Charles":"Charles (a first name)","Kaspar":"Kaspar Hauser, the foundling of Nuremberg","Hauser":"Kaspar Hauser"
 };
