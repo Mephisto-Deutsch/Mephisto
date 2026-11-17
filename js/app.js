@@ -99,9 +99,9 @@ function logEvent(type,text,val){const d=new Date();S.events=(S.events||[]).conc
 // active study time: counted while a session or tool is open and the app is visible (idle gaps over 3 min are not counted)
 let STUDY={on:false,last:0};
 function studyTick(){if(!STUDY.on||document.visibilityState!=="visible")return;const now=Date.now();const dt=now-STUDY.last;STUDY.last=now;if(dt>0&&dt<180000){const d=todayKey();const L=S.log[d]=S.log[d]||{};L.sec=(L.sec||0)+Math.round(dt/1000);if(L.sec>=300&&!L.act){L.act=1;if(typeof logEvent==="function")logEvent("time","5 Minuten gelernt: Tag zählt")}saveSoon()}}
-function studyStart(){STUDY.on=true;STUDY.last=Date.now()}
-function studyStop(){studyTick();STUDY.on=false}
-setInterval(studyTick,15000);
+let STUDY_T=0;   // integrator 13.10: the 15 s study clock runs only while a session is open (it used to wake the page forever)
+function studyStart(){STUDY.on=true;STUDY.last=Date.now();if(!STUDY_T)STUDY_T=setInterval(studyTick,15000)}
+function studyStop(){studyTick();STUDY.on=false;if(STUDY_T){clearInterval(STUDY_T);STUDY_T=0}}
 ["pointerdown","keydown"].forEach(n=>document.addEventListener(n,()=>{if(STUDY.on)studyTick()},{passive:true,capture:true}));
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")STUDY.last=Date.now();else studyTick()});
 const minutesOn=k=>{const L=S.log[k];return L?Math.round((L.sec||0)/60)+(L.min||0):0};
@@ -1134,7 +1134,7 @@ ACT.copyYuzu=()=>{const p=yuzuPack();copyText(JSON.stringify(p),$(".bk-txt"));to
 ACT.reset=()=>{const v=($(".rs-in")||{}).value;if(v!=="LÖSCHEN")return toast("Tippe LÖSCHEN zur Bestätigung");lsSet("mephisto_before_reset",JSON.stringify(S));S=fresh();saveNow();buildDict();applyPrefs();R.tab="home";toast("Zurückgesetzt. Eine Kopie liegt unter „mephisto_before_reset“.");rerender()};
 
 // ================= PHONE FEATURES (v10): speech check, Artikel-Blitz, numbers, terms, undo, haptics, coach, PWA =================
-const APP_VERSION="13.9.0";
+const APP_VERSION="13.10.0";
 const IS_PWA=!!window.MEPHISTO_PWA;
 const IS_STANDALONE=(()=>{try{return matchMedia("(display-mode: standalone)").matches||navigator.standalone===true}catch(e){return false}})();
 const IS_IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
@@ -2381,6 +2381,42 @@ ACT.hubOpen=()=>{go("me");setTimeout(()=>{const b=$('[data-act=meSeg][data-k=set
   window.addEventListener("pagehide",()=>{hubPushState(false)});
   if(hubCan()&&gAuth())setTimeout(()=>hubSync(false),1500);
   if(!S.google)S.google={};})();
+
+// ===== Mephisto 13.10 · Drive folders found by tag (claude/drive-layout.md, 17/11/2026).
+// Citrus tags every app folder with appProperties.citrusApp="<id>" and may move it into Citrus/… — so folders are found by tag, never by path.
+//   own folder  : citrusApp=mephisto   (state.json, status.json, backups/)
+//   read        : citrusApp=citrus     (plan.json)          · citrusApp=yuzu-data (collection/inbox for the word packs)
+// No tag yet → the old path (My Apps/hub/…, My Apps/Yuzu/…); Mephisto tags its own folder at once (never someone else's).
+// Never creates a path folder once a tagged one exists; several tagged → the oldest. Ids are cached for the session and re-checked once per session.
+// Mephisto never renames or moves its own folder. status.json says drive.byTag=true.
+const DRV={tag:{},checked:{}};
+const DRV_MAP=[ // old path prefix → tag; the rest of the path is looked up (or created) inside the tagged folder
+  {pre:()=>[HUB.ROOT,"hub",HUB.APP],tag:"mephisto",own:true},
+  {pre:()=>[HUB.ROOT,"hub","citrus"],tag:"citrus"},
+  {pre:()=>[HUB.ROOT,"hub","scheduler"],tag:"citrus"},
+  {pre:()=>[HUB.ROOT,"Yuzu"],tag:"yuzu-data"}];
+async function drvByTag(tag){
+  if(DRV.checked[tag])return DRV.tag[tag]||null;
+  const qq=`mimeType='${HUB.FOLDER}' and trashed=false and appProperties has { key='citrusApp' and value='${q(tag)}' }`;
+  const r=await gJSON(`${HUB.DRIVE}/files?`+new URLSearchParams({q:qq,spaces:"drive",fields:"files(id,name,parents,createdTime)",pageSize:"20"}));
+  const fs=((r&&r.files)||[]).sort((a,b)=>String(a.createdTime).localeCompare(String(b.createdTime)));
+  DRV.checked[tag]=true;DRV.tag[tag]=fs.length?fs[0].id:null;return DRV.tag[tag]}
+async function drvChild(parent,names,noCreate){ // walk/create plain subfolders inside a tagged folder
+  let p=parent;for(const name of names){let f=(await dList(p,name,true))[0];if(!f&&noCreate)return null;
+    if(!f)f=await gJSON(`${HUB.DRIVE}/files?fields=id`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name,mimeType:HUB.FOLDER,parents:[p]})});p=f.id}return p}
+async function drvTag(id,tag){await gJSON(`${HUB.DRIVE}/files/${encodeURIComponent(id)}?fields=id`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({appProperties:{citrusApp:tag}})});DRV.tag[tag]=id;DRV.checked[tag]=true}
+MOD.around("dFolder","drive",async function(orig,path,retry,noCreate){
+  path=path||[];const m=DRV_MAP.find(e=>{const p=e.pre();return p.length<=path.length&&p.every((x,i)=>x===path[i])});
+  if(!m)return orig(path,retry,noCreate);
+  if(retry){DRV.checked[m.tag]=false}
+  const rest=path.slice(m.pre().length);
+  const tagged=await drvByTag(m.tag);
+  if(tagged)return rest.length?drvChild(tagged,rest,noCreate):tagged;
+  // no tagged folder anywhere: old path (creates it unless noCreate), then tag our own folder
+  const base=await orig(m.pre(),retry,noCreate);if(!base)return null;
+  if(m.own){try{await drvTag(base,m.tag)}catch(e){try{logError(e)}catch(x){}}}
+  return rest.length?drvChild(base,rest,noCreate):base});
+MOD.around("hubStatus","drive",function(orig){const st=orig.apply(this,[].slice.call(arguments,1));if(st&&typeof st==="object")st.drive=Object.assign({},st.drive||{},{byTag:true});return st});
 
 // ================= LABS, TOOLS & UTILITIES (11.2) =================
 // Üben → Labore: Konjugator · Deklinations-Lab · Satzbaukasten · Zahlen-Umrechner · Arztbrief-Werkstatt ·
@@ -4259,7 +4295,9 @@ body:has(#focus:not([hidden])) #hor-eye,body:has(#sheet:not([hidden])) #hor-eye,
 #hx-gutter.dry{background:linear-gradient(transparent,#4a2a1a)}`;document.head.appendChild(css);
   // --- the eye that watches
   function mkEye(){if(eye)return;eye=document.createElement("div");eye.id="hor-eye";eye.innerHTML=`<svg viewBox="0 0 34 20"><path class="lid" d="M1 10Q17 -4 33 10Q17 24 1 10Z" fill="#EDE3CF" stroke="#3a0b0b" stroke-width="1.2"/><g class="lid"><circle class="iris" cx="17" cy="10" r="5.2" fill="#7A1A12"/><circle class="pupil" cx="17" cy="10" r="2.2" fill="#000"/></g><path d="M3 8Q8 6 9 9M25 9Q27 6 31 8" stroke="#8B1A14" stroke-width=".6" fill="none" opacity=".7"/></svg>`;document.body.appendChild(eye);
-    const blink=()=>{if(!eye)return;if(!eye.classList.contains("shut")){eye.classList.add("blink");setTimeout(()=>eye&&eye.classList.remove("blink"),140)}setTimeout(blink,2500+Math.random()*6000)};setTimeout(blink,3000)}
+    // integrator 13.10: the eye rests (no blink timer) while the page is idle or hidden and starts again on the next input
+    let blT=0;const blink=()=>{blT=0;if(!eye)return;const Hh=document.documentElement;if(Hh.classList.contains("idle")||document.hidden)return;if(!eye.classList.contains("shut")){eye.classList.add("blink");setTimeout(()=>eye&&eye.classList.remove("blink"),140)}blT=setTimeout(blink,2500+Math.random()*6000)};blT=setTimeout(blink,3000);
+    const wakeB=()=>{if(!blT&&eye)blT=setTimeout(blink,1500)};document.addEventListener("ui:idle",e=>{if(!(e.detail&&e.detail.idle))wakeB()});document.addEventListener("visibilitychange",()=>{if(!document.hidden)wakeB()})}
   let gazeOff=0;  // W06: while > now the eye does not follow the pointer
   document.addEventListener("pointermove",e=>{lastIdle=Date.now();if(!eye||Date.now()<gazeOff)return;const r=eye.getBoundingClientRect();const dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);const a=Math.atan2(dy,dx),d=Math.min(3.2,Math.hypot(dx,dy)/60);
     gaze(17+Math.cos(a)*d,10+Math.sin(a)*d*.7)},{passive:true});
@@ -4277,7 +4315,7 @@ body:has(#focus:not([hidden])) #hor-eye,body:has(#sheet:not([hidden])) #hor-eye,
     if(!goth||!L||calm()){amb.innerHTML="";ambR=null;clearInterval(flashT);return}if(ambR===r+L)return;ambR=r+L;clearInterval(flashT);
     const n=L===2?26:14;let h="";const rnd=(a,b)=>a+Math.random()*(b-a);
     if(r==="IV"){for(let i=0;i<n*2;i++)h+=`<i class="rain" style="left:${rnd(0,105)}%;animation-duration:${rnd(.7,1.3)}s;animation-delay:${rnd(0,2)}s"></i>`;
-      flashT=setInterval(()=>{if(document.hidden||quiet(null)||Date.now()-lastThunder<240000)return;if(document.querySelector("audio:not([paused])")||(typeof speechSynthesis!=="undefined"&&speechSynthesis.speaking))return;   // S6 H12: thunder at most every 4 minutes, never during audio
+      flashT=setInterval(()=>{if(document.hidden||document.documentElement.classList.contains("idle")||quiet(null)||Date.now()-lastThunder<240000)return;if(document.querySelector("audio:not([paused])")||(typeof speechSynthesis!=="undefined"&&speechSynthesis.speaking))return;   // S6 H12: thunder at most every 4 minutes, never during audio
         if(Math.random()<.35){lastThunder=Date.now();const f=$("#hor-flash");f.classList.remove("on");void f.offsetWidth;f.classList.add("on");setTimeout(()=>SND.fx("thunder"),700)}},22000)}
     else for(let i=0;i<n;i++){const col=r==="I"?"#C9F28A":r==="II"?"#E8D8A0":r==="III"?"#FFB566":"#FF8A4A";h+=`<i style="left:${rnd(0,100)}%;--dx:${rnd(-80,80)}px;animation-duration:${rnd(9,22)}s;animation-delay:${rnd(0,14)}s;background:${col};box-shadow:0 0 6px ${col}"></i>`}
     if(r==="I"||r==="V")for(let i=0;i<(L===2?5:2);i++)h+=`<i class="eye" style="left:${rnd(4,92)}%;top:${rnd(55,88)}%;animation-delay:${rnd(0,7)}s;animation-duration:${rnd(6,11)}s${r==="V"?";background:#E0302A;box-shadow:0 0 8px #E0302A":""}"></i>`;
@@ -4331,7 +4369,9 @@ body:has(#focus:not([hidden])) #hor-eye,body:has(#sheet:not([hidden])) #hor-eye,
     if(!force){if(typeof HX==="undefined"||HX.tier(null)<3||!HX.can("hand",3))return false}
     let s=document.getElementById("hor-shadow");if(!s){s=document.createElement("div");s.id="hor-shadow";s.innerHTML=`<svg viewBox="0 0 260 600" preserveAspectRatio="xMinYMax meet" style="width:100%;height:100%"><defs><filter id="hb"><feGaussianBlur stdDeviation="3"/></filter></defs><path filter="url(#hb)" fill="#050202" d="M0 600 L0 260 C30 250 60 270 80 240 L118 120 C122 104 136 106 134 122 L118 220 L160 70 C165 52 182 56 178 74 L150 210 L196 92 C202 76 220 82 214 98 L176 228 L222 150 C230 136 246 146 238 160 L190 270 C176 330 150 380 110 420 L90 600Z"/></svg>`;document.body.appendChild(s)}
     shadowOut=true;s.classList.remove("back");s.classList.add("out");setTimeout(()=>{s.classList.remove("out");setTimeout(()=>{shadowOut=false;s.classList.remove("back")},4000)},5200);return true}
-  setInterval(()=>{if(Date.now()-lastIdle>150000&&!Focus.isOpen()&&typeof R!=="undefined"&&/^(home|pakt)$/.test(R.tab)){lastIdle=Date.now();shadowHand()}},5000);
+  // integrator 13.10: no 5 s poller — a6's ui:idle (20 s without input) arms one timeout for the rest of the 150 s; any input disarms it
+  {let shT=0;const fire=()=>{shT=0;if(Date.now()-lastIdle>=149000&&!Focus.isOpen()&&typeof R!=="undefined"&&/^(home|pakt)$/.test(R.tab)){lastIdle=Date.now();shadowHand()}};
+   document.addEventListener("ui:idle",e=>{clearTimeout(shT);shT=0;if(e.detail&&e.detail.idle)shT=setTimeout(fire,Math.max(1000,150000-(Date.now()-lastIdle)))})}
   // (the 13.0 RGB glitch on a 14-second metronome is removed: wrong genre, metronomic, and it hit sober lines — S6 H6, S10 D11, artsound V11)
   function apply(){const h=H();h.dataset.hor=String(lvl());if(lvl()&&h.dataset.ui!=="pixel")mkEye();else if(eye){eye.remove();eye=null}ambient();try{gutterSync((typeof P==="function"&&P().signed)?(P().debt||0):0)}catch(e){}}
   return {apply,hurt,bleed,whisper,lvl,calm,shadowHand,ink,veil,shake,gutter,gutterSync,shutEye,openEye,lookAway,pupil,standDown,pause,quiet,eye:()=>eye}})();
@@ -4377,6 +4417,7 @@ const hs=new Set();
 function handle(stop,ms,amb){let dead=false,res,t=0;const h={stop(){if(dead)return;dead=true;hs.delete(h);clearTimeout(t);if(!amb)live--;try{stop&&stop()}catch(e){}res()}};h.done=new Promise(r=>res=r);if(!amb){live++;hs.add(h)}if(ms)t=setTimeout(h.stop,ms);return h}
 // --- layers
 let back,front,over,clipBox,cv,ctx,glow,glowI,vig,grainEl,flashEl,coneEl,clipP=null,booted=false;const CS=.5;
+const FX_GRAIN_JITTER=false;   // integrator 13.10 (performance): the film grain stands still — a jittering full-screen layer repainted every frame, twice the viewport in size
 const mk=(tag,cls,par)=>{const e=D.createElement(tag);if(cls)e.className=cls;if(par)par.appendChild(e);return e};
 const loops=new Set();
 function A(el,kf,o){if(calm()){const l=kf[kf.length-1];for(const k in l)if(k!=="offset"&&k!=="easing"&&k!=="composite")try{el.style[k]=l[k]}catch(e){}return {finished:Promise.resolve(),cancel(){},pause(){},play(){}}}
@@ -4445,12 +4486,17 @@ const AUTO_PROTECT='[data-fx-protect],.verdict,.fc,.xp,.exam-passage,.pk-nar,#fI
 const prot=new Set([AUTO_PROTECT]),PAD=1;let rects=[],rq=0;
 function protect(x){boot();const items=(typeof x==="string"||x instanceof Element)?[x]:Array.from(x||[]);items.forEach(i=>prot.add(i));measure();return {stop(){items.forEach(i=>{if(i!==AUTO_PROTECT)prot.delete(i)});measure()}}}
 function refresh(){if(!booted||rq)return;rq=requestAnimationFrame(()=>{rq=0;measure()})}
+measure.w=new WeakSet();
 function measure(){if(!booted)return;const vw=innerWidth,vh=innerHeight,fo=focusOpen();let rs=[];
   prot.forEach(i=>{let els;try{els=typeof i==="string"?D.querySelectorAll(i):[i]}catch(e){return}els.forEach(e=>{if(!e.isConnected||e.closest("#fx-front,#fx-over,#fx-back"))return;const r=e.getBoundingClientRect();if(r.width<2||r.height<2||r.bottom<0||r.top>vh||r.right<0||r.left>vw)return;
     if(e.closest("[hidden]"))return;if(fo&&e.closest("#main"))return;   // a6: boxes under the opaque Focus overlay need no hole
     rs.push({l:Math.max(0,Math.floor(r.left-PAD)),t:Math.max(0,Math.floor(r.top-PAD)),r:Math.min(vw,Math.ceil(r.right+PAD)),b:Math.min(vh,Math.ceil(r.bottom+PAD))})})});
   // union: overlapping rectangles are merged into their bounding box (even-odd clipping needs disjoint holes)
   for(let ch=true;ch;){ch=false;outer:for(let i=0;i<rs.length;i++)for(let j=i+1;j<rs.length;j++){const a=rs[i],b=rs[j];if(a.l<b.r&&b.l<a.r&&a.t<b.b&&b.t<a.b){rs[i]={l:Math.min(a.l,b.l),t:Math.min(a.t,b.t),r:Math.max(a.r,b.r),b:Math.max(a.b,b.b)};rs.splice(j,1);ch=true;break outer}}}
+  // integrator 13.10 (t_a6 flake): a box measured while its entrance animation still runs (a7's Focus/card motion scales it from .97) got a
+  // hole that was too small; once such a finite animation in the page finishes, the holes are measured again
+  try{D.getAnimations().forEach(a=>{if(a.playState!=="running"||measure.w.has(a))return;const tg=a.effect&&a.effect.target;if(!tg||!tg.closest||tg.closest("#fx-front,#fx-over,#fx-back,#fx-clip"))return;
+    const tm=a.effect.getComputedTiming();if(!isFinite(tm.endTime)||!(tg.closest("#focus,#main")||tg.querySelector&&tg.querySelector("#fIn,.card")))return;measure.w.add(a);a.finished.then(refresh,()=>{})})}catch(e){}
   rects=rs;let d=`M0 0H${vw}V${vh}H0Z`;rs.forEach(q=>{d+=`M${q.l} ${q.t}V${q.b}H${q.r}V${q.t}Z`});
   if(d!==measure.d){measure.d=d;clipBox.style.clipPath=`path(evenodd,"${d}")`;clipBox.style.webkitClipPath=clipBox.style.clipPath;try{clipP=new Path2D(d)}catch(e){clipP=null}}}
 // free vertical strips (gutters): where drips, embers and rain may run. Never the text column.
@@ -4476,7 +4522,7 @@ const stats={frames:0};
 // ================= ATMOSPHERE =================
 function grain(){boot();if(!st.I)return NOOP;if(!grain.url){const c=D.createElement("canvas");c.width=c.height=128;const g=c.getContext("2d"),im=g.createImageData(128,128),d=im.data;for(let i=0;i<d.length;i+=4){const n=(Math.random()+Math.random()+Math.random()-1.5)/1.5,v=n>0?255:0;d[i]=d[i+1]=d[i+2]=v;d[i+3]=Math.abs(n)*150}g.putImageData(im,0,0);
     grain.url="pending";try{c.toBlob(b=>{grain.url=b?URL.createObjectURL(b):"";if(grain.url&&grainEl)grainEl.style.backgroundImage=`url(${grain.url})`},"image/png")}catch(e){grain.url=""}}
-  if(grain.url&&grain.url!=="pending")grainEl.style.backgroundImage=`url(${grain.url})`;grainEl.style.display="";let a=null;if(!st.battery){const kf=[];for(let i=0;i<8;i++)kf.push({transform:`translate3d(${rnd(-60,60)|0}px,${rnd(-60,60)|0}px,0)`,easing:"steps(1,end)"});a=A(grainEl,kf,{duration:1000,iterations:Infinity})}
+  if(grain.url&&grain.url!=="pending")grainEl.style.backgroundImage=`url(${grain.url})`;grainEl.style.display="";let a=null;if(!st.battery&&FX_GRAIN_JITTER){const kf=[];for(let i=0;i<8;i++)kf.push({transform:`translate3d(${rnd(-60,60)|0}px,${rnd(-60,60)|0}px,0)`,easing:"steps(1,end)"});a=A(grainEl,kf,{duration:1000,iterations:Infinity})}
   return handle(()=>{grainEl.style.display="none";if(a){a.cancel();loops.delete(a)}},0,true)}
 // a6: ambient particles run on the ONE shared canvas (PLAN-A D8, §2.9): A9's DOM particles were one endless animation per ember
 // (15 on Home I, 58 in realm IV), far over the budget of 8 per screen. On the canvas they cost one 20 fps loop that stops on idle, hidden and calm.
@@ -5409,7 +5455,10 @@ function loreGrave(e){return !!(e&&(e.grave||e.sober))}
 function eggGrave(id){try{return LORE.some(e=>e.egg===id&&loreGrave(e))}catch(x){return false}}
 function loreNew(){return LORE.filter(e=>loreOpen(e)&&!loreSeen()[e.id]&&!loreGrave(e))}
 // repeating work that stops while the page is hidden and starts again when it is back
-function visInterval(fn,ms){let t=null;const on=()=>{if(!t&&!document.hidden)t=setInterval(fn,ms)},off=()=>{if(t){clearInterval(t);t=null}};document.addEventListener("visibilitychange",()=>{if(document.hidden)off();else on()});on();return {stop:off,start:on}}
+// integrator 13.10 (performance): these clocks (the catchable raven, the poodle, time-of-day secrets) also rest while the page is idle
+// (a6's ui:idle, 20 s without input): a raven flying over an idle screen kept the compositor busy. They start again on the next input.
+function visInterval(fn,ms){let t=null;const idle=()=>document.documentElement.classList.contains("idle");const on=()=>{if(!t&&!document.hidden&&!idle())t=setInterval(fn,ms)},off=()=>{if(t){clearInterval(t);t=null}};
+  document.addEventListener("visibilitychange",()=>{if(document.hidden)off();else on()});document.addEventListener("ui:idle",e=>{if(e.detail&&e.detail.idle)off();else on()});on();return {stop:off,start:on}}
 function loreArt(id,cls){const a=pkArt(id);return a?`<img class="${cls||""}${a.k==="ink"?" ink":""}" src="${a.u}" alt="">`:""}
 // ---------------------------------------------------------------- 1. Die Chronik (codex)
 let CHR_TAB="reiche";
@@ -5838,7 +5887,7 @@ setTimeout(f13Hours,6000);visInterval(f13Hours,2*60*1000);
   if(el.closest(".sp-rabe")){const r=el.closest(".sp-rabe");r.remove();f13Egg("kyff")}
   if(el.closest('[data-act="pkReadDone"]')){const ti=(($("#fTitle")||{}).textContent||"");if(/^Kapitel 21\b/.test(ti))f13Egg("wette",700);if(/^Kapitel 29\b/.test(ti))f13Egg("koepenick",700)}}catch(x){}},true)})();
 // one raven flies low enough to be caught — in the Black Forest only, until it has been caught
-function f13Raven(){try{if(!P().signed||eggs().kyff||document.hidden||document.querySelector(".sp-rabe"))return;const inI=document.documentElement.dataset.realm==="I"&&!Focus.isOpen()&&(R.tab==="home"||R.tab==="pakt");const onPage=!!document.querySelector(".lore-page.rI");if(!inI&&!onPage)return;
+function f13Raven(){try{if(!P().signed||eggs().kyff||document.hidden||document.documentElement.classList.contains("idle")||document.querySelector(".sp-rabe"))return;const inI=document.documentElement.dataset.realm==="I"&&!Focus.isOpen()&&(R.tab==="home"||R.tab==="pakt");const onPage=!!document.querySelector(".lore-page.rI");if(!inI&&!onPage)return;
   const b=document.createElement("button");b.className="sp-rabe";b.setAttribute("aria-label","Ein Rabe");b.innerHTML=`<svg viewBox="0 0 60 30"><path d="M30 18 C22 6 10 6 2 12 C12 12 20 14 30 20 C40 14 48 12 58 12 C50 6 38 6 30 18Z" fill="#050806" stroke="#F08A3F" stroke-width=".6"/></svg>`;document.body.appendChild(b);setTimeout(()=>b.remove(),15000)}catch(e){}}
 visInterval(f13Raven,75000);setTimeout(f13Raven,20000);
 // ---------------------------------------------------------------- 3. boss music: each boss has a two-bar ostinato; the realm score steps aside, the ambience stays
@@ -5851,12 +5900,18 @@ const BOSS_MUSIC={
 let BOSS_NOW=null,BOSS_AT=0,BOSS_T=null;
 // P2: the 200 ms music clock runs only while a duel is open (platform D9); it stops itself when the duel is gone and rests while the page is hidden.
 // Next bar = previous start + length, not "now" (QA D17); the realm score is hushed whenever it is audible, not only once (QA D16).
-function bossTick(){try{const d=document.querySelector(".duel");if(!Focus.isOpen()||(!d&&!document.querySelector("#fIn .duel-intro,#fIn [data-act='duelGo'],#fFootIn [data-act='duelGo']"))){clearInterval(BOSS_T);BOSS_T=null;BOSS_AT=0;return}
+function bossTick(){try{const d=document.querySelector(".duel");if(!Focus.isOpen()||(!d&&!document.querySelector("#fIn .duel-intro,#fIn [data-act='duelGo'],#fFootIn [data-act='duelGo']"))){clearTimeout(BOSS_T);BOSS_T=null;BOSS_AT=0;BOSS_NOW=null;return}
   const q=d&&d.querySelector(".duel-q");const live=!!(q&&q.children.length&&!document.hidden);if(!live){BOSS_AT=0;return}
   const M=BOSS_MUSIC[BOSS_NOW];if(!M||!SND.state().on||!SND.state().started)return;
   const lives=d.querySelectorAll(".duel-lives i.on").length;const bpm=Math.round(M.bpm*(lives<=2?1.18:1));const now=performance.now();
   if(now>=BOSS_AT-120){if(!SND.hushed()||(SND.now&&SND.now()))SND.hush(true);const ev=lives<=2?M.ev.concat([[26,0,2],[32,M.steps/2,2]]):M.ev;SND.motif(ev,M.inst,bpm);const dur=M.steps*(60/bpm/4)*1000;BOSS_AT=(BOSS_AT&&now-BOSS_AT<400?BOSS_AT:now)+dur}}catch(e){}}
-(function(){const _d=bossDuel;bossDuel=function(id){BOSS_NOW=id;BOSS_AT=0;clearInterval(BOSS_T);const r=_d.apply(this,arguments);BOSS_T=setInterval(bossTick,200);return r}})();
+// integrator 13.10 (performance): no 200 ms poller any more. The clock wakes on the duel's own events (state, closed, end) and otherwise
+// sleeps until the next bar is due (BOSS_AT); with sound off, a hidden tab or no live question it does not run at all.
+function bossArm(){clearTimeout(BOSS_T);BOSS_T=null;if(!BOSS_NOW)return;bossTick();if(BOSS_NOW&&BOSS_AT)BOSS_T=setTimeout(bossArm,Math.max(60,BOSS_AT-120-performance.now()))}
+(function(){const wake=()=>{try{bossArm()}catch(e){}};let hooked=false;const hook=()=>{if(hooked||typeof Duel==="undefined"||!Duel||typeof Duel.on!=="function")return;hooked=true;
+    Duel.on("state",wake);Duel.on("closed",()=>{BOSS_NOW=null;BOSS_AT=0;clearTimeout(BOSS_T);BOSS_T=null});Duel.on("end",wake)};
+  document.addEventListener("visibilitychange",()=>{if(document.hidden){clearTimeout(BOSS_T);BOSS_T=null;BOSS_AT=0}else wake()});
+  const _d=bossDuel;bossDuel=function(id){BOSS_NOW=id;BOSS_AT=0;clearTimeout(BOSS_T);BOSS_T=null;const r=_d.apply(this,arguments);hook();setTimeout(wake,0);return r}})();
 // ---------------------------------------------------------------- 4. settings: spelling
 (function(){MOD.after("viewMe","final",function(m){try{if(meSeg!=="set")return;const v=m.querySelector(".view");if(!v||v.querySelector(".f13-spell"))return;const cur=S.strict===true?"an":S.strict===false?"aus":"auto";
   v.insertAdjacentHTML("beforeend",`<div class="card stack s f13-spell"><div class="eyebrow">Rechtschreibung <span class="en">spelling</span></div><p class="ui" style="margin:0">Großschreibung, ß und Umlaute werden immer angezeigt. Streng heißt: Auf Karten gilt eine Antwort mit Rechtschreibfehler nur als „fast richtig“. <span class="en">Capitals, ß and umlauts are always pointed out. Strict means a card answer with a spelling slip only counts as 'almost'.</span></p><div class="seg">${[["auto","Ab B1 streng"],["an","Immer streng"],["aus","Nie streng"]].map(([k,n])=>`<button class="${cur===k?"on":""}" data-act="f13Strict" data-k="${k}">${n}</button>`).join("")}</div></div>`)}catch(e){}})})();
@@ -6814,7 +6869,9 @@ function tick(){if(!has())return;let s;try{s=SND.state()}catch(e){return}
   if(M.tension.debt&&!debtNow())M.tension.debt=false;
   if(M.mode==="seq"){const r=realmNow();if(r!==M.realm){M.realm=r;if(M.cur&&M.cur.realm&&M.cur.realm!==r){if(!playTheme("bar"))M.nextAt=T()}else if(!M.h)M.nextAt=Math.min(M.nextAt,T()+1)}}
   if(M.mode==="seq"){step();applyLayers()}}
-let timer=null;function ensureTimer(){if(!timer&&typeof setInterval==="function")timer=setInterval(()=>{try{tick()}catch(e){log("tick "+e.message)}},2000)}
+// integrator 13.10 (performance): the 2 s sequencer clock stops while the sound is off or the tab is hidden; the next tap or key (or a visible tab) starts it again
+let timer=null;function ensureTimer(){if(!timer&&typeof setInterval==="function")timer=setInterval(()=>{try{let off=typeof document!=="undefined"&&document.hidden;try{off=off||!(SND.state&&SND.state().on)}catch(e){}if(off){clearInterval(timer);timer=null;return}tick()}catch(e){log("tick "+e.message)}},2000)}
+if(typeof document!=="undefined"&&document.addEventListener)document.addEventListener("visibilitychange",()=>{try{if(!document.hidden&&M.mode!=="off")ensureTimer()}catch(e){}});
 
 // ------------------------------------------------------------------------------------------------ 4. answers (s6's hx:answer — nothing here counts failures of its own)
 function onAnswer(e){const d=e&&e.detail||{};if(d.ctx==="duel"||M.mode==="boss")return;const ok=!!d.ok;
@@ -7467,7 +7524,7 @@ function p3Chooser(el,o){const st=p3State();const all=p3AllCases().filter(p3Usab
 // (content/l1/*.js, tests/l1_*.js), which load this file with require().
 var L1M=(function(){
 "use strict";
-const SEP=["wohl","weh","auseinander","zusammen","entgegen","gegenüber","zurecht","zurück","weiter","vorbei","voraus","voran","hinterher","herunter","hinunter","herüber","hinüber","herauf","hinauf","heraus","hinaus","herein","hinein","hervor","hinzu","herum","umher","nieder","wieder","übrig","bereit","sicher","krank","kennen","wahr","fest","statt","teil","hoch","fern","fort","frei","klar","dar","her","hin","los","mit","nach","vor","weg","bei","auf","aus","ein","ab","an","um","zu","durch","über","unter","wider","aufrecht","überein","stand","heim","nahe","tot","gut","schief","fertig","vorher","nachher","dazu","davon","dabei","dagegen","daran","darauf","zugrunde","zustande","zunichte","offen","still","voll","gleich","leicht","schwer","lieb","groß","klein","kurz","lang","rück","not","preis","stehen","sitzen","liegen","spazieren","hängen","entlang","empor","hintereinander","nebeneinander","miteinander","aneinander","aufeinander","zueinander","durcheinander","beisammen","beiseite","daher","dahin","davor","dazwischen","einher","herbei","hierher","hinweg","hindurch","umhin","vorweg","vorüber","zuvor","zwischen","abwärts","aufwärts","rückwärts","vorwärts","seitwärts","weh","leid","entzwei","fehl","kaputt"].sort((a,b)=>b.length-a.length);
+const SEP=["wohl","weh","rein","raus","auseinander","zusammen","entgegen","gegenüber","zurecht","zurück","weiter","vorbei","voraus","voran","hinterher","herunter","hinunter","herüber","hinüber","herauf","hinauf","heraus","hinaus","herein","hinein","hervor","hinzu","herum","umher","nieder","wieder","übrig","bereit","sicher","krank","kennen","wahr","fest","statt","teil","hoch","fern","fort","frei","klar","dar","her","hin","los","mit","nach","vor","weg","bei","auf","aus","ein","ab","an","um","zu","durch","über","unter","wider","aufrecht","überein","stand","heim","nahe","tot","gut","schief","fertig","vorher","nachher","dazu","davon","dabei","dagegen","daran","darauf","zugrunde","zustande","zunichte","offen","still","voll","gleich","leicht","schwer","lieb","groß","klein","kurz","lang","rück","not","preis","stehen","sitzen","liegen","spazieren","hängen","entlang","empor","hintereinander","nebeneinander","miteinander","aneinander","aufeinander","zueinander","durcheinander","beisammen","beiseite","daher","dahin","davor","dazwischen","einher","herbei","hierher","hinweg","hindurch","umhin","vorweg","vorüber","zuvor","zwischen","abwärts","aufwärts","rückwärts","vorwärts","seitwärts","weh","leid","entzwei","fehl","kaputt"].sort((a,b)=>b.length-a.length);
 const INSEP=["be","emp","ent","er","ge","miss","ver","zer","hinter","wider"];
 const AMBI=["durch","über","unter","um","wider","wieder","voll","hinter"];   // separable or not: decided by the participle / the card's "trennbar"/"untrennbar"
 const strip=de=>String(de||"").replace(/^(der|die|das) /,"").replace(/\s*\([^)]*\)/g,"").trim();
@@ -7540,7 +7597,7 @@ function parts(de,info,T){T=T||{};const refl=/^sich /.test(de);let inf=lc(strip(
   if(!/(en|ln|rn|tun|sein)$/.test(inf))return null;
   // 1. explicit principal parts on the card
   const tok=I.split(/\s*·\s*/).map(s=>s.trim()).filter(Boolean);let iPerf=-1;const fin=[];
-  tok.forEach((t,i)=>{const m=/^(hat\/ist|ist\/hat|hat|ist) (sich )?([a-zäöüß]+)$/.exec(t);if(m&&iPerf<0){iPerf=i;res.aux=m[1];res.pp=m[3];return}
+  tok.forEach((t,i)=>{const m=/^(hat\/ist|ist\/hat|hat|ist) (sich )?([a-zäöüß]+)$/.exec(t);if(m&&iPerf<0&&!SEP.includes(m[3])){iPerf=i;res.aux=m[1];res.pp=m[3];return}   /* integrator 13.10: „hat an“ (anhaben) is the er-form, not hat + Partizip */
     if(/^[a-zäöüß]+( sich)?( [a-zäöüß]+)?$/.test(t)&&!/^(trennbar|untrennbar|nicht|formell|ugs|umgangssprachlich|regional|landschaftlich|veraltet|norden|süden|mitte|im|salopp|neutral|gehoben|reflexiv|unpersönlich|schwach|stark|regelmäßig|unregelmäßig|transitiv|intransitiv|auch|oft|meist|selten|nur)\b/.test(t)&&i<4)fin.push([t.replace(/ sich\b/,""),i])});
   const untr=/untrennbar|nicht trennbar/.test(I),tr=!untr&&/trennbar/.test(I);   // integrator 13.9: „nicht trennbar“ (wiederholen) is untrennbar
   {const m=/trennbar:\s*([a-zäöüß]+)\s*…\s*([a-zäöüß]+)/.exec(I);if(m&&!untr&&!fin.some(x=>x[0]===m[1]+" "+m[2]))fin.push([m[1]+" "+m[2],0])}   // „trennbar: biegt … ab“
@@ -11424,9 +11481,9 @@ function s9Clock(d,force){try{if(!P().signed)return;if(!force&&(navigator.webdri
   if(rl>=3&&typeof streak==="function"&&streak()>=23)s9Egg("jahre23",1500);
   s9Library()}catch(e){}}
 function s9Library(){try{if(eggs().bibliothek)return;const seen=loreSeen();const pages=LORE.filter(p=>!p.grave&&!p.sober&&!(p.r==="M"));if(pages.length>=10&&pages.every(p=>seen[p.id]))s9Egg("bibliothek",1200)}catch(e){}}
-setInterval(()=>s9Clock(),30000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)s9Clock()});setTimeout(()=>s9Clock(),8000);
+(function(){let T=null;const on=()=>{if(!T&&!document.hidden)T=setInterval(()=>s9Clock(),30000)},off=()=>{if(T){clearInterval(T);T=null}};document.addEventListener("visibilitychange",()=>{if(document.hidden)off();else{s9Clock();on()}});document.addEventListener("ui:idle",e=>{if(e.detail&&e.detail.idle)off();else on()});on()})();   // integrator 13.10: the time-of-day clock rests while hidden or idlesetTimeout(()=>s9Clock(),8000);
 // 4g. Albtraum switched off · the reset question cancelled · four untranslatable words looked up
-(function(){let h0=null;setInterval(()=>{try{const h=S.horror;if(h0!=null&&h0>0&&h===0)s9Egg("fuerchten",600);h0=h}catch(e){}},1500)})();
+(function(){try{const o=typeof ACT!=="undefined"&&ACT.setHorror;if(typeof o!=="function")return;ACT.setHorror=function(){const h0=S.horror;const r=o.apply(this,arguments);try{if(h0!=null&&h0>0&&S.horror===0)s9Egg("fuerchten",600)}catch(e){}return r}}catch(e){}})();   // integrator 13.10: on the switch itself, not a 1.5 s poller
 (function(){let seen=null;new MutationObserver(()=>{try{const i=document.querySelector(".rs-in");if(i&&seen==null){seen=lsGet("mephisto_before_reset")||"";return}
   if(!i&&seen!=null){const was=seen;seen=null;setTimeout(()=>{if((lsGet("mephisto_before_reset")||"")===was)s9Egg("brod")},800)}}catch(e){}}).observe(document.documentElement,{childList:true,subtree:true})})();
 MOD.after("showGloss","s9",function(word){try{const w=String(word||"").toLowerCase();const F=["fernweh","weltschmerz","schadenfreude","torschlusspanik"];if(!F.includes(w))return;const st=s9St();st.x.fw=Array.from(new Set((st.x.fw||[]).concat([w])));saveSoon();if(F.every(x=>st.x.fw.includes(x)))s9Egg("fernweh",600)}catch(e){}});
@@ -13142,11 +13199,15 @@ function tkBusse(box,t,o){const id=t.lesson||(o.c&&o.c.lesson);const g=(typeof G
 function tkCard(line,c){const id=String(line[1]||"");const t=tkById(id);if(!t)return "";const ty=(TK_TYPES||{})[t.type]||{de:"Aufgabe",en:"task"};const st=tkState(id);
   const locked=!st.pass&&!st.grey&&tkLocked(t,c);const rec=tkRec(id)||{};
   return `<div class="eyebrow">Aufgabe · ${tkE(ty.de)} <span class="en">${tkE(ty.en)}</span></div><h3 style="margin:.2rem 0">${tkE(t.title)}</h3>${st.pass||st.grey?"":tkSayHTML(t.setup)}
-    ${locked?`<p class="muted ui">Erst die Vorbereitung: die Lektion dieses Kapitels einmal öffnen. <span class="en">Prepare first: open this chapter's lesson once.</span></p><button class="sm" data-act="tkLesson" data-id="${tkE(c.lesson)}">Zur Lektion</button>`:""}
+    ${locked?`<p class="muted ui tk-open">Offen: Diese Aufgabe gehört zum Siegel des Kapitels. Sie können jetzt weiterlesen – die Aufgabe beginnt, sobald Sie die Lektion einmal geöffnet haben, und wartet bis dahin im Siegel. <span class="en">Open item: this task is needed for the chapter's seal. Read on now; it opens once you have opened the lesson, and waits in the seal list.</span></p><button class="sm" data-act="tkLesson" data-id="${tkE(c.lesson)}">Zur Lektion</button>`:""}
     ${!st.pass&&!st.grey&&rec.cur?`<small class="muted ui">Angefangen – es geht dort weiter, wo Sie aufgehört haben.</small>`:""}`}
 const TK_TL={
   card:(line,c)=>tkCard(line,c),
   state:id=>tkState(id),
+  // integrator 13.10: a task whose lesson has not been opened yet no longer stops the reader. The learner reads on; the task stays an
+  // open item of the chapter's seal (gate item) and waits in the reader again on a re-read once the lesson is open. Otherwise i5's flow.
+  wait(line){try{const id=String(line&&line[1]||"");const t=tkById(id);if(!t)return false;const st=tkState(id);if(st.pass||st.grey)return false;
+    const c=typeof pkCh==="function"?pkCh(t.n):null;return !tkLocked(t,c)}catch(e){return true}},
   open(box,id,done,api){const t=tkById(id);if(!t){done({pass:false});return}const c=(api&&api.c)||(typeof pkCh==="function"?pkCh(t.n):null);
     if(!tkState(id).pass&&tkLocked(t,c)){box.innerHTML=`<div class="card"><p class="ui">Erst die Vorbereitung: die Lektion einmal öffnen. Dann wartet die Aufgabe hier.</p><button class="go sm" data-act="tkLesson" data-id="${tkE(c.lesson)}">Zur Lektion <span class="en">to the lesson</span></button></div>`;return}
     tkRun(box,t,{c,onDone:r=>done(r)})}};
@@ -13160,7 +13221,7 @@ ACT.tkLesson=el=>{try{const id=el.dataset.id;try{if(Focus.isOpen())Focus.close(t
 // ---------------------------------------------------------------- 7. the gate item (i4's provider i4.task reads tkGateItem / tkState)
 function tkGateItem(n){try{const c=typeof pkCh==="function"?pkCh(n):null;const t=tkOfChapter(n);if(!t)return null;
     if(t.station&&!(typeof TL!=="undefined"&&TL.get(t.id)))return null;const st=tkState(n);const r=t.station?{}:(tkRec(t.id)||{});
-    let de=`Aufgabe: ${t.title}`;if(st.pass)de+=r.d?` · bestanden am ${(typeof fmtDate==="function"?fmtDate(r.d):r.d)}`:" · bestanden";else if(st.grey)de+=" · graues Siegel (mit Hilfe)";else if(st.fails)de+=` · ${st.fails} Versuch${st.fails===1?"":"e"}`;
+    let de=`Aufgabe: ${t.title}`;if(st.pass)de+=r.d?` · bestanden am ${(typeof fmtDate==="function"?fmtDate(r.d):r.d)}`:" · bestanden";else if(st.grey)de+=" · graues Siegel (mit Hilfe)";else if(st.fails)de+=` · ${st.fails} Versuch${st.fails===1?"":"e"}`;else{try{if(!t.station&&tkLocked(t,c))de+=" · offen: erst die Lektion öffnen"}catch(e){}}
     return {k:"task",ok:!!(st.pass||st.grey),grey:!!st.grey&&!st.pass,de,en:"the chapter task: "+(((TK_TYPES||{})[t.type]||{}).en||"task"),act:"tkGate",id:String(n)}}catch(e){return null}}
 // standalone run from the gate (outside the reader): a Focus box of its own
 ACT.tkGate=el=>{try{const n=+(el&&el.dataset&&el.dataset.id)||P().ch;const t=tkOfChapter(n);if(!t)return;const c=pkCh(n);
@@ -14242,7 +14303,7 @@ function fixUI(D,x,q,go,stumm){const text=x.type==="spot"?x.text:x.q;const T=Str
     const errStr=T.slice(sel[0],sel[1]+1).join(" ").replace(/[.,!?;:]$/,"");if(!inSpan){stopT();return go({err:errStr,fix:""})}
     const before=T.slice(0,sel[0]).join(" "),after=T.slice(sel[1]+1).join(" ");const tailP=(T[sel[1]].match(/[.,!?;:]$/)||[""])[0];
     const full=r=>[before,r+tailP,after].filter(Boolean).join(" ").replace(/\s+([.,!?])/g,"$1");
-    if(stumm||x.repl==null){rep.innerHTML=`<input class="duel-in" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Richtig heißt es …"><button class="go sm" data-du="ok">Ersetzen</button>`;const inp=rep.querySelector("input");inp.focus();const sub=()=>{if(inp.value.trim())go({err:errStr,fix:x.type==="spot"?inp.value.trim():full(inp.value.trim())})};rep.querySelector("button").onclick=sub;inp.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();sub()}};return}
+    if(stumm||x.repl==null){rep.innerHTML=`<input class="duel-in" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Richtig heißt es … (Wort oder ganzer Satz)"><button class="go sm" data-du="ok">Ersetzen</button>`;const inp=rep.querySelector("input");inp.focus();const sub=()=>{const v=inp.value.trim();if(!v)return;const whole=x.type!=="spot"&&v.split(/\s+/).length>=Math.max(3,T.length-1);go({err:errStr,fix:x.type==="spot"?v:whole?v:full(v)})};   /* integrator 13.10: a whole corrected sentence counts as the fix (separable verbs: „Ich aufstehe …“ cannot be fixed word by word) */rep.querySelector("button").onclick=sub;inp.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();sub()}};return}
     const opts=shuf([x.repl].concat(neighbours(x.repl,errStr)));rep.innerHTML=`<div class="duel-opts">${opts.map((o,k)=>`<button data-o="${H(o)}"><span class="k">${k+1}</span>${H(o)}</button>`).join("")}</div>`;
     rep.querySelectorAll("button").forEach(b=>b.onclick=()=>{const r=b.dataset.o;go({err:errStr,fix:x.type==="spot"?r:full(r)})});focusFirst(rep);
     setKeys(e=>{const k=+e.key;const bs=rep.querySelectorAll("button");if(k>=1&&k<=bs.length){e.preventDefault();bs[k-1].click()}})};
@@ -17622,6 +17683,50 @@ try{if(typeof S7!=="undefined"&&S7&&typeof S7.docs==="function"&&Array.isArray(S
 // ---- integrator 13.9: reset groups for the story/reader/form state added in 13.8–13.9 (none of those packages registered its keys)
 setTimeout(()=>{try{if(typeof RESET_GROUPS==="undefined")return;const add=(g,ks)=>{const G=RESET_GROUPS[g];if(G&&Array.isArray(G.k))ks.forEach(k=>{if(!G.k.includes(k))G.k.push(k)})};
   add("story",["mys","fu","saga","zl","fl","vc","inv","hx"]);add("lessons",["rd","st"]);add("cards",["v3"])}catch(e){}},0);
+
+// ===== Mephisto 13.10 · integrator · performance pass (c_perf.js, after c_int). Budget (tests/perf_gate.js, strict since 13.10):
+// idle under 3 % of one core on phone and desktop sizes, also with a pad connected. What costs CPU in an idle page is not script but
+// frames: every running CSS/WAAPI animation makes the compositor paint 60 frames a second. So:
+//  1. html.idle (a6, 20 s without input) and a hidden tab (html.pf-hid) pause EVERY animation, not only the endless ones a6 knew of.
+//  2. Endless decoration outside the ambient scene layer runs a few times and then rests (ravens, the omen's sigil, the gutter glint);
+//     inside it, three endless compositor-only loops stay (candle flicker, gas light, fog). The two grain layers and the full-screen
+//     breathe/drift of the scene plates stand still (each was a viewport-sized layer repainted every frame).
+//  3. Reduced motion (OS setting): no animation and no transition runs longer than a blink.
+//  4. Every <img> gets loading=lazy, decoding=async and its width/height (v2/x_int_dims.js, generated by tools/int/gen_dims.py) as it
+//     enters the DOM, so images neither shift the layout nor decode on the main thread.
+//  5. WAAPI animations a6 does not own are paused while the tab is hidden and resumed when it is visible again.
+// Polling replaced by events lives in the owners' files (c_final boss music, c_s9 horror-off egg, c_horror shadow hand and eye, c_core
+// study clock); see notes-12.0.md 13.10. PERF.state() reports what this module did (for the gate and for debugging).
+const PERF=(function(){const H=document.documentElement;const st={imgs:0,dims:0,late:0,hidPaused:0};
+  // ---------------------------------------------------------------- 1–3. CSS
+  try{const s=document.createElement("style");s.id="pf-sty";s.textContent=`
+:root.idle *,:root.idle *::before,:root.idle *::after,:root.pf-hid *,:root.pf-hid *::before,:root.pf-hid *::after{animation-play-state:paused!important}
+.sp-raven{animation-iteration-count:2!important}
+#pakt-scene .grain,#pakt-scene .a5-life-breathe,#pakt-scene .a5-life-drift{animation:none!important}
+.omen .o-sig{animation-iteration-count:3!important}
+#hx-gutter::after{animation-name:pfWet!important;animation-iteration-count:2!important;top:0!important}
+@keyframes pfWet{0%{transform:translateY(0)}8%{transform:translateY(calc(var(--debt,0) * 5.5vh))}100%{transform:translateY(calc(var(--debt,0) * 5.5vh))}}
+:where(img[width][height]){height:auto}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;animation-delay:0s!important;transition-duration:.01ms!important;transition-delay:0s!important;scroll-behavior:auto!important}}`;
+    (document.head||H).appendChild(s)}catch(e){}
+  // ---------------------------------------------------------------- 4. images
+  const D=typeof INT_DIMS!=="undefined"?INT_DIMS:{};
+  function key(src){src=String(src||"");const i=src.indexOf("media/");if(i<0)return "";return src.slice(i).split(/[?#]/)[0]}
+  function natural(img){if(img.naturalWidth&&img.naturalHeight&&!(img.hasAttribute("width")&&img.hasAttribute("height"))){img.setAttribute("width",img.naturalWidth);img.setAttribute("height",img.naturalHeight);st.late++}}
+  function fix(img){try{if(img.__pf)return;img.__pf=1;st.imgs++;
+      if(!img.hasAttribute("loading"))img.setAttribute("loading","lazy");if(!img.hasAttribute("decoding"))img.setAttribute("decoding","async");
+      if(!img.hasAttribute("width")||!img.hasAttribute("height")){const d=D[key(img.getAttribute("src"))];
+        if(d){img.setAttribute("width",d[0]);img.setAttribute("height",d[1]);st.dims++}else if(img.complete)natural(img);else img.addEventListener("load",()=>natural(img),{once:true})}}catch(e){}}
+  function scan(n){if(!n||n.nodeType!==1)return;if(n.tagName==="IMG")fix(n);else if(n.firstElementChild){const L=n.getElementsByTagName("img");for(let i=0;i<L.length;i++)fix(L[i])}}
+  try{new MutationObserver(ms=>{for(const m of ms){if(m.type==="attributes"){if(m.target.tagName==="IMG"){m.target.__pf=0;fix(m.target)}continue}for(const n of m.addedNodes)scan(n)}})
+      .observe(H,{childList:true,subtree:true,attributes:true,attributeFilter:["src"]});scan(H)}catch(e){}
+  // ---------------------------------------------------------------- 5. hidden tab
+  const paused=new Set();
+  function vis(){const hid=!!document.hidden;H.classList.toggle("pf-hid",hid);
+    try{if(hid){(document.getAnimations?document.getAnimations():[]).forEach(a=>{try{if(a.playState==="running"){a.pause();paused.add(a);st.hidPaused++}}catch(e){}})}
+      else{paused.forEach(a=>{try{if(a.playState==="paused"&&!(H.classList.contains("idle")&&a.effect&&a.effect.getTiming().iterations===Infinity))a.play()}catch(e){}});paused.clear()}}catch(e){}}
+  document.addEventListener("visibilitychange",vis);vis();
+  return {state:()=>Object.assign({},st,{hidden:H.classList.contains("pf-hid"),idle:H.classList.contains("idle"),dimsKnown:Object.keys(D).length}),fix,scan}})();
 
 // ===== Mephisto · P2 · what the learner sees of the store: the "Sicherungen" list, restore, reset — nothing is replaced or deleted without a verified copy.
 // Loaded after c_final.js and before c_cloud.js. Hooks: MOD.after("meData") (c_views.js). REPLACES restoreFrom (c_views.js) and wraps ACT.reset (c_v126.js) — see MANIFEST.
