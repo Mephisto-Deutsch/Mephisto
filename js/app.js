@@ -1134,7 +1134,7 @@ ACT.copyYuzu=()=>{const p=yuzuPack();copyText(JSON.stringify(p),$(".bk-txt"));to
 ACT.reset=()=>{const v=($(".rs-in")||{}).value;if(v!=="LÖSCHEN")return toast("Tippe LÖSCHEN zur Bestätigung");lsSet("mephisto_before_reset",JSON.stringify(S));S=fresh();saveNow();buildDict();applyPrefs();R.tab="home";toast("Zurückgesetzt. Eine Kopie liegt unter „mephisto_before_reset“.");rerender()};
 
 // ================= PHONE FEATURES (v10): speech check, Artikel-Blitz, numbers, terms, undo, haptics, coach, PWA =================
-const APP_VERSION="13.10.0";
+const APP_VERSION="13.11.0";
 const IS_PWA=!!window.MEPHISTO_PWA;
 const IS_STANDALONE=(()=>{try{return matchMedia("(display-mode: standalone)").matches||navigator.standalone===true}catch(e){return false}})();
 const IS_IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
@@ -2286,14 +2286,95 @@ const syncedAt=()=>{try{return localStorage.getItem("mephisto_synced_at")||""}ca
 const isoLocal=iso=>{if(!iso)return "";const d=new Date(iso);return keyOf(d)+"T"+pad(d.getHours())+":"+pad(d.getMinutes())};
 function localChangedSince(iso){const ev=S.events||[];if(!ev.length)return false;if(!iso)return true;const last=ev[ev.length-1];return (last.d+"T"+last.t)>isoLocal(iso)}
 function gDevice(){const u=navigator.userAgent;return /iPhone|iPad/.test(u)?"iPhone":/Android/.test(u)?"Android":/Windows/.test(u)?"PC":/Mac/.test(u)?"Mac":"Gerät"}
-// ---- sign-in (GIS token client, loaded on demand)
+// ---- sign-in (13.11, ported from Sudachi 1.3.1 + 1.4.1)
+// The token (one hour) lives in localStorage on this device only: {token, exp, email}. When it runs out the record stays (token ""), so the
+// app knows it was connected and asks for one tap — it never signs the learner out by itself and never opens Google's window from a timer.
+//  - Popup (browser tab): Google's token client, made once and kept, so a tap opens the window at once (phones allow it only inside a tap).
+//    Google can report the window "closed" before its answer arrives (phones, installed apps): a late token is kept for 8 s and no second
+//    window is opened. If the answer never comes, this device switches to the same-window sign-in.
+//  - Same window (installed app, or after a lost popup answer): the page goes to Google and comes back with the token in the address
+//    (implicit flow, response_type=token, random state). gTakeRedirect() runs before the first screen is drawn: it checks the state and the
+//    Drive permission, keeps the token and wipes it from the address. Hourly renewals never leave the page on a random tap; "Neu verbinden" does.
+//    The return address (gReturnAddress(), https://mephisto-deutsch.github.io/Mephisto/) must be an "Authorized redirect URI" of the shared client.
+const G_DRIVE="https://www.googleapis.com/auth/drive",G_MODE="mephisto_google_mode",G_BACK="mephisto_google_back";
+const GAUTH={lastEvent:"",lastError:"",needsTap:false,pending:null,grace:null,client:null,clientFor:""};
+const GST={requests:0,retries:0,timeouts:0,errors:0,lastError:"",lastErrorAt:0,bytesUp:0,skipped:0};
+const gClock=()=>{const d=new Date();return pad(d.getHours())+":"+pad(d.getMinutes())};
+function gEvent(t){GAUTH.lastEvent=t+" · "+gClock();try{localStorage.setItem("mephisto_google_ev",GAUTH.lastEvent)}catch(e){}}
+try{GAUTH.lastEvent=localStorage.getItem("mephisto_google_ev")||""}catch(e){}
+const gCid=()=>{try{return String(gConf().clientId||"").trim()}catch(e){return ""}};
+function gExpire(){const a=gAuth();if(a&&a.token){a.token="";a.exp=0;gSet(a)}GAUTH.needsTap=!!a}
+const gNeedsTap=()=>!!gAuth()&&!gToken();
+const gReturnAddress=()=>location.origin+location.pathname.replace(/index\.html$/,"");
+function gInstalled(){try{return matchMedia("(display-mode: standalone)").matches||matchMedia("(display-mode: minimal-ui)").matches||navigator.standalone===true}catch(e){return false}}
+function gRedirectMode(){try{if(localStorage.getItem(G_MODE)==="redirect")return true}catch(e){}return gInstalled()}
+function gPreferRedirect(){try{localStorage.setItem(G_MODE,"redirect")}catch(e){}}
 let gisP=null;function gisLoad(){if(window.google&&google.accounts&&google.accounts.oauth2)return Promise.resolve();if(gisP)return gisP;gisP=new Promise((res,rej)=>{const s=document.createElement("script");s.src="https://accounts.google.com/gsi/client";s.async=true;s.onload=()=>res();s.onerror=()=>{gisP=null;rej(new Error("gsi"))};document.head.appendChild(s)});return gisP}
-async function gConnect(o){o=o||{};const cid=(gConf().clientId||"").trim();if(!cid)throw new Error("no_client");await gisLoad();
-  return new Promise((res,rej)=>{let done=false;const tc=google.accounts.oauth2.initTokenClient({client_id:cid,scope:HUB.SCOPES,callback:async r=>{if(done)return;done=true;if(!r||!r.access_token){rej(new Error((r&&r.error)||"denied"));return}
-      const a={token:r.access_token,exp:Date.now()+Math.max(60,(+r.expires_in||3600)-60)*1000,email:""};try{const u=await fetch("https://www.googleapis.com/oauth2/v3/userinfo",{headers:{Authorization:"Bearer "+a.token}});if(u.ok)a.email=(await u.json()).email||""}catch(e){}gSet(a);res(a)},error_callback:e=>{if(done)return;done=true;rej(new Error(e&&e.type||"popup"))}});
-    tc.requestAccessToken({prompt:o.silent?"":"consent"});if(o.silent)setTimeout(()=>{if(!done){done=true;rej(new Error("silent_timeout"))}},8000)})}
-async function gEnsure(){if(gToken())return gToken();const a=gAuth();if(!a)throw new Error("signed_out");try{await gConnect({silent:true});return gToken()}catch(e){gSet(null);throw new Error("signed_out")}}
-async function gFetch(url,init){const t=await gEnsure();init=Object.assign({},init||{});init.headers=Object.assign({Authorization:"Bearer "+t},init.headers||{});const r=await fetch(url,init);if(r.status===401){gSet(null);throw new Error("signed_out")}if(!r.ok){throw new Error("http_"+r.status)}return r}
+const gisReady=()=>!!GAUTH.client&&GAUTH.clientFor===gCid();
+/** Load Google's script and make the token client — only when it is not ready yet (a tap never re-makes it first). */
+function gInit(){const cid=gCid();if(!cid)return Promise.resolve(false);if(gisReady())return Promise.resolve(true);
+  return gisLoad().then(()=>{if(!gisReady()){GAUTH.clientFor=cid;GAUTH.client=google.accounts.oauth2.initTokenClient({client_id:cid,scope:HUB.SCOPES,include_granted_scopes:true,callback:r=>{gAnswer(r)},error_callback:e=>gWindowEvent(e)})}return true})}
+async function gKeep(token,expiresIn){const old=gAuth()||{};const a={token,exp:Date.now()+Math.max(60,(+expiresIn||3600)-60)*1000,email:old.email||""};gSet(a);GAUTH.needsTap=false;GAUTH.lastError="";
+  if(!a.email){try{const u=await fetch("https://www.googleapis.com/oauth2/v3/userinfo",{headers:{Authorization:"Bearer "+token}});if(u.ok){a.email=(await u.json()).email||"";gSet(a)}}catch(e){}}return a}
+function gHasDrive(r){try{if(window.google&&google.accounts&&google.accounts.oauth2&&google.accounts.oauth2.hasGrantedAllScopes)return !!google.accounts.oauth2.hasGrantedAllScopes(r,G_DRIVE)}catch(e){}return r&&r.scope?String(r.scope).split(/\s+/).includes(G_DRIVE):true}
+function gFirstOn(){const g=gConf();g.syncState=g.syncState!==false;g.publish=g.publish!==false;g.calendar=g.calendar!==false;try{saveSoon()}catch(e){}}
+// Google's answer. A token is kept even when the window was reported "closed" first; with nothing waiting for it, it is a late answer.
+async function gAnswer(r){r=r||{};const p=GAUTH.pending;GAUTH.pending=null;clearTimeout(GAUTH.grace);gEvent(r.error?"Antwort: "+r.error:"Token erhalten");
+  if(r.error){GAUTH.lastError=r.error_description||r.error;if(p)p.reject(new Error(r.error==="access_denied"?"denied":/interaction|login|consent/.test(r.error)?"needs_tap":"gis_"+r.error));return}
+  if(!r.access_token){if(p)p.reject(new Error("denied"));return}
+  if(!gHasDrive(r)){GAUTH.lastError="Drive nicht erlaubt";gEvent("angemeldet ohne Drive");const e=new Error("no_drive");if(p)p.reject(e);else{try{toast(hubErr(e),7000);hubPaint()}catch(x){}}return}
+  const a=await gKeep(r.access_token,r.expires_in);if(p){p.resolve(a);return}
+  try{gFirstOn();toast("Verbunden: "+(a.email||"Google"));hubPaint();hubSync(true)}catch(e){}}
+function gWindowEvent(e){const t=(e&&e.type)||"error";gEvent("Fenster: "+t);const p=GAUTH.pending;if(!p)return;
+  if(t==="popup_closed"){clearTimeout(GAUTH.grace);GAUTH.grace=setTimeout(()=>{if(GAUTH.pending===p){GAUTH.pending=null;gPreferRedirect();gEvent("Fenster ohne Antwort → gleiches Fenster");p.reject(new Error("popup_lost"))}},8000);return}
+  GAUTH.pending=null;p.reject(new Error(t==="popup_failed_to_open"?"popup_blocked":"popup"))}
+/** Get a token. Must run inside a tap on phones. renew: the account already agreed (no consent screen). */
+function gConnect(o){o=o||{};const cid=gCid();if(!cid)return Promise.reject(new Error("no_client"));
+  if(gRedirectMode())return gRedirect(o);
+  if(GAUTH.pending)return GAUTH.pending.promise;
+  if(!gisReady())return gInit().then(()=>gConnect(o));   // first tap before Google's script arrived: open as soon as it is there
+  let res,rej;const promise=new Promise((a,b)=>{res=a;rej=b});GAUTH.pending={resolve:res,reject:rej,promise};
+  const t=setTimeout(()=>{if(GAUTH.pending&&GAUTH.pending.promise===promise){GAUTH.pending=null;rej(new Error("slow"))}},o.renew?20000:180000);promise.then(()=>clearTimeout(t),()=>clearTimeout(t));
+  const a=gAuth();gEvent(o.renew?"Erneuern":"Fenster geöffnet");
+  GAUTH.client.requestAccessToken(Object.assign({prompt:o.renew?"":"consent"},a&&a.email?{hint:a.email}:{}));   // synchronous: keeps the tap's permission to open a window
+  return promise}
+/** Same-window sign-in: leave for Google; the app opens again with the token in the address. */
+function gRedirect(o){o=o||{};const cid=gCid();if(!cid)return Promise.reject(new Error("no_client"));
+  const state=Array.from(crypto.getRandomValues(new Uint8Array(12)),b=>b.toString(16).padStart(2,"0")).join("");
+  try{localStorage.setItem(G_BACK,JSON.stringify({state,hash:location.hash,at:Date.now()}))}catch(e){}
+  const q=new URLSearchParams({client_id:cid,redirect_uri:gReturnAddress(),response_type:"token",scope:HUB.SCOPES,include_granted_scopes:"true",state});
+  if(!o.renew)q.set("prompt","consent");const a=gAuth();if(a&&a.email)q.set("login_hint",a.email);
+  gEvent("zu Google (gleiches Fenster)");try{saveNow()}catch(e){}location.assign("https://accounts.google.com/o/oauth2/v2/auth?"+q);return new Promise(()=>{})}
+/** Back from Google's page? Runs before the first screen: keep the token, tidy the address. → null | {ok} | {ok:false,msg} */
+function gTakeRedirect(){const h=location.hash||"";if(!/[#&](access_token|error)=/.test(h))return null;const r={};try{new URLSearchParams(h.slice(1)).forEach((v,k)=>{r[k]=v})}catch(e){}
+  let back=null;try{back=JSON.parse(localStorage.getItem(G_BACK)||"null");localStorage.removeItem(G_BACK)}catch(e){}
+  try{history.replaceState(null,"",location.pathname+location.search+(back&&back.hash&&!/access_token|error=/.test(back.hash)?back.hash:"#me"))}catch(e){}
+  if(!back||!r.state||back.state!==r.state){gEvent("fremde Antwort ignoriert");return {ok:false,msg:"Diese Google-Antwort gehörte zu keiner Anmeldung von hier und wurde ignoriert. Bitte noch einmal anmelden."}}
+  if(r.error){GAUTH.lastError=r.error;gEvent("zurück: "+r.error);return {ok:false,msg:r.error==="access_denied"?"Anmeldung bei Google abgebrochen.":"Google-Anmeldung: "+r.error}}
+  if(!String(r.scope||"").split(/\s+/).includes(G_DRIVE)){GAUTH.lastError="Drive nicht erlaubt";gEvent("zurück ohne Drive");return {ok:false,msg:hubErr(new Error("no_drive"))}}
+  const old=gAuth()||{};gSet({token:r.access_token,exp:Date.now()+Math.max(60,(+r.expires_in||3600)-60)*1000,email:old.email||""});GAUTH.needsTap=false;GAUTH.lastError="";gEvent("zurück: Token erhalten");return {ok:true}}
+HUB.back=gTakeRedirect();
+/** A token for the next request. Never opens a window: when the hour is up, the next tap renews it (gRenewOnTap). */
+async function gEnsure(){const t=gToken();if(t)return t;if(gAuth()){GAUTH.needsTap=true;throw new Error("needs_tap")}throw new Error("signed_out")}
+// ---- requests: a deadline on every request (30 s, 120 s for a big upload), safe ones repeated with jittered backoff, plain errors
+const G_SAFE=/^(GET|HEAD|PATCH|PUT|DELETE)$/i;
+const gBackoff=(n,after)=>new Promise(r=>setTimeout(r,after?Math.min(30000,after*1000):Math.min(16000,800*Math.pow(2,n))*(0.75+Math.random()*0.5)));
+function gFail(m){GST.errors++;GST.lastError=m;GST.lastErrorAt=Date.now()}
+async function gFetch(url,init){init=init||{};const t=await gEnsure();if(navigator.onLine===false)throw new Error("offline");
+  const method=String(init.method||"GET").toUpperCase(),size=init.body?String(init.body).length:0,limit=init.timeout||(size>200000?120000:30000);let r=null,msg="";
+  for(let n=0;;n++){GST.requests++;const ac=typeof AbortController!=="undefined"?new AbortController():null;const tm=ac?setTimeout(()=>ac.abort(),limit):null;
+    try{const o=Object.assign({},init,{cache:"no-store",headers:Object.assign({},init.headers||{},{Authorization:"Bearer "+t})});delete o.timeout;delete o.retrySafe;if(ac)o.signal=ac.signal;r=await fetch(url,o)}
+    catch(e){if(tm)clearTimeout(tm);const to=e&&e.name==="AbortError";if(to)GST.timeouts++;
+      if((G_SAFE.test(method)||init.retrySafe)&&n<3){GST.retries++;await gBackoff(n);continue}
+      gFail(to?"Zeitüberschreitung":"Netzwerk");throw new Error(to?"timeout":"network")}
+    if(tm)clearTimeout(tm);msg="";
+    if(r.status===403||r.status===429){try{const j=await r.clone().json();msg=((j&&j.error&&j.error.message)||"")+" "+(((j&&j.error&&j.error.errors)||[]).map(x=>x.reason).join(" "))}catch(e){}}
+    const slow=r.status===429||(r.status===403&&/rate ?limit|quota|userRateLimitExceeded|rateLimitExceeded/i.test(msg));
+    if((slow||r.status>=500)&&n<5){GST.retries++;await gBackoff(n+1,+r.headers.get("retry-after")||0);continue}
+    break}
+  if(size&&r.ok)GST.bytesUp+=size;
+  if(r.status===401||(r.status===403&&/insufficient|scope/i.test(msg))){gExpire();gFail("Anmeldung abgelaufen");try{hubPaint()}catch(e){}throw new Error("needs_tap")}
+  if(!r.ok){gFail("HTTP "+r.status);throw new Error("http_"+r.status)}return r}
 async function gJSON(url,init){const r=await gFetch(url,init);return r.status===204?null:r.json()}
 // ---- Drive: folders (cached per device), files
 const idsGet=()=>{try{return JSON.parse(localStorage.getItem(HUB.IDS)||"{}")}catch(e){return {}}};const idsSet=o=>{try{localStorage.setItem(HUB.IDS,JSON.stringify(o))}catch(e){}};
@@ -2321,7 +2402,7 @@ async function hubPushState(force){const g=gConf();if(!g.syncState||!gAuth())ret
   try{await withRetry(async retry=>{const folder=await hubFolder(retry);const f=await dFile(folder,"state.json");S.savedAt=new Date().toISOString();const snap=Object.assign({},S);delete snap.today;await dWrite(folder,"state.json",snap,f&&f.id);setSynced(S.savedAt);HUB.fp=fp;HUB.stateAt=Date.now();HUB.conflict=null;HUB.last.state="gesichert "+fmtTime(S.savedAt);HUB.last.err=""});saveNow()}
   catch(e){HUB.last.err=hubErr(e)}finally{HUB.busy=false;hubPaint()}}
 const fmtTime=iso=>{try{const d=new Date(iso);return fmtDate(keyOf(d))+" "+pad(d.getHours())+":"+pad(d.getMinutes())}catch(e){return ""}};
-function hubErr(e){const m=String(e&&e.message||e);return m==="signed_out"?"Anmeldung nötig":m==="no_client"?"Client-ID fehlt":/http_403/.test(m)?"Kein Zugriff (Drive-API / Origin prüfen)":/http_/.test(m)?"Google antwortet "+m.slice(5):/popup|denied/.test(m)?"Anmeldung abgebrochen":m==="gsi"?"Google-Script nicht geladen (offline?)":m}
+function hubErr(e){const m=String(e&&e.message||e);return m==="signed_out"?"Anmeldung nötig":m==="needs_tap"?"Google braucht einen Tipp: „Neu verbinden“ – nichts geht verloren.":m==="no_client"?"Client-ID fehlt":m==="no_drive"?"Google hat dich angemeldet, aber Drive nicht erlaubt. Bitte noch einmal anmelden und das Häkchen bei Google Drive setzen.":m==="popup_lost"?"Googles Fenster hat seine Antwort verloren. Tippe noch einmal auf Anmelden: diesmal öffnet sich Google im selben Fenster und kommt hierher zurück.":m==="popup_blocked"?"Der Browser hat Googles Fenster blockiert – bitte noch einmal tippen.":m==="slow"?"Die Anmeldung hat zu lange gedauert – bitte noch einmal tippen.":m==="offline"?"Offline – alles bleibt auf diesem Gerät und wird später gesichert.":m==="timeout"?"Google antwortet nicht (Zeitüberschreitung) – es wird gleich noch einmal versucht.":m==="network"?"Google war nicht erreichbar – die Verbindung ist abgebrochen.":/http_403/.test(m)?"Kein Zugriff (Drive-API / Origin prüfen)":/http_5|http_429/.test(m)?"Google ist gerade überlastet ("+m.slice(5)+") – es wird später noch einmal versucht.":/http_/.test(m)?"Google antwortet "+m.slice(5):/popup|denied/.test(m)?"Anmeldung abgebrochen":m==="gsi"?"Google-Script nicht geladen (offline?)":m}
 // ---- 2. status.json: the hub snapshot (contract shape)
 function hubStatus(){const t=todayKey();const T=S.today&&S.today.date===t?S.today:null;const L=S.log[t]||{};const est=typeof levelEstimate==="function"?levelEstimate():{stufe:"?",pct:0,next:"?"};const due=dueKeys().length;
   const mon=(()=>{const [y,m,d]=t.split("-").map(Number);const dt=new Date(y,m-1,d);const wd=(dt.getDay()+6)%7;return addDays(t,-wd)})();const days=[];let done=0;for(let i=0;i<7;i++){const d=addDays(mon,i);const l=S.log[d]||{};const trained=!!l.act;if(trained)done++;const shift=!!(S.shifts||{})[d];days.push({date:d,shift:shift?"Dienst":"",trained,planned:d>=t&&!trained,usual:true,slot:shift?"tough":"free"})}
@@ -2339,7 +2420,7 @@ function statusFingerprint(st){const o=Object.assign({},st);delete o.updatedAt;r
 async function hubPushStatus(force){const g=gConf();if(g.publish===false||!gAuth())return;const st=hubStatus();const fp=statusFingerprint(st);if(!force&&fp===HUB.statusFp)return;if(!force&&Date.now()-HUB.statusAt<300000)return;
   try{await withRetry(async retry=>{const folder=await hubFolder(retry);const f=await dFile(folder,"status.json");await dWrite(folder,"status.json",st,f&&f.id)});HUB.statusFp=fp;HUB.statusAt=Date.now();HUB.last.status=fmtTime(st.updatedAt);HUB.last.err=""}catch(e){HUB.last.err=hubErr(e)}hubPaint()}
 // ---- 3. plan.json from Citrus: today's blocks for Mephisto
-async function hubPullPlan(){const g=gConf();if(!gAuth())return;try{HUB.last.plan="";let f=null;for(const dir of ["citrus","scheduler"]){const folder=await dFolder([HUB.ROOT,"hub",dir],false,true);if(folder)f=await dFile(folder,"plan.json");if(f)break}if(!f){HUB.plan=null;return}const p=await dRead(f.id);HUB.plan=p;S.citrusPlan={at:new Date().toISOString(),blocks:planBlocks(p)};saveSoon();hubPaint()}catch(e){HUB.last.plan=hubErr(e)}}
+async function hubPullPlan(){const g=gConf();if(!gAuth())return;try{HUB.last.plan="";let f=null;for(const dir of ["citrus","scheduler"]){const folder=await dFolder([HUB.ROOT,"hub",dir],false,true);if(folder)f=await dFile(folder,"plan.json");if(f)break}if(!f){HUB.plan=null;return}const p=await dRead(f.id);HUB.plan=p;const nb=planBlocks(p);if(JSON.stringify(nb)!==JSON.stringify((S.citrusPlan||{}).blocks)){S.citrusPlan={at:new Date().toISOString(),blocks:nb};saveSoon()}hubPaint()}catch(e){HUB.last.plan=hubErr(e)}}
 function planBlocks(p){const out=[];const t=todayKey();const walk=(x,d)=>{if(!x||d>6)return;if(Array.isArray(x)){x.forEach(y=>walk(y,d+1));return}if(typeof x!=="object")return;const app=String(x.app||x.id||x.name||"").toLowerCase();
     if(app==="mephisto"&&(x.minutes||x.start||x.time||x.title)){const date=x.date||x.day||t;if(!x.date||x.date===t||d<=2)out.push({date,start:x.start||x.time||x.at||"",minutes:+x.minutes||+x.duration||0,title:x.title||x.label||"Mephisto"})}
     if(x.mephisto&&typeof x.mephisto==="object")walk(Object.assign({app:"mephisto"},x.mephisto),d+1);Object.keys(x).forEach(k=>{if(k!=="mephisto"&&typeof x[k]==="object")walk(x[k],d+1)})};walk(p,0);return out.slice(0,4)}
@@ -2351,21 +2432,23 @@ async function hubPullShifts(){const g=gConf();if(g.calendar===false||!gAuth())r
 // ---- orchestration
 async function hubSync(force){if(!hubCan()||!gAuth())return;if(HUB.syncing)return;HUB.syncing=true;hubPaint();try{await gEnsure();const r=await hubPullState({force:false});if(r!=="pulled"&&r!=="conflict")await hubPushState(force);await hubPushStatus(force);await hubPullPlan();await hubPullShifts();HUB.last.sync=fmtTime(new Date().toISOString());HUB.last.err=HUB.last.err||""}catch(e){HUB.last.err=hubErr(e)}finally{HUB.syncing=false;hubPaint()}}
 function hubSchedule(){if(!hubCan()||!gAuth())return;clearTimeout(HUB.timer);HUB.timer=setTimeout(()=>{hubPushState(false);hubPushStatus(false)},90000)}
-ACT.hubConnect=async()=>{const g=gConf();const inp=$(".hub-cid");if(inp){g.clientId=inp.value.trim();saveSoon()}if(!g.clientId)return toast("Zuerst die Client-ID eintragen");try{toast("Google öffnet sich …");await gConnect({});g.syncState=g.syncState!==false;g.publish=g.publish!==false;g.calendar=g.calendar!==false;saveSoon();toast("Verbunden: "+(gAuth().email||"Google"));await hubSync(true)}catch(e){toast(hubErr(e))}hubPaint()};
+ACT.hubConnect=async()=>{const g=gConf();const inp=$(".hub-cid");if(inp&&inp.value.trim()&&inp.value.trim()!==g.clientId){g.clientId=inp.value.trim();saveSoon()}if(!g.clientId)return toast("Zuerst die Client-ID eintragen");
+  try{const p=gConnect({renew:!!gAuth()});if(!gRedirectMode())toast("Google öffnet sich …");await p;gFirstOn();toast("Verbunden: "+((gAuth()||{}).email||"Google"));await hubSync(true)}catch(e){toast(hubErr(e),6000)}hubPaint()};
+ACT.hubReconnect=async()=>{if(!gCid())return ACT.hubConnect();try{await gConnect({renew:true});toast("Wieder verbunden");await hubSync(true)}catch(e){toast(hubErr(e),6000)}hubPaint()};
 ACT.hubSync=()=>hubSync(true);
-ACT.hubSignOut=()=>{gSet(null);HUB.last={};toast("Abgemeldet");hubPaint()};
+ACT.hubSignOut=()=>{const a=gAuth();try{if(a&&a.token&&window.google&&google.accounts&&google.accounts.oauth2)google.accounts.oauth2.revoke(a.token,()=>{})}catch(e){}gSet(null);GAUTH.needsTap=false;HUB.last={};toast("Abgemeldet");hubPaint()};
 ACT.hubUseRemote=async()=>{await hubPullState({force:true});HUB.conflict=null;hubPaint()};
 ACT.hubKeepLocal=async()=>{HUB.conflict=null;setSynced(HUB.last.remoteAt||"");await hubPushState(true);hubPaint()};
 ACT.hubToggle=el=>{const g=gConf();g[el.dataset.k]=el.checked;saveSoon()};
 ACT.hubCal=el=>{gConf().calendarId=el.value.trim()||"primary";saveSoon()};
 function hubHTML(){const a=gAuth();const g=gConf();const L=HUB.last;if(!hubCan())return `<div class="card stack s"><h3>Google & Citrus</h3><p class="muted ui" style="font-size:.9rem">Google-Anmeldung geht nur in der installierten App (mephisto-deutsch.github.io). Dort wird dein Fortschritt auf Google Drive gesichert und mit Citrus geteilt.${IS_PWA?"":" Hier in claude.ai: Fortschritt per Backup-Datei mitnehmen."}</p></div>`;
   return `<div class="card stack s hub-card"><div class="row between"><h3>Google & Citrus</h3>${a?`<span class="pill good">${esc(a.email||"verbunden")}</span>`:'<span class="pill">nicht verbunden</span>'}</div>
-   ${a?"":`<label class="f">Client-ID (aus dem Cloud-Projekt „Citrus apps“, dieselbe wie in Yuzu/Orange)<input class="hub-cid" placeholder="…apps.googleusercontent.com" value="${esc(g.clientId||"")}"></label><small class="muted ui">Im Cloud-Projekt muss <b>https://mephisto-deutsch.github.io</b> als autorisierter JavaScript-Ursprung eingetragen sein.</small><div class="row"><button class="primary" data-act="hubConnect">Mit Google verbinden</button></div>`}
+   ${a?"":`<label class="f">Client-ID (aus dem Cloud-Projekt „Citrus apps“, dieselbe wie in Yuzu/Orange)<input class="hub-cid" placeholder="…apps.googleusercontent.com" value="${esc(g.clientId||"")}"></label><small class="muted ui">Im Cloud-Projekt muss <b>https://mephisto-deutsch.github.io</b> als autorisierter JavaScript-Ursprung und <b>${esc(gReturnAddress())}</b> als autorisierte Weiterleitungs-URI eingetragen sein.${gRedirectMode()?" Anmeldung hier: im selben Fenster (die Seite geht zu Google und kommt zurück).":""}</small><div class="row"><button class="primary" data-act="hubConnect">Mit Google verbinden</button></div>`}
    ${a?`<div class="list"><label class="li" style="cursor:pointer"><span class="t"><b class="ui">Fortschritt auf Drive</b><small>My Apps/hub/mephisto/state.json – jedes Gerät lädt den neuesten Stand</small></span><input type="checkbox" data-act="hubToggle" data-k="syncState" ${g.syncState!==false?"checked":""} style="width:24px;min-height:24px"></label>
     <label class="li" style="cursor:pointer"><span class="t"><b class="ui">Status für Citrus</b><small>status.json: Zusammenfassung, Woche, Zeitwünsche, offene Punkte</small></span><input type="checkbox" data-act="hubToggle" data-k="publish" ${g.publish!==false?"checked":""} style="width:24px;min-height:24px"></label>
     <label class="li" style="cursor:pointer"><span class="t"><b class="ui">Dienste aus dem Kalender</b><small>Schicht-Termine werden Diensttage (Kerze geschützt, Citrus plant drumherum)</small></span><input type="checkbox" data-act="hubToggle" data-k="calendar" ${g.calendar!==false?"checked":""} style="width:24px;min-height:24px"></label></div>
     <label class="f">Kalender-ID<input value="${esc(g.calendarId||"primary")}" data-act="hubCal" onchange="ACT.hubCal(this)"></label>
-    <div class="hub-st muted ui" style="font-size:.85rem">${L.err?`<span class="no">${esc(L.err)}</span><br>`:""}Fortschritt: ${esc(L.state||"–")} · Status: ${esc(L.status||"–")} · Kalender: ${esc(L.cal||"–")}${S.citrusPlan&&S.citrusPlan.blocks.length?`<br>Citrus plant: ${S.citrusPlan.blocks.map(b=>esc((b.start?b.start+" ":"")+(b.minutes?b.minutes+" Min.":b.title))).join(", ")}`:""}</div>
+    ${gNeedsTap()?`<div class="tip g-tap"><b>Google braucht einen Tipp.</b> Dein Fortschritt ist auf diesem Gerät sicher; nach dem Tipp wird wieder auf Drive gesichert.<div class="row" style="margin-top:.5rem"><button class="sm primary" data-act="hubReconnect">Neu verbinden</button></div></div>`:""}<div class="hub-st muted ui" style="font-size:.85rem">${L.err?`<span class="no">${esc(L.err)}</span><br>`:""}Fortschritt: ${esc(L.state||"–")} · Status: ${esc(L.status||"–")} · Kalender: ${esc(L.cal||"–")}${S.citrusPlan&&S.citrusPlan.blocks.length?`<br>Citrus plant: ${S.citrusPlan.blocks.map(b=>esc((b.start?b.start+" ":"")+(b.minutes?b.minutes+" Min.":b.title))).join(", ")}`:""}</div>
     ${HUB.conflict?`<div class="tip"><b>Konflikt:</b> Auf Drive liegt ein neuerer Stand (${esc(fmtTime(HUB.conflict.at))}), und hier wurde seitdem auch gelernt.<div class="row" style="margin-top:.5rem"><button class="sm" data-act="hubUseRemote">Drive-Stand übernehmen</button><button class="sm" data-act="hubKeepLocal">Diesen Stand behalten</button></div></div>`:""}
     <div class="row wrap"><button class="sm" data-act="hubSync" ${HUB.syncing?"disabled":""}>${HUB.syncing?"Synchronisiert …":ic("download")+" Jetzt synchronisieren"}</button><button class="sm ghost" data-act="hubSignOut">Abmelden</button></div>`:""}</div>`}
 function hubPaint(){const c=$(".hub-card");if(c){const d=document.createElement("div");d.innerHTML=hubHTML();c.replaceWith(d.firstElementChild)}const w=$(".weg .hub-line");if(w)w.innerHTML=hubLine()}
@@ -2381,6 +2464,17 @@ ACT.hubOpen=()=>{go("me");setTimeout(()=>{const b=$('[data-act=meSeg][data-k=set
   window.addEventListener("pagehide",()=>{hubPushState(false)});
   if(hubCan()&&gAuth())setTimeout(()=>hubSync(false),1500);
   if(!S.google)S.google={};})();
+// 13.11 sign-in at start-up: Google's script is prepared early (so a tap opens the window inside the tap); an answer from the same-window
+// sign-in is reported; the hourly token renews on the next tap anywhere (popup) or waits for "Neu verbinden" (same window).
+(function(){const after=()=>{try{
+    if(hubCan()&&gCid()&&navigator.onLine!==false&&!gRedirectMode())setTimeout(()=>{gInit().catch(()=>{})},600);
+    const b=HUB.back;HUB.back=null;if(b){setTimeout(()=>{try{toast(b.ok?"Verbunden":b.msg,b.ok?2500:7000)}catch(e){}},400);
+      if(b.ok){gFirstOn();gKeep(gToken(),Math.round(((gAuth()||{}).exp-Date.now())/1000)+60).then(()=>{hubPaint();hubSync(true)}).catch(()=>{})}else try{hubPaint()}catch(e){}}
+    if(gNeedsTap())GAUTH.needsTap=true}catch(e){}};
+  try{STORE.ready.then(after,after)}catch(e){setTimeout(after,0)}
+  document.addEventListener("pointerdown",()=>{try{if(!hubCan()||gToken()||!gAuth()||GAUTH.pending||navigator.onLine===false||!gCid())return;
+    if(gRedirectMode()||!gisReady()){GAUTH.needsTap=true;hubPaint();return}   // leaving the page needs a deliberate tap on "Neu verbinden"
+    gConnect({renew:true}).then(()=>{hubPaint();hubSync(false)}).catch(()=>{GAUTH.needsTap=true;hubPaint()})}catch(e){}},{capture:true});})();
 
 // ===== Mephisto 13.10 · Drive folders found by tag (claude/drive-layout.md, 17/11/2026).
 // Citrus tags every app folder with appProperties.citrusApp="<id>" and may move it into Citrus/… — so folders are found by tag, never by path.
@@ -17767,6 +17861,42 @@ MOD.after("meData","p2",function(el){try{let card=[...el.querySelectorAll(".card
 // after start: say plainly when something is wrong with the store
 try{STORE.ready.then(st=>{if(st&&st.note)setTimeout(()=>{try{toast(st.note,9000)}catch(e){}},1500)})}catch(e){}
 
+// ===== Mephisto 13.11 · How the progress is laid out on Drive (claude/cloud-model.md; Sudachi's cloudparts.js is the reference). Pure: no network.
+// One small core file (state.json: settings, the pact, lessons, tombstones, stamps …) and the three big keys split into part files by a hash:
+//   cards-00 … cards-15.json   S.cards by card id            (a review changes one part, about 1/16 of the deck)
+//   log-0 … log-3.json         S.log by day                  (today's minutes change one part)
+//   ev-0 … ev-3.json           S.events by month (yyyy-mm)    (this month's events change one part)
+// Every part is {layout, key, part, data}. All parts are always written (empty ones too), so a part emptied by deletes never keeps stale records.
+// A state.json from before the split (v:2 with cards/log/events inside) is still read: CP.join returns its keys and the parts' keys side by side,
+// and the caller merges them with the same rules as two devices (mergeStates) — so parts never need rules of their own.
+// Never change the numbers of parts without a migration (the part of a record must stay where other devices look for it).
+const CP=(function(){
+  const LAYOUT=2;
+  const SPEC=[{key:"cards",pre:"cards-",n:16,w:2,arr:false,by:id=>id},{key:"log",pre:"log-",n:4,w:1,arr:false,by:d=>d},{key:"events",pre:"ev-",n:4,w:1,arr:true,by:e=>String((e&&(e.d||e.date||e.at))||"").slice(0,7)}];
+  const hash=s=>{s=String(s);let h=2166136261;for(let i=0;i<s.length;i++)h=Math.imul(h^s.charCodeAt(i),16777619);return h>>>0};
+  const name=(sp,i)=>sp.pre+String(i).padStart(sp.w,"0")+".json";
+  const NAMES=[];SPEC.forEach(sp=>{for(let i=0;i<sp.n;i++)NAMES.push(name(sp,i))});
+  const KEYS=SPEC.map(sp=>sp.key);
+  const isPart=n=>NAMES.indexOf(String(n||""))>=0;
+  const mine=n=>n==="state.json"||isPart(n);
+  const partOf=(sp,v)=>hash(sp.by(v))%sp.n;
+  /** A state → {core, parts:{name: {layout,key,part,data}}} (all parts, empty ones included). */
+  function split(s){s=s||{};const core={};for(const k of Object.keys(s))if(KEYS.indexOf(k)<0)core[k]=s[k];core.cloudLayout={v:LAYOUT,parts:NAMES.length};
+    const parts={};for(const sp of SPEC){for(let i=0;i<sp.n;i++)parts[name(sp,i)]={layout:LAYOUT,key:sp.key,part:i,data:sp.arr?[]:{}};
+      const v=s[sp.key];if(sp.arr){if(Array.isArray(v))v.forEach(e=>parts[name(sp,partOf(sp,e))].data.push(e))}
+      else if(v&&typeof v==="object"&&!Array.isArray(v))for(const id of Object.keys(v))parts[name(sp,hash(sp.by(id))%sp.n)].data[id]=v[id]}
+    return {core,parts}}
+  /** core (null, the new small core, or a whole state.json from before the split) + the parts that were read →
+   *  {core: core without its layout mark, fromParts: {cards?, log?, events?} (only keys some part was read for), legacy: core still holds big keys} */
+  function join(core,parts){const c=Object.assign({},core||{});delete c.cloudLayout;const fromParts={};
+    for(const p of Object.values(parts||{})){if(!p||typeof p!=="object")continue;const sp=SPEC.find(x=>x.key===p.key);if(!sp)continue;
+      if(sp.arr){if(Array.isArray(p.data))fromParts[sp.key]=(fromParts[sp.key]||[]).concat(p.data)}
+      else if(p.data&&typeof p.data==="object"&&!Array.isArray(p.data))fromParts[sp.key]=Object.assign(fromParts[sp.key]||{},p.data)}
+    return {core:c,fromParts,legacy:KEYS.some(k=>c[k]!==undefined)}}
+  /** A part file's content is well formed (else it is set aside as damaged). */
+  function validPart(n,p){if(!p||typeof p!=="object"||Array.isArray(p))return false;const sp=SPEC.find(x=>x.key===p.key);if(!sp||!String(n).startsWith(sp.pre))return false;return sp.arr?Array.isArray(p.data):!!(p.data&&typeof p.data==="object"&&!Array.isArray(p.data))}
+  return {LAYOUT,SPEC,NAMES,KEYS,isPart,mine,split,join,validPart,hash}})();
+
 // ===== Mephisto 12.5.1 · Wolke: Drive sync that never asks "which one?" and never destroys.
 // P2 rewrite of the merge (13.1): every rule below is a join — commutative, associative, idempotent — so any number of devices, syncing in
 // any order, end in the same state (tests/merge_prop.js: 3,000 random triples). Device keys (look, sound …) and the ORDER of own cards
@@ -17968,7 +18098,7 @@ function stampLog(){try{const d=todayKey(),L=S.log&&S.log[d];if(!isObj(L)||typeo
     for(const f in L){if(f==="sec"||f==="act"||f==="dv"||f==="dc"||typeof L[f]!=="number")continue;let others=0;for(const k in L.dc)if(k!==me)others+=+(L.dc[k]||{})[f]||0;mine[f]=Math.max(+mine[f]||0,L[f]-others)}}catch(e){}}
 function tsStamp(){try{if(!S)return;S._ts=S._ts||{};const now=new Date().toISOString();stampOwn(now);stampLog();
   try{const p=S.pakt;if(isObj(p)){if(DU_LAST!==undefined&&p.du!==undefined&&p.du!==DU_LAST.du)p.duAt=now;DU_LAST={du:p.du}}}catch(e){}
-  const cur={};for(const k in S){if(DEVICE_KEYS.has(k)||k==="_ts"||k==="cards"||k==="log"||k==="events")continue;cur[k]=J(S[k])}
+  const cur={};for(const k in S){if(DEVICE_KEYS.has(k)||k==="_ts"||k==="cards"||k==="log"||k==="events")continue;cur[k]=stableJ(S[k])}   // 13.11: key order is not a change (adopt keeps the old order; MERGE_RULES sort)
   if(TS_LAST){for(const k in cur)if(cur[k]!==TS_LAST[k])S._ts[k]=now;for(const k in TS_LAST)if(!(k in cur))S._ts[k]=now}TS_LAST=cur}catch(e){}}
 const _saveNowTs=saveNow;saveNow=function(){tsStamp();return _saveNowTs.apply(this,arguments)};
 setTimeout(()=>{TS_LAST=null;tsStamp()},50);
@@ -17982,55 +18112,153 @@ deleteCard=function(key){S.del=S.del||{};const now=new Date().toISOString();let 
   S.del[tk]=now;saveNow();try{buildDict()}catch(e){}toast("Aus dem Deck entfernt – auf allen Geräten.")};
 function markEpoch(){S._epoch=new Date().toISOString()}
 // 12.6: ACT.reset (c_v126.js) marks the epoch itself, only after a confirmed reset (whole: _epoch; partial: _epochs[group]).
-const _gFetchC=gFetch;gFetch=async function(url,init){const ac=typeof AbortController!=="undefined"?new AbortController():null;const t=ac?setTimeout(()=>ac.abort(),20000):null;
-  try{return await _gFetchC(url,Object.assign({},init||{},ac?{signal:ac.signal}:{}))}catch(e){if(e&&e.name==="AbortError")throw new Error("timeout");if(/http_404/.test(String(e&&e.message))){try{lsSet("mephisto_drive_ids","{}")}catch(x){}}throw e}finally{if(t)clearTimeout(t)}};
+// ===== 13.11 · the family cloud model (claude/cloud-model.md; Sudachi 1.4 is the reference). What changed against 12.5.1:
+//  - Drive holds a small core (state.json) + 24 part files (c_cloudparts.js). Each file carries appProperties.rev (who wrote it last) and .h
+//    (content fingerprint). One folder listing says which files another device wrote since this one read them: only those are downloaded,
+//    and only files whose content changed are uploaded. Parts merge through the same rules as two devices (mergeStates / MERGE_RULES).
+//  - The Drive changes feed answers "anything new?" in one request when nothing changed here either.
+//  - A state.json from before the split is still read; the first save in the new layout keeps a copy in backups/ (…-before-split-…).
+//  - A file that cannot be read is renamed aside (<name>.damaged-<time>.json), never overwritten; the next save writes a fresh one.
+//  - Many cards removed at once by another device: a copy is kept on Drive first, and the learner is asked (Bring them back / Keep them removed).
+//  - Every request has a deadline (c_hub gFetch); a failed sync is tried again after 30 s, 2, 5 and 15 min, and when the device is back online.
+//  - One window talks to Drive (Web Lock "mephisto-drive"; with P2 only the writing window syncs at all — a waiting window never does).
+//  - Daily backup of the whole state in backups/ (the newest 14 days) + one before every risky step (split, mass delete, restore).
+MOD.around("gFetch","cloud",async function(orig,url,init){try{return await orig(url,init)}catch(e){if(/http_404/.test(String(e&&e.message))){try{lsSet("mephisto_drive_ids","{}");DRV.checked={}}catch(x){}}throw e}});
 async function cFiles(folder,name){const qq=`'${folder}' in parents and name = '${name.replace(/'/g,"\\'")}' and trashed = false`;const r=await gFetch(`${HUB.DRIVE}/files?`+new URLSearchParams({q:qq,fields:"files(id,name,modifiedTime,size,appProperties)",spaces:"drive",orderBy:"modifiedTime desc",pageSize:"10"}));return (await r.json()).files||[]}
 async function cMeta(id){const r=await gFetch(`${HUB.DRIVE}/files/${id}?fields=id,modifiedTime,appProperties`);return r.json()}
 async function cTrash(id){try{await gFetch(`${HUB.DRIVE}/files/${id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({trashed:true})})}catch(e){}}
 async function cCopy(id,folder,name){try{await gFetch(`${HUB.DRIVE}/files/${id}/copy`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name,parents:[folder]})});return true}catch(e){return false}}
-async function cWrite(folder,name,obj,fileId,props){const b="mephisto"+Date.now();const meta=fileId?{name,appProperties:props||{}}:{name,parents:[folder],appProperties:props||{}};const body=`--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${b}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify(obj)}\r\n--${b}--`;
+async function cWrite(folder,name,obj,fileId,props){const b="mephisto"+Date.now()+Math.random().toString(36).slice(2,6);const meta=fileId?{appProperties:props||{}}:{name,parents:[folder],mimeType:"application/json",appProperties:props||{}};const body=`--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${b}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify(obj)}\r\n--${b}--`;
   const url=fileId?`${HUB.UPLOAD}/files/${fileId}?uploadType=multipart&fields=id,modifiedTime,appProperties`:`${HUB.UPLOAD}/files?uploadType=multipart&fields=id,modifiedTime,appProperties`;const r=await gFetch(url,{method:fileId?"PATCH":"POST",headers:{"Content-Type":"multipart/related; boundary="+b},body});return r.json()}
-async function cRead(id){const r=await gFetch(`${HUB.DRIVE}/files/${encodeURIComponent(id)}?alt=media`);const txt=await r.text();let o;try{o=JSON.parse(txt)}catch(e){throw new Error("remote_unreadable")}if(!isObj(o))throw new Error("remote_unreadable");if(o.v!==2)throw new Error(o.v>2?"remote_newer":"remote_unreadable");return o}
+async function cText(id){const r=await gFetch(`${HUB.DRIVE}/files/${encodeURIComponent(id)}?alt=media`);return r.text()}
+async function cRead(id){const txt=await cText(id);let o;try{o=JSON.parse(txt)}catch(e){throw new Error("remote_unreadable")}if(!isObj(o))throw new Error("remote_unreadable");if(o.v!==2)throw new Error(o.v>2?"remote_newer":"remote_unreadable");return o}
 function fpOf(o){const x={};Object.keys(o).sort().forEach(k=>{if(!DEVICE_KEYS.has(k))x[k]=o[k]});const s=stableJ(x);let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return (h>>>0).toString(36)+s.length.toString(36)}
+// fingerprint of one Drive file: canonical JSON (FNV-1a); the core leaves out what belongs to this device and the save time
+// Telemetry that ticks with every tap (the horror director's session clock, how often an English line was shown) is not a reason to upload
+// the core on its own: it travels with the next real change. (Its merge rules do not use _ts, so their stamps are left out too.)
+const CL_VOLATILE={hx:["se","hh"],i3:["enTap"]};
+function cFp(name,obj){let o=obj;if(name==="state.json"){o={};for(const k of Object.keys(obj||{}))if(!DEVICE_KEYS.has(k)&&k!=="savedAt")o[k]=obj[k];
+    for(const k in CL_VOLATILE)if(isObj(o[k])){const x=Object.assign({},o[k]);CL_VOLATILE[k].forEach(f=>delete x[f]);o[k]=x}
+    if(isObj(o._ts)){const t=Object.assign({},o._ts);for(const k in CL_VOLATILE)delete t[k];o._ts=t}}const s=stableJ(o);let h=2166136261;for(let i=0;i<s.length;i++)h=Math.imul(h^s.charCodeAt(i),16777619);return (h>>>0).toString(36)+":"+s.length.toString(36)}
+const cSnap=()=>{const o=Object.assign({},S);delete o.today;return o};
 const CL={rev:null,status:"",at:"",err:"",running:false,started:0};
-function clSet(st,err){CL.status=st;CL.err=err||"";try{const b=$(".cl-chip");if(b){b.textContent=clIcon();b.title=clText()}hubPaint&&hubPaint()}catch(e){}}
-const clIcon=()=>!navigator.onLine?"☁̸":CL.running?"⟳":CL.err?"⚠":CL.status==="ok"?"☁✓":"☁";
-const clErrText=e=>{const m=String(e&&e.message||e);return m==="remote_unreadable"?"Die Cloud-Datei ist beschädigt – nichts überschrieben, Kopie in backups/ gesichert.":m==="remote_newer"?"Die Cloud-Datei stammt von einer neueren App-Version – bitte App aktualisieren. Nichts überschrieben.":m==="timeout"?"Google antwortet nicht (Zeitüberschreitung).":hubErr(e)};
-const clText=()=>!navigator.onLine?"Offline – alles bleibt auf diesem Gerät und wird später zusammengeführt.":CL.err?("Wolke: "+CL.err):CL.at?("Wolke: zusammengeführt "+CL.at):"Wolke: noch nicht verbunden";
+// sync bookkeeping (this device only): seen = file name → rev last read or written; watch = changes-feed position
+const CL2={seen:null,watch:null,fails:0,nextRetry:0,retryT:null,lastGood:0,lastSave:0,lastCheck:0,lastFp:"",mode:"",ms:0,files:0,sent:0,read:0,mass:null,split:false,problem:""};
+try{CL2.lastGood=+lsGet("mephisto_cloud_good")||0;CL2.lastSave=+lsGet("mephisto_cloud_save")||0}catch(e){}
+function clSeen(){if(!CL2.seen){let j=null;try{j=JSON.parse(lsGet("mephisto_drive_seen")||"null")}catch(e){}CL2.seen=j&&typeof j==="object"&&!localEmpty()?j:{}}return CL2.seen}
+const clSaveSeen=()=>{try{lsSet("mephisto_drive_seen",JSON.stringify(CL2.seen||{}))}catch(e){}};
+function clWatch(){if(CL2.watch===null){try{CL2.watch=JSON.parse(lsGet("mephisto_drive_watch")||"null")}catch(e){CL2.watch=null}if(!CL2.watch)CL2.watch={}}return CL2.watch}
+const clSaveWatch=()=>{try{lsSet("mephisto_drive_watch",JSON.stringify(CL2.watch||{}))}catch(e){}};
+/** This device's state, fingerprinted as Drive would see it (to tell "a change waits to be saved"). */
+function clLocalFp(){try{return cFp("state.json",cSnap())}catch(e){return ""}}
+function clSet(st,err){CL.status=st;CL.err=err||"";try{const b=$(".cl-chip");if(b){b.textContent=clIcon();b.title=clText()}hubPaint&&hubPaint();clPaint()}catch(e){}}
+const clIcon=()=>!navigator.onLine?"☁̸":CL.running?"⟳":(typeof gNeedsTap==="function"&&gNeedsTap())?"☁⚠":CL.err?"⚠":CL.status==="ok"?"☁✓":"☁";
+const clErrText=e=>{const m=String(e&&e.message||e);return m==="remote_unreadable"?"Die Cloud-Datei ist beschädigt – sie wurde beiseitegelegt, nichts überschrieben.":m==="remote_newer"?"Die Cloud-Datei stammt von einer neueren App-Version – bitte App aktualisieren. Nichts überschrieben.":hubErr(e)};
+const clText=()=>!navigator.onLine?"Offline – alles bleibt auf diesem Gerät und wird später zusammengeführt.":(typeof gNeedsTap==="function"&&gNeedsTap())?"Google braucht einen Tipp – Neu verbinden":CL.err?("Wolke: "+CL.err):CL.at?("Wolke: zusammengeführt "+CL.at):"Wolke: noch nicht verbunden";
 const localEmpty=()=>!Object.keys(S.cards||{}).length&&!Object.keys(S.lessons||{}).length&&!(S.events||[]).length;
-async function cloudSync(force){if(!hubCan()||!gAuth()||!navigator.onLine){clSet("off");return}if(gConf().syncState===false)return;
-  if(CL.running&&Date.now()-CL.started>60000)CL.running=false;
-  const run=async()=>{if(CL.running)return;CL.running=true;CL.started=Date.now();clSet("run");try{await gEnsure();const folder=await hubFolder(false);
-    for(let attempt=0;attempt<3;attempt++){const twins=await cFiles(folder,"state.json");let remote=null;
-      for(const f of twins){let o;try{o=await cRead(f.id)}catch(e){if(e.message==="remote_unreadable"){try{const bf=await backupFolder();await cCopy(f.id,bf,`damaged-${new Date().toISOString().replace(/[:.]/g,"-")}.json`)}catch(x){}if(twins.length===1)throw e;continue}throw e}remote=remote?mergeStates(remote,validate(o)):validate(o)}
-      if(twins.length&&!remote)throw new Error("remote_unreadable");
-      const main=twins[0]||null;const before=fpOf(S);const merged=remote?mergeStates(S,remote):S;
-      if(remote&&fpOf(merged)!==before){const keep=Object.assign({},S.google||{});const nx=validate(merged);nx.google=keep;adopt(nx,"cloud");TS_LAST=null;saveNow();try{applyPrefs();buildDict();if(!Focus.isOpen())rerender()}catch(e){}}
-      if(!main&&localEmpty())break;
-      const mfp=fpOf(S);const rfp=main&&main.appProperties&&main.appProperties.h;
-      if(main&&twins.length===1&&rfp===mfp&&!force){setSynced(S.savedAt||"");CL.rev=(main.appProperties||{}).rev||null;break}
-      if(main)await dailyCopy(main.id).catch(()=>{});
-      if(main){const m2=await cMeta(main.id);if((m2.appProperties||{}).rev!==(main.appProperties||{}).rev)continue}
-      S.savedAt=new Date().toISOString();const snap=Object.assign({},S);delete snap.today;const rev=String(Date.now())+Math.random().toString(36).slice(2,6);
-      await cWrite(folder,"state.json",snap,main&&main.id,{rev,h:fpOf(S),device:(typeof gDevice==="function"?gDevice():"mephisto").slice(0,60),app:(typeof APP_VERSION!=="undefined"?APP_VERSION:"")});
-      for(const t of twins.slice(1))await cTrash(t.id);
-      if(main){const m3=await cMeta(main.id);if((m3.appProperties||{}).rev!==rev)continue}
-      CL.rev=rev;setSynced(S.savedAt);saveNow();HUB.fp=stateFingerprint();HUB.stateAt=Date.now();break}
-    HUB.conflict=null;HUB.last.state="zusammengeführt "+fmtTime(new Date().toISOString());HUB.last.err="";CL.at=fmtTime(new Date().toISOString());CL.running=false;clSet("ok");pruneBackups().catch(()=>{})}
-    catch(e){CL.running=false;if(/http_404/.test(String(e&&e.message))&&!run._retried){run._retried=true;return run()}run._retried=false;HUB.last.err=clErrText(e);clSet("err",clErrText(e))}finally{CL.running=false}};
-  if(navigator.locks&&navigator.locks.request)return navigator.locks.request("mephisto-cloud",{ifAvailable:true},lk=>lk?run():null);return run()}
+async function clPool(items,n,fn){let i=0,err=null;const run=async()=>{while(!err&&i<items.length){const it=items[i++];try{await fn(it)}catch(e){err=e}}};await Promise.all(Array.from({length:Math.min(n,items.length)},run));if(err)throw err}
+/** Our files in our folder: name → {main (newest), twins (older copies from an earlier race)}. One listing. */
+async function clList(folder){const out={};let page="";do{const r=await gFetch(`${HUB.DRIVE}/files?`+new URLSearchParams(Object.assign({q:`'${folder}' in parents and trashed = false`,fields:"nextPageToken,files(id,name,modifiedTime,size,appProperties)",spaces:"drive",orderBy:"modifiedTime desc",pageSize:"200"},page?{pageToken:page}:{})));const j=await r.json();
+    for(const f of (j.files||[])){if(!CP.mine(f.name))continue;if(!out[f.name])out[f.name]={main:f,twins:[]};else out[f.name].twins.push(f)}page=j.nextPageToken||""}while(page);
+  return out}
+const clRev=f=>(f&&f.appProperties&&f.appProperties.rev)||"";
+/** A file we could not read: renamed aside (never overwritten), so it can still be recovered by hand; the next save writes a fresh one. */
+async function clAside(f){try{await gFetch(`${HUB.DRIVE}/files/${encodeURIComponent(f.id)}?fields=id`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:f.name.replace(/\.json$/,"")+".damaged-"+new Date().toISOString().replace(/[:.]/g,"-")+".json"})})}catch(e){}delete clSeen()[f.name]}
+async function clReadFile(f){let txt="";txt=await cText(f.id);let o=null;try{o=JSON.parse(txt)}catch(e){o=null}return o}
 async function backupFolder(){return dFolder([HUB.ROOT,"hub",HUB.APP,"backups"],false)}
-async function dailyCopy(fileId){const day=todayKey();if(lsGet("mephisto_backup_day")===day)return;const bf=await backupFolder();const name=`state-${day}.json`;const ex=await cFiles(bf,name);if(!ex.length)await cCopy(fileId,bf,name);lsSet("mephisto_backup_day",day)}
-function isoWeek(d){const t=new Date(d+"T12:00:00");const day=(t.getDay()+6)%7;t.setDate(t.getDate()-day+3);const f=new Date(t.getFullYear(),0,4);return t.getFullYear()+"-"+Math.round(((t-f)/864e5-3+((f.getDay()+6)%7))/7+1)}
-async function pruneBackups(){if(lsGet("mephisto_prune_day")===todayKey())return;const bf=await backupFolder();const r=await gFetch(`${HUB.DRIVE}/files?`+new URLSearchParams({q:`'${bf}' in parents and trashed = false`,fields:"files(id,name)",pageSize:"300"}));const L=((await r.json()).files||[]).filter(x=>/^state-\d{4}-\d\d-\d\d\.json$/.test(x.name)).sort((a,b)=>b.name.localeCompare(a.name));
-  const keep=new Set(L.slice(0,7).map(x=>x.name));const weeks=new Set();L.forEach(x=>{const w=isoWeek(x.name.slice(6,16));if(!weeks.has(w)&&weeks.size<5){weeks.add(w);keep.add(x.name)}});
-  for(const x of L)if(!keep.has(x.name))await cTrash(x.id);lsSet("mephisto_prune_day",todayKey())}
-async function cloudBackups(){const bf=await backupFolder();const r=await gFetch(`${HUB.DRIVE}/files?`+new URLSearchParams({q:`'${bf}' in parents and trashed = false`,fields:"files(id,name,modifiedTime,size)",pageSize:"60"}));return ((await r.json()).files||[]).filter(x=>/^(state|damaged)-/.test(x.name)).sort((a,b)=>b.name.localeCompare(a.name))}
+/** A copy of the whole state kept just before a risky step: backups/state-YYYY-MM-DD-before-<what>-HHMM.json */
+async function clBackupBefore(what,obj){try{const bf=await backupFolder();const d=new Date();await cWrite(bf,`state-${todayKey()}-before-${what}-${pad(d.getHours())}${pad(d.getMinutes())}.json`,obj||cSnap(),null,{kind:"before",what});return true}catch(e){try{logError(e)}catch(x){}return false}}
+/** One copy of the whole state per day (taken again when it has grown a lot since the morning), the newest 14 days kept; before-copies: the newest 10. */
+async function clDaily(){const day=todayKey(),size=JSON.stringify(cSnap()).length;let had=null;try{had=JSON.parse(lsGet("mephisto_backup_day2")||"null")}catch(e){}
+  if(had&&had.day===day&&size<had.size*1.5+4000)return false;
+  const bf=await backupFolder();const r=await gFetch(`${HUB.DRIVE}/files?`+new URLSearchParams({q:`'${bf}' in parents and trashed = false and name contains 'state-'`,fields:"files(id,name,size)",pageSize:"300",spaces:"drive"}));const L=((await r.json()).files||[]);
+  const name=`state-${day}.json`,same=L.filter(x=>x.name===name);
+  if(same.length&&!had){lsSet("mephisto_backup_day2",JSON.stringify({day,size:+same[0].size||size}));return clDaily()}
+  await cWrite(bf,name,cSnap(),null,{kind:"daily"});for(const x of same)await cTrash(x.id);lsSet("mephisto_backup_day2",JSON.stringify({day,size}));
+  const days=L.filter(x=>/^state-\d{4}-\d\d-\d\d\.json$/.test(x.name)&&x.name!==name).sort((a,b)=>b.name.localeCompare(a.name)).slice(13);
+  const before=L.filter(x=>/-before-/.test(x.name)).sort((a,b)=>b.name.localeCompare(a.name)).slice(10);
+  for(const x of days.concat(before))await cTrash(x.id);return true}
+/** Did anything of ours move on Drive since our last look? (the changes feed; null = can't tell, do a full pass) */
+async function clFeed(folder){const w=clWatch();if(!w.token||w.folder!==folder||Date.now()-(w.fullAt||0)>12*3600000)return null;
+  let page;try{page=await gJSON(`${HUB.DRIVE}/changes?`+new URLSearchParams({pageToken:w.token,fields:"nextPageToken,newStartPageToken,changes(fileId,removed,file(id,name,parents,trashed,appProperties))",pageSize:"1000",spaces:"drive",includeRemoved:"true"}))}catch(e){if(/http_(400|404|410)/.test(String(e&&e.message))){CL2.watch={};clSaveWatch();return null}throw e}
+  if(!page||page.nextPageToken)return null;const seen=clSeen();
+  for(const c of (page.changes||[])){const f=c.file||{};if((c.fileId===folder||f.id===folder)&&(c.removed||f.trashed))return null;
+    if((f.parents||[]).indexOf(folder)>=0&&CP.mine(f.name)&&clRev(f)!==(seen[f.name]||""))return null;
+    if(f.appProperties&&f.appProperties.citrusApp==="mephisto"&&f.id!==folder)return null}
+  w.token=page.newStartPageToken||w.token;clSaveWatch();return true}
+// After a failed sync: try again soon, then less often (30 s, 2 min, 5 min, 15 min). A sign-in that needs a tap is not retried by a timer.
+const CL_RETRY=[30,120,300,900];
+function clRetry(err){clearTimeout(CL2.retryT);if(!err){CL2.fails=0;CL2.nextRetry=0;return}const m=String(err&&err.message||err);
+  if(/needs_tap|signed_out|no_client|no_drive|remote_newer/.test(m)){CL2.nextRetry=0;return}
+  const s=CL_RETRY[Math.min(CL2.fails,CL_RETRY.length-1)];CL2.fails++;CL2.nextRetry=Date.now()+s*1000;CL2.retryT=setTimeout(()=>{if(navigator.onLine!==false&&gToken())cloudSync(false)},s*1000)}
+// Another device removed many cards at once: they are gone here too (the merge says so), but one tap brings them back on every device.
+function clMassCheck(before,merged){const had=Object.keys(before.cards||{}).filter(k=>!/^p:/.test(k));const lost=had.filter(k=>!(merged.cards||{})[k]);
+  return lost.length>=Math.max(25,Math.ceil(had.length*0.2))?lost:null}
+function clMassSheet(){const M=CL2.mass;if(!M)return;try{const box=Focus.open({title:"Karten entfernt",sub:"auf einem anderen Gerät"});
+    box.innerHTML=`<div class="stack cl-mass" style="max-width:560px;margin:0 auto"><div class="card stack s"><h3>${M.lost.length} Karten wurden auf einem anderen Gerät entfernt</h3><p class="fg2">Zum Beispiel: ${esc(M.lost.slice(0,5).map(k=>k.replace(/^\w+:/,"")).join(", "))}${M.lost.length>5?" …":""}</p><p class="muted ui">Warst du das, behalte es so. Wenn nicht (ein Versehen oder ein Gerät, das spinnt), hol sie zurück: dann kommen sie auf jedem Gerät wieder. Eine Kopie von direkt davor liegt außerdem auf Drive unter backups/. <span lang="en">${M.lost.length} cards were removed on another device. Bring them back, or keep them removed.</span></p>
+      <div class="row wrap"><button class="primary" data-act="clMassBack">Zurückholen</button><button class="ghost" data-act="clMassKeep">Entfernt lassen</button></div><small class="muted ui">Bring them back · Keep them removed</small></div></div>`}catch(e){}}
+ACT.clMassKeep=()=>{CL2.mass=null;try{Focus.close(true)}catch(e){}toast("Entfernt gelassen.")};
+ACT.clMassBack=()=>{const M=CL2.mass;CL2.mass=null;if(!M)return;const now=new Date().toISOString();let n=0;
+  for(const k of M.lost){const c=M.pre.cards[k];if(!c||S.cards[k])continue;S.cards[k]=Object.assign({},c,{add:now});n++;const pk="p:"+k;if(M.pre.cards[pk]&&!S.cards[pk])S.cards[pk]=Object.assign({},M.pre.cards[pk],{add:now})}
+  try{TS_LAST=null;saveNow();buildDict()}catch(e){}try{Focus.close(true);rerender()}catch(e){}toast(n+" Karten zurückgeholt – auf allen Geräten.",4000);setTimeout(()=>cloudSync(true),300)};
+async function cloudSync(force){if(!hubCan()||!gAuth()||!navigator.onLine){clSet("off");return}if(gConf().syncState===false)return;
+  try{await STORE.ready}catch(e){}if(STORE.st.passive||STORE.st.readOnly)return;   // a waiting window never talks to Drive; the writing one does
+  if(CL.running&&Date.now()-CL.started>300000)CL.running=false;
+  const run=async()=>{if(CL.running)return;CL.running=true;CL.started=Date.now();clSet("run");const t0=Date.now();CL2.sent=0;CL2.read=0;
+    try{await gEnsure();const folder=await hubFolder(false);const seen=clSeen();const localFp=clLocalFp();
+      // 0. nothing changed here, nothing moved there: one request and done
+      if(!force&&localFp===CL2.lastFp&&await clFeed(folder)){CL2.mode="nichts Neues";CL2.lastCheck=Date.now();throw "__done"}
+      const w=clWatch();let token="";try{token=(await gJSON(`${HUB.DRIVE}/changes/startPageToken`)||{}).startPageToken||""}catch(e){if(/needs_tap/.test(String(e&&e.message)))throw e}
+      CL2.mode=force?"vollständig":"Änderungen";
+      for(let attempt=0;attempt<3;attempt++){
+        const by=await clList(folder);const names=Object.keys(by);
+        // 1. read what another device wrote since we last read it (never read counts as moved); with any part, the small core too
+        let want=names.filter(n=>by[n].twins.length||!clRev(by[n].main)||clRev(by[n].main)!==seen[n]);if(want.length&&by["state.json"]&&want.indexOf("state.json")<0)want.push("state.json");
+        const got={},bad=[];let core=null,coreLegacy=false;
+        await clPool(want,4,async n=>{for(const f of [by[n].main].concat(by[n].twins)){let o=await clReadFile(f);CL2.read++;
+          const ok=n==="state.json"?(isObj(o)&&(o.v===2||o.v>2)):CP.validPart(n,o);
+          if(!ok){bad.push(f);continue}
+          if(n==="state.json"){if(o.v>2)throw new Error("remote_newer");core=core?mergeStates(core,validate(o)):o}else got[n]=got[n]?{key:o.key,part:o.part,data:Array.isArray(o.data)?got[n].data.concat(o.data):Object.assign({},got[n].data,o.data)}:o}});
+        for(const f of bad){await clAside(f);if(by[f.name]&&by[f.name].main===f)delete by[f.name]}
+        const J=CP.join(core,got);coreLegacy=!!(core&&J.legacy);
+        let remote=null;if(core||Object.keys(J.fromParts).length){const fp=Object.assign({v:2},J.fromParts);remote=core?(J.legacy&&Object.keys(J.fromParts).length?mergeStates(validate(J.core),fp):Object.assign(J.core,J.fromParts)):fp}
+        // 2. merge it in, record by record (the same rules as two devices); a mass delete from elsewhere asks first
+        if(remote){const before=fpOf(S);const merged=mergeStates(S,remote.v===2&&core?validate(remote):remote);
+          if(fpOf(merged)!==before){const lost=clMassCheck(S,merged);let pre=null;if(lost){pre=JSON.parse(JSON.stringify(cSnap()));await clBackupBefore("mass-delete",pre)}
+            const keep=Object.assign({},S.google||{});const nx=validate(merged);nx.google=keep;adopt(nx,"cloud");TS_LAST=null;saveNow();try{applyPrefs();buildDict();if(!Focus.isOpen())rerender()}catch(e){}
+            if(lost){CL2.mass={lost,pre};setTimeout(clMassSheet,50)}}}
+        for(const n of want)if(by[n])seen[n]=clRev(by[n].main);clSaveSeen();
+        if(!Object.keys(by).length&&localEmpty())break;   // nothing anywhere yet: a fresh device writes nothing
+        // 3. write what differs from Drive — only those files
+        const sp=CP.split(cSnap());const files=[["state.json",sp.core]].concat(Object.entries(sp.parts));
+        const todo=files.filter(([n,o])=>{const f=by[n]&&by[n].main;return !f||(f.appProperties||{}).h!==cFp(n,o)||by[n].twins.length||(n==="state.json"&&coreLegacy)});   // a single-file copy (old layout or an old device) is always rewritten small
+        CL2.files=files.length;
+        if(todo.length){
+          if(coreLegacy&&!CL2.split&&by["state.json"]){CL2.split=true;try{const bf=await backupFolder();const d=new Date();await cCopy(by["state.json"].main.id,bf,`state-${todayKey()}-before-split-${pad(d.getHours())}${pad(d.getMinutes())}.json`)}catch(e){}}
+          // nobody else wrote since we read? (else: read theirs, merge, try again)
+          if(attempt<2&&Object.keys(by).length){const again=await clList(folder);if(Object.keys(again).some(n=>clRev(again[n].main)!==(seen[n]||"")&&(!by[n]||clRev(again[n].main)!==clRev(by[n].main))))continue}
+          S.savedAt=new Date().toISOString();const sp2=CP.split(cSnap());const send=todo.map(([n])=>[n,n==="state.json"?sp2.core:sp2.parts[n]]);
+          await clPool(send,4,async([n,o])=>{const rev=Date.now().toString(36)+"."+Math.random().toString(36).slice(2,7);const f=by[n]&&by[n].main;
+            const r=await cWrite(folder,n,o,f&&f.id,{rev,h:cFp(n,o),device:gDevice().slice(0,60),app:(typeof APP_VERSION!=="undefined"?APP_VERSION:""),layout:String(CP.LAYOUT)});
+            seen[n]=rev;CL2.sent++;if(by[n])for(const t of by[n].twins)await cTrash(t.id)});
+          clSaveSeen();CL2.lastSave=Date.now();lsSet("mephisto_cloud_save",String(CL2.lastSave));GST.skipped+=files.length-todo.length}
+        else GST.skipped+=files.length;
+        CL.rev=seen["state.json"]||null;setSynced(S.savedAt||"");saveNow();HUB.fp=stateFingerprint();HUB.stateAt=Date.now();break}
+      CL2.lastFp=clLocalFp();if(token){w.token=token;w.folder=folder;w.fullAt=Date.now();clSaveWatch()}
+      try{await clDaily()}catch(e){}throw "__done"}
+    catch(e){CL.running=false;
+      if(e==="__done"){CL2.ms=Date.now()-t0;CL2.lastGood=CL2.lastCheck=Date.now();lsSet("mephisto_cloud_good",String(CL2.lastGood));CL2.problem="";clRetry(null);HUB.conflict=null;HUB.last.state="zusammengeführt "+fmtTime(new Date().toISOString());HUB.last.err="";CL.at=fmtTime(new Date().toISOString());clSet("ok");return}
+      if(/http_404/.test(String(e&&e.message))&&!run._retried){run._retried=true;return run()}run._retried=false;CL2.problem=clErrText(e);HUB.last.err=CL2.problem;clRetry(e);clSet("err",CL2.problem)}
+    finally{CL.running=false;try{clPaint()}catch(e){}}};
+  if(navigator.locks&&navigator.locks.request)return navigator.locks.request("mephisto-drive",{ifAvailable:true},lk=>lk?run():null);return run()}
+async function cloudBackups(){const bf=await backupFolder();const r=await gFetch(`${HUB.DRIVE}/files?`+new URLSearchParams({q:`'${bf}' in parents and trashed = false`,fields:"files(id,name,modifiedTime,size)",pageSize:"100"}));const L=((await r.json()).files||[]).filter(x=>/^(state|damaged)-/.test(x.name));
+  try{const me=await hubFolder(false);const r2=await gFetch(`${HUB.DRIVE}/files?`+new URLSearchParams({q:`'${me}' in parents and trashed = false and name contains '.damaged-'`,fields:"files(id,name,modifiedTime,size)",pageSize:"50"}));((await r2.json()).files||[]).forEach(x=>L.push(Object.assign({},x,{dmg:true})))}catch(e){}
+  return L.sort((a,b)=>b.name.localeCompare(a.name))}
 ACT.cloudNow=()=>{cloudSync(true);toast("Wolke: wird zusammengeführt …",1800)};
 ACT.cloudBackups=async()=>{const box=Focus.open({title:"Zurückholen",sub:"Sicherungen auf Google Drive"});box.innerHTML=`<p class="muted ui pk-flicker">Sicherungen werden gelesen …</p>`;
-  try{const L=await cloudBackups();box.innerHTML=`<div class="stack" style="max-width:640px;margin:0 auto"><div class="card orn">${pkSay(["Nichts geht verloren. Nicht einmal Ihre Fehler.","Nothing is lost. Not even your mistakes."])}</div><p class="muted ui">A copy of the cloud file is kept each day before anything is written: the last 7 days plus one per week for a month. <b>Zusammenführen</b> adds what a copy has — nothing is deleted. <b>Ersetzen</b> makes that day the truth on every device (a snapshot of now is kept; Rückgängig works).</p>
-    ${L.length?L.map(x=>{const dmg=/^damaged/.test(x.name);return `<div class="card row between"><span><b>${dmg?"Beschädigte Datei · "+esc(fmtTime(x.modifiedTime)):esc(fmtDate(x.name.slice(6,16)))}</b><br><small class="muted ui">${Math.round((+x.size||0)/1024)} KB</small></span>${dmg?`<small class="muted ui">nur zur Sicherheit aufbewahrt</small>`:`<span class="row"><button class="sm" data-act="cloudRestore" data-id="${x.id}" data-m="merge">Zusammenführen</button><button class="sm ghost" data-act="cloudRestore" data-id="${x.id}" data-m="replace">Ersetzen</button></span>`}</div>`}).join(""):`<div class="card">Noch keine Sicherung. Die erste entsteht beim nächsten Abgleich.</div>`}</div>`}catch(e){box.innerHTML=`<div class="card">Konnte die Sicherungen nicht lesen: ${esc(clErrText(e))}</div>`}};
-ACT.cloudRestore=async el=>{try{const data=validate(await cRead(el.dataset.id));if(!(await STORE.guard(el.dataset.m==="merge"?"vor dem Zusammenführen mit einer Wolken-Sicherung":"vor dem Ersetzen durch eine Wolken-Sicherung"))){toast("Keine Sicherheitskopie möglich – nichts geändert. Erst unter Ich → Daten als Datei speichern.",6000);return}const keep=Object.assign({},S.google||{});
+  try{const L=await cloudBackups();box.innerHTML=`<div class="stack" style="max-width:640px;margin:0 auto"><div class="card orn">${pkSay(["Nichts geht verloren. Nicht einmal Ihre Fehler.","Nothing is lost. Not even your mistakes."])}</div><p class="muted ui">A copy of the whole progress is kept on Drive every day (the last 14 days) and before every risky step (moving to the new layout, a mass delete from another device, a restore). <b>Zusammenführen</b> adds what a copy has — nothing is deleted. <b>Ersetzen</b> makes that day the truth on every device (a snapshot of now is kept; Rückgängig works).</p>
+    ${L.length?L.map(x=>{const dmg=x.dmg||/^damaged/.test(x.name);const bw=(/-before-([a-z-]+?)-\d{4}\.json$/.exec(x.name)||[])[1];return `<div class="card row between"><span><b>${dmg?"Beschädigte Datei · "+esc(x.name.replace(/\.damaged-.*$/,""))+" · "+esc(fmtTime(x.modifiedTime)):esc(fmtDate(x.name.slice(6,16)))+(bw?" · vor "+esc({"mass-delete":"dem Massen-Löschen","split":"dem neuen Drive-Aufbau","restore":"dem Zurückholen"}[bw]||bw):"")}</b><br><small class="muted ui">${Math.round((+x.size||0)/1024)} KB</small></span>${dmg?`<small class="muted ui">nur zur Sicherheit aufbewahrt</small>`:`<span class="row"><button class="sm" data-act="cloudRestore" data-id="${x.id}" data-m="merge">Zusammenführen</button><button class="sm ghost" data-act="cloudRestore" data-id="${x.id}" data-m="replace">Ersetzen</button></span>`}</div>`}).join(""):`<div class="card">Noch keine Sicherung. Die erste entsteht beim nächsten Abgleich.</div>`}</div>`}catch(e){box.innerHTML=`<div class="card">Konnte die Sicherungen nicht lesen: ${esc(clErrText(e))}</div>`}};
+ACT.cloudRestore=async el=>{try{const data=validate(await cRead(el.dataset.id));await clBackupBefore("restore");if(!(await STORE.guard(el.dataset.m==="merge"?"vor dem Zusammenführen mit einer Wolken-Sicherung":"vor dem Ersetzen durch eine Wolken-Sicherung"))){toast("Keine Sicherheitskopie möglich – nichts geändert. Erst unter Ich → Daten als Datei speichern.",6000);return}const keep=Object.assign({},S.google||{});
   if(el.dataset.m==="merge")adopt(validate(mergeStates(S,data)),"restore");else{adopt(data,"restore");markEpoch()}S.google=keep;S.savedAt=new Date().toISOString();TS_LAST=null;saveNow();applyPrefs();buildDict();Focus.close(true);rerender();
   toast(el.dataset.m==="merge"?"Zusammengeführt. Der Stand davor liegt unter Ich → Daten → Sicherungen.":"Ersetzt – gilt jetzt auf allen Geräten. Der Stand davor liegt unter Ich → Daten → Sicherungen.",5500);cloudSync(true)}catch(e){toast("Fehler: "+clErrText(e))}};
 ACT.cloudUndo=()=>{try{meSeg="data";go("me");toast("Wähle unter „Sicherungen“ den Stand, zu dem du zurückwillst.",4500)}catch(e){}};
@@ -18039,12 +18267,44 @@ hubPushState=async function(force){return cloudSync(!!force)};
 hubPullState=async function(){await cloudSync(false);return "same"};
 ACT.hubUseRemote=async()=>cloudSync(true);ACT.hubKeepLocal=async()=>cloudSync(true);
 const _hubHTMLc=hubHTML;hubHTML=function(){let h=_hubHTMLc();if(!gAuth())return h;return h.replace(/<\/div>\s*$/,`<div class="stack s cl-box" style="margin-top:.6rem;border-top:1px solid var(--line);padding-top:.6rem"><div class="row between"><b>Wolke</b><span class="chip">${esc(clIcon())}</span></div><small class="muted ui">${esc(clText())} · Zusammenführen statt Konflikt: each card, lesson and day keeps the newest progress from every device; settings follow the last change.</small><div class="row"><button class="sm" data-act="cloudNow">Jetzt abgleichen</button><button class="sm" data-act="cloudBackups">Zurückholen</button>${lsGet("mephisto_undo_restore")?`<button class="sm ghost" data-act="cloudUndo">Rückgängig</button>`:""}</div></div></div>`)};
-let CL_T=null;MOD.after("saveSoon","cloud",function(){clearTimeout(CL_T);CL_T=setTimeout(()=>{if(gAuth&&gAuth())cloudSync(false)},60000)});
-document.addEventListener("visibilitychange",()=>{if(!document.hidden&&gAuth&&gAuth())cloudSync(false)});
-window.addEventListener("online",()=>{clSet("");if(gAuth&&gAuth())cloudSync(false)});window.addEventListener("offline",()=>clSet("off"));
+// ---- Ich → Daten: "Deine Daten" — the cloud in plain words: is everything safe, where, and what happens next
+const clAgo=t=>{if(!t)return "noch nie";const m=Math.round((Date.now()-t)/60000);return m<1?"gerade eben":m<60?"vor "+m+" Min.":m<1440?"vor "+Math.round(m/60)+" Std.":fmtDate(keyOf(new Date(t)))};
+function clState(){const a=typeof gAuth==="function"?gAuth():null;const st=STORE.st||{};
+  if(st.unsaved)return {tone:"bad",head:"Nicht gespeichert",sub:"Der letzte Speicherversuch auf diesem Gerät ist fehlgeschlagen. Sichere deinen Stand gleich unten als Datei."};
+  if(!hubCan()||!a||gConf().syncState===false)return {tone:"off",head:"Nur auf diesem Gerät gespeichert",sub:hubCan()?"Verbinde Google (Einstellungen), dann liegt eine Kopie auf deinem Drive und du kannst auf mehreren Geräten lernen.":"Nimm deinen Fortschritt per Datei mit; in der installierten App sichert Mephisto ihn auf Google Drive."};
+  const waiting=!!CL2.lastFp&&clLocalFp()!==CL2.lastFp;
+  if(gNeedsTap())return {tone:"warn",head:"Google braucht einen Tipp",sub:"Alles ist auf diesem Gerät sicher. Tippe „Neu verbinden“, dann sichert Mephisto wieder auf Drive.",tap:true};
+  if(navigator.onLine===false)return {tone:"warn",head:waiting?"Auf diesem Gerät gespeichert, wartet auf Verbindung":"Offline",sub:"Mephisto sichert auf Drive, sobald du wieder online bist."};
+  if(CL.running)return {tone:"busy",head:"Wird auf Drive gesichert …",sub:""};
+  if(CL2.problem)return {tone:"bad",head:"Noch nicht auf Drive gesichert",sub:CL2.problem+(CL2.nextRetry?" Nächster Versuch in "+Math.max(1,Math.round((CL2.nextRetry-Date.now())/60000))+" Min.":"")+" Nichts geht verloren: alles liegt auf diesem Gerät."};
+  if(waiting||!CL2.lastGood)return {tone:"busy",head:"Eine Änderung wartet aufs Sichern",sub:"Sie geht in wenigen Sekunden zu Drive."};
+  return {tone:"ok",head:"Alles ist auf Drive gesichert",sub:"Zuletzt gesichert "+clAgo(CL2.lastSave||CL2.lastGood)+", geprüft "+clAgo(CL2.lastCheck||CL2.lastGood)+"."}}
+function clCardHTML(){const c=clState(),st=STORE.st||{},on=hubCan()&&gAuth()&&gConf().syncState!==false;const n=Object.keys(S.cards||{}).length;
+  const row=(ok,label,detail)=>`<div class="cl-row ${ok===true?"ok":ok===false?"bad":""}"><span class="cl-i" aria-hidden="true">${ok===true?"✓":ok===false?"!":"·"}</span><b>${label}</b><small class="muted ui">${detail}</small></div>`;
+  const a=gAuth()||{};const diag=[["Google",gToken()?"angemeldet"+(a.email?" als "+esc(a.email):""):gAuth()?"Sitzung abgelaufen – Neu verbinden":"nicht angemeldet"],["Letztes Anmelde-Ereignis",esc((GAUTH.lastEvent||"keins")+(GAUTH.lastError?" · "+GAUTH.lastError:""))],["Anmeldung",gRedirectMode()?"im selben Fenster (zu Google und zurück)":"Google-Fenster (Popup)"],["Sitzung",gToken()?Math.max(0,Math.round((a.exp-Date.now())/60000))+" Min. übrig · erneuert sich beim nächsten Tipp":"–"],
+    ["Letzter Abgleich",CL2.lastGood?esc(fmtTime(new Date(CL2.lastGood).toISOString()))+(CL2.mode?" · "+esc(CL2.mode):"")+(CL2.ms?" · "+(CL2.ms/1000).toFixed(1)+" s":"")+" · "+CL2.read+" gelesen, "+CL2.sent+" gesendet":"noch nie"],
+    ["Drive-Anfragen",GST.requests+" gesendet · "+GST.retries+" wiederholt · "+GST.timeouts+" Zeitüberschreitungen · "+GST.errors+" fehlgeschlagen · "+GST.skipped+" unveränderte Dateien nicht gesendet · "+Math.round(GST.bytesUp/1024)+" KB gesendet"],
+    ["Nächster Versuch",CL2.nextRetry?esc(fmtTime(new Date(CL2.nextRetry).toISOString()))+" ("+CL2.fails+" in Folge)":"keiner geplant"],["Letzter Google-Fehler",GST.lastError?esc(GST.lastError)+" ("+esc(fmtTime(new Date(GST.lastErrorAt).toISOString()))+")":"keiner"],["Gerätespeicher",st.mode==="idb"?"IndexedDB mit Journal"+(st.passive?" · wartendes Fenster":""):"localStorage"]];
+  return `<div class="card stack s cl-card t-${c.tone}"><h3>Deine Daten</h3><div class="cl-head"><span class="cl-dot" aria-hidden="true"></span><div><b class="cl-h">${esc(c.head)}</b>${c.sub?`<br><small class="muted ui">${esc(c.sub)}</small>`:""}</div></div>
+   <div class="cl-rows">${row(st.unsaved?false:true,"Auf diesem Gerät",st.unsaved?"Speichern fehlgeschlagen":`${n.toLocaleString("de-DE")} Karten · ${st.mode==="idb"?"Gerätespeicher mit Journal, jede Änderung sofort":"Browserspeicher"}`)}
+    ${row(on?!CL2.problem:null,"Auf deinem Drive",on?`${DRV.tag&&DRV.tag.mephisto?"Mephistos Ordner, gefunden an seiner Markierung":"Mephistos Ordner"} · ${CP.NAMES.length+1} kleine Dateien, nur geänderte werden gesendet`:"nicht verbunden")}
+    ${row(true,"Sicherungen",on?"täglich auf Drive (die letzten 14) und auf diesem Gerät, und vor jedem großen Schritt":"täglich auf diesem Gerät (unten), und vor jedem großen Schritt")}
+    ${row(true,"Zwei Geräte zugleich","Änderungen werden Karte für Karte zusammengeführt; nichts wird überschrieben")}</div>
+   <div class="row wrap">${c.tap?`<button class="sm primary" data-act="hubReconnect">Neu verbinden</button>`:""}${on&&!c.tap?`<button class="sm primary" data-act="cloudNow">Jetzt sichern &amp; prüfen</button><button class="sm" data-act="cloudBackups">Zurückholen</button>`:""}</div>
+   ${on?`<details><summary class="ui" style="cursor:pointer">Diagnose</summary><div class="kv" style="margin-top:.5rem">${diag.map(([k,v])=>`<b>${k}</b><span>${v}</span>`).join("")}</div></details>`:""}</div>`}
+function clPaint(){try{const c=document.querySelector(".cl-card");if(c){const d=document.createElement("div");d.innerHTML=clCardHTML();c.replaceWith(d.firstElementChild)}}catch(e){}}
+MOD.after("meData","cloud",function(el){try{const d=document.createElement("div");d.innerHTML=clCardHTML();el.prepend(d.firstElementChild)}catch(e){}});
+(function(){try{const s=document.createElement("style");s.textContent=`.cl-card .cl-head{display:flex;gap:.6rem;align-items:flex-start}.cl-card .cl-dot{width:12px;height:12px;border-radius:50%;margin-top:.35rem;flex:none;background:var(--mut,#888)}
+.cl-card.t-ok .cl-dot{background:#2e9d5b}.cl-card.t-busy .cl-dot{background:#d49a1c}.cl-card.t-warn .cl-dot{background:#d97a1c}.cl-card.t-bad .cl-dot{background:#d0352b}
+.cl-card .cl-rows{display:grid;gap:.35rem}.cl-card .cl-row{display:grid;grid-template-columns:1.2rem 9.5rem 1fr;gap:.4rem;align-items:baseline}.cl-card .cl-row.bad .cl-i{color:#d0352b}.cl-card .cl-row.ok .cl-i{color:#2e9d5b}
+@media (max-width:520px){.cl-card .cl-row{grid-template-columns:1.2rem 1fr}.cl-card .cl-row small{grid-column:2}}`;document.head.appendChild(s)}catch(e){}})();
+// a change goes to Drive within ~20 s of the first unsaved edit (not postponed by every further tap), and at once when the app is hidden
+let CL_T=null;MOD.after("saveSoon","cloud",function(){if(CL_T)return;CL_T=setTimeout(()=>{CL_T=null;if(gAuth&&gToken())cloudSync(false)},20000)});
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&gAuth&&gToken()&&Date.now()-CL2.lastCheck>120000)cloudSync(false)});
+window.addEventListener("online",()=>{clSet("");setTimeout(()=>{if(gAuth&&gToken())cloudSync(false)},1500)});   // back online: save what waitedwindow.addEventListener("offline",()=>clSet("off"));
 // second window, old storage only (no IndexedDB): merge what the other window saved, in place. With IndexedDB there is one writing window (c_p2_store.js).
 window.addEventListener("storage",e=>{try{if(STORE.mode==="idb"||STORE.st.pending)return;if(e.key===LS_KEY&&e.newValue){const raw=JSON.parse(e.newValue);if(!raw||raw._idb)return;const other=validate(raw);const keep=Object.assign({},S.google||{});const nx=validate(mergeStates(S,other));nx.google=keep;adopt(nx,"tab");TS_LAST=null;buildDict();if(!Focus.isOpen())rerender()}}catch(x){}});
-setInterval(()=>{if(!document.hidden&&gAuth&&gAuth())cloudSync(false)},300000);
+setInterval(()=>{if(!document.hidden&&gAuth&&gToken())cloudSync(false)},300000);
 MOD.after("chrome","cloud",function(){try{const tc=$("#topChips");const cfg=typeof gConf==="function"?gConf():{};if(tc&&!tc.querySelector(".cl-chip")&&(gAuth&&gAuth()||cfg.clientId))tc.insertAdjacentHTML("afterbegin",`<button class="chip cl-chip" data-act="${gAuth&&gAuth()?"cloudNow":"hubConnect"}" title="${esc(gAuth&&gAuth()?clText():"Wolke: Anmeldung nötig")}">${gAuth&&gAuth()?clIcon():"☁⚠"}</button>`)}catch(e){}});
 MOD.after("chrome","p2store",function(){try{const tc0=$("#topChips");if(tc0&&STORE.st.unsaved&&!tc0.querySelector(".p2-unsaved"))tc0.insertAdjacentHTML("afterbegin",`<button class="chip p2-unsaved" data-act="meData" title="Der letzte Speicherversuch ist fehlgeschlagen">⚠ nicht gespeichert</button>`)}catch(e){}});
 

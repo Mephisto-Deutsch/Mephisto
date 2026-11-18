@@ -3,7 +3,7 @@
    - single download: "./" is not a second copy; files that did not change between versions are not fetched again;
    - resumable: every verified file is kept at once, so an interrupted install continues where it stopped;
    - atomic: the new version only takes over when every file is stored and matches its SHA-256 (a stale CDN copy fails and is retried later). */
-const VERSION = "13.10.0-8d8d726a5b";
+const VERSION = "13.11.0-1d03181940";
 const FILES = {
 "index.html": "653a4ae46593f1cc83f15989b6f288290f692950511571b535c74f2e75a61039",
 "manifest.webmanifest": "d573eb33cf31c814060c21e4f4cb29abf24b12f9ab8950b4ca18aabd1c360cd9",
@@ -21,7 +21,7 @@ const FILES = {
 "fonts/sourceserif4-italic.woff": "65cb81b09f72ccd03e756b200d2c08bdd4e8a30e6634a59dc5310e43cba9857e",
 "fonts/sourceserif4.woff": "0375575b7d682774f40208171de11fd99a042c083fdd17b925721455ea21278f",
 "fonts/unifraktur.woff": "961e1cfdcf923c87df0dbf6215a32d3f02fa40b2f330e04c4b6dc90f842cfe35",
-"js/app.js": "20a05f2b0d1b4248c9955f2cb87a9c097e17226921a27c41ca81452ed2436e36",
+"js/app.js": "f8ebb1f8ec3edbcd6ba69841e181975126ec58404d0b3678ac7634dd111065ea",
 "js/data-b2.js": "f1a561e5277a177631eb4ecfda8c324e5daa36f1bddfc5ec779ff06d5f90900a",
 "js/data-base.js": "742355e2807c4a9679680e94004567e8bbe7a0d386310b9837207116d796c874",
 "js/data-bib.js": "72d77ed86f3e47c1ec8b680d151fe5b397b0dab81cfa0c114040633f36ad7624",
